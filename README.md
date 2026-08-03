@@ -14,6 +14,10 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
    ```bash
    npx expo start
+   export CHOKIDAR_USEPOLLING=true
+   export WATCHPACK_POLLING=true
+   npx expo start --localhost --port 8081 --clear
+   npx expo start --offline --clear
    ```
 
 In the output, you'll find options to open the app in a

@@ -7,19 +7,19 @@ import { HapticTab } from "@/components/haptic-tab";
 const tabs = [
   {
     id: "globe",
-    route: "globe",
+    route: "index",
     label: "Globe",
     icon: require("@/assets/images/svg/globe.svg"),
   },
   {
     id: "passport",
-    route: "explore",
+    route: "passport",
     label: "Passport",
     icon: require("@/assets/images/svg/passport.svg"),
   },
   {
     id: "profile",
-    route: "index",
+    route: "profile",
     label: "Profile",
     icon: require("@/assets/images/svg/profile-medal.svg"),
   },

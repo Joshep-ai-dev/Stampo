@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import {
   ScrollView,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { CityVisitSearch } from "@/components/city-visit-search";
 
 const colors = {
   background: "#f4ecdc",
@@ -204,6 +207,8 @@ function FilterPill({
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
@@ -224,7 +229,13 @@ export default function HomeScreen() {
             pointerEvents="none"
           />
 
-          <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            activeOpacity={0.7}
+            onPress={() => router.push("/profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile settings"
+          >
             <Ionicons name="settings-outline" size={28} color={colors.muted} />
           </TouchableOpacity>
           <View style={styles.levelRow}>
@@ -260,6 +271,8 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
+
+        <CityVisitSearch />
 
         <SectionHeader title="Country Atlas" />
         <ScrollView
@@ -488,7 +501,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: {
-    fontFamily: displayBold,
+    fontFamily: bodySemiBold,
     color: colors.ink,
     fontSize: 24,
     letterSpacing: 1.7,
@@ -525,7 +538,7 @@ const styles = StyleSheet.create({
   countryName: {
     fontFamily: bodySemiBold,
     color: colors.ink,
-    fontSize: 18,
+    fontSize: 16,
     letterSpacing: 0.35,
     alignSelf: "flex-start",
     marginLeft: 15,
