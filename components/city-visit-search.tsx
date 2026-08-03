@@ -15,9 +15,13 @@ import {
   View,
 } from "react-native";
 
+// eslint-disable-next-line import/no-unresolved
 import { CityRecord, searchCities } from "@/data/cities";
+// eslint-disable-next-line import/no-unresolved
 import { api } from "@/services/api";
+// eslint-disable-next-line import/no-unresolved
 import { useAppDispatch } from "@/store/hooks";
+// eslint-disable-next-line import/no-unresolved
 import { NewVisit, visitAdded } from "@/store/travel-slice";
 
 const colors = {

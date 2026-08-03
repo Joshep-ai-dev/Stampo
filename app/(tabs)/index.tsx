@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -132,7 +132,7 @@ export default function HomeScreen() {
       id: "countries",
       label: "COUNTRIES",
       value: visitedCountryCodes.size,
-      icon: "globe-outline",
+      icon: "globe",
     },
     {
       id: "continents",
@@ -241,16 +241,20 @@ export default function HomeScreen() {
             return (
               <TouchableOpacity
                 key={country.id}
-                style={[
-                  styles.countryCard,
-                  !visited && styles.countryCardLocked,
-                ]}
+                style={styles.countryCard}
                 activeOpacity={0.8}
               >
-                <Text style={styles.countryName}>
-                  <Text style={styles.flag}>{country.flag} </Text>
-                  {country.name}
-                </Text>
+                <View style={styles.countryHeader}>
+                  <Text style={styles.flag}>{country.flag}</Text>
+                  <Text
+                    style={styles.countryName}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.78}
+                  >
+                    {country.name}
+                  </Text>
+                </View>
                 <View style={styles.stampFrame}>
                   {image ? (
                     <Image
@@ -266,20 +270,34 @@ export default function HomeScreen() {
                     <View
                       style={[
                         styles.genericStamp,
-                        !visited && styles.countryStampLocked,
+                        !visited && styles.genericStampLocked,
                       ]}
                     >
-                      <Text style={styles.genericStampCode}>
+                      <Text
+                        style={[
+                          styles.genericStampCode,
+                          !visited && styles.genericStampTextLocked,
+                        ]}
+                      >
                         {country.code}
                       </Text>
-                      <Text style={styles.genericStampName}>
+                      <Text
+                        style={[
+                          styles.genericStampName,
+                          !visited && styles.genericStampTextLocked,
+                        ]}
+                      >
                         {country.name}
                       </Text>
                     </View>
                   )}
                   {!visited && (
                     <View style={styles.lockOverlay}>
-                      <Ionicons name="key" size={28} color="#5f5b55" />
+                      <MaterialIcons
+                        name="lock-outline"
+                        size={20}
+                        color="#5f5b55"
+                      />
                     </View>
                   )}
                 </View>
@@ -410,6 +428,7 @@ const styles = StyleSheet.create({
   badgeNumber: {
     fontFamily: displayBold,
     color: colors.ink,
+    marginTop: -10,
     fontSize: 24,
   },
   levelDetails: { flex: 1, marginLeft: 17, paddingTop: 9 },
@@ -457,18 +476,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  statTop: { flexDirection: "row", gap: 7, alignItems: "center" },
+  statTop: {
+    height: 34,
+    flexDirection: "row",
+    gap: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   statNumber: {
     fontFamily: displayBold,
     fontSize: 28,
+    lineHeight: 34,
     color: colors.ink,
+    marginTop: -10,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   statLabel: {
-    marginTop: 6,
+    marginTop: 4,
     fontFamily: displaySemiBold,
     fontSize: 14,
+    lineHeight: 18,
     color: colors.muted,
     letterSpacing: 1.1,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   statDivider: { height: 57, width: 1, backgroundColor: colors.line },
   sectionHeader: {
@@ -514,25 +546,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 14,
   },
-  countryCardLocked: { backgroundColor: "#e4dfd5", borderColor: "#bdb8ae" },
+  countryHeader: {
+    width: "100%",
+    height: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 7,
+  },
   countryName: {
+    flex: 1,
     fontFamily: bodySemiBold,
     color: colors.ink,
     fontSize: 16,
+    lineHeight: 21,
     letterSpacing: 0.35,
-    alignSelf: "flex-start",
-    marginLeft: 15,
+    includeFontPadding: false,
   },
-  flag: { fontSize: 22 },
+  flag: { fontSize: 22, lineHeight: 25, includeFontPadding: false },
   stampFrame: {
     width: 190,
-    height: 210,
-    marginTop: 4,
+    height: 190,
     alignItems: "center",
     justifyContent: "center",
   },
-  countryStamp: { width: 190, height: 200 },
+  countryStamp: { width: 180, height: 185 },
   countryStampLocked: { opacity: 0.34 },
+  genericStampLocked: { borderColor: "#918c84", opacity: 0.38 },
+  genericStampTextLocked: { color: "#77736d" },
   genericStamp: {
     width: 145,
     height: 160,
@@ -559,7 +600,6 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(244,240,232,0.88)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -567,7 +607,10 @@ const styles = StyleSheet.create({
     fontFamily: body,
     color: colors.muted,
     fontSize: 13,
-    marginTop: 2,
+    lineHeight: 18,
+    marginTop: 4,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   achievementCard: {
     width: 200,

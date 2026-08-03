@@ -80,7 +80,15 @@ const profileSections: readonly ProfileSection[] = [
   },
 ];
 
-function SettingsRow({ row, isLast, onPress }: { row: ProfileRow; isLast: boolean; onPress: () => void }) {
+function SettingsRow({
+  row,
+  isLast,
+  onPress,
+}: {
+  row: ProfileRow;
+  isLast: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -146,7 +154,9 @@ export default function ProfileScreen() {
       void api.updateProfile(nextProfile).catch(() => undefined);
     }
     if (activeRow.id === "sign-up") {
-      void api.signUp({ name: profile.name, email, password }).catch(() => undefined);
+      void api
+        .signUp({ name: profile.name, email, password })
+        .catch(() => undefined);
     }
     if (activeRow.id === "sign-in") {
       void api.signIn({ email, password }).catch(() => undefined);
@@ -182,55 +192,104 @@ export default function ProfileScreen() {
         ))}
       </ScrollView>
 
-      <Modal visible={activeRow !== null} transparent animationType="slide" onRequestClose={closeModal}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalRoot}>
+      <Modal
+        visible={activeRow !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalRoot}
+        >
           <Pressable style={styles.backdrop} onPress={closeModal} />
           <View style={styles.sheet}>
             <View style={styles.modalHeader}>
-              <Pressable onPress={closeModal}><Text style={styles.cancel}>Cancel</Text></Pressable>
+              <Pressable onPress={closeModal}>
+                <Text style={styles.cancel}>Cancel</Text>
+              </Pressable>
               <Text style={styles.modalTitle}>{activeRow?.label}</Text>
               <View style={styles.modalSpacer} />
             </View>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              keyboardShouldPersistTaps="handled"
+            >
               {activeRow?.id === "name" && (
-                <TextInput value={draft} onChangeText={setDraft} style={styles.input} placeholder="Name" autoFocus />
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  style={styles.input}
+                  placeholder="Name"
+                  autoFocus
+                />
               )}
               {activeRow?.id === "language" && (
                 <View style={styles.languageList}>
-                  {["English", "Spanish", "French", "Japanese", "Chinese"].map((language) => (
-                    <Pressable
-                      key={language}
-                      style={styles.languageRow}
-                      onPress={() => {
-                        dispatch(languageChanged(language));
-                        void api.updateProfile({ ...profile, language }).catch(() => undefined);
-                        closeModal();
-                      }}
-                    >
-                      <Text style={styles.languageText}>{language}</Text>
-                      {profile.language === language && <Ionicons name="checkmark" size={24} color={colors.ink} />}
-                    </Pressable>
-                  ))}
+                  {["English", "Spanish", "French", "Japanese", "Chinese"].map(
+                    (language) => (
+                      <Pressable
+                        key={language}
+                        style={styles.languageRow}
+                        onPress={() => {
+                          dispatch(languageChanged(language));
+                          void api
+                            .updateProfile({ ...profile, language })
+                            .catch(() => undefined);
+                          closeModal();
+                        }}
+                      >
+                        <Text style={styles.languageText}>{language}</Text>
+                        {profile.language === language && (
+                          <Ionicons
+                            name="checkmark"
+                            size={24}
+                            color={colors.ink}
+                          />
+                        )}
+                      </Pressable>
+                    ),
+                  )}
                 </View>
               )}
               {(activeRow?.id === "sign-up" || activeRow?.id === "sign-in") && (
                 <>
-                  <TextInput value={email} onChangeText={setEmail} style={styles.input} placeholder="Email" keyboardType="email-address" autoCapitalize="none" />
-                  <TextInput value={password} onChangeText={setPassword} style={styles.input} placeholder="Password" secureTextEntry />
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    style={styles.input}
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                  />
                 </>
               )}
-              {activeRow && ["contact", "privacy", "terms"].includes(activeRow.id) && (
-                <Text style={styles.legalText}>
-                  {activeRow.id === "contact"
-                    ? "Contact support@stampo.app. This endpoint can be replaced by your Laravel support API."
-                    : `${activeRow.label} content will be served by the Laravel backend when it is available.`}
-                </Text>
-              )}
-              {activeRow && ["name", "sign-up", "sign-in"].includes(activeRow.id) && (
-                <TouchableOpacity style={styles.saveButton} onPress={saveModal}>
-                  <Text style={styles.saveText}>{activeRow.id === "name" ? "SAVE" : "CONTINUE"}</Text>
-                </TouchableOpacity>
-              )}
+              {activeRow &&
+                ["contact", "privacy", "terms"].includes(activeRow.id) && (
+                  <Text style={styles.legalText}>
+                    {activeRow.id === "contact"
+                      ? "Contact support@stampo.app. This endpoint can be replaced by your Laravel support API."
+                      : `${activeRow.label} content will be served by the Laravel backend when it is available.`}
+                  </Text>
+                )}
+              {activeRow &&
+                ["name", "sign-up", "sign-in"].includes(activeRow.id) && (
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={saveModal}
+                  >
+                    <Text style={styles.saveText}>
+                      {activeRow.id === "name" ? "SAVE" : "CONTINUE"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -297,18 +356,88 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(30,22,17,0.32)" },
-  sheet: { minHeight: "52%", maxHeight: "88%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: colors.card, overflow: "hidden" },
-  modalHeader: { height: 72, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
-  cancel: { width: 75, fontFamily: "Lora_400Regular", fontSize: 16, color: colors.ink },
-  modalTitle: { fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 21, color: colors.ink },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(30,22,17,0.32)",
+  },
+  sheet: {
+    minHeight: "52%",
+    maxHeight: "88%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: colors.card,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    height: 72,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  cancel: {
+    width: 75,
+    fontFamily: "Lora_400Regular",
+    fontSize: 16,
+    color: colors.ink,
+  },
+  modalTitle: {
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 21,
+    color: colors.ink,
+  },
   modalSpacer: { width: 75 },
   modalContent: { padding: 20, gap: 14, paddingBottom: 40 },
-  input: { height: 56, borderRadius: 13, borderWidth: 1, borderColor: colors.divider, paddingHorizontal: 15, fontFamily: "Lora_500Medium", fontSize: 17, color: colors.ink },
-  languageList: { borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: colors.divider },
-  languageRow: { minHeight: 58, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
-  languageText: { fontFamily: "Lora_500Medium", fontSize: 18, color: colors.ink },
-  legalText: { fontFamily: "Lora_400Regular", fontSize: 17, lineHeight: 27, color: colors.muted },
-  saveButton: { height: 56, borderRadius: 13, backgroundColor: "#c7a56e", alignItems: "center", justifyContent: "center", marginTop: 8 },
-  saveText: { fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 19, letterSpacing: 1, color: "#fffaf1" },
+  input: {
+    height: 56,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    paddingHorizontal: 15,
+    fontFamily: "Lora_500Medium",
+    fontSize: 17,
+    color: colors.ink,
+  },
+  languageList: {
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  languageRow: {
+    minHeight: 58,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  languageText: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 18,
+    color: colors.ink,
+  },
+  legalText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 17,
+    lineHeight: 27,
+    color: colors.muted,
+  },
+  saveButton: {
+    height: 56,
+    borderRadius: 13,
+    backgroundColor: "#c7a56e",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  saveText: {
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 19,
+    letterSpacing: 1,
+    color: "#fffaf1",
+  },
 });

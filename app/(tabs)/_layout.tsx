@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { Image, StyleSheet } from "react-native";
 import { SvgUri } from "react-native-svg";
 
+// eslint-disable-next-line import/no-unresolved
 import { HapticTab } from "@/components/haptic-tab";
 
 const tabs = [

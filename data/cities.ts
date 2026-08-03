@@ -1,7 +1,12 @@
+import type { TContinentCode, TCountryCode } from "countries-list";
+import {
+  continents,
+  countries,
+  getCountryCode,
+  getEmojiFlag,
+} from "countries-list";
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
-import { continents, getCountryCode, getEmojiFlag, countries } from "countries-list";
-import type { TContinentCode, TCountryCode } from "countries-list";
 
 export type CityRecord = {
   id: string;
@@ -65,7 +70,10 @@ async function readBundledCsv(): Promise<string> {
 
 async function loadCityRecords(): Promise<CityRecord[]> {
   const csv = await readBundledCsv();
-  const rows = csv.replace(/^\uFEFF/, "").split(/\r?\n/).slice(1);
+  const rows = csv
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .slice(1);
 
   return rows.flatMap((row) => {
     if (!row.trim()) return [];
@@ -117,7 +125,10 @@ export function getCities(): Promise<CityRecord[]> {
   return cityCache;
 }
 
-export async function searchCities(query: string, limit = 8): Promise<CityRecord[]> {
+export async function searchCities(
+  query: string,
+  limit = 8,
+): Promise<CityRecord[]> {
   const normalized = query.trim().toLocaleLowerCase();
   if (normalized.length < 2) return [];
 
