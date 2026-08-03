@@ -1,0 +1,15 @@
+export const stampAssets: Partial<Record<string, number>> = {
+  AE: require("@/assets/images/stampo/united-arab-emirates.png"),
+  CA: require("@/assets/images/stampo/canada.png"),
+  FR: require("@/assets/images/stampo/france.png"),
+  JP: require("@/assets/images/stampo/japan.png"),
+  KH: require("@/assets/images/stampo/cambodia.png"),
+  KR: require("@/assets/images/stampo/south-korea.png"),
+  MX: require("@/assets/images/stampo/mexico.png"),
+  MY: require("@/assets/images/stampo/malaysia.png"),
+  NL: require("@/assets/images/stampo/netherlands.png"),
+  SG: require("@/assets/images/stampo/singapore.png"),
+  TH: require("@/assets/images/stampo/thailand.png"),
+  TR: require("@/assets/images/stampo/turkey.png"),
+  US: require("@/assets/images/stampo/united-states.png"),
+};

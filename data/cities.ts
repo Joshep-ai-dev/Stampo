@@ -1,12 +1,25 @@
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
+import { continents, getCountryCode, getEmojiFlag, countries } from "countries-list";
+import type { TContinentCode, TCountryCode } from "countries-list";
 
 export type CityRecord = {
   id: string;
   name: string;
   country: string;
   subcountry: string;
+  countryCode: string;
+  continentCode: string;
   searchText: string;
+};
+
+export type CountryRecord = {
+  id: string;
+  code: string;
+  name: string;
+  flag: string;
+  continentCode: string;
+  continent: string;
 };
 
 let cityCache: Promise<CityRecord[]> | undefined;
@@ -58,6 +71,9 @@ async function loadCityRecords(): Promise<CityRecord[]> {
     if (!row.trim()) return [];
     const [name, country, subcountry, geonameId] = parseCsvRow(row);
     if (!name || !country || !geonameId) return [];
+    const resolvedCode = getCountryCode(country);
+    const countryCode = resolvedCode || "";
+    const continentCode = resolvedCode ? countries[resolvedCode].continent : "";
 
     return [
       {
@@ -65,10 +81,35 @@ async function loadCityRecords(): Promise<CityRecord[]> {
         name,
         country,
         subcountry,
+        countryCode,
+        continentCode,
         searchText: `${name} ${subcountry} ${country}`.toLocaleLowerCase(),
       },
     ];
   });
+}
+
+export async function getCountriesWithCities(): Promise<CountryRecord[]> {
+  const cityRecords = await getCities();
+  const countryNames = new Set(cityRecords.map((city) => city.country));
+
+  return [...countryNames]
+    .map((name) => {
+      const resolvedCode = getCountryCode(name);
+      if (!resolvedCode) return null;
+      const code = resolvedCode as TCountryCode;
+      const continentCode = countries[code].continent as TContinentCode;
+      return {
+        id: code,
+        code,
+        name,
+        flag: getEmojiFlag(code),
+        continentCode,
+        continent: continents[continentCode],
+      };
+    })
+    .filter((country): country is CountryRecord => country !== null)
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function getCities(): Promise<CityRecord[]> {

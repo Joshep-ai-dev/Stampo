@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -11,6 +12,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
+import { CountryRecord, getCountriesWithCities } from "@/data/cities";
+import { stampAssets } from "@/data/stamps";
+import { useAppSelector } from "@/store/hooks";
 
 const colors = {
   background: "#f4ecdc",
@@ -20,126 +24,6 @@ const colors = {
   muted: "#69523e",
   line: "#c7a56e",
 };
-
-const countries = [
-  {
-    id: "us",
-    name: "United States",
-    flag: "🇺🇸",
-    cities: "10 Cities",
-    cityCount: 10,
-    continent: "north-america",
-    image: require("@/assets/images/stampo/united-states.png"),
-  },
-  {
-    id: "ca",
-    name: "Canada",
-    flag: "🇨🇦",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "north-america",
-    image: require("@/assets/images/stampo/canada.png"),
-  },
-  {
-    id: "mx",
-    name: "Mexico",
-    flag: "🇲🇽",
-    cities: "2 Cities",
-    cityCount: 2,
-    continent: "north-america",
-    image: require("@/assets/images/stampo/mexico.png"),
-  },
-  {
-    id: "kh",
-    name: "Cambodia",
-    flag: "🇰🇭",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "asia",
-    image: require("@/assets/images/stampo/cambodia.png"),
-  },
-  {
-    id: "fr",
-    name: "France",
-    flag: "🇫🇷",
-    cities: "3 Cities",
-    cityCount: 3,
-    continent: "europe",
-    image: require("@/assets/images/stampo/france.png"),
-  },
-  {
-    id: "jp",
-    name: "Japan",
-    flag: "🇯🇵",
-    cities: "3 Cities",
-    cityCount: 3,
-    continent: "asia",
-    image: require("@/assets/images/stampo/japan.png"),
-  },
-  {
-    id: "my",
-    name: "Malaysia",
-    flag: "🇲🇾",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "asia",
-    image: require("@/assets/images/stampo/malaysia.png"),
-  },
-  {
-    id: "nl",
-    name: "Netherlands",
-    flag: "🇳🇱",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "europe",
-    image: require("@/assets/images/stampo/netherlands.png"),
-  },
-  {
-    id: "sg",
-    name: "Singapore",
-    flag: "🇸🇬",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "asia",
-    image: require("@/assets/images/stampo/singapore.png"),
-  },
-  {
-    id: "kr",
-    name: "South Korea",
-    flag: "🇰🇷",
-    cities: "2 Cities",
-    cityCount: 2,
-    continent: "asia",
-    image: require("@/assets/images/stampo/south-korea.png"),
-  },
-  {
-    id: "th",
-    name: "Thailand",
-    flag: "🇹🇭",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "asia",
-    image: require("@/assets/images/stampo/thailand.png"),
-  },
-  {
-    id: "tr",
-    name: "Turkey",
-    flag: "🇹🇷",
-    cities: "2 Cities",
-    cityCount: 2,
-    continent: "europe",
-    image: require("@/assets/images/stampo/turkey.png"),
-  },
-  {
-    id: "ae",
-    name: "United Arab Emirates",
-    flag: "🇦🇪",
-    cities: "1 City",
-    cityCount: 1,
-    continent: "asia",
-    image: require("@/assets/images/stampo/united-arab-emirates.png"),
-  },
-];
 
 const achievements = [
   {
@@ -156,18 +40,15 @@ const achievements = [
   },
 ];
 
-const stats = [
-  { id: "countries", label: "COUNTRIES", value: 13, icon: "globe-outline" },
-  { id: "continents", label: "CONTINENTS", value: 3, icon: "flag-outline" },
-  { id: "cities", label: "CITIES", value: 29, icon: "location-outline" },
-] as const;
-
 const continentFilters = [
-  { id: "asia", label: "Asia" },
-  { id: "north-america", label: "N. America", selected: true },
-  { id: "europe", label: "Europe" },
-  { id: "south-america", label: "S. America" },
-];
+  { id: "AF", label: "Africa" },
+  { id: "AS", label: "Asia" },
+  { id: "EU", label: "Europe" },
+  { id: "NA", label: "N. America" },
+  { id: "SA", label: "S. America" },
+  { id: "OC", label: "Oceania" },
+  { id: "AN", label: "Antarctica" },
+] as const;
 
 const achievementFilters = [
   { id: "countries", label: "Countries", selected: true },
@@ -190,14 +71,17 @@ function SectionHeader({ title }: { title: string }) {
 function FilterPill({
   label,
   selected = false,
+  onPress,
 }: {
   label: string;
   selected?: boolean;
+  onPress?: () => void;
 }) {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       style={[styles.pill, selected && styles.pillSelected]}
+      onPress={onPress}
     >
       <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
         {label}
@@ -208,6 +92,61 @@ function FilterPill({
 
 export default function HomeScreen() {
   const router = useRouter();
+  const visits = useAppSelector((state) => state.travel.visits);
+  const profileName = useAppSelector((state) => state.profile.name);
+  const [catalog, setCatalog] = useState<CountryRecord[]>([]);
+  const [selectedContinent, setSelectedContinent] = useState("NA");
+
+  useEffect(() => {
+    void getCountriesWithCities().then(setCatalog);
+  }, []);
+
+  const visitedCityIds = useMemo(
+    () => new Set(visits.map((visit) => visit.cityId)),
+    [visits],
+  );
+  const visitedCountryCodes = useMemo(
+    () => new Set(visits.map((visit) => visit.countryCode).filter(Boolean)),
+    [visits],
+  );
+  const visitedContinents = useMemo(
+    () => new Set(visits.map((visit) => visit.continentCode).filter(Boolean)),
+    [visits],
+  );
+  const cityCounts = useMemo(() => {
+    const counts = new Map<string, Set<string>>();
+    visits.forEach((visit) => {
+      if (!counts.has(visit.countryCode))
+        counts.set(visit.countryCode, new Set());
+      counts.get(visit.countryCode)?.add(visit.cityId);
+    });
+    return counts;
+  }, [visits]);
+  const visibleCountries = useMemo(
+    () =>
+      catalog.filter((country) => country.continentCode === selectedContinent),
+    [catalog, selectedContinent],
+  );
+  const stats = [
+    {
+      id: "countries",
+      label: "COUNTRIES",
+      value: visitedCountryCodes.size,
+      icon: "globe-outline",
+    },
+    {
+      id: "continents",
+      label: "CONTINENTS",
+      value: visitedContinents.size,
+      icon: "flag-outline",
+    },
+    {
+      id: "cities",
+      label: "CITIES",
+      value: visitedCityIds.size,
+      icon: "location-outline",
+    },
+  ] as const;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -219,7 +158,7 @@ export default function HomeScreen() {
         <View style={styles.hero}>
           <View style={styles.welcomeBlock}>
             <Text style={styles.eyebrow}>WELCOME</Text>
-            <Text style={styles.name}>Robb</Text>
+            <Text style={styles.name}>{profileName}</Text>
           </View>
 
           <Image
@@ -284,7 +223,8 @@ export default function HomeScreen() {
             <FilterPill
               key={filter.id}
               label={filter.label}
-              selected={filter.selected}
+              selected={filter.id === selectedContinent}
+              onPress={() => setSelectedContinent(filter.id)}
             />
           ))}
         </ScrollView>
@@ -294,24 +234,63 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cardRow}
         >
-          {countries.map((country) => (
-            <TouchableOpacity
-              key={country.id}
-              style={styles.countryCard}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.countryName}>
-                <Text style={styles.flag}>{country.flag} </Text>
-                {country.name}
-              </Text>
-              <Image
-                source={country.image}
-                style={styles.countryStamp}
-                contentFit="contain"
-              />
-              <Text style={styles.countryCities}>{country.cities}</Text>
-            </TouchableOpacity>
-          ))}
+          {visibleCountries.map((country) => {
+            const visited = visitedCountryCodes.has(country.code);
+            const image = stampAssets[country.code];
+            const cityCount = cityCounts.get(country.code)?.size ?? 0;
+            return (
+              <TouchableOpacity
+                key={country.id}
+                style={[
+                  styles.countryCard,
+                  !visited && styles.countryCardLocked,
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.countryName}>
+                  <Text style={styles.flag}>{country.flag} </Text>
+                  {country.name}
+                </Text>
+                <View style={styles.stampFrame}>
+                  {image ? (
+                    <Image
+                      source={image}
+                      style={[
+                        styles.countryStamp,
+                        !visited && styles.countryStampLocked,
+                      ]}
+                      contentFit="contain"
+                      tintColor={visited ? undefined : "#8f8b84"}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.genericStamp,
+                        !visited && styles.countryStampLocked,
+                      ]}
+                    >
+                      <Text style={styles.genericStampCode}>
+                        {country.code}
+                      </Text>
+                      <Text style={styles.genericStampName}>
+                        {country.name}
+                      </Text>
+                    </View>
+                  )}
+                  {!visited && (
+                    <View style={styles.lockOverlay}>
+                      <Ionicons name="key" size={28} color="#5f5b55" />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.countryCities}>
+                  {visited
+                    ? `${cityCount} ${cityCount === 1 ? "City" : "Cities"}`
+                    : "Not visited"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         <SectionHeader title="Achievements" />
@@ -535,6 +514,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 14,
   },
+  countryCardLocked: { backgroundColor: "#e4dfd5", borderColor: "#bdb8ae" },
   countryName: {
     fontFamily: bodySemiBold,
     color: colors.ink,
@@ -544,7 +524,45 @@ const styles = StyleSheet.create({
     marginLeft: 15,
   },
   flag: { fontSize: 22 },
-  countryStamp: { width: 190, height: 200, marginTop: 6 },
+  stampFrame: {
+    width: 190,
+    height: 210,
+    marginTop: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countryStamp: { width: 190, height: 200 },
+  countryStampLocked: { opacity: 0.34 },
+  genericStamp: {
+    width: 145,
+    height: 160,
+    borderWidth: 4,
+    borderColor: colors.brown,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+  },
+  genericStampCode: {
+    fontFamily: displayBold,
+    fontSize: 34,
+    color: colors.brown,
+  },
+  genericStampName: {
+    fontFamily: bodySemiBold,
+    fontSize: 13,
+    color: colors.brown,
+    textAlign: "center",
+  },
+  lockOverlay: {
+    position: "absolute",
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "rgba(244,240,232,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   countryCities: {
     fontFamily: body,
     color: colors.muted,

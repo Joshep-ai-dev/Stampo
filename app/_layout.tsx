@@ -15,12 +15,16 @@ import {
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Provider } from "react-redux";
 import "react-native-reanimated";
+
+import { hydrateStore, store } from "@/store";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [hydrated, setHydrated] = useState(false);
   const [loaded, error] = useFonts({
     Lora_400Regular,
     Lora_400Regular_Italic,
@@ -37,14 +41,18 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
-  if (!loaded && !error) return null;
+  useEffect(() => {
+    void hydrateStore().finally(() => setHydrated(true));
+  }, []);
+
+  if ((!loaded && !error) || !hydrated) return null;
 
   return (
-    <>
+    <Provider store={store}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
       </Stack>
       <StatusBar style="dark" />
-    </>
+    </Provider>
   );
 }

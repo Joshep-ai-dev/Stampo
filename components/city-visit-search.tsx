@@ -16,6 +16,9 @@ import {
 } from "react-native";
 
 import { CityRecord, searchCities } from "@/data/cities";
+import { api } from "@/services/api";
+import { useAppDispatch } from "@/store/hooks";
+import { NewVisit, visitAdded } from "@/store/travel-slice";
 
 const colors = {
   card: "#fffaf1",
@@ -54,6 +57,7 @@ function today() {
 }
 
 export function CityVisitSearch() {
+  const dispatch = useAppDispatch();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CityRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,7 +99,21 @@ export function CityVisitSearch() {
   const closeModal = () => setSelectedCity(null);
 
   const saveVisit = () => {
-    // Replace with the visits repository/API when persistence is connected.
+    if (!selectedCity) return;
+    const visit: NewVisit = {
+      cityId: selectedCity.id,
+      cityName: selectedCity.name,
+      country: selectedCity.country,
+      countryCode: selectedCity.countryCode,
+      continentCode: selectedCity.continentCode,
+      subcountry: selectedCity.subcountry,
+      visitedAt: visitDate,
+      note,
+    };
+    dispatch(visitAdded(visit));
+    void api.createVisit(visit).catch(() => {
+      // Local persistence is authoritative while the optional development server is offline.
+    });
     closeModal();
     setQuery("");
     setResults([]);
