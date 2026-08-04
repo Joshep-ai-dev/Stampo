@@ -1,4 +1,4 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -202,7 +202,12 @@ export default function HomeScreen() {
               {index > 0 && <View style={styles.statDivider} />}
               <View style={styles.stat}>
                 <View style={styles.statTop}>
-                  <Ionicons name={stat.icon} size={25} color={colors.muted} />
+                  {index === 0 ? (
+                    <Feather name={stat.icon} size={25} color={colors.muted} />
+                  ) : (
+                    <Ionicons name={stat.icon} size={25} color={colors.muted} />
+                  )}
+
                   <Text style={styles.statNumber}>{stat.value}</Text>
                 </View>
                 <Text style={styles.statLabel}>{stat.label}</Text>
