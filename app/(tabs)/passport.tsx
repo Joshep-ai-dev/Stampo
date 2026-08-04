@@ -15,15 +15,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { stampAssets } from "@/data/stamps";
+import { BrandColors } from "@/constants/theme";
 import { useAppSelector } from "@/store/hooks";
 
 const colors = {
-  background: "#f4ecdc",
-  paper: "#fff7e6",
-  paperBorder: "#dfc9a1",
-  ink: "#30261f",
-  muted: "#756a5c",
-  dot: "#cec7ba",
+  background: BrandColors.canvas,
+  paper: BrandColors.white,
+  paperBorder: BrandColors.copper,
+  ink: BrandColors.onDark,
+  muted: BrandColors.onDarkMuted,
+  dot: BrandColors.line,
 };
 
 type Stamp = { id: string; code: string; name: string; image?: number };
@@ -159,17 +160,17 @@ const styles = StyleSheet.create({
   carouselArea: { flex: 1, position: "relative" },
   pageFrame: { flex: 1, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   paper: { backgroundColor: colors.paper, borderWidth: 1.5, borderColor: colors.paperBorder, borderRadius: 18, padding: 9, elevation: 2 },
-  paperInner: { flex: 1, borderWidth: 1, borderColor: "#e2c99f", borderRadius: 14, padding: 14, flexDirection: "row", flexWrap: "wrap", alignContent: "center", justifyContent: "space-between", rowGap: 8 },
+  paperInner: { flex: 1, borderWidth: 1, borderColor: BrandColors.line, borderRadius: 14, padding: 14, flexDirection: "row", flexWrap: "wrap", alignContent: "center", justifyContent: "space-between", rowGap: 8 },
   stampSlot: { width: "49%", height: "47%", alignItems: "center", justifyContent: "center", borderRadius: 14 },
-  emptySlot: { borderWidth: 1.2, borderStyle: "dashed", borderColor: "#e5dbc8" },
+  emptySlot: { borderWidth: 1.2, borderStyle: "dashed", borderColor: BrandColors.line },
   stampImage: { width: "100%", height: "100%" },
-  genericStamp: { width: "90%", height: "76%", borderWidth: 4, borderColor: "#93442d", borderRadius: 24, alignItems: "center", justifyContent: "center", padding: 8 },
-  genericCode: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 30, color: "#93442d" },
-  genericName: { fontFamily: "Lora_600SemiBold", fontSize: 12, textAlign: "center", color: "#93442d" },
-  shareButton: { position: "absolute", top: 24, right: 14, width: 54, height: 54, borderRadius: 27, backgroundColor: "rgba(244,236,220,0.78)", alignItems: "center", justifyContent: "center" },
+  genericStamp: { width: "90%", height: "76%", borderWidth: 4, borderColor: BrandColors.copperDark, borderRadius: 24, alignItems: "center", justifyContent: "center", padding: 8 },
+  genericCode: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 30, color: BrandColors.copperDark },
+  genericName: { fontFamily: "Lora_600SemiBold", fontSize: 12, textAlign: "center", color: BrandColors.copperDark },
+  shareButton: { position: "absolute", top: 24, right: 14, width: 54, height: 54, borderRadius: 27, backgroundColor: BrandColors.greenDeep, borderWidth: 1, borderColor: BrandColors.copper, alignItems: "center", justifyContent: "center" },
   pagination: { height: 80, alignItems: "center", paddingTop: 5 },
   dots: { flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "92%", flexWrap: "wrap", justifyContent: "center" },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.dot },
-  dotActive: { backgroundColor: colors.ink },
+  dotActive: { backgroundColor: BrandColors.copper },
   pageCount: { marginTop: 8, color: colors.muted, fontFamily: "Lora_700Bold", fontSize: 20 },
 });

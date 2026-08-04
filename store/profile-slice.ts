@@ -1,8 +1,16 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export type ProfileState = { name: string; language: string };
+export type ProfileState = {
+  name: string;
+  language: string;
+  photoUri: string | null;
+};
 
-const initialState: ProfileState = { name: "Robb", language: "English" };
+const initialState: ProfileState = {
+  name: "Robb",
+  language: "English",
+  photoUri: null,
+};
 
 const profileSlice = createSlice({
   name: "profile",
@@ -14,11 +22,15 @@ const profileSlice = createSlice({
     languageChanged(state, action: PayloadAction<string>) {
       state.language = action.payload;
     },
+    photoChanged(state, action: PayloadAction<string | null>) {
+      state.photoUri = action.payload;
+    },
     profileHydrated(_state, action: PayloadAction<ProfileState>) {
-      return action.payload;
+      return { ...initialState, ...action.payload };
     },
   },
 });
 
-export const { nameChanged, languageChanged, profileHydrated } = profileSlice.actions;
+export const { nameChanged, languageChanged, photoChanged, profileHydrated } =
+  profileSlice.actions;
 export default profileSlice.reducer;

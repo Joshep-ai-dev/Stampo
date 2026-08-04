@@ -2,8 +2,8 @@ import { Tabs } from "expo-router";
 import { Image, StyleSheet } from "react-native";
 import { SvgUri } from "react-native-svg";
 
-// eslint-disable-next-line import/no-unresolved
 import { HapticTab } from "@/components/haptic-tab";
+import { BrandColors } from "@/constants/theme";
 
 const tabs = [
   {
@@ -44,16 +44,16 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: "#2b211a",
-        tabBarInactiveTintColor: "#9b9b9b",
+        tabBarActiveTintColor: BrandColors.green,
+        tabBarInactiveTintColor: BrandColors.muted,
         tabBarLabelStyle: {
           fontSize: 14,
           fontWeight: "600",
           marginTop: 1,
         },
         tabBarStyle: {
-          backgroundColor: "#f4ecdc",
-          borderTopColor: "#ded4c2",
+          backgroundColor: BrandColors.surface,
+          borderTopColor: BrandColors.line,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: 72,
           paddingTop: 7,

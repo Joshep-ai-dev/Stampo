@@ -12,17 +12,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
+import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getCountriesWithCities } from "@/data/cities";
+import { calculateKrooScore, getKrooRank } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { useAppSelector } from "@/store/hooks";
 
 const colors = {
-  background: "#f4ecdc",
-  panel: "#ead7b8",
-  ink: "#2b211a",
-  brown: "#78431f",
-  muted: "#69523e",
-  line: "#c7a56e",
+  background: BrandColors.canvas,
+  panel: BrandColors.surface,
+  ink: BrandColors.onDark,
+  brown: BrandColors.copperDark,
+  muted: BrandColors.onDarkMuted,
+  line: BrandColors.line,
 };
 
 const achievements = [
@@ -94,6 +96,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const visits = useAppSelector((state) => state.travel.visits);
   const profileName = useAppSelector((state) => state.profile.name);
+  const profilePhoto = useAppSelector((state) => state.profile.photoUri);
   const [catalog, setCatalog] = useState<CountryRecord[]>([]);
   const [selectedContinent, setSelectedContinent] = useState("NA");
 
@@ -127,6 +130,13 @@ export default function HomeScreen() {
       catalog.filter((country) => country.continentCode === selectedContinent),
     [catalog, selectedContinent],
   );
+  const krooScore = calculateKrooScore({
+    continents: visitedContinents.size,
+    countries: visitedCountryCodes.size,
+    cities: visitedCityIds.size,
+  });
+  const countryProgress = Math.min(1, visitedCountryCodes.size / 195);
+  const krooRank = getKrooRank(krooScore);
   const stats = [
     {
       id: "countries",
@@ -169,30 +179,42 @@ export default function HomeScreen() {
           />
 
           <TouchableOpacity
-            style={styles.settingsButton}
+            style={styles.profileButton}
             activeOpacity={0.7}
             onPress={() => router.push("/profile")}
             accessibilityRole="button"
-            accessibilityLabel="Open profile settings"
+            accessibilityLabel="Open profile"
           >
-            <Ionicons name="settings-outline" size={28} color={colors.muted} />
-          </TouchableOpacity>
-          <View style={styles.levelRow}>
-            <View style={styles.badgeWrap}>
+            {profilePhoto ? (
               <Image
-                source={require("@/assets/images/other/level-badge.png")}
-                style={styles.badgeImage}
-                contentFit="contain"
+                source={{ uri: profilePhoto }}
+                style={styles.profilePhoto}
+                contentFit="cover"
               />
-              <Text style={styles.badgeLabel}>Lv.</Text>
-              <Text style={styles.badgeNumber}>10</Text>
+            ) : (
+              <Ionicons name="person" size={25} color={BrandColors.white} />
+            )}
+          </TouchableOpacity>
+          <View style={styles.scoreRow}>
+            <View style={styles.scoreNumberWrap}>
+              <Text style={styles.scoreEyebrow}>MY KROO SCORE</Text>
+              <Text style={styles.scoreNumber}>
+                {krooScore.toLocaleString()}
+              </Text>
             </View>
-            <View style={styles.levelDetails}>
-              <Text style={styles.levelTitle}>ATLAS WHISPERER</Text>
+            <View style={styles.scoreDetails}>
+              <Text style={styles.levelTitle}>{krooRank.toUpperCase()}</Text>
               <View style={styles.progressTrack}>
-                <View style={styles.progressFill} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${countryProgress * 100}%` },
+                  ]}
+                />
               </View>
-              <Text style={styles.xp}>130 / 140 XP</Text>
+              <Text style={styles.xp}>
+                {visitedCountryCodes.size}/195 countries visited
+              </Text>
             </View>
           </View>
         </View>
@@ -207,7 +229,6 @@ export default function HomeScreen() {
                   ) : (
                     <Ionicons name={stat.icon} size={25} color={colors.muted} />
                   )}
-
                   <Text style={styles.statNumber}>{stat.value}</Text>
                 </View>
                 <Text style={styles.statLabel}>{stat.label}</Text>
@@ -364,7 +385,6 @@ const displayBold = "PlayfairDisplay_700Bold";
 const displayItalic = "PlayfairDisplay_400Regular_Italic";
 const body = "Lora_500Medium";
 const bodySemiBold = "Lora_600SemiBold";
-const bodyBold = "Lora_700Bold";
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
@@ -386,17 +406,17 @@ const styles = StyleSheet.create({
   name: {
     color: colors.ink,
     fontFamily: displayBold,
-    fontSize: 60,
-    lineHeight: 72,
+    fontSize: 48,
+    lineHeight: 58,
   },
   globeArtwork: {
     position: "absolute",
-    width: 320,
-    height: 320,
-    top: -3,
-    right: 10,
+    width: 240,
+    height: 240,
+    top: 15,
+    right: 30,
   },
-  settingsButton: {
+  profileButton: {
     position: "absolute",
     right: 18,
     top: 11,
@@ -404,12 +424,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: colors.line,
+    borderWidth: 3,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.green,
     alignItems: "center",
     justifyContent: "center",
   },
-  levelRow: {
+  profilePhoto: { width: "100%", height: "100%", borderRadius: 25 },
+  scoreRow: {
     position: "absolute",
     left: 28,
     right: 24,
@@ -417,43 +439,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  badgeWrap: {
-    width: 76,
-    height: 112,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeImage: { position: "absolute", width: 56, height: 80 },
-  badgeLabel: {
-    fontFamily: displaySemiBold,
+  scoreNumberWrap: { width: 112, display: "flex", alignItems: "center" },
+  scoreEyebrow: {
+    fontFamily: bodySemiBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
     color: colors.muted,
-    fontSize: 15,
-    marginTop: 5,
   },
-  badgeNumber: {
+  scoreNumber: {
     fontFamily: displayBold,
-    color: colors.ink,
-    marginTop: -10,
-    fontSize: 24,
+    fontSize: 38,
+    lineHeight: 44,
+    color: BrandColors.copper,
   },
-  levelDetails: { flex: 1, marginLeft: 17, paddingTop: 9 },
+  scoreDetails: { flex: 1, marginLeft: 12 },
   levelTitle: {
     fontFamily: displaySemiBold,
     color: colors.ink,
-    fontSize: 20,
-    letterSpacing: 2.1,
+    fontSize: 17,
+    letterSpacing: 1.5,
   },
   progressTrack: {
     height: 5,
     borderRadius: 4,
-    backgroundColor: "#dbc69f",
+    backgroundColor: BrandColors.greenSoft,
     marginTop: 10,
     overflow: "hidden",
   },
   progressFill: {
     width: "93%",
     height: "100%",
-    backgroundColor: colors.brown,
+    backgroundColor: BrandColors.copper,
     borderRadius: 4,
   },
   xp: {
@@ -467,7 +483,7 @@ const styles = StyleSheet.create({
     height: 94,
     marginHorizontal: 20,
     borderRadius: 13,
-    backgroundColor: colors.panel,
+    backgroundColor: BrandColors.greenDeep,
     borderWidth: 1.5,
     borderColor: colors.line,
     flexDirection: "row",
@@ -532,14 +548,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 17,
   },
-  pillSelected: { backgroundColor: "#512b13", borderColor: "#512b13" },
+  pillSelected: {
+    backgroundColor: BrandColors.copper,
+    borderColor: BrandColors.copper,
+  },
   pillText: {
     fontFamily: body,
     fontSize: 17,
-    color: "#a98767",
+    color: BrandColors.copper,
     letterSpacing: 1.1,
   },
-  pillTextSelected: { color: "#fff8eb" },
+  pillTextSelected: { color: BrandColors.white },
   cardRow: { paddingHorizontal: 16, gap: 10 },
   countryCard: {
     width: 200,
@@ -562,7 +581,7 @@ const styles = StyleSheet.create({
   countryName: {
     flex: 1,
     fontFamily: bodySemiBold,
-    color: colors.ink,
+    color: BrandColors.ink,
     fontSize: 16,
     lineHeight: 21,
     letterSpacing: 0.35,
@@ -610,7 +629,7 @@ const styles = StyleSheet.create({
   },
   countryCities: {
     fontFamily: body,
-    color: colors.muted,
+    color: BrandColors.muted,
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
@@ -630,14 +649,14 @@ const styles = StyleSheet.create({
   achievementImage: { width: 184, height: 184 },
   achievementTitle: {
     fontFamily: bodySemiBold,
-    color: colors.ink,
+    color: BrandColors.ink,
     fontSize: 17,
     textAlign: "center",
     marginTop: 8,
   },
   achievementSubtitle: {
     fontFamily: body,
-    color: colors.muted,
+    color: BrandColors.muted,
     fontSize: 15,
     marginTop: 8,
   },

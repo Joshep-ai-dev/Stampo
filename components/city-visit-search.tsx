@@ -15,23 +15,21 @@ import {
   View,
 } from "react-native";
 
-// eslint-disable-next-line import/no-unresolved
+import { BrandColors } from "@/constants/theme";
+
 import { CityRecord, searchCities } from "@/data/cities";
-// eslint-disable-next-line import/no-unresolved
 import { api } from "@/services/api";
-// eslint-disable-next-line import/no-unresolved
 import { useAppDispatch } from "@/store/hooks";
-// eslint-disable-next-line import/no-unresolved
 import { NewVisit, visitAdded } from "@/store/travel-slice";
 
 const colors = {
-  card: "#fffaf1",
-  panel: "#ead7b8",
-  ink: "#2b211a",
-  brown: "#78431f",
-  muted: "#8f745d",
-  line: "#c7a56e",
-  divider: "#e6ded2",
+  card: BrandColors.white,
+  panel: BrandColors.paleGreen,
+  ink: BrandColors.ink,
+  brown: BrandColors.copperDark,
+  muted: BrandColors.muted,
+  line: BrandColors.copper,
+  divider: BrandColors.line,
 };
 
 const countryFlags: Record<string, string> = {
@@ -328,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 13,
   },
-  resultPressed: { backgroundColor: "#f5ead9" },
+  resultPressed: { backgroundColor: BrandColors.surfaceSoft },
   flag: { fontSize: 24, marginRight: 11 },
   resultText: { flex: 1, paddingVertical: 8 },
   cityName: {

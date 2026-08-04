@@ -27,14 +27,22 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Stampo to access your photos so you can choose a profile picture.",
+          "cameraPermission": "Allow Stampo to use your camera so you can take a profile picture.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/favicon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#063D30",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#063D30"
           }
         }
       ],

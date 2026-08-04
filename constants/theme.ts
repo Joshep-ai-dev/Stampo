@@ -5,16 +5,34 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
+export const BrandColors = {
+  green: "#063D30",
+  greenDeep: "#032F26",
+  greenSoft: "#315E4F",
+  copper: "#D7925F",
+  copperDark: "#A9643F",
+  white: "#FFF8EB",
+  canvas: "#063D30",
+  surface: "#F5E5CD",
+  surfaceSoft: "#EFD8B8",
+  ink: "#183A30",
+  muted: "#846E5B",
+  line: "#B97950",
+  paleGreen: "#315749",
+  onDark: "#F8EAD4",
+  onDarkMuted: "#D9A477",
+} as const;
+
+const tintColorLight = BrandColors.green;
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: BrandColors.onDark,
+    background: BrandColors.canvas,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: BrandColors.onDarkMuted,
+    tabIconDefault: BrandColors.onDarkMuted,
     tabIconSelected: tintColorLight,
   },
   dark: {

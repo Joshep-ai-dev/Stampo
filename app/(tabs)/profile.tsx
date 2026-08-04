@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,17 +17,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BrandColors } from "@/constants/theme";
 import { api } from "@/services/api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { languageChanged, nameChanged } from "@/store/profile-slice";
+import {
+  languageChanged,
+  nameChanged,
+  photoChanged,
+} from "@/store/profile-slice";
 
 const colors = {
-  background: "#f4ecdc",
-  card: "#fffcf6",
-  ink: "#2e251f",
-  muted: "#a59b8f",
-  chevron: "#bdb6ad",
-  divider: "#e5ddd1",
+  background: BrandColors.canvas,
+  card: BrandColors.surface,
+  ink: BrandColors.ink,
+  muted: BrandColors.muted,
+  chevron: BrandColors.copper,
+  divider: BrandColors.line,
 };
 
 type ProfileRow = {
@@ -146,6 +154,23 @@ export default function ProfileScreen() {
 
   const closeModal = () => setActiveRow(null);
 
+  const pickProfilePhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) dispatch(photoChanged(result.assets[0].uri));
+  };
+
+  const socialSignIn = (provider: "Google" | "Apple") => {
+    Alert.alert(
+      `${provider} sign-in`,
+      `${provider} credentials and the secure backend token-exchange endpoint need to be connected before sign-in can go live.`,
+    );
+  };
+
   const saveModal = () => {
     if (!activeRow) return;
     if (activeRow.id === "name") {
@@ -172,7 +197,29 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+          <View>
+            <Text style={styles.title}>Profile</Text>
+            <Text style={styles.headerSubtitle}>Your explorer identity</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => void pickProfilePhoto()}
+            accessibilityRole="button"
+            accessibilityLabel="Choose profile picture"
+          >
+            {profile.photoUri ? (
+              <Image
+                source={{ uri: profile.photoUri }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Ionicons name="person" size={34} color={BrandColors.white} />
+            )}
+            <View style={styles.cameraBadge}>
+              <Ionicons name="camera" size={13} color={BrandColors.white} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {sections.map((section) => (
@@ -254,6 +301,27 @@ export default function ProfileScreen() {
               )}
               {(activeRow?.id === "sign-up" || activeRow?.id === "sign-in") && (
                 <>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.googleButton]}
+                    onPress={() => socialSignIn("Google")}
+                  >
+                    <Ionicons name="logo-google" size={21} color={colors.ink} />
+                    <Text style={styles.googleText}>Continue with Google</Text>
+                  </TouchableOpacity>
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, styles.appleButton]}
+                      onPress={() => socialSignIn("Apple")}
+                    >
+                      <Ionicons name="logo-apple" size={22} color={BrandColors.white} />
+                      <Text style={styles.appleText}>Continue with Apple</Text>
+                    </TouchableOpacity>
+                  )}
+                  <View style={styles.orRow}>
+                    <View style={styles.orLine} />
+                    <Text style={styles.orText}>or use email</Text>
+                    <View style={styles.orLine} />
+                  </View>
                   <TextInput
                     value={email}
                     onChangeText={setEmail}
@@ -307,11 +375,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingTop: 8,
+    justifyContent: "space-between",
   },
   title: {
     fontFamily: "PlayfairDisplay_400Regular",
     fontSize: 40,
-    color: colors.ink,
+    color: BrandColors.onDark,
+  },
+  headerSubtitle: {
+    marginTop: 2,
+    fontFamily: "Lora_400Regular",
+    fontSize: 14,
+    color: BrandColors.onDarkMuted,
+  },
+  avatarButton: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: BrandColors.green,
+    borderWidth: 3,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 33 },
+  cameraBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: BrandColors.copper,
+    borderWidth: 2,
+    borderColor: BrandColors.white,
+    alignItems: "center",
+    justifyContent: "center",
   },
   section: { marginTop: 22 },
   sectionTitle: {
@@ -319,18 +418,18 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     fontFamily: "Lora_400Regular",
     fontSize: 18,
-    color: colors.muted,
+    color: BrandColors.onDarkMuted,
   },
   card: {
     overflow: "hidden",
     borderRadius: 16,
     backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#eee7dc",
+    borderColor: BrandColors.line,
   },
   row: { minHeight: 64, paddingHorizontal: 16 },
   multilineRow: { minHeight: 112 },
-  rowPressed: { backgroundColor: "#f7f1e8" },
+  rowPressed: { backgroundColor: BrandColors.surfaceSoft },
   rowContent: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
   rowText: { flex: 1, paddingVertical: 14 },
   rowLabel: {
@@ -400,6 +499,25 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.ink,
   },
+  socialButton: {
+    height: 56,
+    borderRadius: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  googleButton: {
+    backgroundColor: BrandColors.white,
+    borderWidth: 1,
+    borderColor: BrandColors.line,
+  },
+  appleButton: { backgroundColor: "#111111" },
+  googleText: { fontFamily: "Lora_600SemiBold", fontSize: 16, color: colors.ink },
+  appleText: { fontFamily: "Lora_600SemiBold", fontSize: 16, color: BrandColors.white },
+  orRow: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 2 },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.divider },
+  orText: { fontFamily: "Lora_400Regular", fontSize: 13, color: colors.muted },
   languageList: {
     borderRadius: 14,
     overflow: "hidden",
@@ -429,7 +547,7 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 56,
     borderRadius: 13,
-    backgroundColor: "#c7a56e",
+    backgroundColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
