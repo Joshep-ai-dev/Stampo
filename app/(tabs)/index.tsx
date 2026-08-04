@@ -59,11 +59,22 @@ const achievementFilters = [
   { id: "personal", label: "Personal" },
 ];
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({
+  title,
+  onViewAll,
+}: {
+  title: string;
+  onViewAll?: () => void;
+}) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <TouchableOpacity activeOpacity={0.65}>
+      <TouchableOpacity
+        activeOpacity={0.65}
+        onPress={onViewAll}
+        accessibilityRole="button"
+        accessibilityLabel={`View all ${title}`}
+      >
         <Text style={styles.viewAll}>View all ›</Text>
       </TouchableOpacity>
     </View>
@@ -239,7 +250,10 @@ export default function HomeScreen() {
 
         <CityVisitSearch />
 
-        <SectionHeader title="Country Atlas" />
+        <SectionHeader
+          title="Country Atlas"
+          onViewAll={() => router.push("../country-atlas")}
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -411,9 +425,9 @@ const styles = StyleSheet.create({
   },
   globeArtwork: {
     position: "absolute",
-    width: 240,
-    height: 240,
-    top: 15,
+    width: 260,
+    height: 260,
+    top: 30,
     right: 30,
   },
   profileButton: {
