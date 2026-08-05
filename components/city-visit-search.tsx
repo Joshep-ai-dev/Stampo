@@ -111,6 +111,7 @@ export function CityVisitSearch() {
       subcountry: selectedCity.subcountry,
       visitedAt: visitDate,
       note,
+      places: [],
     };
     dispatch(visitAdded(visit));
     void api.createVisit(visit).catch(() => {

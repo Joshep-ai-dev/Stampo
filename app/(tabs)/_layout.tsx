@@ -19,9 +19,9 @@ const tabs = [
     icon: require("@/assets/images/svg/passport.svg"),
   },
   {
-    id: "profile",
-    route: "profile",
-    label: "Profile",
+    id: "visits",
+    route: "visits",
+    label: "Visits",
     icon: require("@/assets/images/svg/profile-medal.svg"),
   },
 ] as const;
@@ -73,6 +73,7 @@ export default function TabLayout() {
           }}
         />
       ))}
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

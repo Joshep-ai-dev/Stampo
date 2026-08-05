@@ -1,4 +1,4 @@
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -108,6 +108,7 @@ export default function HomeScreen() {
   const visits = useAppSelector((state) => state.travel.visits);
   const profileName = useAppSelector((state) => state.profile.name);
   const profilePhoto = useAppSelector((state) => state.profile.photoUri);
+  const krooNumber = useAppSelector((state) => state.profile.krooNumber);
   const [catalog, setCatalog] = useState<CountryRecord[]>([]);
   const [selectedContinent, setSelectedContinent] = useState("NA");
 
@@ -148,6 +149,8 @@ export default function HomeScreen() {
   });
   const countryProgress = Math.min(1, visitedCountryCodes.size / 195);
   const krooRank = getKrooRank(krooScore);
+  const sightCount = visits.reduce((total, visit) => total + visit.places.filter((place) => place.type === "sight").length, 0);
+  const airportCount = visits.reduce((total, visit) => total + visit.places.filter((place) => place.type === "airport").length, 0);
   const stats = [
     {
       id: "countries",
@@ -167,6 +170,8 @@ export default function HomeScreen() {
       value: visitedCityIds.size,
       icon: "location-outline",
     },
+    { id: "sights", label: "SIGHTS", value: sightCount, icon: "camera-outline" },
+    { id: "airports", label: "AIRPORTS", value: airportCount, icon: "airplane-outline" },
   ] as const;
 
   return (
@@ -192,7 +197,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.profileButton}
             activeOpacity={0.7}
-            onPress={() => router.push("/profile")}
+            onPress={() => router.push("/passport")}
             accessibilityRole="button"
             accessibilityLabel="Open profile"
           >
@@ -208,10 +213,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <View style={styles.scoreRow}>
             <View style={styles.scoreNumberWrap}>
-              <Text style={styles.scoreEyebrow}>MY KROO SCORE</Text>
-              <Text style={styles.scoreNumber}>
-                {krooScore.toLocaleString()}
-              </Text>
+              <Image source={require("@/assets/images/other/Kroo_Number.png")} style={styles.krooBadge} contentFit="contain" />
+              <View style={styles.krooBadgeText}><Text style={styles.scoreEyebrow}>KROO NUMBER</Text><Text style={styles.scoreNumber}>{krooNumber.replace("KROO-", "")}</Text></View>
             </View>
             <View style={styles.scoreDetails}>
               <Text style={styles.levelTitle}>{krooRank.toUpperCase()}</Text>
@@ -230,16 +233,11 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.statsCard}>
-          {stats.map((stat, index) => (
+          {stats.map((stat) => (
             <View key={stat.id} style={styles.statItem}>
-              {index > 0 && <View style={styles.statDivider} />}
               <View style={styles.stat}>
                 <View style={styles.statTop}>
-                  {index === 0 ? (
-                    <Feather name={stat.icon} size={25} color={colors.muted} />
-                  ) : (
-                    <Ionicons name={stat.icon} size={25} color={colors.muted} />
-                  )}
+                  <Ionicons name={stat.icon} size={22} color={colors.muted} />
                   <Text style={styles.statNumber}>{stat.value}</Text>
                 </View>
                 <Text style={styles.statLabel}>{stat.label}</Text>
@@ -283,6 +281,7 @@ export default function HomeScreen() {
                 key={country.id}
                 style={styles.countryCard}
                 activeOpacity={0.8}
+                onPress={() => router.push(`/country/${country.code}` as never)}
               >
                 <View style={styles.countryHeader}>
                   <Text style={styles.flag}>{country.flag}</Text>
@@ -453,17 +452,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  scoreNumberWrap: { width: 112, display: "flex", alignItems: "center" },
+  scoreNumberWrap: { width: 112, height: 112, alignItems: "center", justifyContent: "center" },
+  krooBadge: { position: "absolute", width: 112, height: 112 },
+  krooBadgeText: { alignItems: "center", marginTop: 18 },
   scoreEyebrow: {
     fontFamily: bodySemiBold,
-    fontSize: 11,
+    fontSize: 8,
     letterSpacing: 1.2,
     color: colors.muted,
   },
   scoreNumber: {
     fontFamily: displayBold,
-    fontSize: 38,
-    lineHeight: 44,
+    fontSize: 24,
+    lineHeight: 28,
     color: BrandColors.copper,
   },
   scoreDetails: { flex: 1, marginLeft: 12 },
@@ -494,20 +495,21 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   statsCard: {
-    height: 94,
+    minHeight: 172,
     marginHorizontal: 20,
     borderRadius: 13,
     backgroundColor: BrandColors.greenDeep,
     borderWidth: 1.5,
     borderColor: colors.line,
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
-    paddingVertical: 15,
+    paddingVertical: 10,
   },
   stat: { flex: 1, alignItems: "center", justifyContent: "center" },
   statItem: {
-    flex: 1,
-    height: "100%",
+    width: "33.333%",
+    height: 75,
     flexDirection: "row",
     alignItems: "center",
   },

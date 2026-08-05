@@ -144,7 +144,10 @@ export default function CountryAtlasScreen() {
           const image = stampAssets[country.code];
           const cityCount = cityCounts.get(country.code)?.size ?? 0;
           return (
-            <View style={[styles.card, { width: cardWidth }]}>
+            <Pressable
+              style={[styles.card, { width: cardWidth }]}
+              onPress={() => router.push(`/country/${country.code}` as never)}
+            >
               <View style={styles.countryHeader}>
                 <Text style={styles.flag}>{country.flag}</Text>
                 <Text style={styles.countryName} numberOfLines={2}>
@@ -187,7 +190,7 @@ export default function CountryAtlasScreen() {
                   ? `${cityCount} ${cityCount === 1 ? "city" : "cities"}`
                   : "Not visited"}
               </Text>
-            </View>
+            </Pressable>
           );
         }}
       />
