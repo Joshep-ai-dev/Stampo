@@ -4,12 +4,12 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
+  Alert,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   Share,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,11 +22,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { stampAssets } from "@/data/stamps";
 import { BrandColors } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { photoChanged, profileDetailsChanged } from "@/store/profile-slice";
+import { authSessionChanged, photoChanged, profileDetailsChanged } from "@/store/profile-slice";
 import { api } from "@/services/api";
 import type { ProfileState } from "@/store/profile-slice";
-import { VisitedCityCard } from "@/components/visited-city-card";
-import type { Visit } from "@/store/travel-slice";
+import { calculateKrooScoreFromVisits, formatKrooNumber } from "@/data/kroo-score";
 
 const colors = {
   background: BrandColors.canvas,
@@ -41,37 +40,9 @@ type Stamp = { id: string; code: string; name: string; image?: number };
 type PassportPage =
   | { id: string; type: "cover"; image: number; accessibilityLabel: string }
   | { id: string; type: "identity" }
-  | { id: string; type: "visits" }
   | { id: string; type: "stamps"; slots: (Stamp | null)[] };
 
-function PassportVisitsPage({ visits, width, height, onOpenCountry }: { visits: Visit[]; width: number; height: number; onOpenCountry: (code: string) => void }) {
-  return (
-    <View style={[styles.paper, styles.visitsPaper, { width, height }]}>
-      <Text style={styles.visitsTitle}>VISITED CITIES</Text>
-      <Text style={styles.visitsSubtitle}>{visits.length} recorded in this passport</Text>
-      <ScrollView
-        style={styles.visitsScroll}
-        contentContainerStyle={styles.visitsContent}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-      >
-        {visits.length === 0 ? (
-          <Text style={styles.visitsEmpty}>Add a city from the Globe tab.</Text>
-        ) : visits.map((visit) => (
-          <VisitedCityCard
-            key={visit.id}
-            visit={visit}
-            showCountry={false}
-            actionLabel="OPEN"
-            onAction={() => onOpenCountry(visit.countryCode)}
-          />
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-function IdentityPage({ profile, width, height }: { profile: ProfileState; width: number; height: number }) {
+function IdentityPage({ profile, krooNumber, width, height }: { profile: ProfileState; krooNumber: string; width: number; height: number }) {
   const dispatch = useAppDispatch();
   const [draft, setDraft] = useState({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth });
   const [password, setPassword] = useState("");
@@ -82,6 +53,41 @@ function IdentityPage({ profile, width, height }: { profile: ProfileState; width
   const save = () => {
     dispatch(profileDetailsChanged(draft));
     void api.updateProfile({ ...profile, ...draft }).catch(() => undefined);
+  };
+  const signUp = async () => {
+    if (!draft.name.trim() || !draft.email.trim() || password.length < 6) {
+      Alert.alert("Check your details", "Enter your name, email, and a password of at least 6 characters.");
+      return;
+    }
+    try {
+      save();
+      const user = await api.signUp({ name: draft.name.trim(), email: draft.email.trim(), password });
+      dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+      setPassword("");
+    } catch {
+      Alert.alert("Sign up failed", "Please check your connection and try again.");
+    }
+  };
+  const signIn = async () => {
+    if (!draft.email.trim() || !password) {
+      Alert.alert("Sign in", "Enter your email and password.");
+      return;
+    }
+    try {
+      const { user } = await api.signIn({ email: draft.email.trim(), password });
+      dispatch(profileDetailsChanged({ ...draft, name: user.name }));
+      dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+      setPassword("");
+    } catch {
+      Alert.alert("Sign in failed", "The email or password is incorrect.");
+    }
+  };
+  const signOut = async () => {
+    try {
+      await api.signOut();
+    } finally {
+      dispatch(authSessionChanged({ isSignedIn: false, userId: null }));
+    }
   };
   return <View style={[styles.paper, styles.identityPaper, { width, height }]}>
     <View style={styles.identityHeading}><Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text><Text style={styles.identityType}>PASSPORT · P</Text></View>
@@ -97,12 +103,19 @@ function IdentityPage({ profile, width, height }: { profile: ProfileState; width
           ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
         ] as const).map(([key, label, placeholder]) => <View key={key} style={styles.identityField}><Text style={styles.fieldCaption}>{label}</Text><TextInput value={draft[key]} onChangeText={(value) => setDraft((current) => ({ ...current, [key]: value }))} placeholder={placeholder} placeholderTextColor="#a89378" style={styles.identityInput} onBlur={save} /></View>)}
         <View style={styles.identityField}><Text style={styles.fieldCaption}>PASSWORD</Text><TextInput value={password} onChangeText={setPassword} placeholder="Create password" placeholderTextColor="#a89378" secureTextEntry style={styles.identityInput} /></View>
-        <TouchableOpacity style={styles.accountButton} disabled={!draft.name.trim() || !draft.email.trim() || password.length < 6} onPress={() => { save(); void api.signUp({ name: draft.name.trim(), email: draft.email.trim(), password }).catch(() => undefined); }}><Text style={styles.accountButtonText}>CREATE ACCOUNT</Text></TouchableOpacity>
+        {profile.isSignedIn ? (
+          <TouchableOpacity style={styles.signOutButton} onPress={() => void signOut()}><Text style={styles.signOutText}>SIGN OUT</Text></TouchableOpacity>
+        ) : (
+          <View style={styles.authButtons}>
+            <TouchableOpacity style={[styles.accountButton, styles.authButton]} onPress={() => void signUp()}><Text style={styles.accountButtonText}>CREATE</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.signInButton, styles.authButton]} onPress={() => void signIn()}><Text style={styles.signInText}>SIGN IN</Text></TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
-    <View style={styles.numberRow}><Text style={styles.numberLabel}>KROO NUMBER</Text><Text style={styles.passportNumber}>{profile.krooNumber}</Text></View>
+    <View style={styles.numberRow}><Text style={styles.numberLabel}>KROO NUMBER</Text><Text style={styles.passportNumber}>{krooNumber}</Text></View>
     <Text style={styles.machineCode}>{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
-    <Text style={styles.machineCode}>{`${profile.krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
+    <Text style={styles.machineCode}>{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
   </View>;
 }
 
@@ -147,6 +160,10 @@ export default function PassportScreen() {
   const listRef = useRef<FlatList<PassportPage>>(null);
   const pageWidth = Math.min(screenWidth - 36, 620);
   const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
+  const krooNumber = useMemo(
+    () => formatKrooNumber(calculateKrooScoreFromVisits(visits)),
+    [visits],
+  );
 
   const passportPages = useMemo(() => {
     const countryMap = new Map<string, Stamp>();
@@ -169,7 +186,6 @@ export default function PassportScreen() {
         accessibilityLabel: "Electronic passport front cover",
       },
       { id: "identity", type: "identity" as const },
-      { id: "visited-cities", type: "visits" as const },
       ...chunkStamps(stamps),
       {
         id: "back-cover",
@@ -202,9 +218,7 @@ export default function PassportScreen() {
               {item.type === "cover" ? (
                 <Image source={item.image} style={{ width: pageHeight, height: pageHeight }} contentFit="contain" />
               ) : item.type === "identity" ? (
-                <IdentityPage profile={profile} width={pageWidth} height={pageHeight} />
-              ) : item.type === "visits" ? (
-                <PassportVisitsPage visits={visits} width={pageWidth} height={pageHeight} onOpenCountry={(code) => router.push(`/country/${code}` as never)} />
+                <IdentityPage profile={profile} krooNumber={krooNumber} width={pageWidth} height={pageHeight} />
               ) : (
                 <StampPage slots={item.slots} width={pageWidth} height={pageHeight} onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)} />
               )}
@@ -243,12 +257,6 @@ const styles = StyleSheet.create({
   pageFrame: { flex: 1, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   paper: { backgroundColor: colors.paper, borderWidth: 1.5, borderColor: colors.paperBorder, borderRadius: 18, padding: 9, elevation: 2 },
   identityPaper: { padding: 20, justifyContent: "space-between" },
-  visitsPaper: { padding: 16 },
-  visitsTitle: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 23, letterSpacing: 1.2, color: BrandColors.green },
-  visitsSubtitle: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: 11, color: BrandColors.muted },
-  visitsScroll: { flex: 1, marginTop: 12 },
-  visitsContent: { gap: 9, paddingBottom: 12 },
-  visitsEmpty: { marginTop: 30, textAlign: "center", fontFamily: "Lora_400Regular", color: BrandColors.muted },
   identityHeading: { borderBottomWidth: 1, borderBottomColor: BrandColors.line, paddingBottom: 10 },
   identityCountry: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 19, color: BrandColors.green, letterSpacing: 1.2 },
   identityType: { marginTop: 3, fontFamily: "Lora_500Medium", fontSize: 10, color: BrandColors.muted },
@@ -262,6 +270,12 @@ const styles = StyleSheet.create({
   identityInput: { height: 33, padding: 0, fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 14, color: BrandColors.ink },
   accountButton: { height: 30, borderRadius: 7, backgroundColor: BrandColors.green, alignItems: "center", justifyContent: "center" },
   accountButtonText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.white },
+  authButtons: { flexDirection: "row", gap: 6 },
+  authButton: { flex: 1 },
+  signInButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.green, alignItems: "center", justifyContent: "center" },
+  signInText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.green },
+  signOutButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.copperDark, alignItems: "center", justifyContent: "center" },
+  signOutText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.copperDark },
   numberRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: BrandColors.line, paddingTop: 10 },
   numberLabel: { fontFamily: "Lora_700Bold", fontSize: 9, color: BrandColors.muted, letterSpacing: 1 },
   passportNumber: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 17, color: BrandColors.green },

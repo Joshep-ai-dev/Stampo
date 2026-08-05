@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "server": "json-server server/db.json --port 3001 --host 0.0.0.0"
+    "server": "node server/index.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/lora": "^0.4.2",

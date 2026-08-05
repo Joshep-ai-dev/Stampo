@@ -537,6 +537,16 @@ Available development collections:
 - `GET/PUT /profile`
 - `GET/POST /users`
 
+The development server also implements the production-shaped authentication routes:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
+
+Run these routes with `npm run server`. Development bearer tokens are stored in
+memory and are invalidated whenever the JSON Server process restarts.
+
 JSON Server authentication is intentionally fake and stores development passwords in plain text. It must never be deployed or used with real credentials.
 
 JSON Server does not import the 34,065-row CSV. During the transition, the client can continue using the bundled CSV for search while visits and profiles use JSON Server. Laravel becomes the authoritative catalog once `/countries`, `/cities`, and `/catalog/version` are available.
@@ -559,7 +569,7 @@ Before connecting Laravel:
 2. Add API client methods for `/countries`, `/cities`, and `/catalog/version`.
 3. Replace local `world-cities.csv` search with debounced `/cities` requests.
 4. Cache the country catalog and invalidate it when the backend dataset version changes.
-5. Change development sign-up/sign-in paths from JSON Server `/users` queries to `/auth/register` and `/auth/login`.
+5. Replace the development in-memory auth implementation with Laravel Sanctum.
 6. Store the returned token in `expo-secure-store`, not AsyncStorage.
 7. Call `setApiToken(token)` during application hydration.
 8. Reconcile locally created visits with server visits using UUIDs or an idempotency key.

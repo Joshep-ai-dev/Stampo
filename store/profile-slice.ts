@@ -6,6 +6,8 @@ export type ProfileState = {
   nationality: string;
   dateOfBirth: string;
   krooNumber: number;
+  isSignedIn: boolean;
+  userId: string | null;
   language: string;
   photoUri: string | null;
 };
@@ -16,6 +18,8 @@ const initialState: ProfileState = {
   nationality: "",
   dateOfBirth: "",
   krooNumber: 0,
+  isSignedIn: false,
+  userId: null,
   language: "English",
   photoUri: null,
 };
@@ -41,6 +45,13 @@ const profileSlice = createSlice({
     photoChanged(state, action: PayloadAction<string | null>) {
       state.photoUri = action.payload;
     },
+    authSessionChanged(
+      state,
+      action: PayloadAction<{ isSignedIn: boolean; userId: string | null }>,
+    ) {
+      state.isSignedIn = action.payload.isSignedIn;
+      state.userId = action.payload.userId;
+    },
     profileHydrated(_state, action: PayloadAction<ProfileState>) {
       return { ...initialState, ...action.payload };
     },
@@ -48,6 +59,7 @@ const profileSlice = createSlice({
 });
 
 export const {
+  authSessionChanged,
   nameChanged,
   profileDetailsChanged,
   languageChanged,

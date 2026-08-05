@@ -264,7 +264,7 @@ export default function HomeScreen() {
                   <Ionicons name={stat.icon} size={22} color={colors.muted} />
                   <Text style={styles.statNumber}>{stat.value}</Text>
                 </View>
-                <Text style={styles.statLabel}>{stat.label}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{stat.label}</Text>
               </View>
             </View>
           ))}
@@ -534,9 +534,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
   },
-  stat: { flex: 1, alignItems: "center", justifyContent: "center" },
+  stat: { width: "100%", alignItems: "center", justifyContent: "center" },
   statItem: {
-    width: "20%",
+    flex: 1,
     height: "100%",
     flexDirection: "row",
     alignItems: "center",
@@ -559,6 +559,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   statLabel: {
+    width: "100%",
     marginTop: -1,
     fontFamily: displaySemiBold,
     fontSize: 10,
@@ -567,6 +568,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.15,
     includeFontPadding: false,
     textAlignVertical: "center",
+    textAlign: "center",
   },
   statDivider: { height: 57, width: 1, backgroundColor: colors.line },
   sectionHeader: {

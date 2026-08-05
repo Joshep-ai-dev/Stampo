@@ -1,3 +1,5 @@
+import type { Visit } from "@/store/travel-slice";
+
 export type KrooScoreInput = {
   continents: number;
   countries: number;
@@ -26,6 +28,33 @@ export function calculateKrooScore(input: KrooScoreInput) {
     (input.achievementBonus ?? 0) +
     (input.continentCompletionBonus ?? 0)
   );
+}
+
+export function calculateKrooScoreFromVisits(visits: Visit[]) {
+  const continents = new Set(visits.map((visit) => visit.continentCode).filter(Boolean));
+  const countries = new Set(visits.map((visit) => visit.countryCode).filter(Boolean));
+  const cities = new Set(visits.map((visit) => visit.cityId));
+  let sights = 0;
+  let airports = 0;
+
+  visits.forEach((visit) => {
+    visit.places.forEach((place) => {
+      if (place.type === "sight") sights += 1;
+      if (place.type === "airport") airports += 1;
+    });
+  });
+
+  return calculateKrooScore({
+    continents: continents.size,
+    countries: countries.size,
+    cities: cities.size,
+    sights,
+    airports,
+  });
+}
+
+export function formatKrooNumber(score: number) {
+  return `KROO-${String(score).padStart(4, "0")}`;
 }
 
 const ranks = [

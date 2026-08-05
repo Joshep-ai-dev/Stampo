@@ -21,8 +21,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) throw new Error(`API ${response.status}: ${await response.text()}`);
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+type AuthResponse = {
+  token: string;
+  user: { id: string; name: string; email: string; language: string };
+};
 
 export const api = {
   listVisits: () => request<Visit[]>("/visits"),
@@ -30,16 +36,30 @@ export const api = {
     request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
   updateProfile: (profile: ProfileState) =>
     request<ProfileState>("/profile", { method: "PUT", body: JSON.stringify(profile) }),
-  signUp: (payload: { name: string; email: string; password: string }) =>
-    request<{ id: string; name: string; email: string }>("/users", {
+  signUp: async (payload: { name: string; email: string; password: string }) => {
+    const session = await request<AuthResponse>("/auth/register", {
       method: "POST",
-      body: JSON.stringify(payload),
-    }),
+      body: JSON.stringify({
+        ...payload,
+        passwordConfirmation: payload.password,
+      }),
+    });
+    setApiToken(session.token);
+    return session.user;
+  },
   signIn: async (payload: { email: string; password: string }) => {
-    const users = await request<Array<{ id: string; name: string; email: string; password: string }>>(
-      `/users?email=${encodeURIComponent(payload.email)}&password=${encodeURIComponent(payload.password)}`,
-    );
-    if (!users[0]) throw new Error("Invalid email or password");
-    return { user: users[0] };
+    const session = await request<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ ...payload, deviceName: "Stampo mobile app" }),
+    });
+    setApiToken(session.token);
+    return { user: session.user };
+  },
+  signOut: async () => {
+    try {
+      await request<void>("/auth/logout", { method: "POST" });
+    } finally {
+      setApiToken(null);
+    }
   },
 };
