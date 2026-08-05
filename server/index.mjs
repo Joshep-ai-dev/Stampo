@@ -41,6 +41,12 @@ function authenticatedUser(req) {
   return db.data.users.find((user) => String(user.id) === String(userId));
 }
 
+function requireUser(req, res) {
+  const user = authenticatedUser(req);
+  if (!user) res.status(401).json({ message: "Unauthenticated." });
+  return user;
+}
+
 app.post("/auth/register", async (req, res) => {
   const { name, email, password, passwordConfirmation } = req.body ?? {};
   if (!name || !email || !password || password.length < 6) {
@@ -83,6 +89,77 @@ app.post("/auth/logout", (req, res) => {
   const token = bearerToken(req);
   if (token) sessions.delete(token);
   return res.status(204).send();
+});
+
+app.get("/profile", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  return res.json({
+    ...publicUser(user),
+    nationality: user.nationality ?? "",
+    dateOfBirth: user.dateOfBirth ?? "",
+    photoUri: user.photoUri ?? null,
+  });
+});
+
+app.put("/profile", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const allowed = ["name", "email", "language", "nationality", "dateOfBirth", "photoUri"];
+  allowed.forEach((key) => {
+    if (req.body?.[key] !== undefined) user[key] = req.body[key];
+  });
+  await db.write();
+  return res.json({
+    ...publicUser(user),
+    nationality: user.nationality ?? "",
+    dateOfBirth: user.dateOfBirth ?? "",
+    photoUri: user.photoUri ?? null,
+  });
+});
+
+app.get("/visits", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  return res.json(db.data.visits.filter((visit) => String(visit.userId) === String(user.id)));
+});
+
+app.post("/visits", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const visit = { ...req.body, id: randomUUID(), userId: user.id, places: req.body?.places ?? [] };
+  db.data.visits.push(visit);
+  await db.write();
+  return res.status(201).json(visit);
+});
+
+app.put("/visits/:id", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const index = db.data.visits.findIndex(
+    (visit) => String(visit.id) === String(req.params.id) && String(visit.userId) === String(user.id),
+  );
+  if (index < 0) return res.status(404).json({ message: "Visit not found." });
+  const visit = { ...req.body, id: db.data.visits[index].id, userId: user.id };
+  db.data.visits[index] = visit;
+  await db.write();
+  return res.json(visit);
+});
+
+app.delete("/visits/:id", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const index = db.data.visits.findIndex(
+    (visit) => String(visit.id) === String(req.params.id) && String(visit.userId) === String(user.id),
+  );
+  if (index < 0) return res.status(404).json({ message: "Visit not found." });
+  db.data.visits.splice(index, 1);
+  await db.write();
+  return res.status(204).send();
+});
+
+app.use("/users", (_req, res) => {
+  return res.status(404).json({ message: "Use the /auth endpoints." });
 });
 
 app.use(createApp(db));

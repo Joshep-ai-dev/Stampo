@@ -39,6 +39,9 @@ const travelSlice = createSlice({
         return { payload: { ...visit, id: `${visit.cityId}-${Date.now()}` } };
       },
     },
+    visitReceived(state, action: PayloadAction<Visit>) {
+      state.visits.push({ ...action.payload, places: action.payload.places ?? [] });
+    },
     visitsHydrated(state, action: PayloadAction<Visit[]>) {
       state.visits = action.payload.map((visit) => ({
         ...visit,
@@ -47,6 +50,9 @@ const travelSlice = createSlice({
     },
     visitRemoved(state, action: PayloadAction<string>) {
       state.visits = state.visits.filter((visit) => visit.id !== action.payload);
+    },
+    visitsCleared(state) {
+      state.visits = [];
     },
     placeAdded(
       state,
@@ -79,6 +85,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, visitAdded, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;

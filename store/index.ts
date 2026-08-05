@@ -1,8 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configureStore } from "@reduxjs/toolkit";
 
-import profileReducer, { profileHydrated } from "./profile-slice";
-import travelReducer, { visitsHydrated } from "./travel-slice";
+import profileReducer, {
+  authSessionChanged,
+  languageChanged,
+  profileDetailsChanged,
+  profileHydrated,
+  signedOut,
+} from "./profile-slice";
+import travelReducer, { visitsCleared, visitsHydrated } from "./travel-slice";
+import { api } from "@/services/api";
 
 const STORAGE_KEY = "stampo.app-state.v1";
 
@@ -23,10 +30,40 @@ export async function hydrateStore() {
     if (saved.profile) store.dispatch(profileHydrated(saved.profile));
   }
 
+  try {
+    const user = await api.restoreSession();
+    if (user) {
+      const profile = store.getState().profile;
+      store.dispatch(profileDetailsChanged({
+        name: user.name,
+        email: user.email,
+        nationality: profile.nationality,
+        dateOfBirth: profile.dateOfBirth,
+      }));
+      store.dispatch(languageChanged(user.language));
+      store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+      store.dispatch(visitsHydrated(await api.listVisits()));
+    } else {
+      store.dispatch(signedOut());
+      store.dispatch(visitsCleared());
+    }
+  } catch {
+    store.dispatch(signedOut());
+    store.dispatch(visitsCleared());
+  }
+
   if (!persistenceStarted) {
     persistenceStarted = true;
     store.subscribe(() => {
-      void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(store.getState()));
+      const state = store.getState();
+      void AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(
+          state.profile.isSignedIn
+            ? state
+            : { profile: state.profile, travel: { visits: [] } },
+        ),
+      );
     });
   }
 }

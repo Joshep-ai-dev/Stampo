@@ -108,7 +108,6 @@ export default function HomeScreen() {
   const visits = useAppSelector((state) => state.travel.visits);
   const profileName = useAppSelector((state) => state.profile.name);
   const profilePhoto = useAppSelector((state) => state.profile.photoUri);
-  const krooNumber = useAppSelector((state) => state.profile.krooNumber);
   const [catalog, setCatalog] = useState<CountryRecord[]>([]);
   const [selectedContinent, setSelectedContinent] = useState("NA");
 

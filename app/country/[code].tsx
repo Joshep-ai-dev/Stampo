@@ -12,20 +12,27 @@ import { getPlaceSuggestions } from "@/data/place-suggestions";
 import { stampAssets } from "@/data/stamps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { PlaceType, placeAdded } from "@/store/travel-slice";
+import type { Visit } from "@/store/travel-slice";
+import { appendPlace } from "@/data/visits";
+import { api } from "@/services/api";
 
 export default function CountryScreen() {
   const router = useRouter();
   const { code } = useLocalSearchParams<{ code: string }>();
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const countryVisits = useMemo(() => visits.filter((visit) => visit.countryCode === code), [code, visits]);
   const countryName = countries[code as TCountryCode]?.name ?? countryVisits[0]?.country ?? "Country";
   const [targetVisitId, setTargetVisitId] = useState<string | null>(null);
   const [type, setType] = useState<PlaceType>("sight");
   const [name, setName] = useState("");
 
-  const addPlace = (visitId: string, placeName: string, placeType: PlaceType) => {
-    dispatch(placeAdded({ visitId, name: placeName, type: placeType }));
+  const addPlace = (visit: Visit, placeName: string, placeType: PlaceType) => {
+    const nextVisit = appendPlace(visit, placeName, placeType);
+    if (!nextVisit) return;
+    dispatch(placeAdded({ visitId: visit.id, name: placeName, type: placeType }));
+    if (isSignedIn) void api.updateVisit(nextVisit).catch(() => undefined);
   };
 
   return (
@@ -47,7 +54,7 @@ export default function CountryScreen() {
               actionLabel="PLACE"
               onAction={() => setTargetVisitId(visit.id)}
               suggestions={getPlaceSuggestions(visit.cityName)}
-              onSuggestionPress={(suggestion) => addPlace(visit.id, suggestion.name, suggestion.type)}
+              onSuggestionPress={(suggestion) => addPlace(visit, suggestion.name, suggestion.type)}
             />
           </View>
         ))}
@@ -59,7 +66,7 @@ export default function CountryScreen() {
             <Text style={styles.sheetTitle}>Log a place</Text>
             <View style={styles.typeRow}>{(["sight", "airport"] as const).map((item) => <Pressable key={item} style={[styles.typeButton, type === item && styles.typeButtonActive]} onPress={() => setType(item)}><Ionicons name={item === "airport" ? "airplane" : "camera"} size={19} color={type === item ? BrandColors.white : BrandColors.ink} /><Text style={[styles.typeText, type === item && styles.typeTextActive]}>{item === "sight" ? "Sight" : "Airport"}</Text></Pressable>)}</View>
             <TextInput value={name} onChangeText={setName} placeholder={type === "sight" ? "e.g. Forbidden City" : "e.g. Beijing Capital Airport"} placeholderTextColor={BrandColors.muted} style={styles.input} autoFocus />
-            <TouchableOpacity style={styles.save} onPress={() => { if (targetVisitId && name.trim()) addPlace(targetVisitId, name, type); setName(""); setTargetVisitId(null); }}><Text style={styles.saveText}>ADD {type.toUpperCase()}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.save} onPress={() => { const target = countryVisits.find((visit) => visit.id === targetVisitId); if (target) addPlace(target, name, type); setName(""); setTargetVisitId(null); }}><Text style={styles.saveText}>ADD {type.toUpperCase()}</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>

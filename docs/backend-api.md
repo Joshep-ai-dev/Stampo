@@ -535,7 +535,6 @@ Available development collections:
 
 - `GET/POST /visits`
 - `GET/PUT /profile`
-- `GET/POST /users`
 
 The development server also implements the production-shaped authentication routes:
 
@@ -546,6 +545,8 @@ The development server also implements the production-shaped authentication rout
 
 Run these routes with `npm run server`. Development bearer tokens are stored in
 memory and are invalidated whenever the JSON Server process restarts.
+The raw `/users` collection is intentionally blocked; use the authentication
+routes so password fields are never returned by a collection endpoint.
 
 JSON Server authentication is intentionally fake and stores development passwords in plain text. It must never be deployed or used with real credentials.
 

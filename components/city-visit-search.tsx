@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -19,8 +20,8 @@ import { BrandColors } from "@/constants/theme";
 
 import { CityRecord, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
-import { useAppDispatch } from "@/store/hooks";
-import { NewVisit, visitAdded } from "@/store/travel-slice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { NewVisit, visitReceived } from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -60,6 +61,7 @@ function today() {
 
 export function CityVisitSearch() {
   const dispatch = useAppDispatch();
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CityRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,8 +102,12 @@ export function CityVisitSearch() {
 
   const closeModal = () => setSelectedCity(null);
 
-  const saveVisit = () => {
+  const saveVisit = async () => {
     if (!selectedCity) return;
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Create an account or sign in from your passport before saving a visit.");
+      return;
+    }
     const visit: NewVisit = {
       cityId: selectedCity.id,
       cityName: selectedCity.name,
@@ -113,10 +119,12 @@ export function CityVisitSearch() {
       note,
       places: [],
     };
-    dispatch(visitAdded(visit));
-    void api.createVisit(visit).catch(() => {
-      // Local persistence is authoritative while the optional development server is offline.
-    });
+    try {
+      dispatch(visitReceived(await api.createVisit(visit)));
+    } catch {
+      Alert.alert("Visit not saved", "The server could not save this visit. Please try again.");
+      return;
+    }
     closeModal();
     setQuery("");
     setResults([]);
@@ -263,7 +271,7 @@ export function CityVisitSearch() {
 
                 <TouchableOpacity
                   style={styles.saveButton}
-                  onPress={saveVisit}
+                  onPress={() => void saveVisit()}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.saveText}>SAVE VISIT</Text>

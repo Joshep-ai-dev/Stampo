@@ -7,10 +7,13 @@ import { BrandColors } from "@/constants/theme";
 import { VisitedCityCard } from "@/components/visited-city-card";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { PlaceType, placeAdded } from "@/store/travel-slice";
+import { appendPlace } from "@/data/visits";
+import { api } from "@/services/api";
 
 export default function VisitsScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [targetVisitId, setTargetVisitId] = useState<string | null>(null);
   const [placeType, setPlaceType] = useState<PlaceType>("sight");
   const [placeName, setPlaceName] = useState("");
@@ -59,7 +62,12 @@ export default function VisitsScreen() {
             </View>
             <TextInput value={placeName} onChangeText={setPlaceName} autoFocus style={styles.input} placeholder={placeType === "sight" ? "Sight name" : "Airport name"} placeholderTextColor={BrandColors.muted} />
             <TouchableOpacity style={styles.saveButton} onPress={() => {
-              if (targetVisitId && placeName.trim()) dispatch(placeAdded({ visitId: targetVisitId, name: placeName, type: placeType }));
+              const visit = visits.find((item) => item.id === targetVisitId);
+              const nextVisit = visit ? appendPlace(visit, placeName, placeType) : null;
+              if (visit && nextVisit) {
+                dispatch(placeAdded({ visitId: visit.id, name: placeName, type: placeType }));
+                if (isSignedIn) void api.updateVisit(nextVisit).catch(() => undefined);
+              }
               setPlaceName("");
               setTargetVisitId(null);
             }}><Text style={styles.saveText}>ADD {placeType.toUpperCase()}</Text></TouchableOpacity>

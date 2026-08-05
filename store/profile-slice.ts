@@ -13,7 +13,7 @@ export type ProfileState = {
 };
 
 const initialState: ProfileState = {
-  name: "Robb",
+  name: "",
   email: "",
   nationality: "",
   dateOfBirth: "",
@@ -52,6 +52,9 @@ const profileSlice = createSlice({
       state.isSignedIn = action.payload.isSignedIn;
       state.userId = action.payload.userId;
     },
+    signedOut() {
+      return initialState;
+    },
     profileHydrated(_state, action: PayloadAction<ProfileState>) {
       return { ...initialState, ...action.payload };
     },
@@ -65,5 +68,6 @@ export const {
   languageChanged,
   photoChanged,
   profileHydrated,
+  signedOut,
 } = profileSlice.actions;
 export default profileSlice.reducer;

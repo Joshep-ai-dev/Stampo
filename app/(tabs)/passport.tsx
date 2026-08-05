@@ -22,10 +22,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { stampAssets } from "@/data/stamps";
 import { BrandColors } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { authSessionChanged, photoChanged, profileDetailsChanged } from "@/store/profile-slice";
+import { authSessionChanged, photoChanged, profileDetailsChanged, signedOut } from "@/store/profile-slice";
 import { api } from "@/services/api";
 import type { ProfileState } from "@/store/profile-slice";
 import { calculateKrooScoreFromVisits, formatKrooNumber } from "@/data/kroo-score";
+import { visitsCleared, visitsHydrated } from "@/store/travel-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -46,13 +47,35 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
   const dispatch = useAppDispatch();
   const [draft, setDraft] = useState({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth });
   const [password, setPassword] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
   const pickPhoto = async () => {
+    if (!profile.isSignedIn) {
+      Alert.alert("Sign in required", "Create your account before adding a passport photo.");
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [3, 4], quality: 0.8 });
-    if (!result.canceled) dispatch(photoChanged(result.assets[0].uri));
+    if (!result.canceled) {
+      const photoUri = result.assets[0].uri;
+      dispatch(photoChanged(photoUri));
+      if (profile.isSignedIn) {
+        void api.updateProfile({ ...profile, photoUri }).catch(() => undefined);
+      }
+    }
   };
   const save = () => {
+    if (!profile.isSignedIn) return;
     dispatch(profileDetailsChanged(draft));
     void api.updateProfile({ ...profile, ...draft }).catch(() => undefined);
+  };
+  const finishAuthentication = async (user: { id: string; name: string; email: string; language: string }) => {
+    dispatch(profileDetailsChanged({ ...draft, name: user.name, email: user.email }));
+    dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+    try {
+      setAuthBusy(true);
+      dispatch(visitsHydrated(await api.listVisits()));
+    } catch {
+      // Authentication remains valid if visit synchronization is temporarily unavailable.
+    }
   };
   const signUp = async () => {
     if (!draft.name.trim() || !draft.email.trim() || password.length < 6) {
@@ -60,12 +83,13 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
       return;
     }
     try {
-      save();
       const user = await api.signUp({ name: draft.name.trim(), email: draft.email.trim(), password });
-      dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+      await finishAuthentication(user);
       setPassword("");
     } catch {
       Alert.alert("Sign up failed", "Please check your connection and try again.");
+    } finally {
+      setAuthBusy(false);
     }
   };
   const signIn = async () => {
@@ -74,19 +98,22 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
       return;
     }
     try {
+      setAuthBusy(true);
       const { user } = await api.signIn({ email: draft.email.trim(), password });
-      dispatch(profileDetailsChanged({ ...draft, name: user.name }));
-      dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
+      await finishAuthentication(user);
       setPassword("");
     } catch {
       Alert.alert("Sign in failed", "The email or password is incorrect.");
+    } finally {
+      setAuthBusy(false);
     }
   };
   const signOut = async () => {
     try {
       await api.signOut();
     } finally {
-      dispatch(authSessionChanged({ isSignedIn: false, userId: null }));
+      dispatch(signedOut());
+      dispatch(visitsCleared());
     }
   };
   return <View style={[styles.paper, styles.identityPaper, { width, height }]}>
@@ -102,13 +129,13 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
           ["nationality", "NATIONALITY", "Country"],
           ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
         ] as const).map(([key, label, placeholder]) => <View key={key} style={styles.identityField}><Text style={styles.fieldCaption}>{label}</Text><TextInput value={draft[key]} onChangeText={(value) => setDraft((current) => ({ ...current, [key]: value }))} placeholder={placeholder} placeholderTextColor="#a89378" style={styles.identityInput} onBlur={save} /></View>)}
-        <View style={styles.identityField}><Text style={styles.fieldCaption}>PASSWORD</Text><TextInput value={password} onChangeText={setPassword} placeholder="Create password" placeholderTextColor="#a89378" secureTextEntry style={styles.identityInput} /></View>
+        {!profile.isSignedIn && <View style={styles.identityField}><Text style={styles.fieldCaption}>PASSWORD</Text><TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor="#a89378" secureTextEntry style={styles.identityInput} /></View>}
         {profile.isSignedIn ? (
           <TouchableOpacity style={styles.signOutButton} onPress={() => void signOut()}><Text style={styles.signOutText}>SIGN OUT</Text></TouchableOpacity>
         ) : (
           <View style={styles.authButtons}>
-            <TouchableOpacity style={[styles.accountButton, styles.authButton]} onPress={() => void signUp()}><Text style={styles.accountButtonText}>CREATE</Text></TouchableOpacity>
-            <TouchableOpacity style={[styles.signInButton, styles.authButton]} onPress={() => void signIn()}><Text style={styles.signInText}>SIGN IN</Text></TouchableOpacity>
+            <TouchableOpacity disabled={authBusy} style={[styles.accountButton, styles.authButton, authBusy && styles.authButtonDisabled]} onPress={() => void signUp()}><Text style={styles.accountButtonText}>{authBusy ? "WAIT" : "CREATE"}</Text></TouchableOpacity>
+            <TouchableOpacity disabled={authBusy} style={[styles.signInButton, styles.authButton, authBusy && styles.authButtonDisabled]} onPress={() => void signIn()}><Text style={styles.signInText}>{authBusy ? "WAIT" : "SIGN IN"}</Text></TouchableOpacity>
           </View>
         )}
       </View>
@@ -272,6 +299,7 @@ const styles = StyleSheet.create({
   accountButtonText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.white },
   authButtons: { flexDirection: "row", gap: 6 },
   authButton: { flex: 1 },
+  authButtonDisabled: { opacity: 0.55 },
   signInButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.green, alignItems: "center", justifyContent: "center" },
   signInText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.green },
   signOutButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.copperDark, alignItems: "center", justifyContent: "center" },
