@@ -4,8 +4,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { countries, type TCountryCode } from "countries-list";
 
 import { BrandColors } from "@/constants/theme";
+import { VisitedCityCard } from "@/components/visited-city-card";
 import { getPlaceSuggestions } from "@/data/place-suggestions";
 import { stampAssets } from "@/data/stamps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -17,7 +19,7 @@ export default function CountryScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
   const countryVisits = useMemo(() => visits.filter((visit) => visit.countryCode === code), [code, visits]);
-  const countryName = countryVisits[0]?.country ?? code;
+  const countryName = countries[code as TCountryCode]?.name ?? countryVisits[0]?.country ?? "Country";
   const [targetVisitId, setTargetVisitId] = useState<string | null>(null);
   const [type, setType] = useState<PlaceType>("sight");
   const [name, setName] = useState("");
@@ -30,7 +32,7 @@ export default function CountryScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <Pressable style={styles.back} onPress={() => router.back()}><Ionicons name="chevron-back" size={26} color={BrandColors.onDark} /></Pressable>
-        <Text style={styles.title}>{countryName}</Text>
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.62}>{countryName}</Text>
         <View style={styles.back} />
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -38,38 +40,17 @@ export default function CountryScreen() {
         <Text style={styles.sectionTitle}>Visited cities</Text>
         {countryVisits.length === 0 ? (
           <Text style={styles.empty}>Add a city visit first to unlock this country.</Text>
-        ) : countryVisits.map((visit) => {
-          const suggestions = getPlaceSuggestions(visit.cityName);
-          const logged = new Set(visit.places.map((place) => `${place.type}:${place.name.toLocaleLowerCase()}`));
-          return (
-            <View key={visit.id} style={styles.cityCard}>
-              <View style={styles.cityHeader}>
-                <View><Text style={styles.cityName}>{visit.cityName}</Text><Text style={styles.date}>{visit.visitedAt}</Text></View>
-                <TouchableOpacity style={styles.addButton} onPress={() => setTargetVisitId(visit.id)}>
-                  <Ionicons name="add" size={20} color={BrandColors.white} /><Text style={styles.addButtonText}>PLACE</Text>
-                </TouchableOpacity>
-              </View>
-              {visit.places.length > 0 && (
-                <View style={styles.loggedList}>{visit.places.map((place) => (
-                  <View key={place.id} style={styles.loggedPlace}>
-                    <Ionicons name={place.type === "airport" ? "airplane" : "camera"} size={17} color={BrandColors.copperDark} />
-                    <Text style={styles.loggedText}>{place.name}</Text>
-                  </View>
-                ))}</View>
-              )}
-              {suggestions.length > 0 && <>
-                <Text style={styles.suggestionTitle}>Tap to mark visited</Text>
-                <View style={styles.chips}>{suggestions.map((suggestion) => {
-                  const isLogged = logged.has(`${suggestion.type}:${suggestion.name.toLocaleLowerCase()}`);
-                  return <Pressable key={suggestion.name} disabled={isLogged} style={[styles.chip, isLogged && styles.chipDone]} onPress={() => addPlace(visit.id, suggestion.name, suggestion.type)}>
-                    <Ionicons name={isLogged ? "checkmark" : suggestion.type === "airport" ? "airplane-outline" : "add"} size={15} color={isLogged ? BrandColors.white : BrandColors.ink} />
-                    <Text style={[styles.chipText, isLogged && styles.chipTextDone]}>{suggestion.name}</Text>
-                  </Pressable>;
-                })}</View>
-              </>}
-            </View>
-          );
-        })}
+        ) : countryVisits.map((visit) => (
+          <View key={visit.id} style={styles.cityCardWrap}>
+            <VisitedCityCard
+              visit={visit}
+              actionLabel="PLACE"
+              onAction={() => setTargetVisitId(visit.id)}
+              suggestions={getPlaceSuggestions(visit.cityName)}
+              onSuggestionPress={(suggestion) => addPlace(visit.id, suggestion.name, suggestion.type)}
+            />
+          </View>
+        ))}
       </ScrollView>
 
       <Modal transparent animationType="slide" visible={targetVisitId !== null} onRequestClose={() => setTargetVisitId(null)}>
@@ -90,15 +71,18 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BrandColors.canvas },
   header: { height: 72, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  title: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 29, color: BrandColors.onDark },
+  title: { flex: 1, textAlign: "center", fontFamily: "PlayfairDisplay_700Bold", fontSize: 29, color: BrandColors.onDark },
   content: { padding: 18, paddingBottom: 42 },
   heroStamp: { alignSelf: "center", width: 210, height: 190 },
   sectionTitle: { marginTop: 12, marginBottom: 12, fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 25, color: BrandColors.onDark },
   empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  cityCardWrap: { marginBottom: 14 },
   cityCard: { marginBottom: 14, padding: 16, borderRadius: 17, backgroundColor: BrandColors.surface },
   cityHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cityName: { fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 24, color: BrandColors.ink },
   date: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: 12, color: BrandColors.muted },
+  noteBox: { marginTop: 13, padding: 11, borderRadius: 10, backgroundColor: BrandColors.surfaceSoft, flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  noteText: { flex: 1, fontFamily: "Lora_400Regular_Italic", fontSize: 13, lineHeight: 18, color: BrandColors.ink },
   addButton: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: "row", gap: 4, alignItems: "center", backgroundColor: BrandColors.copper },
   addButtonText: { fontFamily: "Lora_700Bold", fontSize: 11, color: BrandColors.white },
   loggedList: { marginTop: 14, gap: 8 },

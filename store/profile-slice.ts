@@ -5,7 +5,7 @@ export type ProfileState = {
   email: string;
   nationality: string;
   dateOfBirth: string;
-  krooNumber: string;
+  krooNumber: number;
   language: string;
   photoUri: string | null;
 };
@@ -15,7 +15,7 @@ const initialState: ProfileState = {
   email: "",
   nationality: "",
   dateOfBirth: "",
-  krooNumber: "KROO-0054",
+  krooNumber: 0,
   language: "English",
   photoUri: null,
 };
@@ -29,7 +29,9 @@ const profileSlice = createSlice({
     },
     profileDetailsChanged(
       state,
-      action: PayloadAction<Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth">>,
+      action: PayloadAction<
+        Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth">
+      >,
     ) {
       Object.assign(state, action.payload);
     },
@@ -45,6 +47,11 @@ const profileSlice = createSlice({
   },
 });
 
-export const { nameChanged, profileDetailsChanged, languageChanged, photoChanged, profileHydrated } =
-  profileSlice.actions;
+export const {
+  nameChanged,
+  profileDetailsChanged,
+  languageChanged,
+  photoChanged,
+  profileHydrated,
+} = profileSlice.actions;
 export default profileSlice.reducer;

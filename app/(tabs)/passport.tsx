@@ -9,6 +9,7 @@ import {
   NativeSyntheticEvent,
   Pressable,
   Share,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,11 +21,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { stampAssets } from "@/data/stamps";
 import { BrandColors } from "@/constants/theme";
-import { useAppSelector } from "@/store/hooks";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { photoChanged, profileDetailsChanged } from "@/store/profile-slice";
 import { api } from "@/services/api";
 import type { ProfileState } from "@/store/profile-slice";
+import { VisitedCityCard } from "@/components/visited-city-card";
+import type { Visit } from "@/store/travel-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -39,7 +41,35 @@ type Stamp = { id: string; code: string; name: string; image?: number };
 type PassportPage =
   | { id: string; type: "cover"; image: number; accessibilityLabel: string }
   | { id: string; type: "identity" }
+  | { id: string; type: "visits" }
   | { id: string; type: "stamps"; slots: (Stamp | null)[] };
+
+function PassportVisitsPage({ visits, width, height, onOpenCountry }: { visits: Visit[]; width: number; height: number; onOpenCountry: (code: string) => void }) {
+  return (
+    <View style={[styles.paper, styles.visitsPaper, { width, height }]}>
+      <Text style={styles.visitsTitle}>VISITED CITIES</Text>
+      <Text style={styles.visitsSubtitle}>{visits.length} recorded in this passport</Text>
+      <ScrollView
+        style={styles.visitsScroll}
+        contentContainerStyle={styles.visitsContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
+        {visits.length === 0 ? (
+          <Text style={styles.visitsEmpty}>Add a city from the Globe tab.</Text>
+        ) : visits.map((visit) => (
+          <VisitedCityCard
+            key={visit.id}
+            visit={visit}
+            showCountry={false}
+            actionLabel="OPEN"
+            onAction={() => onOpenCountry(visit.countryCode)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 function IdentityPage({ profile, width, height }: { profile: ProfileState; width: number; height: number }) {
   const dispatch = useAppDispatch();
@@ -139,6 +169,7 @@ export default function PassportScreen() {
         accessibilityLabel: "Electronic passport front cover",
       },
       { id: "identity", type: "identity" as const },
+      { id: "visited-cities", type: "visits" as const },
       ...chunkStamps(stamps),
       {
         id: "back-cover",
@@ -172,6 +203,8 @@ export default function PassportScreen() {
                 <Image source={item.image} style={{ width: pageHeight, height: pageHeight }} contentFit="contain" />
               ) : item.type === "identity" ? (
                 <IdentityPage profile={profile} width={pageWidth} height={pageHeight} />
+              ) : item.type === "visits" ? (
+                <PassportVisitsPage visits={visits} width={pageWidth} height={pageHeight} onOpenCountry={(code) => router.push(`/country/${code}` as never)} />
               ) : (
                 <StampPage slots={item.slots} width={pageWidth} height={pageHeight} onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)} />
               )}
@@ -210,6 +243,12 @@ const styles = StyleSheet.create({
   pageFrame: { flex: 1, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   paper: { backgroundColor: colors.paper, borderWidth: 1.5, borderColor: colors.paperBorder, borderRadius: 18, padding: 9, elevation: 2 },
   identityPaper: { padding: 20, justifyContent: "space-between" },
+  visitsPaper: { padding: 16 },
+  visitsTitle: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 23, letterSpacing: 1.2, color: BrandColors.green },
+  visitsSubtitle: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: 11, color: BrandColors.muted },
+  visitsScroll: { flex: 1, marginTop: 12 },
+  visitsContent: { gap: 9, paddingBottom: 12 },
+  visitsEmpty: { marginTop: 30, textAlign: "center", fontFamily: "Lora_400Regular", color: BrandColors.muted },
   identityHeading: { borderBottomWidth: 1, borderBottomColor: BrandColors.line, paddingBottom: 10 },
   identityCountry: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 19, color: BrandColors.green, letterSpacing: 1.2 },
   identityType: { marginTop: 3, fontFamily: "Lora_500Medium", fontSize: 10, color: BrandColors.muted },

@@ -142,15 +142,25 @@ export default function HomeScreen() {
       catalog.filter((country) => country.continentCode === selectedContinent),
     [catalog, selectedContinent],
   );
+  const sightCount = visits.reduce(
+    (total, visit) =>
+      total + visit.places.filter((place) => place.type === "sight").length,
+    0,
+  );
+  const airportCount = visits.reduce(
+    (total, visit) =>
+      total + visit.places.filter((place) => place.type === "airport").length,
+    0,
+  );
   const krooScore = calculateKrooScore({
     continents: visitedContinents.size,
     countries: visitedCountryCodes.size,
     cities: visitedCityIds.size,
+    sights: sightCount,
+    airports: airportCount,
   });
   const countryProgress = Math.min(1, visitedCountryCodes.size / 195);
   const krooRank = getKrooRank(krooScore);
-  const sightCount = visits.reduce((total, visit) => total + visit.places.filter((place) => place.type === "sight").length, 0);
-  const airportCount = visits.reduce((total, visit) => total + visit.places.filter((place) => place.type === "airport").length, 0);
   const stats = [
     {
       id: "countries",
@@ -170,8 +180,18 @@ export default function HomeScreen() {
       value: visitedCityIds.size,
       icon: "location-outline",
     },
-    { id: "sights", label: "SIGHTS", value: sightCount, icon: "camera-outline" },
-    { id: "airports", label: "AIRPORTS", value: airportCount, icon: "airplane-outline" },
+    {
+      id: "sights",
+      label: "SIGHTS",
+      value: sightCount,
+      icon: "camera-outline",
+    },
+    {
+      id: "airports",
+      label: "AIRPORTS",
+      value: airportCount,
+      icon: "airplane-outline",
+    },
   ] as const;
 
   return (
@@ -213,8 +233,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <View style={styles.scoreRow}>
             <View style={styles.scoreNumberWrap}>
-              <Image source={require("@/assets/images/other/Kroo_Number.png")} style={styles.krooBadge} contentFit="contain" />
-              <View style={styles.krooBadgeText}><Text style={styles.scoreEyebrow}>KROO NUMBER</Text><Text style={styles.scoreNumber}>{krooNumber.replace("KROO-", "")}</Text></View>
+              <Image
+                source={require("@/assets/images/other/Kroo_Number.png")}
+                style={styles.krooBadge}
+                contentFit="contain"
+              />
+              <Text style={styles.scoreNumber}>{krooScore}</Text>
             </View>
             <View style={styles.scoreDetails}>
               <Text style={styles.levelTitle}>{krooRank.toUpperCase()}</Text>
@@ -452,7 +476,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  scoreNumberWrap: { width: 112, height: 112, alignItems: "center", justifyContent: "center" },
+  scoreNumberWrap: {
+    width: 112,
+    height: 112,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   krooBadge: { position: "absolute", width: 112, height: 112 },
   krooBadgeText: { alignItems: "center", marginTop: 18 },
   scoreEyebrow: {
@@ -464,7 +493,7 @@ const styles = StyleSheet.create({
   scoreNumber: {
     fontFamily: displayBold,
     fontSize: 24,
-    lineHeight: 28,
+    lineHeight: 32,
     color: BrandColors.copper,
   },
   scoreDetails: { flex: 1, marginLeft: 12 },
@@ -495,47 +524,47 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   statsCard: {
-    minHeight: 172,
+    height: 94,
     marginHorizontal: 20,
     borderRadius: 13,
     backgroundColor: BrandColors.greenDeep,
     borderWidth: 1.5,
     borderColor: colors.line,
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   stat: { flex: 1, alignItems: "center", justifyContent: "center" },
   statItem: {
-    width: "33.333%",
-    height: 75,
+    width: "20%",
+    height: "100%",
     flexDirection: "row",
     alignItems: "center",
   },
   statTop: {
-    height: 34,
+    height: 30,
     flexDirection: "row",
-    gap: 7,
+    gap: 3,
     alignItems: "center",
     justifyContent: "center",
+    transform: [{ translateY: -4 }],
   },
   statNumber: {
     fontFamily: displayBold,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 21,
+    lineHeight: 28,
     color: colors.ink,
-    marginTop: -10,
+    marginTop: -13,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
   statLabel: {
-    marginTop: 4,
+    marginTop: -1,
     fontFamily: displaySemiBold,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 14,
     color: colors.muted,
-    letterSpacing: 1.1,
+    letterSpacing: 0.15,
     includeFontPadding: false,
     textAlignVertical: "center",
   },

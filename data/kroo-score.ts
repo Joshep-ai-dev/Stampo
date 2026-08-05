@@ -9,7 +9,7 @@ export type KrooScoreInput = {
 };
 
 export const KROO_POINTS = {
-  continent: 5,
+  continent: 10,
   country: 5,
   city: 2,
   sight: 1,
