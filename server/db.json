@@ -1,9 +1,31 @@
 {
-  "visits": [],
+  "visits": [
+    {
+      "cityId": "12032531",
+      "cityName": "Chinatown",
+      "country": "Canada",
+      "countryCode": "CA",
+      "continentCode": "NA",
+      "subcountry": "British Columbia",
+      "visitedAt": "2026-08-06",
+      "note": "What beautiful!",
+      "places": [],
+      "id": "0c04f3ad-8c6e-4a1d-8c64-3fca980ae930",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    }
+  ],
   "profile": {
     "id": "local-profile",
     "name": "Robb",
     "language": "English"
   },
-  "users": []
+  "users": [
+    {
+      "id": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
+      "name": "Robb",
+      "email": "darkhorse9372@gmail.com",
+      "password": "kc9372KC!123",
+      "language": "English"
+    }
+  ]
 }

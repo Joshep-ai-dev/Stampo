@@ -164,7 +164,7 @@ app.use("/users", (_req, res) => {
 
 app.use(createApp(db));
 
-app.listen(port, host, () => {
+app.listen(port, () => {
   console.log(`Stampo development API running at http://${host}:${port}`);
   console.log("Auth: POST /auth/register, POST /auth/login, GET /auth/me, POST /auth/logout");
-});
+}, host);
