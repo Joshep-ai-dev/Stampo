@@ -24,7 +24,6 @@ const countryFilters = [
   "Europe",
   "Asia",
   "Africa",
-  "Oceania",
 ];
 const challengeFilters = [
   "All",
@@ -188,11 +187,8 @@ export default function ExploreScreen() {
           )}
         </ScrollView>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.activityRow}
-        >
+        <View style={s.activityPanel}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.activityRow}>
           {travelers.map((person) => (
             <TouchableOpacity
               key={person.name}
@@ -204,16 +200,13 @@ export default function ExploreScreen() {
                 )
               }
             >
-              <View style={[s.avatar, { backgroundColor: person.color }]}>
-                <Text style={s.avatarText}>{person.initials}</Text>
+              <View style={[s.avatar, { backgroundColor: person.color }]}> 
+                <Ionicons name="person" size={25} color={BrandColors.onDark} />
                 <Text style={s.avatarFlag}>{person.flag}</Text>
               </View>
               <View style={s.activityCopy}>
-                <Text style={s.activityText}>
-                  <Text style={s.activityName}>{person.name}</Text>
-                  {"\n"}
-                  {person.achievement}
-                </Text>
+                <Text style={s.activityName}>{person.name}</Text>
+                <Text style={s.activityText}>{person.achievement}</Text>
                 <Text style={s.activitySub}>{person.note}</Text>
               </View>
               <View style={s.points}>
@@ -227,6 +220,7 @@ export default function ExploreScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </View>
 
         <Section
           title="Challenges"
@@ -461,18 +455,23 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
-  activityRow: {
-    marginTop: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+  activityPanel: {
+    marginHorizontal: 10,
+    marginTop: 3,
+    borderWidth: 1,
     borderColor: BrandColors.paleGreen,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "rgba(10,43,32,.2)",
+  },
+  activityRow: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   activity: {
-    width: 208,
-    minHeight: 92,
-    padding: 10,
+    width: 188,
+    minHeight: 91,
+    padding: 9,
     borderRightWidth: 1,
     borderRightColor: BrandColors.paleGreen,
     flexDirection: "row",
@@ -480,25 +479,20 @@ const s = StyleSheet.create({
     gap: 8,
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
     borderWidth: 2,
     borderColor: BrandColors.onDark,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 12,
-    color: BrandColors.white,
-  },
-  avatarFlag: { position: "absolute", right: -5, bottom: -3, fontSize: 15 },
+  avatarFlag: { position: "absolute", right: -6, bottom: -4, fontSize: 15, backgroundColor: BrandColors.green, borderRadius: 9, overflow: "hidden" },
   activityCopy: { flex: 1 },
   activityText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 8,
+    lineHeight: 11,
     color: BrandColors.onDark,
   },
   activityName: {
@@ -509,7 +503,7 @@ const s = StyleSheet.create({
   activitySub: {
     marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 9,
+    fontSize: 8,
     color: BrandColors.onDarkMuted,
   },
   points: { alignItems: "center", alignSelf: "flex-end" },

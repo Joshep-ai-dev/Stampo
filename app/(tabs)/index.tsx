@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { getCountryData, type TCountryCode } from "countries-list";
+import { getCountryData, getCountryDataList, type TCountryCode } from "countries-list";
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
@@ -32,11 +32,9 @@ const TOTALS: Record<string, number> = {
 };
 const CONTINENTS = [
   { code: "AF", name: "Africa" },
-  { code: "AN", name: "Antarctica" },
   { code: "AS", name: "Asia" },
   { code: "EU", name: "Europe" },
   { code: "NA", name: "North America" },
-  { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
 function iso3For(code: string) {
@@ -73,6 +71,11 @@ const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
   XKX: [18, -43],
   MYT: [43, 15],
 };
+const HIDDEN_MAP_ISO3 = new Set(
+  getCountryDataList()
+    .filter((country) => country.continent === "OC" || country.continent === "AN")
+    .map((country) => country.iso3),
+);
 
 function WorldMap({ visited }: { visited: Set<string> }) {
   const [xml, setXml] = useState<string>();
@@ -96,7 +99,14 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         )
         .replaceAll('class="water"', 'fill="transparent" stroke="none"')
         .replaceAll("<circle ", '<circle display="none" ');
+      HIDDEN_MAP_ISO3.forEach((code) => {
+        svg = svg.replace(
+          new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
+          '<g display="none" class="$1"',
+        );
+      });
       visitedClasses.forEach((code) => {
+        if (HIDDEN_MAP_ISO3.has(code)) return;
         const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
         svg = svg.replace(
           new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
@@ -141,19 +151,6 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           <Text style={styles.mapLoadingText}>Loading your travel map…</Text>
         </View>
       )}
-      <View style={styles.legend}>
-        <View
-          style={[styles.legendDot, { backgroundColor: BrandColors.mapGreen }]}
-        />
-        <Text style={styles.legendText}>Not visited</Text>
-        <View
-          style={[
-            styles.legendDot,
-            { backgroundColor: BrandColors.copperDark },
-          ]}
-        />
-        <Text style={styles.legendText}>Visited</Text>
-      </View>
     </View>
   );
 }
@@ -282,22 +279,26 @@ export default function HomeScreen() {
               <Text style={styles.totalText}>{countryCodes.size} TOTAL</Text>
             </View>
           </View>
-          {CONTINENTS.map((item) => {
-            const count = continentCounts[item.code]?.size ?? 0;
-            const total = TOTALS[item.code];
-            const pct = total ? (count / total) * 100 : 0;
-            return (
-              <View key={item.code} style={styles.continentRow}>
-                <Text style={styles.continentName}>{item.name}</Text>
-                <View style={styles.continentBar}>
-                  <View style={[styles.continentFill, { width: `${pct}%` }]} />
+          {CONTINENTS.filter((item) => continentCounts[item.code]?.size).map(
+            (item) => {
+              const count = continentCounts[item.code]?.size ?? 0;
+              const total = TOTALS[item.code];
+              const pct = total ? (count / total) * 100 : 0;
+              return (
+                <View key={item.code} style={styles.continentRow}>
+                  <Text style={styles.continentName}>{item.name}</Text>
+                  <View style={styles.continentBar}>
+                    <View
+                      style={[styles.continentFill, { width: `${pct}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.continentValue}>
+                    {count}/{total}
+                  </Text>
                 </View>
-                <Text style={styles.continentValue}>
-                  {count}/{total}
-                </Text>
-              </View>
-            );
-          })}
+              );
+            },
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -534,25 +535,6 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     fontSize: 11,
     color: BrandColors.onDarkMuted,
-  },
-  legend: {
-    position: "absolute",
-    left: 12,
-    bottom: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: "rgba(3,29,20,.9)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  legendDot: { width: 7, height: 7, borderRadius: 4 },
-  legendText: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 7,
-    color: BrandColors.onDarkMuted,
-    marginRight: 5,
   },
   continentCard: {
     marginHorizontal: 8,
