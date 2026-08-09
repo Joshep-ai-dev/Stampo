@@ -99,9 +99,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       // The project map may be an Illustrator export with a single branded
       // land style rather than per-country ISO groups. Preserve its geometry.
       if (!svg.includes('class="country"') && svg.includes(".st0{")) {
-        const visitedIso3 = new Set(
-          [...visited].map(iso3For).filter(Boolean),
-        );
+        const visitedIso3 = new Set([...visited].map(iso3For).filter(Boolean));
         // Illustrator's embedded JavaScript is intentionally not run by
         // react-native-svg. Turn the path list already authored in the asset
         // into ordinary SVG classes so those countries remain visible.
@@ -112,25 +110,25 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           )
           .replace(/<script[\s\S]*?<\/script>/gi, "")
           .replace(
-            /<(path|polygon|polyline)\b([^>]*?)>/g,
+            /<(path|polygon|polyline|circle)\b([^>]*?)>/g,
             (_shape, element: string, attributes: string) => {
-            const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
-            const iso3 = (
-              attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
-              (id.match(/^[A-Za-z]{3}$/) ? id : "")
-            ).toUpperCase();
-            const selected = visitedIso3.has(iso3);
-            const pathAttributes = attributes
-              .replace(/\sfill="[^"]*"/g, "")
-              .replace(/\sstroke="[^"]*"/g, "")
-              .replace(/\sstroke-width="[^"]*"/g, "")
-              .replace(/\sclass="[^"]*"/g, "")
-              .replace(/\s*\/\s*$/, "");
-            // Inline presentation attributes are supported consistently by
-            // react-native-svg; Illustrator CSS classes are not.
-            return `<${element}${pathAttributes} fill="${
-              selected ? BrandColors.copper : BrandColors.mapGreen
-            }" stroke="${BrandColors.green}" stroke-width=".3" />`;
+              const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
+              const iso3 = (
+                attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
+                (id.match(/^[A-Za-z]{3}$/) ? id : "")
+              ).toUpperCase();
+              const selected = visitedIso3.has(iso3);
+              const pathAttributes = attributes
+                .replace(/\sfill="[^"]*"/g, "")
+                .replace(/\sstroke="[^"]*"/g, "")
+                .replace(/\sstroke-width="[^"]*"/g, "")
+                .replace(/\sclass="[^"]*"/g, "")
+                .replace(/\s*\/\s*$/, "");
+              // Inline presentation attributes are supported consistently by
+              // react-native-svg; Illustrator CSS classes are not.
+              return `<${element}${pathAttributes} fill="${
+                selected ? BrandColors.copper : BrandColors.mapGreen
+              }" stroke="${BrandColors.green}" stroke-width=".3" />`;
             },
           );
         // Keep the supplied artwork in charge of geometry. Adding
