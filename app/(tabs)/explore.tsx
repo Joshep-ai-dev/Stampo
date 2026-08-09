@@ -68,6 +68,15 @@ const travelers = [
     note: "Well done!",
     points: 100,
   },
+  {
+    name: "Mia",
+    flag: "🇫🇷",
+    initials: "MI",
+    color: BrandColors.paleGreen,
+    achievement: "reached 25 European Cities.",
+    note: "Well done!",
+    points: 75,
+  },
 ];
 
 export default function ExploreScreen() {
@@ -376,7 +385,7 @@ const s = StyleSheet.create({
   link: {
     fontFamily: "Lora_500Medium",
     fontSize: 12,
-    color: BrandColors.copper,
+    color: BrandColors.copperDark,
   },
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
   pill: {
@@ -428,7 +437,7 @@ const s = StyleSheet.create({
   countryName: {
     fontFamily: "Lora_500Medium",
     fontSize: 16,
-    color: BrandColors.green,
+    color: BrandColors.copperDark,
     flexShrink: 1,
   },
   stampFrame: {
@@ -443,7 +452,7 @@ const s = StyleSheet.create({
   stamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.14 }],
+    transform: [{ scale: 1.3 }],
   },
   placeholder: {
     width: "100%",
@@ -508,7 +517,7 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   activity: {
-    width: 178,
+    width: 154,
     minHeight: 91,
     paddingVertical: 9,
     paddingHorizontal: 10,
@@ -519,7 +528,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   activityDivider: {
-    borderRightWidth: 1,
+    borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: BrandColors.paleGreen,
   },
   avatar: {
@@ -550,7 +559,7 @@ const s = StyleSheet.create({
   activityName: {
     fontFamily: "Lora_700Bold",
     fontSize: 11,
-    color: BrandColors.copper,
+    color: BrandColors.copperDark,
   },
   activitySub: {
     marginTop: 2,
