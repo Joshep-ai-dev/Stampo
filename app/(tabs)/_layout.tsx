@@ -17,7 +17,7 @@ function Icon({
   off: string;
 }) {
   return (
-    <View style={focused ? styles.iconActive : styles.iconWrap}>
+    <View style={styles.iconWrap}>
       <Ionicons name={(focused ? on : off) as never} size={25} color={color} />
     </View>
   );
@@ -30,7 +30,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: BrandColors.copper,
+        tabBarActiveTintColor: "#49B964",
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginTop: 1 },
         tabBarStyle: {
@@ -120,14 +120,6 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconActive: {
-    width: 44,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(215,146,95,.14)",
     alignItems: "center",
     justifyContent: "center",
   },

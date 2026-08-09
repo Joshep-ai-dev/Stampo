@@ -103,6 +103,19 @@
       "places": [],
       "id": "48b98c6b-d74e-42d7-a3e5-57bcf660d578",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "2077454",
+      "cityName": "Australind",
+      "country": "Australia",
+      "countryCode": "AU",
+      "continentCode": "OC",
+      "subcountry": "Western Australia",
+      "visitedAt": "2026-08-10",
+      "note": "",
+      "places": [],
+      "id": "1b9c401c-9c2e-4950-90eb-708218db520c",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {

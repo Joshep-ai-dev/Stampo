@@ -142,8 +142,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
                 attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
                 (id.match(/^[A-Za-z]{3}$/) ? id : "")
               ).toUpperCase();
-              const selected =
-                visitedIso2.has(iso2) || visitedIso3.has(iso3);
+              const selected = visitedIso2.has(iso2) || visitedIso3.has(iso3);
               const pathAttributes = attributes
                 .replace(/\sfill="[^"]*"/g, "")
                 .replace(/\sstroke="[^"]*"/g, "")
@@ -591,9 +590,9 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    height: 225,
+    height: 250,
     marginHorizontal: 2,
-    marginTop: 2,
+    marginTop: 20,
     backgroundColor: "transparent",
     overflow: "hidden",
   },
@@ -663,6 +662,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontFamily: "Lora_500Medium",
     fontSize: 10,
-    color: BrandColors.onDarkMuted,
+    color: BrandColors.onDark,
   },
 });
