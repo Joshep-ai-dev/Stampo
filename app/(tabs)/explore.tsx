@@ -150,32 +150,32 @@ export default function ExploreScreen() {
                 style={s.countryCard}
                 onPress={() => router.push(`/country/${country.code}` as never)}
               >
-                <Text style={s.countryName}>{country.name.toUpperCase()}</Text>
-                {stampAssets[country.code] ? (
-                  <Image
-                    source={stampAssets[country.code]}
-                    style={s.stamp}
-                    contentFit="contain"
-                  />
-                ) : (
-                  <View style={s.placeholder}>
-                    <Text style={s.flag}>{country.flag}</Text>
-                    <Ionicons
-                      name="earth-outline"
-                      size={43}
-                      color={BrandColors.green}
+                <View style={s.countryHeader}>
+                  <Text style={s.countryFlag}>{country.flag}</Text>
+                  <Text style={s.countryName} numberOfLines={1}>
+                    {country.name}
+                  </Text>
+                </View>
+                <View style={s.stampFrame}>
+                  {stampAssets[country.code] ? (
+                    <Image
+                      source={stampAssets[country.code]}
+                      style={s.stamp}
+                      contentFit="contain"
                     />
-                  </View>
-                )}
+                  ) : (
+                    <View style={s.placeholder}>
+                      <Ionicons
+                        name="earth-outline"
+                        size={43}
+                        color={BrandColors.green}
+                      />
+                    </View>
+                  )}
+                </View>
                 <Text style={s.cities}>
                   {country.cities} {country.cities === 1 ? "City" : "Cities"}
                 </Text>
-                <View style={s.progress}>
-                  <View
-                    style={[s.progressFill, { width: `${country.progress}%` }]}
-                  />
-                </View>
-                <Text style={s.percent}>{country.progress}%</Text>
               </TouchableOpacity>
             ))
           ) : (
@@ -188,38 +188,46 @@ export default function ExploreScreen() {
         </ScrollView>
 
         <View style={s.activityPanel}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.activityRow}>
-          {travelers.map((person) => (
-            <TouchableOpacity
-              key={person.name}
-              style={s.activity}
-              onPress={() =>
-                Alert.alert(
-                  person.name,
-                  `${person.name} ${person.achievement} ${person.note}`,
-                )
-              }
-            >
-              <View style={[s.avatar, { backgroundColor: person.color }]}> 
-                <Ionicons name="person" size={25} color={BrandColors.onDark} />
-                <Text style={s.avatarFlag}>{person.flag}</Text>
-              </View>
-              <View style={s.activityCopy}>
-                <Text style={s.activityName}>{person.name}</Text>
-                <Text style={s.activityText}>{person.achievement}</Text>
-                <Text style={s.activitySub}>{person.note}</Text>
-              </View>
-              <View style={s.points}>
-                <Ionicons
-                  name="ribbon-outline"
-                  size={20}
-                  color={BrandColors.copper}
-                />
-                <Text style={s.pointsText}>{person.points}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.activityRow}
+          >
+            {travelers.map((person) => (
+              <TouchableOpacity
+                key={person.name}
+                style={s.activity}
+                onPress={() =>
+                  Alert.alert(
+                    person.name,
+                    `${person.name} ${person.achievement} ${person.note}`,
+                  )
+                }
+              >
+                <View style={[s.avatar, { backgroundColor: person.color }]}>
+                  <Ionicons
+                    name="person"
+                    size={25}
+                    color={BrandColors.onDark}
+                  />
+                  <Text style={s.avatarFlag}>{person.flag}</Text>
+                </View>
+                <View style={s.activityCopy}>
+                  <Text style={s.activityName}>{person.name}</Text>
+                  <Text style={s.activityText}>{person.achievement}</Text>
+                  <Text style={s.activitySub}>{person.note}</Text>
+                </View>
+                <View style={s.points}>
+                  <Ionicons
+                    name="ribbon-outline"
+                    size={20}
+                    color={BrandColors.copper}
+                  />
+                  <Text style={s.pointsText}>{person.points}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <Section
@@ -338,7 +346,7 @@ const s = StyleSheet.create({
   title: {
     textAlign: "center",
     marginTop: 2,
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_500Medium",
     fontSize: 34,
     color: BrandColors.onDark,
   },
@@ -358,7 +366,7 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
   },
   heading: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_500Medium",
     fontSize: 24,
     color: BrandColors.onDark,
   },
@@ -394,30 +402,53 @@ const s = StyleSheet.create({
     paddingBottom: 12,
   },
   countryCard: {
-    width: 126,
-    height: 228,
-    padding: 8,
-    borderRadius: 9,
+    width: 148,
+    height: 238,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 9,
+    borderRadius: 12,
     backgroundColor: BrandColors.surface,
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#C5A36C",
   },
-  countryName: {
-    fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 15,
-    color: BrandColors.green,
-  },
-  stamp: { width: 108, height: 153 },
-  placeholder: {
-    width: 108,
-    height: 153,
+  countryHeader: {
+    width: "100%",
+    height: 30,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: BrandColors.line,
+    gap: 7,
   },
-  flag: { fontSize: 24 },
-  cities: { fontFamily: "Lora_500Medium", fontSize: 9, color: BrandColors.ink },
+  countryFlag: { fontSize: 22 },
+  countryName: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 16,
+    color: BrandColors.green,
+    flexShrink: 1,
+  },
+  stampFrame: {
+    width: 118,
+    height: 165,
+    marginTop: 3,
+    padding: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stamp: { width: "100%", height: "100%" },
+  placeholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cities: {
+    marginTop: 7,
+    fontFamily: "Lora_500Medium",
+    fontSize: 10,
+    color: BrandColors.muted,
+  },
   progress: {
     position: "absolute",
     left: 9,
@@ -487,7 +518,15 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarFlag: { position: "absolute", right: -6, bottom: -4, fontSize: 15, backgroundColor: BrandColors.green, borderRadius: 9, overflow: "hidden" },
+  avatarFlag: {
+    position: "absolute",
+    right: -6,
+    bottom: -4,
+    fontSize: 15,
+    backgroundColor: BrandColors.green,
+    borderRadius: 9,
+    overflow: "hidden",
+  },
   activityCopy: { flex: 1 },
   activityText: {
     fontFamily: "Lora_400Regular",
@@ -540,7 +579,7 @@ const s = StyleSheet.create({
   challengeTitle: {
     marginTop: 8,
     textAlign: "center",
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 15,
     color: BrandColors.green,
   },
@@ -588,7 +627,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   ctaTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_700Bold",
     fontSize: 17,
     color: BrandColors.onDark,
   },

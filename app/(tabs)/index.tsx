@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   statLabel: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 13,
     color: BrandColors.onDark,
   },
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 21,
     color: BrandColors.onDark,
   },
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     marginBottom: 9,
   },
   continentTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 19,
     color: BrandColors.onDark,
   },
