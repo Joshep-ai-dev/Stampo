@@ -49,6 +49,10 @@ type AuthResponse = {
 export type AuthUser = AuthResponse["user"];
 
 export const api = {
+  travelState: () => request<{completedSightIds:string[];wishlistIds:string[];rewards:unknown[];plan:"free"|"pro"}>("/me/travel-state"),
+  setSightCompleted: (sightId:string, completed:boolean) => request(`/me/completions/${encodeURIComponent(sightId)}`, {method:"PUT",body:JSON.stringify({completed})}),
+  setWishlist: (targetId:string, saved:boolean) => request(`/me/wishlist/${encodeURIComponent(targetId)}`, {method:"PUT",body:JSON.stringify({saved})}),
+  setPlan: (plan:"free"|"pro") => request<{plan:"free"|"pro"}>("/me/plan", {method:"PUT",body:JSON.stringify({plan})}),
   listVisits: () => request<Visit[]>("/visits"),
   createVisit: (visit: NewVisit) =>
     request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),

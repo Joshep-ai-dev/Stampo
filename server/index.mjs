@@ -1,5 +1,6 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { App } from "@tinyhttp/app";
 import { cors } from "@tinyhttp/cors";
@@ -11,9 +12,27 @@ import { json } from "milliparsec";
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
 const file = resolve(process.cwd(), process.env.DB_FILE ?? "server/db.json");
-const db = new Low(new JSONFile(file), { visits: [], profile: {}, users: [] });
+const db = new Low(new JSONFile(file), { visits: [], profile: {}, users: [], completions: [], wishlists: [], rewards: [] });
 await db.read();
 db.data.users ??= [];
+db.data.completions ??= [];
+db.data.wishlists ??= [];
+db.data.rewards ??= [];
+const scrypt = promisify(scryptCallback);
+
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = await scrypt(password, salt, 64);
+  return `${salt}:${Buffer.from(hash).toString("hex")}`;
+}
+
+async function passwordMatches(password, stored) {
+  if (!stored?.includes(":")) return password === stored; // migrate development accounts on next sign-in
+  const [salt, expectedHex] = stored.split(":");
+  const actual = Buffer.from(await scrypt(password, salt, 64));
+  const expected = Buffer.from(expectedHex, "hex");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
 
 const sessions = new Map();
 const app = new App();
@@ -27,6 +46,7 @@ function publicUser(user) {
     name: user.name,
     email: user.email,
     language: user.language ?? "English",
+    plan: user.plan ?? "free",
   };
 }
 
@@ -60,7 +80,7 @@ app.post("/auth/register", async (req, res) => {
     return res.status(422).json({ message: "An account with this email already exists." });
   }
 
-  const user = { id: randomUUID(), name: String(name).trim(), email: normalizedEmail, password, language: "English" };
+  const user = { id: randomUUID(), name: String(name).trim(), email: normalizedEmail, password: await hashPassword(password), language: "English", plan: "free" };
   db.data.users.push(user);
   await db.write();
   const token = `dev-${randomUUID()}`;
@@ -68,12 +88,11 @@ app.post("/auth/register", async (req, res) => {
   return res.status(201).json({ token, user: publicUser(user) });
 });
 
-app.post("/auth/login", (req, res) => {
+app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body ?? {};
   const normalizedEmail = String(email ?? "").trim().toLocaleLowerCase();
-  const user = db.data.users.find(
-    (candidate) => candidate.email.toLocaleLowerCase() === normalizedEmail && candidate.password === password,
-  );
+  const user = db.data.users.find((candidate) => candidate.email.toLocaleLowerCase() === normalizedEmail);
+  if (user && !(await passwordMatches(password, user.password))) return res.status(422).json({ message: "Invalid email or password." });
   if (!user) return res.status(422).json({ message: "Invalid email or password." });
   const token = `dev-${randomUUID()}`;
   sessions.set(token, user.id);
@@ -156,6 +175,40 @@ app.delete("/visits/:id", async (req, res) => {
   db.data.visits.splice(index, 1);
   await db.write();
   return res.status(204).send();
+});
+
+app.get("/me/travel-state", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  return res.json({
+    completedSightIds: db.data.completions.filter(x => x.userId === user.id).map(x => x.sightId),
+    wishlistIds: db.data.wishlists.filter(x => x.userId === user.id).map(x => x.targetId),
+    rewards: db.data.rewards.filter(x => x.userId === user.id),
+    plan: user.plan ?? "free",
+  });
+});
+
+app.put("/me/completions/:sightId", async (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const sightId = String(req.params.sightId);
+  const index = db.data.completions.findIndex(x => x.userId === user.id && x.sightId === sightId);
+  if (req.body?.completed === false && index >= 0) db.data.completions.splice(index, 1);
+  if (req.body?.completed !== false && index < 0) db.data.completions.push({ id: randomUUID(), userId: user.id, sightId, completedAt: new Date().toISOString() });
+  await db.write(); return res.json({ sightId, completed: req.body?.completed !== false });
+});
+
+app.put("/me/wishlist/:targetId", async (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const targetId = String(req.params.targetId);
+  const index = db.data.wishlists.findIndex(x => x.userId === user.id && x.targetId === targetId);
+  if (req.body?.saved === false && index >= 0) db.data.wishlists.splice(index, 1);
+  if (req.body?.saved !== false && index < 0) db.data.wishlists.push({ id: randomUUID(), userId: user.id, targetId, savedAt: new Date().toISOString() });
+  await db.write(); return res.json({ targetId, saved: req.body?.saved !== false });
+});
+
+app.put("/me/plan", async (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  if (!["free", "pro"].includes(req.body?.plan)) return res.status(422).json({ message: "Plan must be free or pro." });
+  user.plan = req.body.plan; await db.write(); return res.json({ plan: user.plan });
 });
 
 app.use("/users", (_req, res) => {

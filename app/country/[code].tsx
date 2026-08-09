@@ -1,116 +1,43 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { countries, type TCountryCode } from "countries-list";
 
 import { BrandColors } from "@/constants/theme";
-import { VisitedCityCard } from "@/components/visited-city-card";
-import { getPlaceSuggestions } from "@/data/place-suggestions";
+import { franceGuide } from "@/data/explore";
 import { stampAssets } from "@/data/stamps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { PlaceType, placeAdded } from "@/store/travel-slice";
-import type { Visit } from "@/store/travel-slice";
-import { appendPlace } from "@/data/visits";
-import { api } from "@/services/api";
+import { wishlistToggled } from "@/store/travel-slice";
 
 export default function CountryScreen() {
   const router = useRouter();
-  const { code } = useLocalSearchParams<{ code: string }>();
   const dispatch = useAppDispatch();
-  const visits = useAppSelector((state) => state.travel.visits);
-  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
-  const countryVisits = useMemo(() => visits.filter((visit) => visit.countryCode === code), [code, visits]);
-  const countryName = countries[code as TCountryCode]?.name ?? countryVisits[0]?.country ?? "Country";
-  const [targetVisitId, setTargetVisitId] = useState<string | null>(null);
-  const [type, setType] = useState<PlaceType>("sight");
-  const [name, setName] = useState("");
-
-  const addPlace = (visit: Visit, placeName: string, placeType: PlaceType) => {
-    const nextVisit = appendPlace(visit, placeName, placeType);
-    if (!nextVisit) return;
-    dispatch(placeAdded({ visitId: visit.id, name: placeName, type: placeType }));
-    if (isSignedIn) void api.updateVisit(nextVisit).catch(() => undefined);
-  };
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}><Ionicons name="chevron-back" size={26} color={BrandColors.onDark} /></Pressable>
-        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.62}>{countryName}</Text>
-        <View style={styles.back} />
-      </View>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {stampAssets[code] && <Image source={stampAssets[code]} style={styles.heroStamp} contentFit="contain" />}
-        <Text style={styles.sectionTitle}>Visited cities</Text>
-        {countryVisits.length === 0 ? (
-          <Text style={styles.empty}>Add a city visit first to unlock this country.</Text>
-        ) : countryVisits.map((visit) => (
-          <View key={visit.id} style={styles.cityCardWrap}>
-            <VisitedCityCard
-              visit={visit}
-              actionLabel="PLACE"
-              onAction={() => setTargetVisitId(visit.id)}
-              suggestions={getPlaceSuggestions(visit.cityName)}
-              onSuggestionPress={(suggestion) => addPlace(visit, suggestion.name, suggestion.type)}
-            />
-          </View>
-        ))}
-      </ScrollView>
-
-      <Modal transparent animationType="slide" visible={targetVisitId !== null} onRequestClose={() => setTargetVisitId(null)}>
-        <View style={styles.modalRoot}><Pressable style={styles.backdrop} onPress={() => setTargetVisitId(null)} />
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Log a place</Text>
-            <View style={styles.typeRow}>{(["sight", "airport"] as const).map((item) => <Pressable key={item} style={[styles.typeButton, type === item && styles.typeButtonActive]} onPress={() => setType(item)}><Ionicons name={item === "airport" ? "airplane" : "camera"} size={19} color={type === item ? BrandColors.white : BrandColors.ink} /><Text style={[styles.typeText, type === item && styles.typeTextActive]}>{item === "sight" ? "Sight" : "Airport"}</Text></Pressable>)}</View>
-            <TextInput value={name} onChangeText={setName} placeholder={type === "sight" ? "e.g. Forbidden City" : "e.g. Beijing Capital Airport"} placeholderTextColor={BrandColors.muted} style={styles.input} autoFocus />
-            <TouchableOpacity style={styles.save} onPress={() => { const target = countryVisits.find((visit) => visit.id === targetVisitId); if (target) addPlace(target, name, type); setName(""); setTargetVisitId(null); }}><Text style={styles.saveText}>ADD {type.toUpperCase()}</Text></TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
-  );
+  const { code = "FR" } = useLocalSearchParams<{code:string}>();
+  const visits = useAppSelector(x=>x.travel.visits);
+  const wished = useAppSelector(x=>x.travel.wishlistIds ?? []).includes(`country-${code}`);
+  const name = countries[code as TCountryCode]?.name ?? "France";
+  const isFrance = code === "FR";
+  const countryVisits = visits.filter(v=>v.countryCode===code);
+  const done = countryVisits.reduce((n,v)=>n+v.places.filter(p=>p.type==="sight").length,0);
+  const progress = isFrance ? Math.max(18, Math.round(done/1024*100)) : Math.min(100,countryVisits.length*12);
+  const flag = code.length === 2 ? String.fromCodePoint(...code.toUpperCase().split("").map(char => 127397 + char.charCodeAt(0))) : "🌍";
+  const guide = isFrance ? franceGuide : {...franceGuide,name,code,flag,description:`Build your ${name} travel story. Add visits, save places, and collect the country stamp.`,cities:[]};
+  return <SafeAreaView style={s.safe} edges={["top"]}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+    <View style={s.top}><TouchableOpacity style={s.circle} onPress={()=>router.back()}><Ionicons name="chevron-back" size={24} color={BrandColors.onDark}/></TouchableOpacity><View style={s.topActions}><TouchableOpacity style={s.circle} onPress={()=>dispatch(wishlistToggled(`country-${code}`))}><Ionicons name={wished?"heart":"heart-outline"} size={22} color={wished?BrandColors.copper:BrandColors.onDark}/></TouchableOpacity><TouchableOpacity style={s.circle} onPress={()=>void Share.share({message:`Explore ${name} with Kroo`})}><Ionicons name="share-outline" size={22} color={BrandColors.onDark}/></TouchableOpacity></View></View>
+    <View style={s.hero}><Image source={stampAssets[code] ?? require("@/assets/images/stampo/France.png")} style={s.stamp} contentFit="contain"/><View style={s.heroCopy}><Text style={s.country}>{guide.flag} {name}</Text><Text style={s.motto}>{isFrance?'“Liberté, Égalité, Fraternité”':"Your next great story"}</Text><Text style={s.fact}>◉ {guide.region}</Text><Text style={s.fact}>⌖ Capital · {guide.capital}</Text></View><View style={s.progressCard}><Text style={s.progressLabel}>YOUR PROGRESS</Text><Text style={s.progressValue}>{progress}%</Text><Text style={s.progressSmall}>{done} sights visited</Text><View style={s.bar}><View style={[s.fill,{width:`${progress}%`}]} /></View></View></View>
+    <View style={s.actions}><Action icon="location-outline" label="Add Visit" onPress={()=>router.push("/visits")}/><Action icon="checkmark-circle-outline" label="Been Here"/><Action icon={wished?"heart":"heart-outline"} label="Wishlist" onPress={()=>dispatch(wishlistToggled(`country-${code}`))}/><Action icon="share-outline" label="Share" onPress={()=>void Share.share({message:`Explore ${name} with Kroo`})}/></View>
+    <View style={s.tabs}><Text style={s.tabActive}>OVERVIEW</Text><Text style={s.tab}>CITIES</Text><Text style={s.tab}>SIGHTS</Text><Text style={s.tab}>EXPERIENCES</Text></View>
+    <View style={s.panel}><Text style={s.panelTitle}>About {name}</Text><Text style={s.body}>{guide.description}</Text><View style={s.facts}><Mini icon="business-outline" label="Capital" value={guide.capital}/><Mini icon="chatbubble-outline" label="Language" value={guide.language}/><Mini icon="cash-outline" label="Currency" value={guide.currency}/><Mini icon="map-outline" label="Region" value={guide.region}/></View></View>
+    {isFrance && <><Section title="Top Cities" link="View all 42 ›"/><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>{guide.cities.map((city,i)=><TouchableOpacity key={city.id} style={s.cityCard} onPress={()=>router.push(`/city/${city.id}` as never)}><View style={[s.cityArt,{backgroundColor:["#BB8D68","#5E8279","#A9785A","#617B86","#927860"][i]}]}><Ionicons name={i===0?"business-outline":"location-outline"} size={35} color={BrandColors.surface}/><Text style={s.cityPercent}>{[18,12,15,10,8][i]}%</Text></View><Text style={s.cityName}>{city.name}</Text><Text style={s.cityMeta}>{city.sights.length || [0,56,48,37,34][i]} sights</Text></TouchableOpacity>)}</ScrollView>
+    <Section title="Stamps to Earn" link="See collection ›"/><View style={s.stamps}><Stamp icon="flag-outline" title="France Explorer" detail="Visit France" done={countryVisits.length>0}/><Stamp icon="business-outline" title="Paris Passport" detail="Visit 10 Paris sights" done={done>=10}/><Stamp icon="wine-outline" title="Wine Routes" detail="Visit 3 wine regions"/><Stamp icon="library-outline" title="Culture Keeper" detail="Visit 12 museums"/></View>
+    <Section title="France Collections"/><View style={s.panel}>{["UNESCO Sites","Castles & Châteaux","Museums","Beaches","Wine Regions"].map((x,i)=><View key={x} style={s.collection}><Text style={s.collectionName}>{x}</Text><Text style={s.collectionCount}>{[18,24,15,9,6][i]} / {[52,80,40,33,16][i]}</Text><View style={s.collectionBar}><View style={[s.fill,{width:`${[35,30,38,27,38][i]}%`}]} /></View></View>)}</View></>}
+  </ScrollView></SafeAreaView>
 }
+function Action({icon,label,onPress}:{icon:string;label:string;onPress?:()=>void}){return <TouchableOpacity style={s.action} onPress={onPress}><Ionicons name={icon as never} size={23} color={BrandColors.copper}/><Text style={s.actionText}>{label}</Text></TouchableOpacity>}
+function Mini({icon,label,value}:{icon:string;label:string;value:string}){return <View style={s.mini}><Ionicons name={icon as never} size={19} color={BrandColors.copper}/><View><Text style={s.miniLabel}>{label}</Text><Text style={s.miniValue}>{value}</Text></View></View>}
+function Section({title,link}:{title:string;link?:string}){return <View style={s.section}><Text style={s.sectionTitle}>{title}</Text>{link&&<Text style={s.link}>{link}</Text>}</View>}
+function Stamp({icon,title,detail,done=false}:{icon:string;title:string;detail:string;done?:boolean}){return <View style={[s.stampEarn,done&&s.stampDone]}><View style={s.stampIcon}><Ionicons name={icon as never} size={28} color={done?BrandColors.surface:BrandColors.copper}/></View><Text style={[s.stampTitle,done&&{color:BrandColors.surface}]}>{title}</Text><Text style={[s.stampDetail,done&&{color:BrandColors.onDarkMuted}]}>{done?"Earned":detail}</Text>{done&&<Ionicons name="checkmark-circle" size={18} color="#65C879"/>}</View>}
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: BrandColors.canvas },
-  header: { height: 72, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  title: { flex: 1, textAlign: "center", fontFamily: "PlayfairDisplay_700Bold", fontSize: 29, color: BrandColors.onDark },
-  content: { padding: 18, paddingBottom: 42 },
-  heroStamp: { alignSelf: "center", width: 210, height: 190 },
-  sectionTitle: { marginTop: 12, marginBottom: 12, fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 25, color: BrandColors.onDark },
-  empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
-  cityCardWrap: { marginBottom: 14 },
-  cityCard: { marginBottom: 14, padding: 16, borderRadius: 17, backgroundColor: BrandColors.surface },
-  cityHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  cityName: { fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 24, color: BrandColors.ink },
-  date: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: 12, color: BrandColors.muted },
-  noteBox: { marginTop: 13, padding: 11, borderRadius: 10, backgroundColor: BrandColors.surfaceSoft, flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  noteText: { flex: 1, fontFamily: "Lora_400Regular_Italic", fontSize: 13, lineHeight: 18, color: BrandColors.ink },
-  addButton: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: "row", gap: 4, alignItems: "center", backgroundColor: BrandColors.copper },
-  addButtonText: { fontFamily: "Lora_700Bold", fontSize: 11, color: BrandColors.white },
-  loggedList: { marginTop: 14, gap: 8 },
-  loggedPlace: { flexDirection: "row", alignItems: "center", gap: 8 },
-  loggedText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: 14, color: BrandColors.ink },
-  suggestionTitle: { marginTop: 16, marginBottom: 8, fontFamily: "Lora_600SemiBold", fontSize: 12, color: BrandColors.muted, textTransform: "uppercase", letterSpacing: 1 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  chip: { minHeight: 34, borderRadius: 18, borderWidth: 1, borderColor: BrandColors.line, paddingHorizontal: 10, flexDirection: "row", gap: 5, alignItems: "center" },
-  chipDone: { backgroundColor: BrandColors.green, borderColor: BrandColors.green },
-  chipText: { fontFamily: "Lora_500Medium", fontSize: 11, color: BrandColors.ink },
-  chipTextDone: { color: BrandColors.white },
-  modalRoot: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
-  sheet: { padding: 22, paddingBottom: 38, borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: BrandColors.surface },
-  sheetTitle: { fontFamily: "PlayfairDisplay_700Bold", fontSize: 27, color: BrandColors.ink },
-  typeRow: { marginTop: 18, flexDirection: "row", gap: 9 },
-  typeButton: { flex: 1, height: 48, borderRadius: 13, borderWidth: 1, borderColor: BrandColors.line, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  typeButtonActive: { backgroundColor: BrandColors.green },
-  typeText: { fontFamily: "Lora_600SemiBold", color: BrandColors.ink },
-  typeTextActive: { color: BrandColors.white },
-  input: { height: 56, marginTop: 14, borderWidth: 1, borderColor: BrandColors.line, borderRadius: 13, paddingHorizontal: 14, fontFamily: "Lora_500Medium", color: BrandColors.ink },
-  save: { height: 54, marginTop: 14, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.copper },
-  saveText: { fontFamily: "Lora_700Bold", color: BrandColors.white, letterSpacing: 1 },
-});
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:BrandColors.green},content:{paddingBottom:38},top:{height:54,paddingHorizontal:16,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},topActions:{flexDirection:"row",gap:8},circle:{width:40,height:40,borderRadius:20,backgroundColor:"rgba(7,37,25,.82)",borderWidth:1,borderColor:BrandColors.paleGreen,alignItems:"center",justifyContent:"center"},hero:{minHeight:185,paddingHorizontal:18,flexDirection:"row",alignItems:"center"},stamp:{width:112,height:150},heroCopy:{flex:1,paddingLeft:8},country:{fontFamily:"PlayfairDisplay_700Bold",fontSize:30,color:BrandColors.onDark},motto:{fontFamily:"Lora_400Regular_Italic",fontSize:11,color:BrandColors.copper,marginVertical:8},fact:{fontFamily:"Lora_400Regular",fontSize:10,color:BrandColors.onDarkMuted,marginTop:3},progressCard:{width:105,padding:11,borderRadius:12,borderWidth:1,borderColor:BrandColors.paleGreen,backgroundColor:"rgba(4,29,20,.85)"},progressLabel:{fontFamily:"Lora_600SemiBold",fontSize:7,color:BrandColors.onDarkMuted},progressValue:{fontFamily:"PlayfairDisplay_700Bold",fontSize:30,color:BrandColors.copper},progressSmall:{fontFamily:"Lora_400Regular",fontSize:8,color:BrandColors.onDark},bar:{height:5,marginTop:9,borderRadius:3,backgroundColor:BrandColors.paleGreen,overflow:"hidden"},fill:{height:"100%",backgroundColor:BrandColors.copper,borderRadius:4},actions:{margin:14,paddingVertical:13,borderWidth:1,borderColor:BrandColors.paleGreen,borderRadius:13,flexDirection:"row"},action:{flex:1,alignItems:"center",gap:5,borderRightWidth:StyleSheet.hairlineWidth,borderColor:BrandColors.paleGreen},actionText:{fontFamily:"Lora_500Medium",fontSize:9,color:BrandColors.onDark},tabs:{height:47,paddingHorizontal:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between",borderBottomWidth:1,borderBottomColor:BrandColors.paleGreen},tab:{fontFamily:"Lora_600SemiBold",fontSize:9,color:BrandColors.onDarkMuted},tabActive:{fontFamily:"Lora_700Bold",fontSize:9,color:BrandColors.copper,borderBottomWidth:2,borderBottomColor:BrandColors.copper,paddingVertical:16},panel:{marginHorizontal:14,padding:14,borderRadius:12,borderWidth:1,borderColor:BrandColors.paleGreen,backgroundColor:BrandColors.greenDeep},panelTitle:{fontFamily:"PlayfairDisplay_600SemiBold",fontSize:18,color:BrandColors.onDark},body:{marginTop:6,fontFamily:"Lora_400Regular",fontSize:11,lineHeight:17,color:BrandColors.onDarkMuted},facts:{marginTop:14,flexDirection:"row",flexWrap:"wrap",gap:12},mini:{width:"46%",flexDirection:"row",alignItems:"center",gap:8},miniLabel:{fontFamily:"Lora_400Regular",fontSize:8,color:BrandColors.onDarkMuted},miniValue:{fontFamily:"Lora_600SemiBold",fontSize:10,color:BrandColors.onDark},section:{marginTop:20,marginBottom:10,paddingHorizontal:16,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},sectionTitle:{fontFamily:"PlayfairDisplay_600SemiBold",fontSize:20,color:BrandColors.onDark},link:{fontFamily:"Lora_500Medium",fontSize:10,color:BrandColors.copper},row:{paddingHorizontal:14,gap:9},cityCard:{width:112,borderRadius:10,overflow:"hidden",borderWidth:1,borderColor:BrandColors.paleGreen,backgroundColor:BrandColors.greenDeep},cityArt:{height:77,alignItems:"center",justifyContent:"center"},cityPercent:{position:"absolute",right:5,top:5,fontFamily:"Lora_600SemiBold",fontSize:8,color:BrandColors.surface},cityName:{margin:7,marginBottom:1,fontFamily:"PlayfairDisplay_600SemiBold",fontSize:14,color:BrandColors.onDark},cityMeta:{marginHorizontal:7,marginBottom:7,fontFamily:"Lora_400Regular",fontSize:8,color:BrandColors.onDarkMuted},stamps:{paddingHorizontal:14,flexDirection:"row",flexWrap:"wrap",gap:9},stampEarn:{width:"48%",minHeight:125,padding:12,borderRadius:12,borderWidth:1,borderColor:BrandColors.paleGreen,backgroundColor:BrandColors.greenDeep},stampDone:{backgroundColor:BrandColors.paleGreen,borderColor:BrandColors.copper},stampIcon:{width:40,height:40,borderRadius:20,borderWidth:1,borderColor:BrandColors.copper,alignItems:"center",justifyContent:"center"},stampTitle:{marginTop:8,fontFamily:"PlayfairDisplay_600SemiBold",fontSize:14,color:BrandColors.onDark},stampDetail:{marginTop:3,fontFamily:"Lora_400Regular",fontSize:8,color:BrandColors.onDarkMuted},collection:{height:33,flexDirection:"row",alignItems:"center"},collectionName:{width:130,fontFamily:"Lora_500Medium",fontSize:10,color:BrandColors.onDark},collectionCount:{width:42,fontFamily:"Lora_400Regular",fontSize:8,color:BrandColors.onDarkMuted},collectionBar:{flex:1,height:5,borderRadius:3,backgroundColor:BrandColors.paleGreen,overflow:"hidden"}})

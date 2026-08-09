@@ -12,6 +12,19 @@
       "places": [],
       "id": "0c04f3ad-8c6e-4a1d-8c64-3fca980ae930",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "3573374",
+      "cityName": "The Valley",
+      "country": "Anguilla",
+      "countryCode": "AI",
+      "continentCode": "NA",
+      "subcountry": "The Valley",
+      "visitedAt": "2026-08-06",
+      "note": "hello",
+      "places": [],
+      "id": "a6375787-293d-48a1-b611-a87275949c88",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
@@ -22,10 +35,13 @@
   "users": [
     {
       "id": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "name": "Robb",
+      "name": "",
       "email": "darkhorse9372@gmail.com",
       "password": "kc9372KC!123",
-      "language": "English"
+      "language": "English",
+      "nationality": "",
+      "dateOfBirth": "",
+      "photoUri": null
     }
   ]
 }

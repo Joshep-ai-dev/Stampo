@@ -1,4 +1,6 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { Asset } from "expo-asset";
+import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -10,700 +12,519 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SvgXml } from "react-native-svg";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { BrandColors } from "@/constants/theme";
-import { CountryRecord, getCountriesWithCities } from "@/data/cities";
-import { calculateKrooScore, getKrooRank } from "@/data/kroo-score";
-import { stampAssets } from "@/data/stamps";
+import { calculateKrooScore } from "@/data/kroo-score";
 import { useAppSelector } from "@/store/hooks";
 
-const colors = {
-  background: BrandColors.canvas,
-  panel: BrandColors.surface,
-  ink: BrandColors.onDark,
-  brown: BrandColors.copperDark,
-  muted: BrandColors.onDarkMuted,
-  line: BrandColors.line,
+const TOTALS: Record<string, number> = {
+  AF: 54,
+  AN: 0,
+  AS: 48,
+  EU: 44,
+  NA: 23,
+  OC: 14,
+  SA: 12,
+};
+const CONTINENTS = [
+  { code: "AF", name: "Africa" },
+  { code: "AN", name: "Antarctica" },
+  { code: "AS", name: "Asia" },
+  { code: "EU", name: "Europe" },
+  { code: "NA", name: "North America" },
+  { code: "OC", name: "Oceania" },
+  { code: "SA", name: "South America" },
+];
+const ISO3: Record<string, string> = {
+  US: "USA",
+  CA: "CAN",
+  MX: "MEX",
+  BR: "BRA",
+  FR: "FRA",
+  GB: "GBR",
+  IT: "ITA",
+  ES: "ESP",
+  DE: "DEU",
+  TR: "TUR",
+  EG: "EGY",
+  ZA: "ZAF",
+  IN: "IND",
+  TH: "THA",
+  VN: "VNM",
+  CN: "CHN",
+  JP: "JPN",
+  AU: "AUS",
+  NZ: "NZL",
+  ID: "IDN",
+  SG: "SGP",
+  MY: "MYS",
+  AE: "ARE",
+  KH: "KHM",
+  KR: "KOR",
+  NL: "NLD",
 };
 
-const achievements = [
-  {
-    id: "dream-departure",
-    title: "Dream Departure",
-    subtitle: "Visit 1 country",
-    image: require("@/assets/images/other/dream-departure.png"),
-  },
-  {
-    id: "blooming-journey",
-    title: "Blooming Journey",
-    subtitle: "Visit 5 countries",
-    image: require("@/assets/images/other/blooming-journey.png"),
-  },
-];
-
-const continentFilters = [
-  { id: "AF", label: "Africa" },
-  { id: "AS", label: "Asia" },
-  { id: "EU", label: "Europe" },
-  { id: "NA", label: "N. America" },
-  { id: "SA", label: "S. America" },
-  { id: "OC", label: "Oceania" },
-  { id: "AN", label: "Antarctica" },
-] as const;
-
-const achievementFilters = [
-  { id: "countries", label: "Countries", selected: true },
-  { id: "cities", label: "Cities" },
-  { id: "continents", label: "Continents" },
-  { id: "personal", label: "Personal" },
-];
-
-function SectionHeader({
-  title,
-  onViewAll,
-}: {
-  title: string;
-  onViewAll?: () => void;
-}) {
+function WorldMap({ visited }: { visited: Set<string> }) {
+  const [xml, setXml] = useState<string>();
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const asset = Asset.fromModule(require("@/assets/images/world-map.svg"));
+      await asset.downloadAsync();
+      let svg = "";
+      try {
+        svg = await (await fetch(asset.localUri ?? asset.uri)).text();
+      } catch {
+        if (asset.localUri) svg = await new File(asset.localUri).text();
+      }
+      const visitedClasses = [...visited]
+        .map((code) => ISO3[code])
+        .filter(Boolean);
+      svg = svg
+        .replace(/<style[\s\S]*?<\/style>/, "")
+        .replace(
+          '<g class="country">',
+          `<g class="country" fill="${BrandColors.mapGreen}" stroke="${BrandColors.green}" stroke-width=".18">`,
+        )
+        .replaceAll('class="water"', 'fill="transparent" stroke="none"')
+        .replace(/<circle[\s\S]*?<\/circle>/g, "");
+      visitedClasses.forEach((code) => {
+        svg = svg.replace(
+          new RegExp(`<g class="(${code} [^"]+)"`, "g"),
+          `<g class="$1" fill="${BrandColors.copperDark}"`,
+        );
+      });
+      if (active) setXml(svg);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [visited]);
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <TouchableOpacity
-        activeOpacity={0.65}
-        onPress={onViewAll}
-        accessibilityRole="button"
-        accessibilityLabel={`View all ${title}`}
-      >
-        <Text style={styles.viewAll}>View all ›</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function FilterPill({
-  label,
-  selected = false,
-  onPress,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress?: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      style={[styles.pill, selected && styles.pillSelected]}
-      onPress={onPress}
+    <View
+      style={styles.mapWrap}
+      accessibilityLabel={`${visited.size} visited countries shown in brown`}
     >
-      <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
+      {xml ? (
+        <SvgXml xml={xml} width="100%" height="100%" />
+      ) : (
+        <View style={styles.mapLoading}>
+          <Ionicons
+            name="earth-outline"
+            size={34}
+            color={BrandColors.mapGreen}
+          />
+          <Text style={styles.mapLoadingText}>Loading your travel map…</Text>
+        </View>
+      )}
+      <View style={styles.legend}>
+        <View
+          style={[styles.legendDot, { backgroundColor: BrandColors.mapGreen }]}
+        />
+        <Text style={styles.legendText}>Not visited</Text>
+        <View
+          style={[
+            styles.legendDot,
+            { backgroundColor: BrandColors.copperDark },
+          ]}
+        />
+        <Text style={styles.legendText}>Visited</Text>
+      </View>
+    </View>
   );
 }
 
 export default function HomeScreen() {
   const router = useRouter();
-  const visits = useAppSelector((state) => state.travel.visits);
-  const profileName = useAppSelector((state) => state.profile.name);
-  const profilePhoto = useAppSelector((state) => state.profile.photoUri);
-  const [catalog, setCatalog] = useState<CountryRecord[]>([]);
-  const [selectedContinent, setSelectedContinent] = useState("NA");
-
-  useEffect(() => {
-    void getCountriesWithCities().then(setCatalog);
-  }, []);
-
-  const visitedCityIds = useMemo(
-    () => new Set(visits.map((visit) => visit.cityId)),
+  const visits = useAppSelector((x) => x.travel.visits);
+  const name = useAppSelector((x) => x.profile.name);
+  const countryCodes = useMemo(
+    () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
     [visits],
   );
-  const visitedCountryCodes = useMemo(
-    () => new Set(visits.map((visit) => visit.countryCode).filter(Boolean)),
+  const cityIds = useMemo(() => new Set(visits.map((x) => x.cityId)), [visits]);
+  const continentCodes = useMemo(
+    () => new Set(visits.map((x) => x.continentCode).filter(Boolean)),
     [visits],
   );
-  const visitedContinents = useMemo(
-    () => new Set(visits.map((visit) => visit.continentCode).filter(Boolean)),
-    [visits],
-  );
-  const cityCounts = useMemo(() => {
-    const counts = new Map<string, Set<string>>();
-    visits.forEach((visit) => {
-      if (!counts.has(visit.countryCode))
-        counts.set(visit.countryCode, new Set());
-      counts.get(visit.countryCode)?.add(visit.cityId);
+  const continentCounts = useMemo(() => {
+    const result: Record<string, Set<string>> = {};
+    visits.forEach((v) => {
+      result[v.continentCode] ??= new Set();
+      result[v.continentCode].add(v.countryCode);
     });
-    return counts;
+    return result;
   }, [visits]);
-  const visibleCountries = useMemo(
-    () =>
-      catalog.filter((country) => country.continentCode === selectedContinent),
-    [catalog, selectedContinent],
-  );
-  const sightCount = visits.reduce(
-    (total, visit) =>
-      total + visit.places.filter((place) => place.type === "sight").length,
+  const sights = visits.reduce(
+    (n, v) => n + v.places.filter((p) => p.type === "sight").length,
     0,
   );
-  const airportCount = visits.reduce(
-    (total, visit) =>
-      total + visit.places.filter((place) => place.type === "airport").length,
+  const airports = visits.reduce(
+    (n, v) => n + v.places.filter((p) => p.type === "airport").length,
     0,
   );
-  const krooScore = calculateKrooScore({
-    continents: visitedContinents.size,
-    countries: visitedCountryCodes.size,
-    cities: visitedCityIds.size,
-    sights: sightCount,
-    airports: airportCount,
+  const score = calculateKrooScore({
+    continents: continentCodes.size,
+    countries: countryCodes.size,
+    cities: cityIds.size,
+    sights,
+    airports,
   });
-  const countryProgress = Math.min(1, visitedCountryCodes.size / 195);
-  const krooRank = getKrooRank(krooScore);
-  const stats = [
-    {
-      id: "countries",
-      label: "COUNTRIES",
-      value: visitedCountryCodes.size,
-      icon: "globe",
-    },
-    {
-      id: "continents",
-      label: "CONTINENTS",
-      value: visitedContinents.size,
-      icon: "flag-outline",
-    },
-    {
-      id: "cities",
-      label: "CITIES",
-      value: visitedCityIds.size,
-      icon: "location-outline",
-    },
-    {
-      id: "sights",
-      label: "SIGHTS",
-      value: sightCount,
-      icon: "camera-outline",
-    },
-    {
-      id: "airports",
-      label: "AIRPORTS",
-      value: airportCount,
-      icon: "airplane-outline",
-    },
-  ] as const;
-
+  const worldProgress = Math.round((countryCodes.size / 195) * 100);
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView
-        style={styles.screen}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <View style={styles.welcomeBlock}>
-            <Text style={styles.eyebrow}>WELCOME</Text>
-            <Text style={styles.name}>{profileName}</Text>
+          <View>
+            <Text style={styles.greeting}>WELCOME</Text>
+            <Text style={styles.name}>{name || "Traveler"}</Text>
           </View>
-
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
-            style={styles.globeArtwork}
+            style={styles.globe}
             contentFit="contain"
-            pointerEvents="none"
           />
-
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push("/passport")}
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-          >
-            {profilePhoto ? (
-              <Image
-                source={{ uri: profilePhoto }}
-                style={styles.profilePhoto}
-                contentFit="cover"
-              />
-            ) : (
-              <Ionicons name="person" size={25} color={BrandColors.white} />
-            )}
+          <TouchableOpacity style={styles.heroBell}>
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={BrandColors.copper}
+            />
           </TouchableOpacity>
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreNumberWrap}>
-              <Image
-                source={require("@/assets/images/other/Kroo_Number.png")}
-                style={styles.krooBadge}
-                contentFit="contain"
-              />
-              <Text style={styles.scoreNumber}>{krooScore}</Text>
-            </View>
-            <View style={styles.scoreDetails}>
-              <Text style={styles.levelTitle}>{krooRank.toUpperCase()}</Text>
-              <View style={styles.progressTrack}>
+        </View>
+        <View style={styles.scoreCard}>
+          <View style={styles.scoreLine}>
+            <Text style={styles.score}>{score}</Text>
+            <View style={styles.scoreRight}>
+              <Text style={styles.scoreTitle}>KROO SCORE</Text>
+              <View style={styles.scoreBar}>
                 <View
                   style={[
-                    styles.progressFill,
-                    { width: `${countryProgress * 100}%` },
+                    styles.scoreFill,
+                    { width: `${Math.min(worldProgress, 100)}%` },
                   ]}
                 />
               </View>
-              <Text style={styles.xp}>
-                {visitedCountryCodes.size}/195 countries visited
+              <Text style={styles.worldText}>
+                {worldProgress}% of the world explored
               </Text>
             </View>
           </View>
-        </View>
-        <View style={styles.statsCard}>
-          {stats.map((stat) => (
-            <View key={stat.id} style={styles.statItem}>
-              <View style={styles.stat}>
-                <View style={styles.statTop}>
-                  <Ionicons name={stat.icon} size={22} color={colors.muted} />
-                  <Text style={styles.statNumber}>{stat.value}</Text>
-                </View>
-                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{stat.label}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <CityVisitSearch />
-
-        <SectionHeader
-          title="Country Atlas"
-          onViewAll={() => router.push("../country-atlas")}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filters}
-        >
-          {continentFilters.map((filter) => (
-            <FilterPill
-              key={filter.id}
-              label={filter.label}
-              selected={filter.id === selectedContinent}
-              onPress={() => setSelectedContinent(filter.id)}
+          <View style={styles.stats}>
+            <Stat
+              icon="globe-outline"
+              value={countryCodes.size}
+              total={195}
+              label="COUNTRIES"
             />
-          ))}
-        </ScrollView>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardRow}
-        >
-          {visibleCountries.map((country) => {
-            const visited = visitedCountryCodes.has(country.code);
-            const image = stampAssets[country.code];
-            const cityCount = cityCounts.get(country.code)?.size ?? 0;
+            <Stat
+              icon="flag-outline"
+              value={continentCodes.size}
+              total={7}
+              label="CONTINENTS"
+            />
+            <Stat
+              icon="business-outline"
+              value={cityIds.size}
+              total={2000}
+              label="CITIES"
+              last
+            />
+          </View>
+        </View>
+        <CityVisitSearch />
+        <WorldMap visited={countryCodes} />
+        <View style={styles.continentCard}>
+          <View style={styles.continentHeader}>
+            <Text style={styles.continentTitle}>Countries by continent</Text>
+            <View style={styles.totalPill}>
+              <Text style={styles.totalText}>{countryCodes.size} TOTAL</Text>
+            </View>
+          </View>
+          {CONTINENTS.map((item) => {
+            const count = continentCounts[item.code]?.size ?? 0;
+            const total = TOTALS[item.code];
+            const pct = total ? (count / total) * 100 : 0;
             return (
-              <TouchableOpacity
-                key={country.id}
-                style={styles.countryCard}
-                activeOpacity={0.8}
-                onPress={() => router.push(`/country/${country.code}` as never)}
-              >
-                <View style={styles.countryHeader}>
-                  <Text style={styles.flag}>{country.flag}</Text>
-                  <Text
-                    style={styles.countryName}
-                    numberOfLines={2}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.78}
-                  >
-                    {country.name}
-                  </Text>
+              <View key={item.code} style={styles.continentRow}>
+                <Text style={styles.continentName}>{item.name}</Text>
+                <View style={styles.continentBar}>
+                  <View style={[styles.continentFill, { width: `${pct}%` }]} />
                 </View>
-                <View style={styles.stampFrame}>
-                  {image ? (
-                    <Image
-                      source={image}
-                      style={[
-                        styles.countryStamp,
-                        !visited && styles.countryStampLocked,
-                      ]}
-                      contentFit="contain"
-                      tintColor={visited ? undefined : "#8f8b84"}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.genericStamp,
-                        !visited && styles.genericStampLocked,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.genericStampCode,
-                          !visited && styles.genericStampTextLocked,
-                        ]}
-                      >
-                        {country.code}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.genericStampName,
-                          !visited && styles.genericStampTextLocked,
-                        ]}
-                      >
-                        {country.name}
-                      </Text>
-                    </View>
-                  )}
-                  {!visited && (
-                    <View style={styles.lockOverlay}>
-                      <MaterialIcons
-                        name="lock-outline"
-                        size={20}
-                        color="#5f5b55"
-                      />
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.countryCities}>
-                  {visited
-                    ? `${cityCount} ${cityCount === 1 ? "City" : "Cities"}`
-                    : "Not visited"}
+                <Text style={styles.continentValue}>
+                  {count}/{total}
                 </Text>
-              </TouchableOpacity>
+              </View>
             );
           })}
-        </ScrollView>
-
-        <SectionHeader title="Achievements" />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filters}
-        >
-          {achievementFilters.map((filter) => (
-            <FilterPill
-              key={filter.id}
-              label={filter.label}
-              selected={filter.selected}
-            />
-          ))}
-        </ScrollView>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardRow}
-        >
-          {achievements.map((achievement) => (
-            <TouchableOpacity
-              key={achievement.id}
-              style={styles.achievementCard}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={achievement.image}
-                style={styles.achievementImage}
-                contentFit="contain"
-              />
-              <Text style={styles.achievementTitle}>{achievement.title}</Text>
-              <Text style={styles.achievementSubtitle}>
-                {achievement.subtitle}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const displaySemiBold = "PlayfairDisplay_600SemiBold";
-const displayBold = "PlayfairDisplay_700Bold";
-const displayItalic = "PlayfairDisplay_400Regular_Italic";
-const body = "Lora_500Medium";
-const bodySemiBold = "Lora_600SemiBold";
+function Stat({
+  icon,
+  value,
+  label,
+  last,
+}: {
+  icon: string;
+  value: number;
+  total: number;
+  label: string;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.stat, !last && styles.statBorder]}>
+      <View style={styles.statTop}>
+        <Ionicons name={icon as never} size={24} color={BrandColors.copper} />
+        <Text style={styles.statValue}>{value}</Text>
+      </View>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: 34 },
+  safe: { flex: 1, backgroundColor: BrandColors.green },
+  content: { paddingBottom: 30 },
+  badge: {
+    position: "absolute",
+    right: -2,
+    top: -3,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: "#47A75D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 8,
+    color: BrandColors.white,
+  },
   hero: {
-    height: 320,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    height: 220,
+    paddingHorizontal: 22,
+    paddingTop: 26,
     overflow: "hidden",
   },
-  welcomeBlock: { zIndex: 2 },
-  eyebrow: {
-    color: colors.muted,
-    fontFamily: displaySemiBold,
-    fontSize: 19,
-    letterSpacing: 3.5,
+  greeting: {
+    position: "relative",
+    zIndex: 2,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 15,
+    letterSpacing: 2.4,
+    color: BrandColors.copper,
   },
   name: {
-    color: colors.ink,
-    fontFamily: displayBold,
+    position: "relative",
+    zIndex: 2,
+    maxWidth: "58%",
+    fontFamily: "PlayfairDisplay_700Bold",
     fontSize: 48,
-    lineHeight: 58,
+    lineHeight: 56,
+    color: BrandColors.onDark,
   },
-  globeArtwork: {
+  globe: {
     position: "absolute",
-    width: 260,
-    height: 260,
-    top: 30,
-    right: 30,
+    right: 28,
+    top: -4,
+    width: 230,
+    height: 230,
+    zIndex: 0,
   },
-  profileButton: {
+  heroBell: {
     position: "absolute",
     right: 18,
-    top: 11,
-    zIndex: 3,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 3,
+    top: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
     borderColor: BrandColors.copper,
     backgroundColor: BrandColors.green,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 3,
   },
-  profilePhoto: { width: "100%", height: "100%", borderRadius: 25 },
-  scoreRow: {
-    position: "absolute",
-    left: 28,
-    right: 24,
-    bottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
+  scoreCard: {
+    marginHorizontal: 10,
+    padding: 10,
+    paddingBottom: 13,
+    backgroundColor: "transparent",
   },
-  scoreNumberWrap: {
-    width: 112,
-    height: 112,
-    alignItems: "center",
-    justifyContent: "center",
+  scoreLine: { flexDirection: "row", gap: 18 },
+  score: {
+    fontFamily: "PlayfairDisplay_700Bold",
+    fontSize: 49,
+    color: BrandColors.onDark,
   },
-  krooBadge: { position: "absolute", width: 112, height: 112 },
-  krooBadgeText: { alignItems: "center", marginTop: 18 },
-  scoreEyebrow: {
-    fontFamily: bodySemiBold,
-    fontSize: 8,
-    letterSpacing: 1.2,
-    color: colors.muted,
+  scoreRight: { flex: 1 },
+  scoreTitle: {
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 23,
+    letterSpacing: 1.3,
+    color: BrandColors.onDark,
   },
-  scoreNumber: {
-    fontFamily: displayBold,
-    fontSize: 24,
-    lineHeight: 32,
-    color: BrandColors.copper,
-  },
-  scoreDetails: { flex: 1, marginLeft: 12 },
-  levelTitle: {
-    fontFamily: displaySemiBold,
-    color: colors.ink,
-    fontSize: 17,
-    letterSpacing: 1.5,
-  },
-  progressTrack: {
-    height: 5,
+  scoreBar: {
+    height: 6,
+    marginTop: 5,
     borderRadius: 4,
-    backgroundColor: BrandColors.greenSoft,
-    marginTop: 10,
+    backgroundColor: "rgba(120,166,110,.24)",
     overflow: "hidden",
   },
-  progressFill: {
-    width: "93%",
+  scoreFill: {
     height: "100%",
-    backgroundColor: BrandColors.copper,
     borderRadius: 4,
+    backgroundColor: BrandColors.copper,
   },
-  xp: {
-    fontFamily: displayItalic,
-    color: colors.muted,
-    fontSize: 18,
-    marginTop: 8,
-    letterSpacing: 1,
+  worldText: {
+    marginTop: 7,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: 12,
+    color: BrandColors.mapGreen,
   },
-  statsCard: {
+  stats: {
     height: 94,
-    marginHorizontal: 20,
+    marginTop: 18,
     borderRadius: 13,
-    backgroundColor: BrandColors.greenDeep,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  stat: { width: "100%", alignItems: "center", justifyContent: "center" },
-  statItem: {
-    flex: 1,
-    height: "100%",
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,0.20)",
     flexDirection: "row",
     alignItems: "center",
   },
-  statTop: {
-    height: 30,
-    flexDirection: "row",
-    gap: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    transform: [{ translateY: -4 }],
-  },
-  statNumber: {
-    fontFamily: displayBold,
-    fontSize: 21,
-    lineHeight: 28,
-    color: colors.ink,
-    marginTop: -13,
-    includeFontPadding: false,
-    textAlignVertical: "center",
+  stat: { flex: 1, alignItems: "center" },
+  statBorder: { borderRightWidth: 1, borderRightColor: BrandColors.paleGreen },
+  statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statValue: {
+    fontFamily: "PlayfairDisplay_700Bold",
+    fontSize: 23,
+    color: BrandColors.onDark,
   },
   statLabel: {
-    width: "100%",
-    marginTop: -1,
-    fontFamily: displaySemiBold,
-    fontSize: 10,
-    lineHeight: 14,
-    color: colors.muted,
-    letterSpacing: 0.15,
-    includeFontPadding: false,
-    textAlignVertical: "center",
-    textAlign: "center",
+    marginTop: 4,
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 13,
+    color: BrandColors.onDark,
   },
-  statDivider: { height: 57, width: 1, backgroundColor: colors.line },
-  sectionHeader: {
-    marginTop: 24,
-    marginBottom: 12,
-    paddingHorizontal: 20,
+  sectionHeading: {
+    marginTop: 14,
+    paddingHorizontal: 12,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
   },
   sectionTitle: {
-    fontFamily: bodySemiBold,
-    color: colors.ink,
-    fontSize: 24,
-    letterSpacing: 1.7,
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 21,
+    color: BrandColors.onDark,
   },
-  viewAll: { fontFamily: displayItalic, color: colors.muted, fontSize: 19 },
-  filters: { paddingHorizontal: 16, gap: 7, paddingBottom: 13 },
-  pill: {
-    height: 39,
-    borderRadius: 22,
-    borderWidth: 1.3,
-    borderColor: colors.line,
-    justifyContent: "center",
-    paddingHorizontal: 17,
+  viewMap: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 10,
+    color: BrandColors.mapGreen,
   },
-  pillSelected: {
-    backgroundColor: BrandColors.copper,
-    borderColor: BrandColors.copper,
-  },
-  pillText: {
-    fontFamily: body,
-    fontSize: 17,
-    color: BrandColors.copper,
-    letterSpacing: 1.1,
-  },
-  pillTextSelected: { color: BrandColors.white },
-  cardRow: { paddingHorizontal: 16, gap: 10 },
-  countryCard: {
-    width: 200,
-    height: 300,
-    backgroundColor: colors.panel,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.line,
-    alignItems: "center",
-    paddingTop: 14,
-  },
-  countryHeader: {
-    width: "100%",
-    height: 48,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 7,
-  },
-  countryName: {
-    flex: 1,
-    fontFamily: bodySemiBold,
-    color: BrandColors.ink,
-    fontSize: 16,
-    lineHeight: 21,
-    letterSpacing: 0.35,
-    includeFontPadding: false,
-  },
-  flag: { fontSize: 22, lineHeight: 25, includeFontPadding: false },
-  stampFrame: {
-    width: 190,
+  mapWrap: {
     height: 190,
+    marginHorizontal: 4,
+    marginTop: 2,
+    padding: 2,
+    backgroundColor: "transparent",
+  },
+  mapLoading: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
   },
-  countryStamp: { width: 180, height: 185 },
-  countryStampLocked: { opacity: 0.34 },
-  genericStampLocked: { borderColor: "#918c84", opacity: 0.38 },
-  genericStampTextLocked: { color: "#77736d" },
-  genericStamp: {
-    width: 145,
-    height: 160,
-    borderWidth: 4,
-    borderColor: colors.brown,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 12,
+  mapLoadingText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 11,
+    color: BrandColors.onDarkMuted,
   },
-  genericStampCode: {
-    fontFamily: displayBold,
-    fontSize: 34,
-    color: colors.brown,
-  },
-  genericStampName: {
-    fontFamily: bodySemiBold,
-    fontSize: 13,
-    color: colors.brown,
-    textAlign: "center",
-  },
-  lockOverlay: {
+  legend: {
     position: "absolute",
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    left: 12,
+    bottom: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: "rgba(3,29,20,.9)",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 5,
   },
-  countryCities: {
-    fontFamily: body,
-    color: BrandColors.muted,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-    includeFontPadding: false,
-    textAlignVertical: "center",
+  legendDot: { width: 7, height: 7, borderRadius: 4 },
+  legendText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 7,
+    color: BrandColors.onDarkMuted,
+    marginRight: 5,
   },
-  achievementCard: {
-    width: 200,
-    height: 300,
-    backgroundColor: colors.panel,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.line,
+  continentCard: {
+    marginHorizontal: 8,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,0.20)",
+  },
+  continentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 14,
+    marginBottom: 9,
   },
-  achievementImage: { width: 184, height: 184 },
-  achievementTitle: {
-    fontFamily: bodySemiBold,
-    color: BrandColors.ink,
-    fontSize: 17,
-    textAlign: "center",
-    marginTop: 8,
+  continentTitle: {
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontSize: 19,
+    color: BrandColors.onDark,
   },
-  achievementSubtitle: {
-    fontFamily: body,
-    color: BrandColors.muted,
-    fontSize: 15,
-    marginTop: 8,
+  totalPill: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: "rgba(49,87,73,.55)",
+  },
+  totalText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 8,
+    color: BrandColors.mapGreen,
+  },
+  continentRow: { height: 28, flexDirection: "row", alignItems: "center" },
+  continentName: {
+    width: 112,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 11,
+    color: BrandColors.onDark,
+  },
+  continentBar: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(49,87,73,.65)",
+    overflow: "hidden",
+  },
+  continentFill: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: BrandColors.copper,
+  },
+  continentValue: {
+    width: 37,
+    textAlign: "right",
+    fontFamily: "Lora_500Medium",
+    fontSize: 10,
+    color: BrandColors.onDarkMuted,
   },
 });

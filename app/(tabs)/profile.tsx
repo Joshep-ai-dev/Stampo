@@ -313,7 +313,11 @@ export default function ProfileScreen() {
                       style={[styles.socialButton, styles.appleButton]}
                       onPress={() => socialSignIn("Apple")}
                     >
-                      <Ionicons name="logo-apple" size={22} color={BrandColors.white} />
+                      <Ionicons
+                        name="logo-apple"
+                        size={22}
+                        color={BrandColors.white}
+                      />
                       <Text style={styles.appleText}>Continue with Apple</Text>
                     </TouchableOpacity>
                   )}
@@ -513,10 +517,27 @@ const styles = StyleSheet.create({
     borderColor: BrandColors.line,
   },
   appleButton: { backgroundColor: "#111111" },
-  googleText: { fontFamily: "Lora_600SemiBold", fontSize: 16, color: colors.ink },
-  appleText: { fontFamily: "Lora_600SemiBold", fontSize: 16, color: BrandColors.white },
-  orRow: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 2 },
-  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.divider },
+  googleText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 16,
+    color: colors.ink,
+  },
+  appleText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 16,
+    color: BrandColors.white,
+  },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 2,
+  },
+  orLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
   orText: { fontFamily: "Lora_400Regular", fontSize: 13, color: colors.muted },
   languageList: {
     borderRadius: 14,

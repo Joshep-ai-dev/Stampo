@@ -23,9 +23,9 @@ export type VisitedPlace = {
 
 export type NewVisit = Omit<Visit, "id">;
 
-type TravelState = { visits: Visit[] };
+type TravelState = { visits: Visit[]; completedSightIds: string[]; wishlistIds: string[] };
 
-const initialState: TravelState = { visits: [] };
+const initialState: TravelState = { visits: [], completedSightIds: [], wishlistIds: [] };
 
 const travelSlice = createSlice({
   name: "travel",
@@ -53,6 +53,16 @@ const travelSlice = createSlice({
     },
     visitsCleared(state) {
       state.visits = [];
+    },
+    sightToggled(state, action: PayloadAction<string>) {
+      state.completedSightIds = state.completedSightIds.includes(action.payload)
+        ? state.completedSightIds.filter((id) => id !== action.payload)
+        : [...state.completedSightIds, action.payload];
+    },
+    wishlistToggled(state, action: PayloadAction<string>) {
+      state.wishlistIds = state.wishlistIds.includes(action.payload)
+        ? state.wishlistIds.filter((id) => id !== action.payload)
+        : [...state.wishlistIds, action.payload];
     },
     placeAdded(
       state,
@@ -85,6 +95,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, sightToggled, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;

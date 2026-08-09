@@ -6,19 +6,21 @@
 import { Platform } from "react-native";
 
 export const BrandColors = {
-  green: "#072519",
-  greenDeep: "#0E2C20",
+  green: "#031D14",
+  greenDeep: "#06251A",
+  greenPanel: "#0A2B20",
   greenSoft: "#424234",
   copper: "#D7925F",
   copperDark: "#C37F4F",
   white: "#FFF8EB",
-  canvas: "#0E2C20",
+  canvas: "#031D14",
   surface: "#F5E5CD",
   surfaceSoft: "#EFD8B8",
   ink: "#183A30",
   muted: "#846E5B",
   line: "#B97950",
   paleGreen: "#315749",
+  mapGreen: "#78A66E",
   onDark: "#F8EAD4",
   onDarkMuted: "#D9A477",
 } as const;

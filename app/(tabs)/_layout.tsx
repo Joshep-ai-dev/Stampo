@@ -1,41 +1,9 @@
 import { Tabs } from "expo-router";
-import { Image, StyleSheet } from "react-native";
-import { SvgUri } from "react-native-svg";
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { BrandColors } from "@/constants/theme";
-
-const tabs = [
-  {
-    id: "globe",
-    route: "index",
-    label: "Globe",
-    icon: require("@/assets/images/svg/globe.svg"),
-  },
-  {
-    id: "passport",
-    route: "passport",
-    label: "Passport",
-    icon: require("@/assets/images/svg/passport.svg"),
-  },
-  {
-    id: "visits",
-    route: "visits",
-    label: "Visits",
-    icon: require("@/assets/images/svg/profile-medal.svg"),
-  },
-] as const;
-
-function TabIcon({ source, color }: { source: number; color: string }) {
-  return (
-    <SvgUri
-      uri={Image.resolveAssetSource(source).uri}
-      width={styles.tabIcon.width}
-      height={styles.tabIcon.height}
-      color={color}
-    />
-  );
-}
 
 export default function TabLayout() {
   return (
@@ -52,7 +20,7 @@ export default function TabLayout() {
           marginTop: 1,
         },
         tabBarStyle: {
-          backgroundColor: BrandColors.surface,
+          backgroundColor: "#081B14",
           borderTopColor: BrandColors.line,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: 72,
@@ -61,26 +29,15 @@ export default function TabLayout() {
         },
       }}
     >
-      {tabs.map((tab) => (
-        <Tabs.Screen
-          key={tab.id}
-          name={tab.route}
-          options={{
-            title: tab.label,
-            tabBarIcon: ({ color }) => (
-              <TabIcon source={tab.icon} color={color} />
-            ),
-          }}
-        />
-      ))}
-      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="index" options={{title:"Home",tabBarIcon:({color})=><Ionicons name="home-outline" size={26} color={color}/>}} />
+      <Tabs.Screen name="explore" options={{title:"Explore",tabBarIcon:({color})=><Ionicons name="globe-outline" size={27} color={color}/>}} />
+      <Tabs.Screen name="visits" options={{title:"Add",tabBarLabel:"",tabBarIcon:()=> <View style={styles.add}><Ionicons name="add" size={34} color={BrandColors.white}/></View>}} />
+      <Tabs.Screen name="passport" options={{title:"Passport",tabBarIcon:({color})=><Ionicons name="book-outline" size={26} color={color}/>}} />
+      <Tabs.Screen name="profile" options={{title:"Profile",tabBarIcon:({color})=><Ionicons name="person-outline" size={26} color={color}/>}} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabIcon: {
-    width: 29,
-    height: 29,
-  },
+  add:{width:56,height:56,marginTop:-20,borderRadius:28,backgroundColor:"#32A852",borderWidth:4,borderColor:"#081B14",alignItems:"center",justifyContent:"center"}
 });

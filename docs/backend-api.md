@@ -575,3 +575,17 @@ Before connecting Laravel:
 7. Call `setApiToken(token)` during application hydration.
 8. Reconcile locally created visits with server visits using UUIDs or an idempotency key.
 9. Remove the bundled CSV and development JSON Server user flow after the Laravel migration is complete.
+# Stampo API and data model
+
+The development API uses a JSON-backed relational shape. Every user-owned record carries a `userId`; production can map the same resources to PostgreSQL tables with foreign keys and indexes on `(userId, targetId)`.
+
+Core collections: `users` (identity, profile, free/pro plan), `visits` (country/city/date), embedded `places` (sight/airport check-ins), `completions` (sight checklist state), `wishlists` (country/city/sight targets), and `rewards` (earned score milestone and redemption state).
+
+Travel-state endpoints:
+
+- `GET /me/travel-state` returns checklist, wishlist, rewards, and entitlement state.
+- `PUT /me/completions/:sightId` with `{ "completed": true }` checks a sight on or off.
+- `PUT /me/wishlist/:targetId` with `{ "saved": true }` saves or removes a target.
+- `PUT /me/plan` with `{ "plan": "free" | "pro" }` updates the development entitlement.
+
+Free accounts can record countries. Pro unlocks city-level visits and sights checklists; this must be enforced in the production API/payment webhook as well as represented in the UI.
