@@ -116,21 +116,24 @@ function WorldMap({ visited }: { visited: Set<string> }) {
             `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.copper};}`,
           )
           .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<path\b([^>]*?)>/g, (path, attributes: string) => {
+          .replace(/<path\b([^>]*?)>/g, (_path, attributes: string) => {
             const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
             const iso3 = (
               attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
               (id.match(/^[A-Za-z]{3}$/) ? id : "")
             ).toUpperCase();
-            if (!authoredVisited.has(id) && !visitedIso3.has(iso3)) return path;
-            if (/\bclass="[^"]*\bvisited\b/.test(attributes)) return path;
-            if (/\bclass="([^"]*)"/.test(attributes)) {
-              return `<path${attributes.replace(
-                /\bclass="([^"]*)"/,
-                'class="$1 visited"',
-              )}>`;
-            }
-            return `<path${attributes} class="st0 visited">`;
+            const selected = authoredVisited.has(id) || visitedIso3.has(iso3);
+            const pathAttributes = attributes
+              .replace(/\sfill="[^"]*"/g, "")
+              .replace(/\sstroke="[^"]*"/g, "")
+              .replace(/\sstroke-width="[^"]*"/g, "")
+              .replace(/\sclass="[^"]*"/g, "")
+              .replace(/\s*\/\s*$/, "");
+            // Inline presentation attributes are supported consistently by
+            // react-native-svg; Illustrator CSS classes are not.
+            return `<path${pathAttributes} fill="${
+              selected ? BrandColors.copper : BrandColors.mapGreen
+            }" stroke="${BrandColors.green}" stroke-width=".3" />`;
           });
         // Keep the supplied artwork in charge of geometry. Adding
         // data-iso3="FRA" (or setting id="FRA") to a path makes it respond
