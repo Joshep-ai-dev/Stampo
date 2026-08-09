@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    height: 215,
+    height: 260,
     marginHorizontal: 2,
     marginTop: 2,
     backgroundColor: "transparent",

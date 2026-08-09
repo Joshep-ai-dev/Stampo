@@ -90,6 +90,19 @@
       "places": [],
       "id": "d998c64a-1705-4a45-8dca-b52a027ac581",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "461698",
+      "cityName": "Sosnovka",
+      "country": "Russian Federation",
+      "countryCode": "RU",
+      "continentCode": "AS",
+      "subcountry": "St.-Petersburg",
+      "visitedAt": "2026-08-10",
+      "note": "",
+      "places": [],
+      "id": "48b98c6b-d74e-42d7-a3e5-57bcf660d578",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
