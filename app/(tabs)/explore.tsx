@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -14,8 +14,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandHeader } from "@/components/brand-header";
 import { BrandColors } from "@/constants/theme";
-import { challenges, featuredCountries } from "@/data/explore";
+import { CountryRecord, getCountriesWithCities } from "@/data/cities";
+import { challenges } from "@/data/explore";
 import { stampAssets } from "@/data/stamps";
+import { useAppSelector } from "@/store/hooks";
 
 const countryFilters = [
   "All",
@@ -33,13 +35,6 @@ const challengeFilters = [
   "Adventure",
   "Culture",
 ];
-const continentByCode: Record<string, string> = {
-  JP: "Asia",
-  FR: "Europe",
-  BR: "South America",
-  EG: "Africa",
-  IT: "Europe",
-};
 const travelers = [
   {
     name: "Francis",
@@ -81,17 +76,31 @@ const travelers = [
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
   const [challengeFilter, setChallengeFilter] = useState("All");
+  const [countryCatalog, setCountryCatalog] = useState<CountryRecord[]>([]);
+  useEffect(() => {
+    void getCountriesWithCities().then(setCountryCatalog);
+  }, []);
   const countries = useMemo(
     () =>
       countryFilter === "All"
-        ? featuredCountries
-        : featuredCountries.filter(
-            (x) => continentByCode[x.code] === countryFilter,
+        ? countryCatalog
+        : countryCatalog.filter(
+            (country) => country.continent === countryFilter,
           ),
-    [countryFilter],
+    [countryCatalog, countryFilter],
   );
+  const visitedCityCounts = useMemo(() => {
+    const counts = new Map<string, Set<string>>();
+    visits.forEach((visit) => {
+      const cities = counts.get(visit.countryCode) ?? new Set<string>();
+      cities.add(visit.cityId);
+      counts.set(visit.countryCode, cities);
+    });
+    return counts;
+  }, [visits]);
   const visibleChallenges = useMemo(
     () =>
       challengeFilter === "All"
@@ -183,7 +192,10 @@ export default function ExploreScreen() {
                   )}
                 </View>
                 <Text style={s.cities}>
-                  {country.cities} {country.cities === 1 ? "City" : "Cities"}
+                  {visitedCityCounts.get(country.code)?.size ?? 0}{" "}
+                  {(visitedCityCounts.get(country.code)?.size ?? 0) === 1
+                    ? "City"
+                    : "Cities"}
                 </Text>
               </TouchableOpacity>
             ))
@@ -216,18 +228,20 @@ export default function ExploreScreen() {
                   )
                 }
               >
-                <View style={[s.avatar, { backgroundColor: person.color }]}>
-                  <Ionicons
-                    name="person"
-                    size={25}
-                    color={BrandColors.onDark}
-                  />
-                  <Text style={s.avatarFlag}>{person.flag}</Text>
-                </View>
-                <View style={s.activityCopy}>
-                  <Text style={s.activityName}>{person.name}</Text>
-                  <Text style={s.activityText}>{person.achievement}</Text>
-                  <Text style={s.activitySub}>{person.note}</Text>
+                <View style={s.activityMain}>
+                  <View style={[s.avatar, { backgroundColor: person.color }]}>
+                    <Ionicons
+                      name="person"
+                      size={25}
+                      color={BrandColors.onDark}
+                    />
+                    <Text style={s.avatarFlag}>{person.flag}</Text>
+                  </View>
+                  <View style={s.activityCopy}>
+                    <Text style={s.activityName}>{person.name}</Text>
+                    <Text style={s.activityText}>{person.achievement}</Text>
+                    <Text style={s.activitySub}>{person.note}</Text>
+                  </View>
                 </View>
                 <View style={s.points}>
                   <Ionicons
@@ -517,12 +531,14 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   activity: {
-    width: 154,
-    minHeight: 91,
-    paddingVertical: 9,
+    width: 180,
+    minHeight: 90,
+    paddingTop: 6,
+    paddingBottom: 2,
     paddingHorizontal: 10,
-    paddingRight: 34,
-    position: "relative",
+    justifyContent: "space-between",
+  },
+  activityMain: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -539,13 +555,13 @@ const s = StyleSheet.create({
     borderColor: BrandColors.onDark,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "visible",
   },
   avatarFlag: {
     position: "absolute",
     right: -6,
     bottom: -4,
     fontSize: 15,
-    backgroundColor: BrandColors.green,
     borderRadius: 9,
     overflow: "hidden",
   },
@@ -568,10 +584,11 @@ const s = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   points: {
-    position: "absolute",
-    right: 9,
-    bottom: 7,
+    alignSelf: "flex-end",
+    marginTop: 3,
+    flexDirection: "row",
     alignItems: "center",
+    gap: 3,
   },
   pointsText: {
     fontFamily: "Lora_700Bold",
