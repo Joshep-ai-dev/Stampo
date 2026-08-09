@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   scoreCard: {
-    marginTop: -40,
+    marginTop: -24,
     marginHorizontal: 14,
     paddingHorizontal: 6,
     paddingTop: 4,

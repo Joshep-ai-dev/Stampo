@@ -61,18 +61,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="visits"
-        options={{
-          title: "Add",
-          tabBarLabel: "",
-          tabBarIcon: () => (
-            <View style={styles.add}>
-              <Ionicons name="add" size={34} color={BrandColors.white} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="passport"
         options={{
           title: "Passport",
@@ -88,13 +76,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="visits"
         options={{
-          title: "Profile",
+          title: "Visits",
           tabBarIcon: ({ color, focused }) => (
             <View style={StyleSheet.compose(styles.iconWrap, focused)}>
               <Ionicons
-                name={focused ? "person" : "person-outline"}
+                name={focused ? "location" : "location-outline"}
                 size={25}
                 color={color}
               />
@@ -110,17 +98,6 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  add: {
-    width: 56,
-    height: 56,
-    marginTop: -20,
-    borderRadius: 28,
-    backgroundColor: "#32A852",
-    borderWidth: 4,
-    borderColor: "#081B14",
     alignItems: "center",
     justifyContent: "center",
   },

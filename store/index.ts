@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configureStore } from "@reduxjs/toolkit";
 
+import { api } from "@/services/api";
 import profileReducer, {
   authSessionChanged,
   languageChanged,
@@ -9,7 +10,6 @@ import profileReducer, {
   signedOut,
 } from "./profile-slice";
 import travelReducer, { visitsCleared, visitsHydrated } from "./travel-slice";
-import { api } from "@/services/api";
 
 const STORAGE_KEY = "stampo.app-state.v1";
 
@@ -26,7 +26,8 @@ export async function hydrateStore() {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (raw) {
     const saved = JSON.parse(raw) as Partial<RootState>;
-    if (saved.travel?.visits) store.dispatch(visitsHydrated(saved.travel.visits));
+    if (saved.travel?.visits)
+      store.dispatch(visitsHydrated(saved.travel.visits));
     if (saved.profile) store.dispatch(profileHydrated(saved.profile));
   }
 
@@ -34,12 +35,14 @@ export async function hydrateStore() {
     const user = await api.restoreSession();
     if (user) {
       const profile = store.getState().profile;
-      store.dispatch(profileDetailsChanged({
-        name: user.name,
-        email: user.email,
-        nationality: profile.nationality,
-        dateOfBirth: profile.dateOfBirth,
-      }));
+      store.dispatch(
+        profileDetailsChanged({
+          name: user.name,
+          email: user.email,
+          nationality: profile.nationality,
+          dateOfBirth: profile.dateOfBirth,
+        }),
+      );
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
       store.dispatch(visitsHydrated(await api.listVisits()));
