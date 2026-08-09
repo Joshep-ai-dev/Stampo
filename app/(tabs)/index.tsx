@@ -106,7 +106,6 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         // react-native-svg. Turn the path list already authored in the asset
         // into ordinary SVG classes so those countries remain visible.
         let brandedMap = svg
-          .replace('viewBox="0 0 800 600"', 'viewBox="18 68 764 430"')
           .replace(
             /\.st0\{[^}]+\}/,
             `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.copper};}`,
@@ -190,7 +189,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       accessibilityLabel={`${visited.size} visited countries shown in brown`}
     >
       {xml ? (
-        <SvgXml xml={xml} width="116%" height="100%" style={styles.mapSvg} />
+        <SvgXml xml={xml} width="100%" height="100%" />
       ) : (
         <View style={styles.mapLoading}>
           <Ionicons
@@ -569,13 +568,11 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    height: 230,
+    height: 215,
+    marginHorizontal: 2,
     marginTop: 2,
     backgroundColor: "transparent",
     overflow: "hidden",
-  },
-  mapSvg: {
-    marginLeft: "-8%",
   },
   mapLoading: {
     flex: 1,

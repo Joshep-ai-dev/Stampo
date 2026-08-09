@@ -51,6 +51,19 @@
       "places": [],
       "id": "8d2af66a-5c76-4d7e-aee2-cdaaa94a3632",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "1529594",
+      "cityName": "Beitun",
+      "country": "China",
+      "countryCode": "CN",
+      "continentCode": "AS",
+      "subcountry": "Xinjiang",
+      "visitedAt": "2026-08-09",
+      "note": "",
+      "places": [],
+      "id": "fac4839c-eb51-4607-95e6-93331690553a",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
