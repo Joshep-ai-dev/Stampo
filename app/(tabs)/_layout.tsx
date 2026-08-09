@@ -35,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.compose(styles.iconWrap, focused)}>
+            <View style={styles.iconWrap}>
               <Ionicons
                 name={focused ? "home" : "home-outline"}
                 size={25}
@@ -50,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.compose(styles.iconWrap, focused)}>
+            <View style={styles.iconWrap}>
               <Ionicons
                 name={focused ? "globe" : "globe-outline"}
                 size={26}
@@ -65,7 +65,7 @@ export default function TabLayout() {
         options={{
           title: "Passport",
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.compose(styles.iconWrap, focused)}>
+            <View style={styles.iconWrap}>
               <Ionicons
                 name={focused ? "book" : "book-outline"}
                 size={25}
@@ -80,7 +80,7 @@ export default function TabLayout() {
         options={{
           title: "Visits",
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.compose(styles.iconWrap, focused)}>
+            <View style={styles.iconWrap}>
               <Ionicons
                 name={focused ? "location" : "location-outline"}
                 size={25}

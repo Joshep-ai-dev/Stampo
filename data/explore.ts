@@ -38,6 +38,8 @@ export const challenges = [
   { id: "wonders", title: "Seven Wonders", detail: "Visit all 7 wonders", icon: "earth-outline", progress: 12 },
   { id: "seas", title: "Seven Seas", detail: "Sail or visit all 7 seas", icon: "boat-outline", progress: 8 },
   { id: "unesco", title: "UNESCO Explorer", detail: "Visit heritage sites", icon: "library-outline", progress: 14 },
+  { id: "parks", title: "National Parks", detail: "Visit national parks", icon: "leaf-outline", progress: 16 },
+  { id: "culture", title: "Culture Keeper", detail: "Complete cultural visits", icon: "color-palette-outline", progress: 9 },
 ];
 
 export const rewards = [

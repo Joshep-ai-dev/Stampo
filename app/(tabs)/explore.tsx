@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,259 +12,410 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BrandHeader } from "@/components/brand-header";
 import { BrandColors } from "@/constants/theme";
 import { challenges, featuredCountries } from "@/data/explore";
 import { stampAssets } from "@/data/stamps";
 
-const filters = ["All", "Europe", "Asia", "Africa", "Americas"];
+const countryFilters = [
+  "All",
+  "North America",
+  "South America",
+  "Europe",
+  "Asia",
+  "Africa",
+  "Oceania",
+];
+const challengeFilters = [
+  "All",
+  "Collection",
+  "Geography",
+  "USA",
+  "Adventure",
+  "Culture",
+];
+const continentByCode: Record<string, string> = {
+  JP: "Asia",
+  FR: "Europe",
+  BR: "South America",
+  EG: "Africa",
+  IT: "Europe",
+};
+const travelers = [
+  {
+    name: "Francis",
+    flag: "🇩🇪",
+    initials: "FR",
+    color: "#315B72",
+    achievement: "reached 50 World Capitals.",
+    note: "Well done!",
+    points: 50,
+  },
+  {
+    name: "Jan",
+    flag: "🇩🇪",
+    initials: "JA",
+    color: "#765C4D",
+    achievement: "reached 100 Castles, Palaces, Forts.",
+    note: "Well done!",
+    points: 100,
+  },
+  {
+    name: "Alex",
+    flag: "🇺🇸",
+    initials: "AL",
+    color: "#3E6C5B",
+    achievement: "reached 100 New World Cities.",
+    note: "Well done!",
+    points: 100,
+  },
+];
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const [countryFilter, setCountryFilter] = useState("All");
+  const [challengeFilter, setChallengeFilter] = useState("All");
+  const countries = useMemo(
+    () =>
+      countryFilter === "All"
+        ? featuredCountries
+        : featuredCountries.filter(
+            (x) => continentByCode[x.code] === countryFilter,
+          ),
+    [countryFilter],
+  );
+  const visibleChallenges = useMemo(
+    () =>
+      challengeFilter === "All"
+        ? challenges
+        : challenges.filter(
+            (_, i) =>
+              ["Collection", "Adventure", "USA", "Geography", "Culture"][
+                i % 5
+              ] === challengeFilter,
+          ),
+    [challengeFilter],
+  );
+  const showChallenge = (title: string, detail: string) =>
+    Alert.alert(
+      title,
+      `${detail}\n\nOpen this challenge to see its checklist, progress, Kroo Score value, and unlocked reward.`,
+    );
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={s.brandRow}>
-          <Text style={s.brand}>⌁ Kroo</Text>
-          <TouchableOpacity style={s.bell}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={BrandColors.copper}
-            />
-          </TouchableOpacity>
+        <View style={s.headerPad}>
+          <BrandHeader />
         </View>
         <Text style={s.title}>Explore</Text>
         <Text style={s.subtitle}>
           Discover the world. Complete stamps. Earn glory.
         </Text>
 
-        <View style={s.headingRow}>
-          <Text style={s.heading}>Countries</Text>
-          <Text style={s.link}>View all ›</Text>
-        </View>
+        <Section
+          title="Countries"
+          onPress={() => router.push("/country-atlas")}
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.pills}
         >
-          {filters.map((filter, index) => (
-            <View key={filter} style={[s.pill, index === 0 && s.pillActive]}>
-              <Text style={[s.pillText, index === 0 && s.pillTextActive]}>
-                {filter}
+          {countryFilters.map((x) => (
+            <TouchableOpacity
+              key={x}
+              onPress={() => setCountryFilter(x)}
+              style={[s.pill, countryFilter === x && s.pillActive]}
+            >
+              <Text
+                style={[s.pillText, countryFilter === x && s.pillTextActive]}
+              >
+                {x}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.cardRow}
+          contentContainerStyle={s.countryRow}
         >
-          {featuredCountries.map((country) => (
+          {countries.length ? (
+            countries.map((country) => (
+              <TouchableOpacity
+                key={country.code}
+                activeOpacity={0.82}
+                style={s.countryCard}
+                onPress={() => router.push(`/country/${country.code}` as never)}
+              >
+                <Text style={s.countryName}>{country.name.toUpperCase()}</Text>
+                {stampAssets[country.code] ? (
+                  <Image
+                    source={stampAssets[country.code]}
+                    style={s.stamp}
+                    contentFit="contain"
+                  />
+                ) : (
+                  <View style={s.placeholder}>
+                    <Text style={s.flag}>{country.flag}</Text>
+                    <Ionicons
+                      name="earth-outline"
+                      size={43}
+                      color={BrandColors.green}
+                    />
+                  </View>
+                )}
+                <Text style={s.cities}>
+                  {country.cities} {country.cities === 1 ? "City" : "Cities"}
+                </Text>
+                <View style={s.progress}>
+                  <View
+                    style={[s.progressFill, { width: `${country.progress}%` }]}
+                  />
+                </View>
+                <Text style={s.percent}>{country.progress}%</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={s.empty}>
+              <Text style={s.emptyText}>
+                More {countryFilter} stamps are coming soon.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.activityRow}
+        >
+          {travelers.map((person) => (
             <TouchableOpacity
-              key={country.code}
-              activeOpacity={0.82}
-              style={s.countryCard}
-              onPress={() => router.push(`/country/${country.code}` as never)}
+              key={person.name}
+              style={s.activity}
+              onPress={() =>
+                Alert.alert(
+                  person.name,
+                  `${person.name} ${person.achievement} ${person.note}`,
+                )
+              }
             >
-              <Text style={s.countryName}>{country.name.toUpperCase()}</Text>
-              {stampAssets[country.code] ? (
-                <Image
-                  source={stampAssets[country.code]}
-                  style={s.stamp}
-                  contentFit="contain"
+              <View style={[s.avatar, { backgroundColor: person.color }]}>
+                <Text style={s.avatarText}>{person.initials}</Text>
+                <Text style={s.avatarFlag}>{person.flag}</Text>
+              </View>
+              <View style={s.activityCopy}>
+                <Text style={s.activityText}>
+                  <Text style={s.activityName}>{person.name}</Text>
+                  {"\n"}
+                  {person.achievement}
+                </Text>
+                <Text style={s.activitySub}>{person.note}</Text>
+              </View>
+              <View style={s.points}>
+                <Ionicons
+                  name="ribbon-outline"
+                  size={20}
+                  color={BrandColors.copper}
                 />
-              ) : (
-                <View style={s.placeholder}>
-                  <Text style={s.flag}>{country.flag}</Text>
+                <Text style={s.pointsText}>{person.points}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Section
+          title="Challenges"
+          onPress={() =>
+            Alert.alert(
+              "All challenges",
+              "Browse collection, geography, USA, adventure, and culture challenges. Select a category or tap a challenge to see its goals.",
+            )
+          }
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.pills}
+        >
+          {challengeFilters.map((x) => (
+            <TouchableOpacity
+              key={x}
+              onPress={() => setChallengeFilter(x)}
+              style={[s.pill, challengeFilter === x && s.pillActive]}
+            >
+              <Text
+                style={[s.pillText, challengeFilter === x && s.pillTextActive]}
+              >
+                {x}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.challengeRow}
+        >
+          {visibleChallenges.length ? (
+            visibleChallenges.map((challenge) => (
+              <TouchableOpacity
+                key={challenge.id}
+                style={s.challenge}
+                activeOpacity={0.82}
+                onPress={() => showChallenge(challenge.title, challenge.detail)}
+              >
+                <View style={s.challengeSeal}>
                   <Ionicons
-                    name="earth-outline"
-                    size={46}
+                    name={challenge.icon as never}
+                    size={42}
                     color={BrandColors.green}
                   />
                 </View>
-              )}
-              <Text style={s.cities}>
-                {country.cities} {country.cities === 1 ? "City" : "Cities"}
+                <Text style={s.challengeTitle}>{challenge.title}</Text>
+                <Text style={s.challengeDetail}>{challenge.detail}</Text>
+                <View style={s.challengeProgress}>
+                  <View
+                    style={[
+                      s.progressFill,
+                      { width: `${challenge.progress}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={s.challengePercent}>{challenge.progress}%</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={s.empty}>
+              <Text style={s.emptyText}>
+                More {challengeFilter} challenges are coming soon.
               </Text>
-              <View style={s.progress}>
-                <View
-                  style={[s.progressFill, { width: `${country.progress}%` }]}
-                />
-              </View>
-              <Text style={s.percent}>{country.progress}%</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <View style={s.activity}>
-          <View style={s.avatar}>
-            <Text>🌍</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.activityText}>
-              <Text style={s.activityName}>Francis</Text> reached 50 World
-              Capitals.
-            </Text>
-            <Text style={s.activitySub}>Well done!</Text>
-          </View>
-          <View style={s.score}>
-            <Ionicons
-              name="ribbon-outline"
-              size={22}
-              color={BrandColors.copper}
-            />
-            <Text style={s.scoreText}>50</Text>
-          </View>
-        </View>
-
-        <View style={s.headingRow}>
-          <Text style={s.heading}>Challenges</Text>
-          <Text style={s.link}>View all ›</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.cardRow}
-        >
-          {challenges.map((challenge) => (
-            <TouchableOpacity
-              key={challenge.id}
-              style={s.challenge}
-              activeOpacity={0.82}
-            >
-              <View style={s.challengeSeal}>
-                <Ionicons
-                  name={challenge.icon as never}
-                  size={40}
-                  color={BrandColors.green}
-                />
-              </View>
-              <Text style={s.challengeTitle}>{challenge.title}</Text>
-              <Text style={s.challengeDetail}>{challenge.detail}</Text>
-              <View style={s.challengeProgress}>
-                <View
-                  style={[s.progressFill, { width: `${challenge.progress}%` }]}
-                />
-              </View>
-              <Text style={s.challengePercent}>{challenge.progress}%</Text>
-            </TouchableOpacity>
-          ))}
+            </View>
+          )}
         </ScrollView>
         <View style={s.cta}>
-          <Ionicons
-            name="compass-outline"
-            size={34}
-            color={BrandColors.copper}
-          />
+          <View style={s.compass}>
+            <Ionicons
+              name="compass-outline"
+              size={28}
+              color={BrandColors.copper}
+            />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={s.ctaTitle}>Keep Exploring</Text>
-            <Text style={s.ctaText}>Every stamp tells a story.</Text>
+            <Text style={s.ctaText}>
+              Every stamp tells a story.{"\n"}What will you conquer next?
+            </Text>
           </View>
           <TouchableOpacity
             style={s.ctaButton}
             onPress={() => router.push("/visits")}
           >
             <Text style={s.ctaButtonText}>Add a Visit</Text>
+            <Ionicons
+              name="location-outline"
+              size={17}
+              color={BrandColors.copper}
+            />
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
+function Section({ title, onPress }: { title: string; onPress: () => void }) {
+  return (
+    <View style={s.headingRow}>
+      <Text style={s.heading}>{title}</Text>
+      <TouchableOpacity onPress={onPress} accessibilityRole="button">
+        <Text style={s.link}>View all ›</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 30 },
-  brandRow: {
-    height: 58,
-    paddingHorizontal: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  brand: {
-    fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 28,
-    color: BrandColors.copper,
-  },
-  bell: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: BrandColors.line,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerPad: { paddingHorizontal: 18 },
   title: {
     textAlign: "center",
+    marginTop: 2,
     fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 36,
+    fontSize: 34,
     color: BrandColors.onDark,
   },
   subtitle: {
     textAlign: "center",
-    marginTop: 4,
+    marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: 11,
     color: BrandColors.onDarkMuted,
   },
   headingRow: {
-    marginTop: 26,
-    marginBottom: 12,
-    paddingHorizontal: 20,
+    marginTop: 23,
+    marginBottom: 11,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   heading: {
     fontFamily: "PlayfairDisplay_600SemiBold",
-    fontSize: 25,
+    fontSize: 24,
     color: BrandColors.onDark,
   },
   link: {
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: 12,
     color: BrandColors.copper,
   },
-  pills: { paddingHorizontal: 20, gap: 8 },
+  pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
   pill: {
-    height: 36,
-    paddingHorizontal: 17,
+    height: 34,
+    paddingHorizontal: 16,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     justifyContent: "center",
+    backgroundColor: "rgba(10,43,32,.25)",
   },
-  pillActive: { borderColor: BrandColors.copper },
+  pillActive: {
+    borderColor: BrandColors.copper,
+    backgroundColor: "rgba(215,146,95,.13)",
+  },
   pillText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 11,
     color: BrandColors.onDarkMuted,
   },
-  pillTextActive: { color: BrandColors.copper },
-  cardRow: { paddingHorizontal: 20, gap: 9 },
+  pillTextActive: { color: BrandColors.copper, fontFamily: "Lora_700Bold" },
+  countryRow: {
+    paddingHorizontal: 10,
+    gap: 7,
+    paddingTop: 5,
+    paddingBottom: 12,
+  },
   countryCard: {
-    width: 132,
-    minHeight: 220,
-    padding: 9,
-    borderRadius: 12,
+    width: 126,
+    height: 228,
+    padding: 8,
+    borderRadius: 9,
     backgroundColor: BrandColors.surface,
     alignItems: "center",
   },
   countryName: {
     fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 16,
+    fontSize: 15,
     color: BrandColors.green,
   },
-  stamp: { width: 112, height: 145 },
+  stamp: { width: 108, height: 153 },
   placeholder: {
-    width: 112,
-    height: 145,
+    width: 108,
+    height: 153,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -270,16 +423,12 @@ const s = StyleSheet.create({
     borderColor: BrandColors.line,
   },
   flag: { fontSize: 24 },
-  cities: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 10,
-    color: BrandColors.ink,
-  },
+  cities: { fontFamily: "Lora_500Medium", fontSize: 9, color: BrandColors.ink },
   progress: {
     position: "absolute",
-    left: 10,
-    right: 28,
-    bottom: 9,
+    left: 9,
+    right: 27,
+    bottom: 10,
     height: 4,
     borderRadius: 2,
     backgroundColor: "#D0C7B6",
@@ -292,122 +441,178 @@ const s = StyleSheet.create({
   },
   percent: {
     position: "absolute",
-    right: 7,
-    bottom: 4,
+    right: 6,
+    bottom: 5,
     fontFamily: "Lora_500Medium",
     fontSize: 8,
     color: BrandColors.muted,
   },
-  activity: {
-    margin: 18,
-    marginBottom: 0,
-    padding: 14,
-    borderRadius: 14,
+  empty: {
+    width: 280,
+    height: 90,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 12,
+    color: BrandColors.onDarkMuted,
+  },
+  activityRow: {
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: BrandColors.paleGreen,
+  },
+  activity: {
+    width: 208,
+    minHeight: 92,
+    padding: 10,
+    borderRightWidth: 1,
+    borderRightColor: BrandColors.paleGreen,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   avatar: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: BrandColors.surface,
+    borderWidth: 2,
+    borderColor: BrandColors.onDark,
     alignItems: "center",
     justifyContent: "center",
   },
+  avatarText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 12,
+    color: BrandColors.white,
+  },
+  avatarFlag: { position: "absolute", right: -5, bottom: -3, fontSize: 15 },
+  activityCopy: { flex: 1 },
   activityText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: 9,
+    lineHeight: 13,
     color: BrandColors.onDark,
   },
-  activityName: { fontFamily: "Lora_700Bold", color: BrandColors.copper },
+  activityName: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 11,
+    color: BrandColors.copper,
+  },
   activitySub: {
     marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 11,
+    fontSize: 9,
     color: BrandColors.onDarkMuted,
   },
-  score: { alignItems: "center" },
-  scoreText: {
+  points: { alignItems: "center", alignSelf: "flex-end" },
+  pointsText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: 9,
     color: BrandColors.copper,
   },
+  challengeRow: {
+    paddingHorizontal: 10,
+    gap: 7,
+    paddingTop: 5,
+    paddingBottom: 12,
+  },
   challenge: {
-    width: 150,
-    minHeight: 225,
-    padding: 12,
-    borderRadius: 12,
+    width: 139,
+    height: 220,
+    padding: 10,
+    borderRadius: 9,
     backgroundColor: BrandColors.surface,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
   },
   challengeSeal: {
-    width: 88,
+    width: 84,
     height: 88,
     borderWidth: 2,
     borderColor: BrandColors.green,
-    borderRadius: 44,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
   challengeTitle: {
-    marginTop: 10,
+    marginTop: 8,
     textAlign: "center",
     fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 17,
+    fontSize: 15,
     color: BrandColors.green,
   },
   challengeDetail: {
-    marginTop: 5,
+    marginTop: 4,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 9,
     color: BrandColors.muted,
   },
   challengeProgress: {
     position: "absolute",
-    bottom: 14,
-    left: 14,
-    right: 37,
+    bottom: 13,
+    left: 12,
+    right: 34,
     height: 4,
     backgroundColor: "#D0C7B6",
   },
   challengePercent: {
     position: "absolute",
-    right: 9,
-    bottom: 9,
+    right: 8,
+    bottom: 8,
     fontFamily: "Lora_500Medium",
     fontSize: 8,
     color: BrandColors.muted,
   },
   cta: {
-    margin: 20,
-    padding: 16,
+    margin: 12,
+    marginTop: 5,
+    padding: 14,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 11,
+    gap: 10,
+  },
+  compass: {
+    width: 43,
+    height: 43,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaTitle: {
     fontFamily: "PlayfairDisplay_600SemiBold",
-    fontSize: 18,
+    fontSize: 17,
     color: BrandColors.onDark,
   },
   ctaText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 9,
+    lineHeight: 13,
     color: BrandColors.onDarkMuted,
   },
   ctaButton: {
     borderWidth: 1,
     borderColor: BrandColors.copper,
     borderRadius: 18,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   ctaButtonText: {
     fontFamily: "Lora_600SemiBold",

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 
+import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore } from "@/data/kroo-score";
@@ -200,11 +201,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Image
-            source={require("@/assets/images/kroo-logo.png")}
-            style={styles.logo}
-            contentFit="contain"
-          />
+          <BrandHeader />
           <View style={styles.welcome}>
             <Text style={styles.greeting}>WELCOME</Text>
             <Text style={styles.name}>{name || "Traveler"}</Text>
@@ -215,13 +212,6 @@ export default function HomeScreen() {
             style={styles.globe}
             contentFit="contain"
           />
-          <TouchableOpacity style={styles.heroBell}>
-            <Ionicons
-              name="notifications-outline"
-              size={24}
-              color={BrandColors.copper}
-            />
-          </TouchableOpacity>
         </View>
         <View style={styles.scoreCard}>
           <View style={styles.scoreLine}>
@@ -285,7 +275,9 @@ export default function HomeScreen() {
         <WorldMap visited={countryCodes} />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
-            <Text style={styles.continentTitle}>Countries by continent</Text>
+            <Text style={styles.continentTitle}>
+              Countries visited by continent
+            </Text>
             <View style={styles.totalPill}>
               <Text style={styles.totalText}>{countryCodes.size} TOTAL</Text>
             </View>
@@ -385,18 +377,10 @@ const styles = StyleSheet.create({
   hero: {
     height: 205,
     paddingHorizontal: 22,
-    paddingTop: 68,
+    paddingTop: 0,
     overflow: "hidden",
   },
-  logo: {
-    position: "absolute",
-    left: 14,
-    top: 4,
-    width: 132,
-    height: 52,
-    zIndex: 3,
-  },
-  welcome: { position: "relative", zIndex: 2 },
+  welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
     zIndex: 2,
@@ -427,16 +411,6 @@ const styles = StyleSheet.create({
     width: 210,
     height: 210,
     zIndex: 0,
-  },
-  heroBell: {
-    position: "absolute",
-    right: 18,
-    top: 8,
-    width: 34,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 3,
   },
   scoreCard: {
     marginTop: -24,

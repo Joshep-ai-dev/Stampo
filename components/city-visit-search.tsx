@@ -105,7 +105,10 @@ export function CityVisitSearch() {
   const saveVisit = async () => {
     if (!selectedCity) return;
     if (!isSignedIn) {
-      Alert.alert("Sign in required", "Create an account or sign in from your passport before saving a visit.");
+      Alert.alert(
+        "Sign in required",
+        "Create an account or sign in from your passport before saving a visit.",
+      );
       return;
     }
     const visit: NewVisit = {
@@ -122,7 +125,10 @@ export function CityVisitSearch() {
     try {
       dispatch(visitReceived(await api.createVisit(visit)));
     } catch {
-      Alert.alert("Visit not saved", "The server could not save this visit. Please try again.");
+      Alert.alert(
+        "Visit not saved",
+        "The server could not save this visit. Please try again.",
+      );
       return;
     }
     closeModal();
@@ -138,7 +144,7 @@ export function CityVisitSearch() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search a city"
+            placeholder="Search to add a visited city"
             placeholderTextColor="#aa9c8c"
             returnKeyType="search"
             autoCorrect={false}
