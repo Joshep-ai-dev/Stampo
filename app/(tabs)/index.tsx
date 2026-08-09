@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 2,
     maxWidth: "58%",
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 48,
     lineHeight: 56,
     color: BrandColors.onDark,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   },
   scoreRight: { flex: 1 },
   scoreTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 23,
     letterSpacing: 1.3,
     color: BrandColors.onDark,

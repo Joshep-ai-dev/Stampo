@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontFamily: "PlayfairDisplay_400Regular",
+    fontFamily: "Lora_400Regular",
     fontSize: 40,
     color: BrandColors.onDark,
   },
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   rowContent: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
   rowText: { flex: 1, paddingVertical: 14 },
   rowLabel: {
-    fontFamily: "PlayfairDisplay_400Regular",
+    fontFamily: "Lora_400Regular",
     fontSize: 25,
     color: colors.ink,
   },
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   modalTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 21,
     color: colors.ink,
   },
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveText: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 19,
     letterSpacing: 1,
     color: "#fffaf1",

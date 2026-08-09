@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   titleBlock: { flex: 1, alignItems: "center" },
   title: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 30,
     color: BrandColors.onDark,
   },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   genericCode: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 28,
     color: BrandColors.copperDark,
   },

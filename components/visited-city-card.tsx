@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   summary: { flexDirection: "row", alignItems: "center", gap: 9 },
   pin: { width: 38, height: 38, borderRadius: 19, backgroundColor: BrandColors.copper, alignItems: "center", justifyContent: "center" },
   heading: { flex: 1, minWidth: 0 },
-  city: { fontFamily: "PlayfairDisplay_600SemiBold", fontSize: 20, color: BrandColors.ink },
+  city: { fontFamily: "Lora_600SemiBold", fontSize: 20, color: BrandColors.ink },
   meta: { marginTop: 1, fontFamily: "Lora_400Regular", fontSize: 11, color: BrandColors.muted },
   action: { height: 30, borderRadius: 15, paddingHorizontal: 9, backgroundColor: BrandColors.copper, flexDirection: "row", alignItems: "center", gap: 2 },
   actionText: { fontFamily: "Lora_700Bold", fontSize: 9, color: BrandColors.white },

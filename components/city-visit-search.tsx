@@ -294,7 +294,7 @@ export function CityVisitSearch() {
 const styles = StyleSheet.create({
   wrapper: { marginTop: 20, paddingHorizontal: 20, zIndex: 4 },
   heading: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 24,
     color: colors.ink,
     marginBottom: 10,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   flag: { fontSize: 24, marginRight: 11 },
   resultText: { flex: 1, paddingVertical: 8 },
   cityName: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 18,
     color: colors.ink,
   },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { width: 74 },
   modalTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 21,
     color: colors.ink,
     letterSpacing: 1,
@@ -423,13 +423,13 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   selectedName: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 27,
     color: "#fffdf8",
     marginTop: 2,
   },
   fieldLabel: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 17,
     color: colors.ink,
     marginBottom: 8,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveText: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 20,
     color: "#fffaf1",
     letterSpacing: 1.4,

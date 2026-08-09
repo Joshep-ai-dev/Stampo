@@ -193,10 +193,13 @@ export default function ExploreScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={s.activityRow}
           >
-            {travelers.map((person) => (
+            {travelers.map((person, index) => (
               <TouchableOpacity
                 key={person.name}
-                style={s.activity}
+                style={[
+                  s.activity,
+                  index < travelers.length - 1 && s.activityDivider,
+                ]}
                 onPress={() =>
                   Alert.alert(
                     person.name,
@@ -435,8 +438,13 @@ const s = StyleSheet.create({
     padding: 0,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  stamp: { width: "100%", height: "100%" },
+  stamp: {
+    width: "100%",
+    height: "100%",
+    transform: [{ scale: 1.14 }],
+  },
   placeholder: {
     width: "100%",
     height: "100%",
@@ -496,18 +504,23 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(10,43,32,.2)",
   },
   activityRow: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 7,
     paddingVertical: 8,
   },
   activity: {
-    width: 188,
+    width: 178,
     minHeight: 91,
-    padding: 9,
-    borderRightWidth: 1,
-    borderRightColor: BrandColors.paleGreen,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingRight: 34,
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  activityDivider: {
+    borderRightWidth: 1,
+    borderRightColor: BrandColors.paleGreen,
   },
   avatar: {
     width: 43,
@@ -545,7 +558,12 @@ const s = StyleSheet.create({
     fontSize: 8,
     color: BrandColors.onDarkMuted,
   },
-  points: { alignItems: "center", alignSelf: "flex-end" },
+  points: {
+    position: "absolute",
+    right: 9,
+    bottom: 7,
+    alignItems: "center",
+  },
   pointsText: {
     fontFamily: "Lora_700Bold",
     fontSize: 9,

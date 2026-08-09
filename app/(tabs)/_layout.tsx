@@ -32,7 +32,11 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarActiveTintColor: "#49B964",
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginTop: 1 },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 1,
+        },
         tabBarStyle: {
           backgroundColor: BrandColors.greenDeep,
           borderTopColor: BrandColors.line,

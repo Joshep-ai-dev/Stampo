@@ -366,7 +366,7 @@ const s = StyleSheet.create({
   stamp: { width: 112, height: 150 },
   heroCopy: { flex: 1, paddingLeft: 8 },
   country: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 30,
     color: BrandColors.onDark,
   },
@@ -396,7 +396,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   progressValue: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_700Bold",
     fontSize: 30,
     color: BrandColors.copper,
   },
@@ -468,7 +468,7 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.greenDeep,
   },
   panelTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 18,
     color: BrandColors.onDark,
   },
@@ -500,7 +500,7 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   sectionTitle: {
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 20,
     color: BrandColors.onDark,
   },
@@ -530,7 +530,7 @@ const s = StyleSheet.create({
   cityName: {
     margin: 7,
     marginBottom: 1,
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 14,
     color: BrandColors.onDark,
   },
@@ -571,7 +571,7 @@ const s = StyleSheet.create({
   },
   stampTitle: {
     marginTop: 8,
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 14,
     color: BrandColors.onDark,
   },

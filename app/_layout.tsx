@@ -6,12 +6,6 @@ import {
   Lora_700Bold,
   useFonts,
 } from "@expo-google-fonts/lora";
-import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_400Regular_Italic,
-  PlayfairDisplay_600SemiBold,
-  PlayfairDisplay_700Bold,
-} from "@expo-google-fonts/playfair-display";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -31,10 +25,6 @@ export default function RootLayout() {
     Lora_500Medium,
     Lora_600SemiBold,
     Lora_700Bold,
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_400Regular_Italic,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
   });
 
   useEffect(() => {
