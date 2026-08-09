@@ -1,5 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { getCountryData, getCountryDataList, type TCountryCode } from "countries-list";
+import {
+  getCountryData,
+  getCountryDataList,
+  type TCountryCode,
+} from "countries-list";
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
@@ -73,7 +77,9 @@ const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
 };
 const HIDDEN_MAP_ISO3 = new Set(
   getCountryDataList()
-    .filter((country) => country.continent === "OC" || country.continent === "AN")
+    .filter(
+      (country) => country.continent === "OC" || country.continent === "AN",
+    )
     .map((country) => country.iso3),
 );
 
@@ -89,6 +95,48 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         svg = await (await fetch(asset.localUri ?? asset.uri)).text();
       } catch {
         if (asset.localUri) svg = await new File(asset.localUri).text();
+      }
+      // The project map may be an Illustrator export with a single branded
+      // land style rather than per-country ISO groups. Preserve its geometry.
+      if (!svg.includes('class="country"') && svg.includes(".st0{")) {
+        const visitedIso3 = new Set(
+          [...visited].map(iso3For).filter(Boolean),
+        );
+        // Illustrator's embedded JavaScript is intentionally not run by
+        // react-native-svg. Turn the path list already authored in the asset
+        // into ordinary SVG classes so those countries remain visible.
+        const authoredVisited = new Set(
+          svg
+            .match(/visitedPathIds\s*=\s*\[([^\]]*)\]/)?.[1]
+            ?.match(/p\d+/g) ?? [],
+        );
+        let brandedMap = svg
+          .replace(
+            /\.st0\{[^}]+\}/,
+            `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.copper};}`,
+          )
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<path\b([^>]*?)>/g, (path, attributes: string) => {
+            const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
+            const iso3 = (
+              attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
+              (id.match(/^[A-Za-z]{3}$/) ? id : "")
+            ).toUpperCase();
+            if (!authoredVisited.has(id) && !visitedIso3.has(iso3)) return path;
+            if (/\bclass="[^"]*\bvisited\b/.test(attributes)) return path;
+            if (/\bclass="([^"]*)"/.test(attributes)) {
+              return `<path${attributes.replace(
+                /\bclass="([^"]*)"/,
+                'class="$1 visited"',
+              )}>`;
+            }
+            return `<path${attributes} class="st0 visited">`;
+          });
+        // Keep the supplied artwork in charge of geometry. Adding
+        // data-iso3="FRA" (or setting id="FRA") to a path makes it respond
+        // to visits without requiring another code change.
+        if (active) setXml(brandedMap);
+        return;
       }
       const visitedClasses = [...visited].map(iso3For).filter(Boolean);
       svg = svg
