@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import { getCountryData, type TCountryCode } from "countries-list";
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,33 +38,39 @@ const CONTINENTS = [
   { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
-const ISO3: Record<string, string> = {
-  US: "USA",
-  CA: "CAN",
-  MX: "MEX",
-  BR: "BRA",
-  FR: "FRA",
-  GB: "GBR",
-  IT: "ITA",
-  ES: "ESP",
-  DE: "DEU",
-  TR: "TUR",
-  EG: "EGY",
-  ZA: "ZAF",
-  IN: "IND",
-  TH: "THA",
-  VN: "VNM",
-  CN: "CHN",
-  JP: "JPN",
-  AU: "AUS",
-  NZ: "NZL",
-  ID: "IDN",
-  SG: "SGP",
-  MY: "MYS",
-  AE: "ARE",
-  KH: "KHM",
-  KR: "KOR",
-  NL: "NLD",
+function iso3For(code: string) {
+  try {
+    return getCountryData(code.toUpperCase() as TCountryCode).iso3;
+  } catch {
+    return "";
+  }
+}
+
+// Robinson-map coordinates for ISO territories the source groups into a parent
+// country or omits because they are too small to draw at mobile scale.
+const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
+  ASC: [-14, 10],
+  ALA: [20, -60],
+  BES: [-76, -14],
+  BVT: [3, 55],
+  CCK: [95, 14],
+  CXR: [98, 12],
+  ESH: [-13, -25],
+  GUF: [-57, -5],
+  GLP: [-72, -18],
+  SGS: [-37, 55],
+  HMD: [68, 60],
+  MTQ: [-72, -17],
+  PCN: [-122, 25],
+  PSE: [33, -32],
+  REU: [54, 25],
+  SJM: [20, -72],
+  SSD: [28, -7],
+  TAA: [-13, 38],
+  TKL: [-154, 10],
+  UMI: [-170, -18],
+  XKX: [18, -43],
+  MYT: [43, 15],
 };
 
 function WorldMap({ visited }: { visited: Set<string> }) {
@@ -79,9 +86,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       } catch {
         if (asset.localUri) svg = await new File(asset.localUri).text();
       }
-      const visitedClasses = [...visited]
-        .map((code) => ISO3[code])
-        .filter(Boolean);
+      const visitedClasses = [...visited].map(iso3For).filter(Boolean);
       svg = svg
         .replace(/<style[\s\S]*?<\/style>/, "")
         .replace(
@@ -89,12 +94,28 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           `<g class="country" fill="${BrandColors.mapGreen}" stroke="${BrandColors.green}" stroke-width=".18">`,
         )
         .replaceAll('class="water"', 'fill="transparent" stroke="none"')
-        .replace(/<circle[\s\S]*?<\/circle>/g, "");
+        .replaceAll("<circle ", '<circle display="none" ');
       visitedClasses.forEach((code) => {
+        const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
         svg = svg.replace(
-          new RegExp(`<g class="(${code} [^"]+)"`, "g"),
+          new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
           `<g class="$1" fill="${BrandColors.copperDark}"`,
         );
+        svg = svg.replace(
+          `display="none" id="${code}-circle"`,
+          `display="inline" fill="${BrandColors.copperDark}" stroke="${BrandColors.copper}" stroke-width=".35" id="${code}-circle"`,
+        );
+        svg = svg.replace(
+          new RegExp(`(id="${code}-circle"[^>]*?)r="[^"]+"`),
+          '$1r="1.35"',
+        );
+        if (!hasCountryShape && FALLBACK_MAP_POINTS[code]) {
+          const [cx, cy] = FALLBACK_MAP_POINTS[code];
+          svg = svg.replace(
+            "</svg>",
+            `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.copperDark}" stroke="${BrandColors.copper}" stroke-width=".35" /></svg>`,
+          );
+        }
       });
       if (active) setXml(svg);
     })();
@@ -137,7 +158,6 @@ function WorldMap({ visited }: { visited: Set<string> }) {
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
   const visits = useAppSelector((x) => x.travel.visits);
   const name = useAppSelector((x) => x.profile.name);
   const countryCodes = useMemo(
@@ -180,9 +200,15 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <View>
+          <Image
+            source={require("@/assets/images/kroo-logo.png")}
+            style={styles.logo}
+            contentFit="contain"
+          />
+          <View style={styles.welcome}>
             <Text style={styles.greeting}>WELCOME</Text>
             <Text style={styles.name}>{name || "Traveler"}</Text>
+            <Text style={styles.next}>⌖ Where to next?</Text>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
@@ -201,7 +227,18 @@ export default function HomeScreen() {
           <View style={styles.scoreLine}>
             <Text style={styles.score}>{score}</Text>
             <View style={styles.scoreRight}>
-              <Text style={styles.scoreTitle}>KROO SCORE</Text>
+              <View style={styles.infoTitleRow}>
+                <Text style={styles.scoreTitle}>KROO SCORE</Text>
+                <InfoButton
+                  label="About Kroo Score"
+                  onPress={() =>
+                    Alert.alert(
+                      "Kroo Score",
+                      "Your Kroo Score grows as you explore. Countries, continents, cities, sights, airports, achievements, and completed challenges all add points to your travel score.",
+                    )
+                  }
+                />
+              </View>
               <View style={styles.scoreBar}>
                 <View
                   style={[
@@ -221,6 +258,13 @@ export default function HomeScreen() {
               value={countryCodes.size}
               total={195}
               label="COUNTRIES"
+              info
+              onInfo={() =>
+                Alert.alert(
+                  "Countries",
+                  "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
+                )
+              }
             />
             <Stat
               icon="flag-outline"
@@ -272,12 +316,16 @@ function Stat({
   value,
   label,
   last,
+  info,
+  onInfo,
 }: {
   icon: string;
   value: number;
   total: number;
   label: string;
   last?: boolean;
+  info?: boolean;
+  onInfo?: () => void;
 }) {
   return (
     <View style={[styles.stat, !last && styles.statBorder]}>
@@ -285,8 +333,33 @@ function Stat({
         <Ionicons name={icon as never} size={24} color={BrandColors.copper} />
         <Text style={styles.statValue}>{value}</Text>
       </View>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statLabelRow}>
+        <Text style={styles.statLabel}>{label}</Text>
+        {info && onInfo ? (
+          <InfoButton label="About countries" onPress={onInfo} />
+        ) : null}
+      </View>
     </View>
+  );
+}
+
+function InfoButton({
+  onPress,
+  label,
+}: {
+  onPress: () => void;
+  label: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      style={styles.infoButton}
+    >
+      <Text style={styles.infoButtonText}>i</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -310,11 +383,20 @@ const styles = StyleSheet.create({
     color: BrandColors.white,
   },
   hero: {
-    height: 220,
+    height: 205,
     paddingHorizontal: 22,
-    paddingTop: 26,
+    paddingTop: 68,
     overflow: "hidden",
   },
+  logo: {
+    position: "absolute",
+    left: 14,
+    top: 4,
+    width: 132,
+    height: 52,
+    zIndex: 3,
+  },
+  welcome: { position: "relative", zIndex: 2 },
   greeting: {
     position: "relative",
     zIndex: 2,
@@ -332,39 +414,46 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     color: BrandColors.onDark,
   },
+  next: {
+    marginTop: 3,
+    fontFamily: "Lora_500Medium",
+    fontSize: 12,
+    color: BrandColors.onDarkMuted,
+  },
   globe: {
     position: "absolute",
-    right: 28,
-    top: -4,
-    width: 230,
-    height: 230,
+    right: 30,
+    top: 5,
+    width: 210,
+    height: 210,
     zIndex: 0,
   },
   heroBell: {
     position: "absolute",
     right: 18,
     top: 8,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.green,
+    width: 34,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
   },
   scoreCard: {
-    marginHorizontal: 10,
-    padding: 10,
+    marginTop: -40,
+    marginHorizontal: 14,
+    paddingHorizontal: 6,
+    paddingTop: 4,
     paddingBottom: 13,
     backgroundColor: "transparent",
   },
-  scoreLine: { flexDirection: "row", gap: 18 },
+  scoreLine: { flexDirection: "row", alignItems: "center", gap: 12 },
   score: {
-    fontFamily: "PlayfairDisplay_700Bold",
-    fontSize: 49,
+    minWidth: 86,
+    fontFamily: "Lora_400Regular",
+    fontSize: 44,
+    lineHeight: 54,
     color: BrandColors.onDark,
+    includeFontPadding: false,
   },
   scoreRight: { flex: 1 },
   scoreTitle: {
@@ -372,6 +461,22 @@ const styles = StyleSheet.create({
     fontSize: 23,
     letterSpacing: 1.3,
     color: BrandColors.onDark,
+  },
+  infoTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  infoButton: {
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoButtonText: {
+    marginTop: -1,
+    fontFamily: "Lora_700Bold",
+    fontSize: 10,
+    color: BrandColors.copper,
   },
   scoreBar: {
     height: 6,
@@ -394,7 +499,7 @@ const styles = StyleSheet.create({
   },
   stats: {
     height: 94,
-    marginTop: 18,
+    marginTop: 12,
     borderRadius: 13,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
@@ -406,15 +511,20 @@ const styles = StyleSheet.create({
   statBorder: { borderRightWidth: 1, borderRightColor: BrandColors.paleGreen },
   statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   statValue: {
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Lora_400Regular",
     fontSize: 23,
     color: BrandColors.onDark,
   },
   statLabel: {
-    marginTop: 4,
     fontFamily: "PlayfairDisplay_600SemiBold",
     fontSize: 13,
     color: BrandColors.onDark,
+  },
+  statLabelRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   sectionHeading: {
     marginTop: 14,
