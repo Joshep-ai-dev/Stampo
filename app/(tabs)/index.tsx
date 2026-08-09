@@ -98,7 +98,22 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       }
       // The project map may be an Illustrator export with a single branded
       // land style rather than per-country ISO groups. Preserve its geometry.
-      if (!svg.includes('class="country"') && svg.includes(".st0{")) {
+      if (
+        !svg.includes('class="country"') &&
+        (svg.includes(".st0{") || svg.includes("mapsvg:geoViewBox"))
+      ) {
+        const countryList = getCountryDataList();
+        const visitedIso2 = new Set(
+          [...visited]
+            .map((rawCode) => {
+              const code = rawCode.toUpperCase();
+              if (code.length === 2) return code;
+              return (
+                countryList.find((country) => country.iso3 === code)?.iso2 ?? ""
+              );
+            })
+            .filter(Boolean),
+        );
         const visitedIso3 = new Set([...visited].map(iso3For).filter(Boolean));
         // Illustrator's embedded JavaScript is intentionally not run by
         // react-native-svg. Turn the path list already authored in the asset
@@ -113,11 +128,22 @@ function WorldMap({ visited }: { visited: Set<string> }) {
             /<(path|polygon|polyline|circle)\b([^>]*?)>/g,
             (_shape, element: string, attributes: string) => {
               const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
+              const iso2 = (
+                attributes.match(/\bdata-iso2="([A-Za-z]{2})"/)?.[1] ??
+                (id.startsWith("UM-")
+                  ? "UM"
+                  : id === "GO" || id === "JU"
+                    ? "TF"
+                    : id.match(/^[A-Za-z]{2}$/)
+                      ? id
+                      : "")
+              ).toUpperCase();
               const iso3 = (
                 attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
                 (id.match(/^[A-Za-z]{3}$/) ? id : "")
               ).toUpperCase();
-              const selected = visitedIso3.has(iso3);
+              const selected =
+                visitedIso2.has(iso2) || visitedIso3.has(iso3);
               const pathAttributes = attributes
                 .replace(/\sfill="[^"]*"/g, "")
                 .replace(/\sstroke="[^"]*"/g, "")
@@ -131,9 +157,8 @@ function WorldMap({ visited }: { visited: Set<string> }) {
               }" stroke="${BrandColors.green}" stroke-width=".3" />`;
             },
           );
-        // Keep the supplied artwork in charge of geometry. Adding
-        // data-iso3="FRA" (or setting id="FRA") to a path makes it respond
-        // to visits without requiring another code change.
+        // Keep the supplied artwork in charge of geometry. ISO2 ids such as
+        // FR and JP, plus optional ISO3 metadata, respond to saved visits.
         if (active) setXml(brandedMap);
         return;
       }
@@ -566,7 +591,7 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    height: 260,
+    height: 225,
     marginHorizontal: 2,
     marginTop: 2,
     backgroundColor: "transparent",
