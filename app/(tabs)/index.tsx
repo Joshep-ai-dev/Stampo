@@ -105,24 +105,22 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         // Illustrator's embedded JavaScript is intentionally not run by
         // react-native-svg. Turn the path list already authored in the asset
         // into ordinary SVG classes so those countries remain visible.
-        const authoredVisited = new Set(
-          svg
-            .match(/visitedPathIds\s*=\s*\[([^\]]*)\]/)?.[1]
-            ?.match(/p\d+/g) ?? [],
-        );
         let brandedMap = svg
+          .replace('viewBox="0 0 800 600"', 'viewBox="18 68 764 430"')
           .replace(
             /\.st0\{[^}]+\}/,
             `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.copper};}`,
           )
           .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<path\b([^>]*?)>/g, (_path, attributes: string) => {
+          .replace(
+            /<(path|polygon|polyline)\b([^>]*?)>/g,
+            (_shape, element: string, attributes: string) => {
             const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
             const iso3 = (
               attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
               (id.match(/^[A-Za-z]{3}$/) ? id : "")
             ).toUpperCase();
-            const selected = authoredVisited.has(id) || visitedIso3.has(iso3);
+            const selected = visitedIso3.has(iso3);
             const pathAttributes = attributes
               .replace(/\sfill="[^"]*"/g, "")
               .replace(/\sstroke="[^"]*"/g, "")
@@ -131,10 +129,11 @@ function WorldMap({ visited }: { visited: Set<string> }) {
               .replace(/\s*\/\s*$/, "");
             // Inline presentation attributes are supported consistently by
             // react-native-svg; Illustrator CSS classes are not.
-            return `<path${pathAttributes} fill="${
+            return `<${element}${pathAttributes} fill="${
               selected ? BrandColors.copper : BrandColors.mapGreen
             }" stroke="${BrandColors.green}" stroke-width=".3" />`;
-          });
+            },
+          );
         // Keep the supplied artwork in charge of geometry. Adding
         // data-iso3="FRA" (or setting id="FRA") to a path makes it respond
         // to visits without requiring another code change.
@@ -191,7 +190,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       accessibilityLabel={`${visited.size} visited countries shown in brown`}
     >
       {xml ? (
-        <SvgXml xml={xml} width="100%" height="100%" />
+        <SvgXml xml={xml} width="116%" height="100%" style={styles.mapSvg} />
       ) : (
         <View style={styles.mapLoading}>
           <Ionicons
@@ -570,11 +569,13 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    height: 190,
-    marginHorizontal: 4,
+    height: 230,
     marginTop: 2,
-    padding: 2,
     backgroundColor: "transparent",
+    overflow: "hidden",
+  },
+  mapSvg: {
+    marginLeft: "-8%",
   },
   mapLoading: {
     flex: 1,
