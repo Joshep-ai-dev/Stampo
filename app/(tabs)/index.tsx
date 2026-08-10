@@ -121,7 +121,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         let brandedMap = svg
           .replace(
             /\.st0\{[^}]+\}/,
-            `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.copper};}`,
+            `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.mapVisited};}`,
           )
           .replace(/<script[\s\S]*?<\/script>/gi, "")
           .replace(
@@ -152,7 +152,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
               // Inline presentation attributes are supported consistently by
               // react-native-svg; Illustrator CSS classes are not.
               return `<${element}${pathAttributes} fill="${
-                selected ? BrandColors.copper : BrandColors.mapGreen
+                selected ? BrandColors.mapVisited : BrandColors.mapGreen
               }" stroke="${BrandColors.green}" stroke-width=".3" />`;
             },
           );
@@ -181,11 +181,11 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
         svg = svg.replace(
           new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
-          `<g class="$1" fill="${BrandColors.copperDark}"`,
+          `<g class="$1" fill="${BrandColors.mapVisited}"`,
         );
         svg = svg.replace(
           `display="none" id="${code}-circle"`,
-          `display="inline" fill="${BrandColors.copperDark}" stroke="${BrandColors.copper}" stroke-width=".35" id="${code}-circle"`,
+          `display="inline" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" id="${code}-circle"`,
         );
         svg = svg.replace(
           new RegExp(`(id="${code}-circle"[^>]*?)r="[^"]+"`),
@@ -195,7 +195,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           const [cx, cy] = FALLBACK_MAP_POINTS[code];
           svg = svg.replace(
             "</svg>",
-            `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.copperDark}" stroke="${BrandColors.copper}" stroke-width=".35" /></svg>`,
+            `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" /></svg>`,
           );
         }
       });
@@ -208,7 +208,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
   return (
     <View
       style={styles.mapWrap}
-      accessibilityLabel={`${visited.size} visited countries shown in brown`}
+      accessibilityLabel={`${visited.size} visited countries highlighted in green`}
     >
       {xml ? (
         <SvgXml xml={xml} width="100%" height="100%" />
@@ -273,42 +273,52 @@ export default function HomeScreen() {
           <View style={styles.welcome}>
             <Text style={styles.greeting}>WELCOME</Text>
             <Text style={styles.name}>{name || "Traveler"}</Text>
-            <Text style={styles.next}>⌖ Where to next?</Text>
+            <View style={styles.levelRow}>
+              <Ionicons
+                name="ribbon-outline"
+                size={15}
+                color={BrandColors.onDark}
+              />
+              <Text style={styles.levelText}>World Explorer</Text>
+            </View>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
             style={styles.globe}
             contentFit="contain"
+            tintColor={BrandColors.copper}
           />
         </View>
         <View style={styles.scoreCard}>
+          <View style={styles.infoTitleRow}>
+            <Text style={styles.scoreTitle}>KROO SCORE</Text>
+            <InfoButton
+              label="About Kroo Score"
+              onPress={() =>
+                Alert.alert(
+                  "Kroo Score",
+                  "Your Kroo Score grows as you explore. Countries, continents, cities, sights, airports, achievements, and completed challenges all add points to your travel score.",
+                )
+              }
+            />
+          </View>
           <View style={styles.scoreLine}>
-            <Text style={styles.score}>{score}</Text>
-            <View style={styles.scoreRight}>
-              <View style={styles.infoTitleRow}>
-                <Text style={styles.scoreTitle}>KROO SCORE</Text>
-                <InfoButton
-                  label="About Kroo Score"
-                  onPress={() =>
-                    Alert.alert(
-                      "Kroo Score",
-                      "Your Kroo Score grows as you explore. Countries, continents, cities, sights, airports, achievements, and completed challenges all add points to your travel score.",
-                    )
-                  }
-                />
-              </View>
-              <View style={styles.scoreBar}>
-                <View
-                  style={[
-                    styles.scoreFill,
-                    { width: `${Math.min(worldProgress, 100)}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.worldText}>
-                {worldProgress}% of the world explored
-              </Text>
+            <View style={styles.scoreValueRow}>
+              <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+              {/* <Text style={styles.scoreTotal}>/ 100</Text> */}
             </View>
+            <View style={styles.scoreBar}>
+              <View
+                style={[
+                  styles.scoreFill,
+                  { width: `${Math.min(worldProgress, 100)}%` },
+                ]}
+              />
+            </View>
+          </View>
+          <View style={styles.worldTextRow}>
+            <Text style={styles.worldPercent}>{worldProgress}%</Text>
+            <Text style={styles.worldText}> of the world explored</Text>
           </View>
           <View style={styles.stats}>
             <Stat
@@ -333,7 +343,6 @@ export default function HomeScreen() {
             <Stat
               icon="business-outline"
               value={cityIds.size}
-              total={2000}
               label="CITIES"
               last
             />
@@ -378,6 +387,7 @@ export default function HomeScreen() {
 function Stat({
   icon,
   value,
+  total,
   label,
   last,
   info,
@@ -385,7 +395,7 @@ function Stat({
 }: {
   icon: string;
   value: number;
-  total: number;
+  total?: number;
   label: string;
   last?: boolean;
   info?: boolean;
@@ -395,7 +405,10 @@ function Stat({
     <View style={[styles.stat, !last && styles.statBorder]}>
       <View style={styles.statTop}>
         <Ionicons name={icon as never} size={24} color={BrandColors.copper} />
-        <Text style={styles.statValue}>{value}</Text>
+        <View style={styles.statNumberRow}>
+          <Text style={styles.statValue}>{value}</Text>
+          {total ? <Text style={styles.statTotal}>/{total}</Text> : null}
+        </View>
       </View>
       <View style={styles.statLabelRow}>
         <Text style={styles.statLabel}>{label}</Text>
@@ -470,11 +483,16 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     color: BrandColors.onDark,
   },
-  next: {
+  levelRow: {
     marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  levelText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.onDarkMuted,
+    fontSize: 13,
+    color: BrandColors.progressGreen,
   },
   globe: {
     position: "absolute",
@@ -492,27 +510,46 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     backgroundColor: "transparent",
   },
-  scoreLine: { flexDirection: "row", alignItems: "center", gap: 12 },
+  scoreLine: {
+    marginTop: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  scoreValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
   score: {
-    minWidth: 86,
     fontFamily: "Lora_400Regular",
-    fontSize: 44,
-    lineHeight: 54,
+    fontSize: 48,
+    lineHeight: 57,
     color: BrandColors.onDark,
     includeFontPadding: false,
   },
-  scoreRight: { flex: 1 },
+  scoreTotal: {
+    marginLeft: 5,
+    fontFamily: "Lora_500Medium",
+    fontSize: 20,
+    color: BrandColors.progressGreen,
+  },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 23,
+    fontSize: 18,
     letterSpacing: 1.3,
-    color: BrandColors.onDark,
+    color: BrandColors.copper,
   },
-  infoTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  infoTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: 5,
+  },
   infoButton: {
-    width: 17,
-    height: 17,
-    borderRadius: 9,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
@@ -521,12 +558,13 @@ const styles = StyleSheet.create({
   infoButtonText: {
     marginTop: -1,
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: 8,
     color: BrandColors.copper,
   },
   scoreBar: {
+    flex: 1,
     height: 6,
-    marginTop: 5,
+    maxWidth: 230,
     borderRadius: 4,
     backgroundColor: "rgba(120,166,110,.24)",
     overflow: "hidden",
@@ -534,14 +572,23 @@ const styles = StyleSheet.create({
   scoreFill: {
     height: "100%",
     borderRadius: 4,
-    backgroundColor: BrandColors.copper,
+    backgroundColor: BrandColors.progressGreen,
+  },
+  worldTextRow: {
+    marginTop: 2,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "baseline",
+  },
+  worldPercent: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 13,
+    color: BrandColors.progressGreen,
   },
   worldText: {
-    marginTop: 7,
-    textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
-    color: BrandColors.mapGreen,
+    fontSize: 13,
+    color: BrandColors.onDark,
   },
   stats: {
     height: 94,
@@ -556,10 +603,17 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: "center" },
   statBorder: { borderRightWidth: 1, borderRightColor: BrandColors.paleGreen },
   statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statNumberRow: { flexDirection: "row", alignItems: "baseline" },
   statValue: {
     fontFamily: "Lora_400Regular",
     fontSize: 23,
     color: BrandColors.onDark,
+  },
+  statTotal: {
+    marginLeft: 2,
+    fontFamily: "Lora_500Medium",
+    fontSize: 12,
+    color: BrandColors.onDarkMuted,
   },
   statLabel: {
     fontFamily: "Lora_600SemiBold",
@@ -638,11 +692,11 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: BrandColors.mapGreen,
   },
-  continentRow: { height: 28, flexDirection: "row", alignItems: "center" },
+  continentRow: { height: 34, flexDirection: "row", alignItems: "center" },
   continentName: {
-    width: 112,
+    width: 126,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 11,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   continentBar: {
@@ -658,10 +712,10 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.copper,
   },
   continentValue: {
-    width: 37,
+    width: 48,
     textAlign: "right",
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
 });
