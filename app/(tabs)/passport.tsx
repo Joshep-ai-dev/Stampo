@@ -182,14 +182,20 @@ export default function PassportScreen() {
   const router = useRouter();
   const profile = useAppSelector((state) => state.profile);
   const visits = useAppSelector((state) => state.travel.visits);
+  const completedSightIds = useAppSelector(
+    (state) => state.travel.completedSightIds,
+  );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [activePage, setActivePage] = useState(0);
   const listRef = useRef<FlatList<PassportPage>>(null);
   const pageWidth = Math.min(screenWidth - 36, 620);
   const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
   const krooNumber = useMemo(
-    () => formatKrooNumber(calculateKrooScoreFromVisits(visits)),
-    [visits],
+    () =>
+      formatKrooNumber(
+        calculateKrooScoreFromVisits(visits, completedSightIds),
+      ),
+    [completedSightIds, visits],
   );
 
   const passportPages = useMemo(() => {

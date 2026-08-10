@@ -22,7 +22,7 @@ import { SvgXml } from "react-native-svg";
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { BrandColors } from "@/constants/theme";
-import { calculateKrooScore } from "@/data/kroo-score";
+import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { useAppSelector } from "@/store/hooks";
 
 const TOTALS: Record<string, number> = {
@@ -228,6 +228,9 @@ function WorldMap({ visited }: { visited: Set<string> }) {
 
 export default function HomeScreen() {
   const visits = useAppSelector((x) => x.travel.visits);
+  const completedSightIds = useAppSelector(
+    (x) => x.travel.completedSightIds,
+  );
   const name = useAppSelector((x) => x.profile.name);
   const countryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
@@ -246,7 +249,7 @@ export default function HomeScreen() {
     });
     return result;
   }, [visits]);
-  const sights = visits.reduce(
+  const recordedSights = visits.reduce(
     (n, v) => n + v.places.filter((p) => p.type === "sight").length,
     0,
   );
@@ -258,7 +261,7 @@ export default function HomeScreen() {
     continents: continentCodes.size,
     countries: countryCodes.size,
     cities: cityIds.size,
-    sights,
+    sights: recordedSights + new Set(completedSightIds).size,
     airports,
   });
   const worldProgress = Math.round((countryCodes.size / 195) * 100);
@@ -279,46 +282,44 @@ export default function HomeScreen() {
                 size={15}
                 color={BrandColors.onDark}
               />
-              <Text style={styles.levelText}>World Explorer</Text>
+              <Text style={styles.levelText}>{getKrooLevel(score)}</Text>
             </View>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
             style={styles.globe}
             contentFit="contain"
-            tintColor={BrandColors.copper}
           />
         </View>
         <View style={styles.scoreCard}>
-          <View style={styles.infoTitleRow}>
-            <Text style={styles.scoreTitle}>KROO SCORE</Text>
-            <InfoButton
-              label="About Kroo Score"
-              onPress={() =>
-                Alert.alert(
-                  "Kroo Score",
-                  "Your Kroo Score grows as you explore. Countries, continents, cities, sights, airports, achievements, and completed challenges all add points to your travel score.",
-                )
-              }
-            />
-          </View>
           <View style={styles.scoreLine}>
-            <View style={styles.scoreValueRow}>
-              <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
-              {/* <Text style={styles.scoreTotal}>/ 100</Text> */}
+            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+            <View style={styles.scoreDetails}>
+              <View style={styles.infoTitleRow}>
+                <Text style={styles.scoreTitle}>KROO SCORE</Text>
+                <InfoButton
+                  label="About Kroo Score"
+                  onPress={() =>
+                    Alert.alert(
+                      "Kroo Score",
+                      "Your Kroo Score is out of 100: continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
+                    )
+                  }
+                />
+              </View>
+              <View style={styles.scoreBar}>
+                <View
+                  style={[
+                    styles.scoreFill,
+                    { width: `${Math.min(score, 100)}%` },
+                  ]}
+                />
+              </View>
+              <View style={styles.worldTextRow}>
+                <Text style={styles.worldPercent}>{worldProgress}%</Text>
+                <Text style={styles.worldText}> of the world explored</Text>
+              </View>
             </View>
-            <View style={styles.scoreBar}>
-              <View
-                style={[
-                  styles.scoreFill,
-                  { width: `${Math.min(worldProgress, 100)}%` },
-                ]}
-              />
-            </View>
-          </View>
-          <View style={styles.worldTextRow}>
-            <Text style={styles.worldPercent}>{worldProgress}%</Text>
-            <Text style={styles.worldText}> of the world explored</Text>
           </View>
           <View style={styles.stats}>
             <Stat
@@ -355,9 +356,6 @@ export default function HomeScreen() {
             <Text style={styles.continentTitle}>
               Countries visited by continent
             </Text>
-            <View style={styles.totalPill}>
-              <Text style={styles.totalText}>{countryCodes.size} TOTAL</Text>
-            </View>
           </View>
           {CONTINENTS.filter((item) => continentCounts[item.code]?.size).map(
             (item) => {
@@ -511,34 +509,24 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scoreLine: {
-    marginTop: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  scoreValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
+    gap: 18,
+    paddingHorizontal: 14,
   },
   score: {
     fontFamily: "Lora_400Regular",
-    fontSize: 48,
-    lineHeight: 57,
+    fontSize: 42,
+    lineHeight: 52,
     color: BrandColors.onDark,
     includeFontPadding: false,
   },
-  scoreTotal: {
-    marginLeft: 5,
-    fontFamily: "Lora_500Medium",
-    fontSize: 20,
-    color: BrandColors.progressGreen,
-  },
+  scoreDetails: { flex: 1 },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
     fontSize: 18,
-    letterSpacing: 1.3,
-    color: BrandColors.copper,
+    letterSpacing: 0.3,
+    color: BrandColors.onDark,
   },
   infoTitleRow: {
     flexDirection: "row",
@@ -562,9 +550,9 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    flex: 1,
-    height: 6,
-    maxWidth: 230,
+    width: "100%",
+    height: 5,
+    marginTop: 5,
     borderRadius: 4,
     backgroundColor: "rgba(120,166,110,.24)",
     overflow: "hidden",
@@ -575,7 +563,7 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.progressGreen,
   },
   worldTextRow: {
-    marginTop: 2,
+    marginTop: 8,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "baseline",
@@ -671,26 +659,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(10,43,32,0.20)",
   },
   continentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 9,
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
     fontSize: 19,
+    textAlign: "center",
     color: BrandColors.onDark,
-  },
-  totalPill: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: "rgba(49,87,73,.55)",
-  },
-  totalText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 8,
-    color: BrandColors.mapGreen,
   },
   continentRow: { height: 34, flexDirection: "row", alignItems: "center" },
   continentName: {
