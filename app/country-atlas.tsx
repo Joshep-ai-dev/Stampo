@@ -1,7 +1,6 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -15,33 +14,30 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
-import { CountryRecord, getCountriesWithCities } from "@/data/cities";
-import { stampAssets } from "@/data/stamps";
+import { CountryStampCard } from "@/components/country-stamp-card";
+import { FilterBubble } from "@/components/filter-bubble";
+import { CountryRecord, getAllCountries } from "@/data/cities";
 import { useAppSelector } from "@/store/hooks";
 
 const filters = [
   { id: "ALL", label: "All" },
   { id: "AF", label: "Africa" },
+  { id: "AN", label: "Antarctica" },
   { id: "AS", label: "Asia" },
   { id: "EU", label: "Europe" },
-  { id: "NA", label: "N. America" },
-  { id: "SA", label: "S. America" },
+  { id: "NA", label: "North America" },
   { id: "OC", label: "Oceania" },
-  { id: "AN", label: "Antarctica" },
+  { id: "SA", label: "South America" },
 ] as const;
 
 export default function CountryAtlasScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const visits = useAppSelector((state) => state.travel.visits);
-  const [catalog, setCatalog] = useState<CountryRecord[]>([]);
+  const [catalog] = useState<CountryRecord[]>(getAllCountries);
   const [selectedContinent, setSelectedContinent] = useState("ALL");
   const [query, setQuery] = useState("");
   const cardWidth = Math.min(220, (width - 50) / 2);
-
-  useEffect(() => {
-    void getCountriesWithCities().then(setCatalog);
-  }, []);
 
   const visitedCountryCodes = useMemo(
     () => new Set(visits.map((visit) => visit.countryCode).filter(Boolean)),
@@ -114,17 +110,12 @@ export default function CountryAtlasScreen() {
         {filters.map((filter) => {
           const selected = selectedContinent === filter.id;
           return (
-            <Pressable
+            <FilterBubble
               key={filter.id}
+              label={filter.label}
+              selected={selected}
               onPress={() => setSelectedContinent(filter.id)}
-              style={[styles.pill, selected && styles.pillSelected]}
-            >
-              <Text
-                style={[styles.pillText, selected && styles.pillTextSelected]}
-              >
-                {filter.label}
-              </Text>
-            </Pressable>
+            />
           );
         })}
       </ScrollView>
@@ -140,57 +131,14 @@ export default function CountryAtlasScreen() {
           <Text style={styles.empty}>No countries found</Text>
         }
         renderItem={({ item: country }) => {
-          const visited = visitedCountryCodes.has(country.code);
-          const image = stampAssets[country.code];
           const cityCount = cityCounts.get(country.code)?.size ?? 0;
           return (
-            <Pressable
-              style={[styles.card, { width: cardWidth }]}
+            <CountryStampCard
+              country={country}
+              cityCount={cityCount}
+              width={cardWidth}
               onPress={() => router.push(`/country/${country.code}` as never)}
-            >
-              <View style={styles.countryHeader}>
-                <Text style={styles.flag}>{country.flag}</Text>
-                <Text style={styles.countryName} numberOfLines={2}>
-                  {country.name}
-                </Text>
-              </View>
-              <View style={styles.stampFrame}>
-                {image ? (
-                  <Image
-                    source={image}
-                    style={[styles.stamp, !visited && styles.lockedStamp]}
-                    contentFit="contain"
-                    tintColor={visited ? undefined : "#8B8175"}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.genericStamp,
-                      !visited && styles.lockedStamp,
-                    ]}
-                  >
-                    <Text style={styles.genericCode}>{country.code}</Text>
-                    <Text style={styles.genericName} numberOfLines={2}>
-                      {country.name}
-                    </Text>
-                  </View>
-                )}
-                {!visited && (
-                  <View style={styles.lock}>
-                    <MaterialIcons
-                      name="lock-outline"
-                      size={18}
-                      color={BrandColors.ink}
-                    />
-                  </View>
-                )}
-              </View>
-              <Text style={styles.visitStatus}>
-                {visited
-                  ? `${cityCount} ${cityCount === 1 ? "city" : "cities"}`
-                  : "Not visited"}
-              </Text>
-            </Pressable>
+            />
           );
         }}
       />
@@ -250,92 +198,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  pill: {
-    height: 38,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pillSelected: { backgroundColor: BrandColors.copper },
-  pillText: {
-    color: BrandColors.copper,
-    fontFamily: "Lora_500Medium",
-    fontSize: 15,
-  },
-  pillTextSelected: { color: BrandColors.white },
   grid: { paddingHorizontal: 18, paddingBottom: 28 },
   gridRow: { justifyContent: "space-between", marginBottom: 14 },
-  card: {
-    height: 270,
-    borderRadius: 14,
-    padding: 10,
-    backgroundColor: BrandColors.surface,
-    borderWidth: 1,
-    borderColor: BrandColors.line,
-    alignItems: "center",
-  },
-  countryHeader: {
-    width: "100%",
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-  },
-  flag: { fontSize: 20 },
-  countryName: {
-    flex: 1,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
-    color: BrandColors.ink,
-  },
-  stampFrame: {
-    flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stamp: { width: "100%", height: "100%" },
-  lockedStamp: { opacity: 0.35 },
-  genericStamp: {
-    width: "78%",
-    height: "78%",
-    borderWidth: 3,
-    borderColor: BrandColors.copperDark,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 8,
-  },
-  genericCode: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 28,
-    color: BrandColors.copperDark,
-  },
-  genericName: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 11,
-    textAlign: "center",
-    color: BrandColors.copperDark,
-  },
-  lock: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(245,229,205,0.76)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  visitStatus: {
-    marginTop: 6,
-    fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.muted,
-  },
   empty: {
     paddingTop: 60,
     textAlign: "center",
