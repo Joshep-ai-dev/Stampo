@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -14,82 +14,45 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandHeader } from "@/components/brand-header";
 import { BrandColors } from "@/constants/theme";
-import { CountryRecord, getCountriesWithCities } from "@/data/cities";
+import { CountryRecord, getAllCountries } from "@/data/cities";
 import { challenges } from "@/data/explore";
 import { stampAssets } from "@/data/stamps";
 import { useAppSelector } from "@/store/hooks";
 
 const countryFilters = [
   "All",
-  "North America",
-  "South America",
-  "Europe",
-  "Asia",
   "Africa",
+  "Antarctica",
+  "Asia",
+  "Europe",
+  "North America",
+  "Oceania",
+  "South America",
 ];
 const challengeFilters = [
   "All",
+  "Adventure",
   "Collection",
+  "Culture",
   "Geography",
   "USA",
-  "Adventure",
-  "Culture",
 ];
-const travelers = [
-  {
-    name: "Francis",
-    flag: "🇩🇪",
-    initials: "FR",
-    color: BrandColors.paleGreen,
-    achievement: "reached 50 World Capitals.",
-    note: "Well done!",
-    points: 50,
-  },
-  {
-    name: "Jan",
-    flag: "🇩🇪",
-    initials: "JA",
-    color: BrandColors.copperDark,
-    achievement: "reached 100 Castles, Palaces, Forts.",
-    note: "Well done!",
-    points: 100,
-  },
-  {
-    name: "Alex",
-    flag: "🇺🇸",
-    initials: "AL",
-    color: BrandColors.greenSoft,
-    achievement: "reached 100 New World Cities.",
-    note: "Well done!",
-    points: 100,
-  },
-  {
-    name: "Mia",
-    flag: "🇫🇷",
-    initials: "MI",
-    color: BrandColors.paleGreen,
-    achievement: "reached 25 European Cities.",
-    note: "Well done!",
-    points: 75,
-  },
-];
-
 export default function ExploreScreen() {
   const router = useRouter();
   const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
   const [challengeFilter, setChallengeFilter] = useState("All");
-  const [countryCatalog, setCountryCatalog] = useState<CountryRecord[]>([]);
-  useEffect(() => {
-    void getCountriesWithCities().then(setCountryCatalog);
-  }, []);
+  const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
   const countries = useMemo(
     () =>
-      countryFilter === "All"
+      (countryFilter === "All"
         ? countryCatalog
         : countryCatalog.filter(
             (country) => country.continent === countryFilter,
-          ),
+          )
+      )
+        .slice()
+        .sort((left, right) => left.name.localeCompare(right.name)),
     [countryCatalog, countryFilter],
   );
   const visitedCityCounts = useMemo(() => {
@@ -128,9 +91,7 @@ export default function ExploreScreen() {
           <BrandHeader />
         </View>
         <Text style={s.title}>Explore</Text>
-        <Text style={s.subtitle}>
-          Discover the world. Complete stamps. Earn glory.
-        </Text>
+        <Text style={s.subtitle}>Collect the world with Kroo</Text>
 
         <Section
           title="Countries"
@@ -161,44 +122,50 @@ export default function ExploreScreen() {
           contentContainerStyle={s.countryRow}
         >
           {countries.length ? (
-            countries.map((country) => (
-              <TouchableOpacity
-                key={country.code}
-                activeOpacity={0.82}
-                style={s.countryCard}
-                onPress={() => router.push(`/country/${country.code}` as never)}
-              >
-                <View style={s.countryHeader}>
-                  <Text style={s.countryFlag}>{country.flag}</Text>
-                  <Text style={s.countryName} numberOfLines={1}>
-                    {country.name}
-                  </Text>
-                </View>
-                <View style={s.stampFrame}>
-                  {stampAssets[country.code] ? (
-                    <Image
-                      source={stampAssets[country.code]}
-                      style={s.stamp}
-                      contentFit="contain"
-                    />
-                  ) : (
-                    <View style={s.placeholder}>
-                      <Ionicons
-                        name="earth-outline"
-                        size={43}
-                        color={BrandColors.green}
+            countries.map((country) => {
+              const cityCount = visitedCityCounts.get(country.code)?.size ?? 0;
+              const isVisited = cityCount > 0;
+              return (
+                <TouchableOpacity
+                  key={country.code}
+                  activeOpacity={0.82}
+                  style={s.countryCard}
+                  onPress={() =>
+                    router.push(`/country/${country.code}` as never)
+                  }
+                >
+                  <View style={s.countryHeader}>
+                    <Text style={s.countryFlag}>{country.flag}</Text>
+                    <Text style={s.countryName} numberOfLines={1}>
+                      {country.name}
+                    </Text>
+                  </View>
+                  <View style={s.stampFrame}>
+                    {stampAssets[country.code] ? (
+                      <Image
+                        source={stampAssets[country.code]}
+                        style={s.stamp}
+                        contentFit="contain"
+                        tintColor={isVisited ? undefined : "#8D948F"}
                       />
-                    </View>
-                  )}
-                </View>
-                <Text style={s.cities}>
-                  {visitedCityCounts.get(country.code)?.size ?? 0}{" "}
-                  {(visitedCityCounts.get(country.code)?.size ?? 0) === 1
-                    ? "City"
-                    : "Cities"}
-                </Text>
-              </TouchableOpacity>
-            ))
+                    ) : (
+                      <View style={s.placeholder}>
+                        <Ionicons
+                          name="earth-outline"
+                          size={43}
+                          color={isVisited ? BrandColors.green : "#8D948F"}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.cities, !isVisited && s.notVisited]}>
+                    {isVisited
+                      ? `${cityCount} ${cityCount === 1 ? "City" : "Cities"}`
+                      : "Not visited"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
           ) : (
             <View style={s.empty}>
               <Text style={s.emptyText}>
@@ -207,54 +174,6 @@ export default function ExploreScreen() {
             </View>
           )}
         </ScrollView>
-
-        <View style={s.activityPanel}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.activityRow}
-          >
-            {travelers.map((person, index) => (
-              <TouchableOpacity
-                key={person.name}
-                style={[
-                  s.activity,
-                  index < travelers.length - 1 && s.activityDivider,
-                ]}
-                onPress={() =>
-                  Alert.alert(
-                    person.name,
-                    `${person.name} ${person.achievement} ${person.note}`,
-                  )
-                }
-              >
-                <View style={s.activityMain}>
-                  <View style={[s.avatar, { backgroundColor: person.color }]}>
-                    <Ionicons
-                      name="person"
-                      size={25}
-                      color={BrandColors.onDark}
-                    />
-                    <Text style={s.avatarFlag}>{person.flag}</Text>
-                  </View>
-                  <View style={s.activityCopy}>
-                    <Text style={s.activityName}>{person.name}</Text>
-                    <Text style={s.activityText}>{person.achievement}</Text>
-                    <Text style={s.activitySub}>{person.note}</Text>
-                  </View>
-                </View>
-                <View style={s.points}>
-                  <Ionicons
-                    name="ribbon-outline"
-                    size={20}
-                    color={BrandColors.copper}
-                  />
-                  <Text style={s.pointsText}>{person.points}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
 
         <Section
           title="Challenges"
@@ -380,7 +299,7 @@ const s = StyleSheet.create({
     textAlign: "center",
     marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 11,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   headingRow: {
@@ -398,7 +317,7 @@ const s = StyleSheet.create({
   },
   link: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.copperDark,
   },
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
@@ -417,7 +336,7 @@ const s = StyleSheet.create({
   },
   pillText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   pillTextActive: { color: BrandColors.copper, fontFamily: "Lora_700Bold" },
@@ -477,9 +396,10 @@ const s = StyleSheet.create({
   cities: {
     marginTop: 7,
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.muted,
   },
+  notVisited: { color: "#737B76" },
   progress: {
     position: "absolute",
     left: 9,
@@ -517,84 +437,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
-  activityPanel: {
-    marginHorizontal: 10,
-    marginTop: 3,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "rgba(10,43,32,.2)",
-  },
-  activityRow: {
-    paddingHorizontal: 7,
-    paddingVertical: 8,
-  },
-  activity: {
-    width: 180,
-    minHeight: 90,
-    paddingTop: 6,
-    paddingBottom: 2,
-    paddingHorizontal: 10,
-    justifyContent: "space-between",
-  },
-  activityMain: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  activityDivider: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: BrandColors.paleGreen,
-  },
-  avatar: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: BrandColors.onDark,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "visible",
-  },
-  avatarFlag: {
-    position: "absolute",
-    right: -6,
-    bottom: -4,
-    fontSize: 15,
-    borderRadius: 9,
-    overflow: "hidden",
-  },
-  activityCopy: { flex: 1 },
-  activityText: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 8,
-    lineHeight: 11,
-    color: BrandColors.onDark,
-  },
-  activityName: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 11,
-    color: BrandColors.copperDark,
-  },
-  activitySub: {
-    marginTop: 2,
-    fontFamily: "Lora_400Regular",
-    fontSize: 8,
-    color: BrandColors.onDarkMuted,
-  },
-  points: {
-    alignSelf: "flex-end",
-    marginTop: 3,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  pointsText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 9,
-    color: BrandColors.copper,
-  },
   challengeRow: {
     paddingHorizontal: 10,
     gap: 7,
@@ -631,7 +473,8 @@ const s = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 9,
+    fontSize: 11,
+    lineHeight: 14,
     color: BrandColors.muted,
   },
   challengeProgress: {
@@ -647,7 +490,7 @@ const s = StyleSheet.create({
     right: 8,
     bottom: 8,
     fontFamily: "Lora_500Medium",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.muted,
   },
   cta: {
@@ -677,8 +520,8 @@ const s = StyleSheet.create({
   },
   ctaText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 11,
+    lineHeight: 15,
     color: BrandColors.onDarkMuted,
   },
   ctaButton: {
@@ -693,7 +536,7 @@ const s = StyleSheet.create({
   },
   ctaButtonText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.copper,
   },
 });

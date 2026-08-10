@@ -121,6 +121,23 @@ export async function getCountriesWithCities(): Promise<CountryRecord[]> {
   );
 }
 
+export function getAllCountries(): CountryRecord[] {
+  return (Object.keys(countries) as TCountryCode[])
+    .map((code) => {
+      const country = countries[code];
+      const continentCode = country.continent as TContinentCode;
+      return {
+        id: code,
+        code,
+        name: country.name,
+        flag: getEmojiFlag(code),
+        continentCode,
+        continent: continents[continentCode],
+      };
+    })
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export function getCities(): Promise<CityRecord[]> {
   cityCache ??= loadCityRecords();
   return cityCache;
