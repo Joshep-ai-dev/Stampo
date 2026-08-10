@@ -26,15 +26,19 @@ import {
   authSessionChanged,
   photoChanged,
   profileDetailsChanged,
-  signedOut,,@/store/profile-slice";
+  signedOut,
+} from "@/store/profile-slice";
 import { api } from "@/services/api";
 import type { ProfileState } from "@/store/profile-slice";
 import {
   calculateKrooScoreFromVisits,
   formatKrooNumber,
 } from "@/data/kroo-score";
-import { visitsCleared, visitsHydrated } from "@/store/travel-slice";
-import { travelStateHydrated } from "@/store/travel-slice";
+import {
+  travelStateHydrated,
+  visitsCleared,
+  visitsHydrated,
+} from "@/store/travel-slice";
 import { dashboardCleared, fetchHomeDashboard } from "@/store/dashboard-slice";
 
 const colors = {
@@ -632,7 +636,11 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: BrandColors.line,
   },
-  stampImage: { width: "100%", height: "100%" },
+  stampImage: {
+    width: "100%",
+    height: "100%",
+    transform: [{ scale: 1.35 }],
+  },
   genericStamp: {
     width: "90%",
     height: "76%",

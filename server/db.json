@@ -129,6 +129,32 @@
       "places": [],
       "id": "1a9fcb60-7ad4-47bd-ae94-6920a781e8dc",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "3472177",
+      "cityName": "Angra dos Reis",
+      "country": "Brazil",
+      "countryCode": "BR",
+      "continentCode": "SA",
+      "subcountry": "Rio de Janeiro",
+      "visitedAt": "2026-08-11",
+      "note": "",
+      "places": [],
+      "id": "c97d5d29-af97-4c7b-9103-a493040e08f4",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "1529594",
+      "cityName": "Beitun",
+      "country": "China",
+      "countryCode": "CN",
+      "continentCode": "AS",
+      "subcountry": "Xinjiang",
+      "visitedAt": "2026-08-11",
+      "note": "",
+      "places": [],
+      "id": "1f316779-83f8-4786-842f-78d4ca99ec17",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
@@ -139,7 +165,7 @@
   "users": [
     {
       "id": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "name": "",
+      "name": "Robb",
       "email": "darkhorse9372@gmail.com",
       "password": "kc9372KC!123",
       "language": "English",
@@ -147,8 +173,5 @@
       "dateOfBirth": "",
       "photoUri": null
     }
-  ],
-  "completions": [],
-  "wishlists": [],
-  "rewards": []
+  ]
 }

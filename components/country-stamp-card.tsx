@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   stamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.3 }],
+    transform: [{ scale: 1.55 }],
   },
   placeholder: {
     width: "100%",

@@ -363,7 +363,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  stamp: { width: 112, height: 150 },
+  stamp: { width: 112, height: 150, transform: [{ scale: 1.45 }] },
   heroCopy: { flex: 1, paddingLeft: 8 },
   country: {
     fontFamily: "Lora_700Bold",
