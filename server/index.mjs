@@ -67,6 +67,85 @@ function requireUser(req, res) {
   return user;
 }
 
+const HOME_CONTINENT_TOTALS = { AF: 54, AN: 0, AS: 48, EU: 44, NA: 23, OC: 14, SA: 12 };
+const HOME_SCORE_MAXIMUMS = { continents: 7, countries: 48.75, cities: 10, airports: 8, sights: 20, challenges: 6.25 };
+
+function cappedPoints(count, each, maximum) {
+  return Math.min(Math.max(0, count) * each, maximum);
+}
+
+function challengePointsFor(userId) {
+  return Math.min(
+    HOME_SCORE_MAXIMUMS.challenges,
+    db.data.rewards
+      .filter((reward) => String(reward.userId) === String(userId) && reward.unlocked !== false)
+      .reduce((total, reward) => total + Number(reward.krooPoints ?? reward.points ?? 0), 0),
+  );
+}
+
+function levelFor(score) {
+  if (score >= 75) return "Kroo Master";
+  if (score >= 50) return "Voyager";
+  if (score >= 30) return "Wayfarer";
+  if (score >= 15) return "Explorer";
+  if (score >= 5) return "Traveler";
+  return "Wanderer";
+}
+
+function homeDashboardFor(user) {
+  const visits = db.data.visits.filter((visit) => String(visit.userId) === String(user.id));
+  const countries = new Set(visits.map((visit) => visit.countryCode).filter(Boolean));
+  const continents = new Set(visits.map((visit) => visit.continentCode).filter(Boolean));
+  const cities = new Set(visits.map((visit) => visit.cityId).filter(Boolean));
+  const airports = visits.reduce(
+    (total, visit) => total + (visit.places ?? []).filter((place) => place.type === "airport").length,
+    0,
+  );
+  const recordedSightIds = visits.flatMap((visit) =>
+    (visit.places ?? [])
+      .filter((place) => place.type === "sight")
+      .map((place) => String(place.id)),
+  );
+  const completedSightIds = db.data.completions
+    .filter((completion) => String(completion.userId) === String(user.id))
+    .map((completion) => String(completion.sightId));
+  const sights = new Set([...recordedSightIds, ...completedSightIds]).size;
+  const challengePoints = challengePointsFor(user.id);
+  const rawScore =
+    cappedPoints(continents.size, 1, HOME_SCORE_MAXIMUMS.continents) +
+    cappedPoints(countries.size, 0.25, HOME_SCORE_MAXIMUMS.countries) +
+    cappedPoints(cities.size, 0.005, HOME_SCORE_MAXIMUMS.cities) +
+    cappedPoints(airports, 0.01, HOME_SCORE_MAXIMUMS.airports) +
+    cappedPoints(sights, 0.002, HOME_SCORE_MAXIMUMS.sights) +
+    challengePoints;
+  const score = Math.round(Math.min(100, rawScore) * 1000) / 1000;
+  const continentCountries = {};
+  visits.forEach((visit) => {
+    if (!visit.continentCode || !visit.countryCode) return;
+    continentCountries[visit.continentCode] ??= new Set();
+    continentCountries[visit.continentCode].add(visit.countryCode);
+  });
+
+  return {
+    counts: {
+      continents: continents.size,
+      countries: countries.size,
+      cities: cities.size,
+      airports,
+      sights,
+    },
+    score,
+    level: levelFor(score),
+    challengePoints,
+    worldProgress: Math.round((countries.size / 195) * 100),
+    visitedCountryCodes: [...countries].sort(),
+    continentCounts: Object.fromEntries(
+      Object.keys(HOME_CONTINENT_TOTALS).map((code) => [code, continentCountries[code]?.size ?? 0]),
+    ),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 app.post("/auth/register", async (req, res) => {
   const { name, email, password, passwordConfirmation } = req.body ?? {};
   if (!name || !email || !password || password.length < 6) {
@@ -183,8 +262,15 @@ app.get("/me/travel-state", (req, res) => {
     completedSightIds: db.data.completions.filter(x => x.userId === user.id).map(x => x.sightId),
     wishlistIds: db.data.wishlists.filter(x => x.userId === user.id).map(x => x.targetId),
     rewards: db.data.rewards.filter(x => x.userId === user.id),
+    challengePoints: challengePointsFor(user.id),
     plan: user.plan ?? "free",
   });
+});
+
+app.get("/me/home", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  return res.json(homeDashboardFor(user));
 });
 
 app.put("/me/completions/:sightId", async (req, res) => {

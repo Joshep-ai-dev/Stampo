@@ -20,6 +20,7 @@ import { BrandColors } from "@/constants/theme";
 
 import { CityRecord, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { NewVisit, visitReceived } from "@/store/travel-slice";
 
@@ -124,6 +125,7 @@ export function CityVisitSearch() {
     };
     try {
       dispatch(visitReceived(await api.createVisit(visit)));
+      void dispatch(fetchHomeDashboard());
     } catch {
       Alert.alert(
         "Visit not saved",

@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { PlaceType, placeAdded } from "@/store/travel-slice";
 import { appendPlace } from "@/data/visits";
 import { api } from "@/services/api";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 
 export default function VisitsScreen() {
   const dispatch = useAppDispatch();
@@ -66,7 +67,12 @@ export default function VisitsScreen() {
               const nextVisit = visit ? appendPlace(visit, placeName, placeType) : null;
               if (visit && nextVisit) {
                 dispatch(placeAdded({ visitId: visit.id, name: placeName, type: placeType }));
-                if (isSignedIn) void api.updateVisit(nextVisit).catch(() => undefined);
+                if (isSignedIn) {
+                  void api
+                    .updateVisit(nextVisit)
+                    .then(() => dispatch(fetchHomeDashboard()))
+                    .catch(() => undefined);
+                }
               }
               setPlaceName("");
               setTargetVisitId(null);

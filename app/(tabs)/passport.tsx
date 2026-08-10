@@ -22,11 +22,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { stampAssets } from "@/data/stamps";
 import { BrandColors } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { authSessionChanged, photoChanged, profileDetailsChanged, signedOut } from "@/store/profile-slice";
+import {
+  authSessionChanged,
+  photoChanged,
+  profileDetailsChanged,
+  signedOut,,@/store/profile-slice";
 import { api } from "@/services/api";
 import type { ProfileState } from "@/store/profile-slice";
-import { calculateKrooScoreFromVisits, formatKrooNumber } from "@/data/kroo-score";
+import {
+  calculateKrooScoreFromVisits,
+  formatKrooNumber,
+} from "@/data/kroo-score";
 import { visitsCleared, visitsHydrated } from "@/store/travel-slice";
+import { travelStateHydrated } from "@/store/travel-slice";
+import { dashboardCleared, fetchHomeDashboard } from "@/store/dashboard-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -43,17 +52,40 @@ type PassportPage =
   | { id: string; type: "identity" }
   | { id: string; type: "stamps"; slots: (Stamp | null)[] };
 
-function IdentityPage({ profile, krooNumber, width, height }: { profile: ProfileState; krooNumber: string; width: number; height: number }) {
+function IdentityPage({
+  profile,
+  krooNumber,
+  width,
+  height,
+}: {
+  profile: ProfileState;
+  krooNumber: string;
+  width: number;
+  height: number;
+}) {
   const dispatch = useAppDispatch();
-  const [draft, setDraft] = useState({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth });
+  const [draft, setDraft] = useState({
+    name: profile.name,
+    email: profile.email,
+    nationality: profile.nationality,
+    dateOfBirth: profile.dateOfBirth,
+  });
   const [password, setPassword] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const pickPhoto = async () => {
     if (!profile.isSignedIn) {
-      Alert.alert("Sign in required", "Create your account before adding a passport photo.");
+      Alert.alert(
+        "Sign in required",
+        "Create your account before adding a passport photo.",
+      );
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [3, 4], quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
     if (!result.canceled) {
       const photoUri = result.assets[0].uri;
       dispatch(photoChanged(photoUri));
@@ -67,27 +99,50 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
     dispatch(profileDetailsChanged(draft));
     void api.updateProfile({ ...profile, ...draft }).catch(() => undefined);
   };
-  const finishAuthentication = async (user: { id: string; name: string; email: string; language: string }) => {
-    dispatch(profileDetailsChanged({ ...draft, name: user.name, email: user.email }));
+  const finishAuthentication = async (user: {
+    id: string;
+    name: string;
+    email: string;
+    language: string;
+  }) => {
+    dispatch(
+      profileDetailsChanged({ ...draft, name: user.name, email: user.email }),
+    );
     dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
     try {
       setAuthBusy(true);
-      dispatch(visitsHydrated(await api.listVisits()));
+      const [visits, travelState] = await Promise.all([
+        api.listVisits(),
+        api.travelState(),
+      ]);
+      dispatch(visitsHydrated(visits));
+      dispatch(travelStateHydrated(travelState));
+      void dispatch(fetchHomeDashboard());
     } catch {
       // Authentication remains valid if visit synchronization is temporarily unavailable.
     }
   };
   const signUp = async () => {
     if (!draft.name.trim() || !draft.email.trim() || password.length < 6) {
-      Alert.alert("Check your details", "Enter your name, email, and a password of at least 6 characters.");
+      Alert.alert(
+        "Check your details",
+        "Enter your name, email, and a password of at least 6 characters.",
+      );
       return;
     }
     try {
-      const user = await api.signUp({ name: draft.name.trim(), email: draft.email.trim(), password });
+      const user = await api.signUp({
+        name: draft.name.trim(),
+        email: draft.email.trim(),
+        password,
+      });
       await finishAuthentication(user);
       setPassword("");
     } catch {
-      Alert.alert("Sign up failed", "Please check your connection and try again.");
+      Alert.alert(
+        "Sign up failed",
+        "Please check your connection and try again.",
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -99,7 +154,10 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
     }
     try {
       setAuthBusy(true);
-      const { user } = await api.signIn({ email: draft.email.trim(), password });
+      const { user } = await api.signIn({
+        email: draft.email.trim(),
+        password,
+      });
       await finishAuthentication(user);
       setPassword("");
     } catch {
@@ -114,36 +172,120 @@ function IdentityPage({ profile, krooNumber, width, height }: { profile: Profile
     } finally {
       dispatch(signedOut());
       dispatch(visitsCleared());
+      dispatch(dashboardCleared());
     }
   };
-  return <View style={[styles.paper, styles.identityPaper, { width, height }]}>
-    <View style={styles.identityHeading}><Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text><Text style={styles.identityType}>PASSPORT · P</Text></View>
-    <View style={styles.identityBody}>
-      <TouchableOpacity style={styles.photoBox} onPress={() => void pickPhoto()}>
-        {profile.photoUri ? <Image source={{ uri: profile.photoUri }} style={styles.identityPhoto} contentFit="cover" /> : <><Ionicons name="person" size={48} color={BrandColors.muted} /><Text style={styles.addPhoto}>ADD PHOTO</Text></>}
-      </TouchableOpacity>
-      <View style={styles.identityFields}>
-        {([
-          ["name", "GIVEN NAME", "First name"],
-          ["email", "EMAIL", "you@example.com"],
-          ["nationality", "NATIONALITY", "Country"],
-          ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
-        ] as const).map(([key, label, placeholder]) => <View key={key} style={styles.identityField}><Text style={styles.fieldCaption}>{label}</Text><TextInput value={draft[key]} onChangeText={(value) => setDraft((current) => ({ ...current, [key]: value }))} placeholder={placeholder} placeholderTextColor="#a89378" style={styles.identityInput} onBlur={save} /></View>)}
-        {!profile.isSignedIn && <View style={styles.identityField}><Text style={styles.fieldCaption}>PASSWORD</Text><TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor="#a89378" secureTextEntry style={styles.identityInput} /></View>}
-        {profile.isSignedIn ? (
-          <TouchableOpacity style={styles.signOutButton} onPress={() => void signOut()}><Text style={styles.signOutText}>SIGN OUT</Text></TouchableOpacity>
-        ) : (
-          <View style={styles.authButtons}>
-            <TouchableOpacity disabled={authBusy} style={[styles.accountButton, styles.authButton, authBusy && styles.authButtonDisabled]} onPress={() => void signUp()}><Text style={styles.accountButtonText}>{authBusy ? "WAIT" : "CREATE"}</Text></TouchableOpacity>
-            <TouchableOpacity disabled={authBusy} style={[styles.signInButton, styles.authButton, authBusy && styles.authButtonDisabled]} onPress={() => void signIn()}><Text style={styles.signInText}>{authBusy ? "WAIT" : "SIGN IN"}</Text></TouchableOpacity>
-          </View>
-        )}
+  return (
+    <View style={[styles.paper, styles.identityPaper, { width, height }]}>
+      <View style={styles.identityHeading}>
+        <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
+        <Text style={styles.identityType}>PASSPORT · P</Text>
       </View>
+      <View style={styles.identityBody}>
+        <TouchableOpacity
+          style={styles.photoBox}
+          onPress={() => void pickPhoto()}
+        >
+          {profile.photoUri ? (
+            <Image
+              source={{ uri: profile.photoUri }}
+              style={styles.identityPhoto}
+              contentFit="cover"
+            />
+          ) : (
+            <>
+              <Ionicons name="person" size={48} color={BrandColors.muted} />
+              <Text style={styles.addPhoto}>ADD PHOTO</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <View style={styles.identityFields}>
+          {(
+            [
+              ["name", "GIVEN NAME", "First name"],
+              ["email", "EMAIL", "you@example.com"],
+              ["nationality", "NATIONALITY", "Country"],
+              ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
+            ] as const
+          ).map(([key, label, placeholder]) => (
+            <View key={key} style={styles.identityField}>
+              <Text style={styles.fieldCaption}>{label}</Text>
+              <TextInput
+                value={draft[key]}
+                onChangeText={(value) =>
+                  setDraft((current) => ({ ...current, [key]: value }))
+                }
+                placeholder={placeholder}
+                placeholderTextColor="#a89378"
+                style={styles.identityInput}
+                onBlur={save}
+              />
+            </View>
+          ))}
+          {!profile.isSignedIn && (
+            <View style={styles.identityField}>
+              <Text style={styles.fieldCaption}>PASSWORD</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor="#a89378"
+                secureTextEntry
+                style={styles.identityInput}
+              />
+            </View>
+          )}
+          {profile.isSignedIn ? (
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={() => void signOut()}
+            >
+              <Text style={styles.signOutText}>SIGN OUT</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.authButtons}>
+              <TouchableOpacity
+                disabled={authBusy}
+                style={[
+                  styles.accountButton,
+                  styles.authButton,
+                  authBusy && styles.authButtonDisabled,
+                ]}
+                onPress={() => void signUp()}
+              >
+                <Text style={styles.accountButtonText}>
+                  {authBusy ? "WAIT" : "CREATE"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={authBusy}
+                style={[
+                  styles.signInButton,
+                  styles.authButton,
+                  authBusy && styles.authButtonDisabled,
+                ]}
+                onPress={() => void signIn()}
+              >
+                <Text style={styles.signInText}>
+                  {authBusy ? "WAIT" : "SIGN IN"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+      <View style={styles.numberRow}>
+        <Text style={styles.numberLabel}>KROO NUMBER</Text>
+        <Text style={styles.passportNumber}>{krooNumber}</Text>
+      </View>
+      <Text
+        style={styles.machineCode}
+      >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
+      <Text
+        style={styles.machineCode}
+      >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
     </View>
-    <View style={styles.numberRow}><Text style={styles.numberLabel}>KROO NUMBER</Text><Text style={styles.passportNumber}>{krooNumber}</Text></View>
-    <Text style={styles.machineCode}>{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
-    <Text style={styles.machineCode}>{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
-  </View>;
+  );
 }
 
 function chunkStamps(stamps: Stamp[]): PassportPage[] {
@@ -157,14 +299,33 @@ function chunkStamps(stamps: Stamp[]): PassportPage[] {
   return pages;
 }
 
-function StampPage({ slots, width, height, onStampPress }: { slots: (Stamp | null)[]; width: number; height: number; onStampPress: (stamp: Stamp) => void }) {
+function StampPage({
+  slots,
+  width,
+  height,
+  onStampPress,
+}: {
+  slots: (Stamp | null)[];
+  width: number;
+  height: number;
+  onStampPress: (stamp: Stamp) => void;
+}) {
   return (
     <View style={[styles.paper, { width, height }]}>
       <View style={styles.paperInner}>
         {slots.map((stamp, index) => (
-          <Pressable key={stamp?.id ?? `empty-${index}`} disabled={!stamp} onPress={() => stamp && onStampPress(stamp)} style={[styles.stampSlot, !stamp && styles.emptySlot]}>
+          <Pressable
+            key={stamp?.id ?? `empty-${index}`}
+            disabled={!stamp}
+            onPress={() => stamp && onStampPress(stamp)}
+            style={[styles.stampSlot, !stamp && styles.emptySlot]}
+          >
             {stamp?.image ? (
-              <Image source={stamp.image} style={styles.stampImage} contentFit="contain" />
+              <Image
+                source={stamp.image}
+                style={styles.stampImage}
+                contentFit="contain"
+              />
             ) : stamp ? (
               <View style={styles.genericStamp}>
                 <Text style={styles.genericCode}>{stamp.code}</Text>
@@ -192,9 +353,7 @@ export default function PassportScreen() {
   const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
   const krooNumber = useMemo(
     () =>
-      formatKrooNumber(
-        calculateKrooScoreFromVisits(visits, completedSightIds),
-      ),
+      formatKrooNumber(calculateKrooScoreFromVisits(visits, completedSightIds)),
     [completedSightIds, visits],
   );
 
@@ -210,7 +369,9 @@ export default function PassportScreen() {
         });
       }
     });
-    const stamps = [...countryMap.values()].sort((left, right) => left.name.localeCompare(right.name));
+    const stamps = [...countryMap.values()].sort((left, right) =>
+      left.name.localeCompare(right.name),
+    );
     return [
       {
         id: "front-cover",
@@ -245,22 +406,46 @@ export default function PassportScreen() {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(page) => page.id}
           onMomentumScrollEnd={handleScrollEnd}
-          getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+          getItemLayout={(_, index) => ({
+            length: screenWidth,
+            offset: screenWidth * index,
+            index,
+          })}
           renderItem={({ item }) => (
             <View style={[styles.pageFrame, { width: screenWidth }]}>
               {item.type === "cover" ? (
-                <Image source={item.image} style={{ width: pageHeight, height: pageHeight }} contentFit="contain" />
+                <Image
+                  source={item.image}
+                  style={{ width: pageHeight, height: pageHeight }}
+                  contentFit="contain"
+                />
               ) : item.type === "identity" ? (
-                <IdentityPage profile={profile} krooNumber={krooNumber} width={pageWidth} height={pageHeight} />
+                <IdentityPage
+                  profile={profile}
+                  krooNumber={krooNumber}
+                  width={pageWidth}
+                  height={pageHeight}
+                />
               ) : (
-                <StampPage slots={item.slots} width={pageWidth} height={pageHeight} onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)} />
+                <StampPage
+                  slots={item.slots}
+                  width={pageWidth}
+                  height={pageHeight}
+                  onStampPress={(stamp) =>
+                    router.push(`/country/${stamp.code}` as never)
+                  }
+                />
               )}
             </View>
           )}
         />
         <TouchableOpacity
           style={styles.shareButton}
-          onPress={() => void Share.share({ message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.` })}
+          onPress={() =>
+            void Share.share({
+              message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
+            })
+          }
         >
           <Ionicons name="arrow-redo-sharp" size={36} color={colors.ink} />
         </TouchableOpacity>
@@ -278,7 +463,9 @@ export default function PassportScreen() {
             />
           ))}
         </View>
-        <Text style={styles.pageCount}>{activePage + 1} / {passportPages.length}</Text>
+        <Text style={styles.pageCount}>
+          {activePage + 1} / {passportPages.length}
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -287,44 +474,214 @@ export default function PassportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   carouselArea: { flex: 1, position: "relative" },
-  pageFrame: { flex: 1, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  paper: { backgroundColor: colors.paper, borderWidth: 1.5, borderColor: colors.paperBorder, borderRadius: 18, padding: 9, elevation: 2 },
+  pageFrame: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  paper: {
+    backgroundColor: colors.paper,
+    borderWidth: 1.5,
+    borderColor: colors.paperBorder,
+    borderRadius: 18,
+    padding: 9,
+    elevation: 2,
+  },
   identityPaper: { padding: 20, justifyContent: "space-between" },
-  identityHeading: { borderBottomWidth: 1, borderBottomColor: BrandColors.line, paddingBottom: 10 },
-  identityCountry: { fontFamily: "Lora_700Bold", fontSize: 19, color: BrandColors.green, letterSpacing: 1.2 },
-  identityType: { marginTop: 3, fontFamily: "Lora_500Medium", fontSize: 10, color: BrandColors.muted },
+  identityHeading: {
+    borderBottomWidth: 1,
+    borderBottomColor: BrandColors.line,
+    paddingBottom: 10,
+  },
+  identityCountry: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 19,
+    color: BrandColors.green,
+    letterSpacing: 1.2,
+  },
+  identityType: {
+    marginTop: 3,
+    fontFamily: "Lora_500Medium",
+    fontSize: 10,
+    color: BrandColors.muted,
+  },
   identityBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 18 },
-  photoBox: { width: "36%", height: "58%", minHeight: 155, borderRadius: 8, backgroundColor: BrandColors.surfaceSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  photoBox: {
+    width: "36%",
+    height: "58%",
+    minHeight: 155,
+    borderRadius: 8,
+    backgroundColor: BrandColors.surfaceSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
   identityPhoto: { width: "100%", height: "100%" },
-  addPhoto: { marginTop: 7, fontFamily: "Lora_700Bold", fontSize: 9, color: BrandColors.muted },
+  addPhoto: {
+    marginTop: 7,
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    color: BrandColors.muted,
+  },
   identityFields: { flex: 1, gap: 7 },
   identityField: { borderBottomWidth: 1, borderBottomColor: BrandColors.line },
-  fieldCaption: { fontFamily: "Lora_700Bold", fontSize: 8, letterSpacing: 0.7, color: BrandColors.muted },
-  identityInput: { height: 33, padding: 0, fontFamily: "Lora_600SemiBold", fontSize: 14, color: BrandColors.ink },
-  accountButton: { height: 30, borderRadius: 7, backgroundColor: BrandColors.green, alignItems: "center", justifyContent: "center" },
-  accountButtonText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.white },
+  fieldCaption: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 8,
+    letterSpacing: 0.7,
+    color: BrandColors.muted,
+  },
+  identityInput: {
+    height: 33,
+    padding: 0,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 14,
+    color: BrandColors.ink,
+  },
+  accountButton: {
+    height: 30,
+    borderRadius: 7,
+    backgroundColor: BrandColors.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accountButtonText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    letterSpacing: 0.8,
+    color: BrandColors.white,
+  },
   authButtons: { flexDirection: "row", gap: 6 },
   authButton: { flex: 1 },
   authButtonDisabled: { opacity: 0.55 },
-  signInButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.green, alignItems: "center", justifyContent: "center" },
-  signInText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.green },
-  signOutButton: { height: 30, borderRadius: 7, borderWidth: 1, borderColor: BrandColors.copperDark, alignItems: "center", justifyContent: "center" },
-  signOutText: { fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, color: BrandColors.copperDark },
-  numberRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: BrandColors.line, paddingTop: 10 },
-  numberLabel: { fontFamily: "Lora_700Bold", fontSize: 9, color: BrandColors.muted, letterSpacing: 1 },
-  passportNumber: { fontFamily: "Lora_700Bold", fontSize: 17, color: BrandColors.green },
-  machineCode: { fontFamily: "Lora_500Medium", fontSize: 11, letterSpacing: 0.5, color: BrandColors.ink },
-  paperInner: { flex: 1, borderWidth: 1, borderColor: BrandColors.line, borderRadius: 14, padding: 14, flexDirection: "row", flexWrap: "wrap", alignContent: "center", justifyContent: "space-between", rowGap: 8 },
-  stampSlot: { width: "49%", height: "47%", alignItems: "center", justifyContent: "center", borderRadius: 14 },
-  emptySlot: { borderWidth: 1.2, borderStyle: "dashed", borderColor: BrandColors.line },
+  signInButton: {
+    height: 30,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: BrandColors.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signInText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    letterSpacing: 0.8,
+    color: BrandColors.green,
+  },
+  signOutButton: {
+    height: 30,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: BrandColors.copperDark,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signOutText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    letterSpacing: 0.8,
+    color: BrandColors.copperDark,
+  },
+  numberRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: BrandColors.line,
+    paddingTop: 10,
+  },
+  numberLabel: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    color: BrandColors.muted,
+    letterSpacing: 1,
+  },
+  passportNumber: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 17,
+    color: BrandColors.green,
+  },
+  machineCode: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 11,
+    letterSpacing: 0.5,
+    color: BrandColors.ink,
+  },
+  paperInner: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BrandColors.line,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignContent: "center",
+    justifyContent: "space-between",
+    rowGap: 8,
+  },
+  stampSlot: {
+    width: "49%",
+    height: "47%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+  },
+  emptySlot: {
+    borderWidth: 1.2,
+    borderStyle: "dashed",
+    borderColor: BrandColors.line,
+  },
   stampImage: { width: "100%", height: "100%" },
-  genericStamp: { width: "90%", height: "76%", borderWidth: 4, borderColor: BrandColors.copperDark, borderRadius: 24, alignItems: "center", justifyContent: "center", padding: 8 },
-  genericCode: { fontFamily: "Lora_700Bold", fontSize: 30, color: BrandColors.copperDark },
-  genericName: { fontFamily: "Lora_600SemiBold", fontSize: 12, textAlign: "center", color: BrandColors.copperDark },
-  shareButton: { position: "absolute", top: 24, right: 14, width: 54, height: 54, borderRadius: 27, backgroundColor: BrandColors.greenDeep, borderWidth: 1, borderColor: BrandColors.copper, alignItems: "center", justifyContent: "center" },
+  genericStamp: {
+    width: "90%",
+    height: "76%",
+    borderWidth: 4,
+    borderColor: BrandColors.copperDark,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+  },
+  genericCode: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 30,
+    color: BrandColors.copperDark,
+  },
+  genericName: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 12,
+    textAlign: "center",
+    color: BrandColors.copperDark,
+  },
+  shareButton: {
+    position: "absolute",
+    top: 24,
+    right: 14,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: BrandColors.greenDeep,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   pagination: { height: 80, alignItems: "center", paddingTop: 5 },
-  dots: { flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "92%", flexWrap: "wrap", justifyContent: "center" },
+  dots: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: "92%",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.dot },
   dotActive: { backgroundColor: BrandColors.copper },
-  pageCount: { marginTop: 8, color: colors.muted, fontFamily: "Lora_700Bold", fontSize: 20 },
+  pageCount: {
+    marginTop: 8,
+    color: colors.muted,
+    fontFamily: "Lora_700Bold",
+    fontSize: 20,
+  },
 });

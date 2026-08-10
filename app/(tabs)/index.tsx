@@ -7,9 +7,11 @@ import {
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,7 +25,8 @@ import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
-import { useAppSelector } from "@/store/hooks";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const TOTALS: Record<string, number> = {
   AF: 54,
@@ -227,27 +230,44 @@ function WorldMap({ visited }: { visited: Set<string> }) {
 }
 
 export default function HomeScreen() {
+  const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
   const completedSightIds = useAppSelector(
     (x) => x.travel.completedSightIds,
   );
   const name = useAppSelector((x) => x.profile.name);
-  const countryCodes = useMemo(
+  const challengePoints = useAppSelector((x) => x.travel.challengePoints);
+  const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
+  const dashboard = useAppSelector((x) => x.dashboard);
+  useFocusEffect(
+    useCallback(() => {
+      if (isSignedIn) void dispatch(fetchHomeDashboard());
+    }, [dispatch, isSignedIn]),
+  );
+  const localCountryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
     [visits],
   );
-  const cityIds = useMemo(() => new Set(visits.map((x) => x.cityId)), [visits]);
-  const continentCodes = useMemo(
+  const localCityIds = useMemo(
+    () => new Set(visits.map((x) => x.cityId)),
+    [visits],
+  );
+  const localContinentCodes = useMemo(
     () => new Set(visits.map((x) => x.continentCode).filter(Boolean)),
     [visits],
   );
-  const continentCounts = useMemo(() => {
+  const localContinentCounts = useMemo(() => {
     const result: Record<string, Set<string>> = {};
     visits.forEach((v) => {
       result[v.continentCode] ??= new Set();
       result[v.continentCode].add(v.countryCode);
     });
-    return result;
+    return Object.fromEntries(
+      Object.entries(result).map(([code, countries]) => [
+        code,
+        countries.size,
+      ]),
+    );
   }, [visits]);
   const recordedSights = visits.reduce(
     (n, v) => n + v.places.filter((p) => p.type === "sight").length,
@@ -257,19 +277,48 @@ export default function HomeScreen() {
     (n, v) => n + v.places.filter((p) => p.type === "airport").length,
     0,
   );
-  const score = calculateKrooScore({
-    continents: continentCodes.size,
-    countries: countryCodes.size,
-    cities: cityIds.size,
+  const localScore = calculateKrooScore({
+    continents: localContinentCodes.size,
+    countries: localCountryCodes.size,
+    cities: localCityIds.size,
     sights: recordedSights + new Set(completedSightIds).size,
     airports,
+    challengePoints,
   });
-  const worldProgress = Math.round((countryCodes.size / 195) * 100);
+  const serverHome = isSignedIn ? dashboard.data : null;
+  const countryCodes = useMemo(
+    () =>
+      serverHome
+        ? new Set(serverHome.visitedCountryCodes)
+        : localCountryCodes,
+    [localCountryCodes, serverHome],
+  );
+  const countryCount = serverHome?.counts.countries ?? localCountryCodes.size;
+  const continentCount =
+    serverHome?.counts.continents ?? localContinentCodes.size;
+  const cityCount = serverHome?.counts.cities ?? localCityIds.size;
+  const continentCounts =
+    serverHome?.continentCounts ?? localContinentCounts;
+  const score = serverHome?.score ?? localScore;
+  const worldProgress =
+    serverHome?.worldProgress ??
+    Math.round((localCountryCodes.size / 195) * 100);
+  const refreshHome = useCallback(() => {
+    if (isSignedIn) void dispatch(fetchHomeDashboard());
+  }, [dispatch, isSignedIn]);
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={dashboard.status === "loading"}
+            onRefresh={refreshHome}
+            tintColor={BrandColors.copper}
+            colors={[BrandColors.copper]}
+          />
+        }
       >
         <View style={styles.hero}>
           <BrandHeader />
@@ -282,7 +331,9 @@ export default function HomeScreen() {
                 size={15}
                 color={BrandColors.onDark}
               />
-              <Text style={styles.levelText}>{getKrooLevel(score)}</Text>
+              <Text style={styles.levelText}>
+                {serverHome?.level ?? getKrooLevel(score)}
+              </Text>
             </View>
           </View>
           <Image
@@ -324,7 +375,7 @@ export default function HomeScreen() {
           <View style={styles.stats}>
             <Stat
               icon="globe-outline"
-              value={countryCodes.size}
+              value={countryCount}
               total={195}
               label="COUNTRIES"
               info
@@ -337,13 +388,13 @@ export default function HomeScreen() {
             />
             <Stat
               icon="flag-outline"
-              value={continentCodes.size}
+              value={continentCount}
               total={7}
               label="CONTINENTS"
             />
             <Stat
               icon="business-outline"
-              value={cityIds.size}
+              value={cityCount}
               label="CITIES"
               last
             />
@@ -357,9 +408,9 @@ export default function HomeScreen() {
               Countries visited by continent
             </Text>
           </View>
-          {CONTINENTS.filter((item) => continentCounts[item.code]?.size).map(
+          {CONTINENTS.filter((item) => continentCounts[item.code]).map(
             (item) => {
-              const count = continentCounts[item.code]?.size ?? 0;
+              const count = continentCounts[item.code] ?? 0;
               const total = TOTALS[item.code];
               const pct = total ? (count / total) * 100 : 0;
               return (

@@ -2,6 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configureStore } from "@reduxjs/toolkit";
 
 import { api } from "@/services/api";
+import dashboardReducer, {
+  dashboardCleared,
+  fetchHomeDashboard,
+} from "./dashboard-slice";
 import profileReducer, {
   authSessionChanged,
   languageChanged,
@@ -9,12 +13,20 @@ import profileReducer, {
   profileHydrated,
   signedOut,
 } from "./profile-slice";
-import travelReducer, { visitsCleared, visitsHydrated } from "./travel-slice";
+import travelReducer, {
+  travelStateHydrated,
+  visitsCleared,
+  visitsHydrated,
+} from "./travel-slice";
 
 const STORAGE_KEY = "stampo.app-state.v1";
 
 export const store = configureStore({
-  reducer: { travel: travelReducer, profile: profileReducer },
+  reducer: {
+    travel: travelReducer,
+    profile: profileReducer,
+    dashboard: dashboardReducer,
+  },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
@@ -28,6 +40,7 @@ export async function hydrateStore() {
     const saved = JSON.parse(raw) as Partial<RootState>;
     if (saved.travel?.visits)
       store.dispatch(visitsHydrated(saved.travel.visits));
+    if (saved.travel) store.dispatch(travelStateHydrated(saved.travel));
     if (saved.profile) store.dispatch(profileHydrated(saved.profile));
   }
 
@@ -45,14 +58,22 @@ export async function hydrateStore() {
       );
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-      store.dispatch(visitsHydrated(await api.listVisits()));
+      const [visits, travelState] = await Promise.all([
+        api.listVisits(),
+        api.travelState(),
+      ]);
+      store.dispatch(visitsHydrated(visits));
+      store.dispatch(travelStateHydrated(travelState));
+      await store.dispatch(fetchHomeDashboard());
     } else {
       store.dispatch(signedOut());
       store.dispatch(visitsCleared());
+      store.dispatch(dashboardCleared());
     }
   } catch {
     store.dispatch(signedOut());
     store.dispatch(visitsCleared());
+    store.dispatch(dashboardCleared());
   }
 
   if (!persistenceStarted) {

@@ -23,9 +23,21 @@ export type VisitedPlace = {
 
 export type NewVisit = Omit<Visit, "id">;
 
-type TravelState = { visits: Visit[]; completedSightIds: string[]; wishlistIds: string[] };
+export type TravelState = {
+  visits: Visit[];
+  completedSightIds: string[];
+  wishlistIds: string[];
+  challengePoints: number;
+  plan: "free" | "pro";
+};
 
-const initialState: TravelState = { visits: [], completedSightIds: [], wishlistIds: [] };
+const initialState: TravelState = {
+  visits: [],
+  completedSightIds: [],
+  wishlistIds: [],
+  challengePoints: 0,
+  plan: "free",
+};
 
 const travelSlice = createSlice({
   name: "travel",
@@ -47,6 +59,21 @@ const travelSlice = createSlice({
         ...visit,
         places: visit.places ?? [],
       }));
+    },
+    travelStateHydrated(
+      state,
+      action: PayloadAction<Partial<Omit<TravelState, "visits">>>,
+    ) {
+      if (action.payload.completedSightIds)
+        state.completedSightIds = [...new Set(action.payload.completedSightIds)];
+      if (action.payload.wishlistIds)
+        state.wishlistIds = [...new Set(action.payload.wishlistIds)];
+      if (action.payload.challengePoints !== undefined)
+        state.challengePoints = Math.min(
+          Math.max(0, action.payload.challengePoints),
+          6.25,
+        );
+      if (action.payload.plan) state.plan = action.payload.plan;
     },
     visitRemoved(state, action: PayloadAction<string>) {
       state.visits = state.visits.filter((visit) => visit.id !== action.payload);
@@ -95,6 +122,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, sightToggled, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;
