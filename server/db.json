@@ -116,6 +116,19 @@
       "places": [],
       "id": "1b9c401c-9c2e-4950-90eb-708218db520c",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "1142170",
+      "cityName": "Fayzabad",
+      "country": "Afghanistan",
+      "countryCode": "AF",
+      "continentCode": "AS",
+      "subcountry": "Badakhshan",
+      "visitedAt": "2026-08-10",
+      "note": "",
+      "places": [],
+      "id": "1a9fcb60-7ad4-47bd-ae94-6920a781e8dc",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
