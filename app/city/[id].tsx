@@ -6,18 +6,20 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sightToggled, wishlistToggled } from "@/store/travel-slice";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CityScreen() {
   const { id = "paris" } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("Overview");
   const dispatch = useAppDispatch();
   const city =
     franceGuide.cities.find((x) => x.id === id) ?? franceGuide.cities[0];
@@ -127,14 +129,29 @@ export default function CityScreen() {
             <Text style={s.circleLabel}>COMPLETE</Text>
           </View>
         </View>
-        <View style={s.tabs}>
-          {["OVERVIEW", "SIGHTS", "EXPERIENCES", "NEIGHBORHOODS", "FOOD"].map(
-            (x, i) => (
-              <Text key={x} style={i === 0 ? s.tabActive : s.tab}>
-                {x}
-              </Text>
-            ),
-          )}
+        <View style={s.tabBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.tabs}
+          >
+            {["Overview", "Sights", "Experiences", "Neighborhoods", "Food"].map(
+              (tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[
+                    s.tabButton,
+                    activeTab === tab && s.tabButtonActive,
+                  ]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={[s.tab, activeTab === tab && s.tabActive]}>
+                    {tab}
+                  </Text>
+                </TouchableOpacity>
+              ),
+            )}
+          </ScrollView>
         </View>
         <View style={s.glance}>
           <Text style={s.sectionTitle}>Paris at a Glance</Text>
@@ -317,46 +334,50 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: "Lora_700Bold",
-    fontSize: 38,
+    fontSize: 24,
     color: BrandColors.onDark,
   },
   subtitle: {
     fontFamily: "Lora_400Regular_Italic",
-    fontSize: 14,
+    fontSize: 16,
     color: BrandColors.copper,
   },
   location: {
     marginTop: 8,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   heroButtons: { marginTop: 13, width: "61%", flexDirection: "row", gap: 8 },
   add: {
     flex: 1,
-    padding: 10,
+    minHeight: 44,
+    paddingHorizontal: 10,
     borderRadius: 7,
     backgroundColor: BrandColors.copper,
     alignItems: "center",
+    justifyContent: "center",
   },
   addText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.white,
   },
   wish: {
     flex: 1,
-    padding: 10,
+    minHeight: 44,
+    paddingHorizontal: 10,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     justifyContent: "center",
   },
   wishText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   progress: {
@@ -372,7 +393,7 @@ const s = StyleSheet.create({
   },
   progressLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   progressValue: {
@@ -382,7 +403,7 @@ const s = StyleSheet.create({
   },
   progressText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   bar: {
@@ -421,7 +442,7 @@ const s = StyleSheet.create({
   },
   passTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.copper,
   },
   passStats: {
@@ -436,13 +457,13 @@ const s = StyleSheet.create({
   },
   metricLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.muted,
   },
   unlock: {
     marginTop: 11,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.muted,
   },
   circleProgress: {
@@ -464,25 +485,35 @@ const s = StyleSheet.create({
     fontSize: 8,
     color: BrandColors.muted,
   },
+  tabBar: {
+    height: 54,
+    borderBottomWidth: 1,
+    borderBottomColor: BrandColors.paleGreen,
+  },
   tabs: {
-    height: 45,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
+    gap: 22,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
+  tabButton: {
+    height: "100%",
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabButtonActive: { borderBottomColor: BrandColors.copper },
   tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    color: BrandColors.onDarkMuted,
+    fontSize: 16,
+    color: BrandColors.onDark,
   },
   tabActive: {
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: 16,
     color: BrandColors.copper,
-    borderBottomWidth: 2,
-    borderBottomColor: BrandColors.copper,
-    paddingVertical: 15,
   },
   glance: {
     marginHorizontal: 14,
@@ -505,12 +536,13 @@ const s = StyleSheet.create({
   infoValue: {
     marginTop: 5,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 11,
+    fontSize: 13,
     color: BrandColors.onDark,
   },
   infoLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
+    textAlign: "center",
     color: BrandColors.onDarkMuted,
   },
   header: {
@@ -523,7 +555,7 @@ const s = StyleSheet.create({
   },
   link: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.copper,
   },
   cards: { paddingHorizontal: 14, gap: 8 },
@@ -551,14 +583,14 @@ const s = StyleSheet.create({
     margin: 7,
     marginBottom: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   area: {
     marginHorizontal: 7,
     marginBottom: 7,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   grid: { margin: 14, flexDirection: "row", gap: 8 },
@@ -572,14 +604,14 @@ const s = StyleSheet.create({
   prog: { paddingHorizontal: 10, marginTop: 8 },
   progName: {
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: 13,
     color: BrandColors.onDark,
   },
   progValue: {
     position: "absolute",
     right: 10,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   progBar: { height: 4, marginTop: 4, backgroundColor: BrandColors.paleGreen },
@@ -599,7 +631,7 @@ const s = StyleSheet.create({
   },
   challengeText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   challengeNum: {
@@ -611,7 +643,7 @@ const s = StyleSheet.create({
   reward: {
     marginTop: 7,
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: 12,
     color: BrandColors.copper,
   },
 });
