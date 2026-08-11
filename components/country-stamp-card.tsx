@@ -6,7 +6,7 @@ import { BrandColors } from "@/constants/theme";
 import type { CountryRecord } from "@/data/cities";
 import { stampAssets } from "@/data/stamps";
 
-const UNVISITED_STAMP = "#8D948F";
+const UNVISITED_STAMP = "#AAB5AF";
 
 export function CountryStampCard({
   country,
@@ -44,9 +44,8 @@ export function CountryStampCard({
         {stamp ? (
           <Image
             source={stamp}
-            style={styles.stamp}
+            style={[styles.stamp, !isVisited && styles.unvisitedStamp]}
             contentFit="contain"
-            tintColor={isVisited ? undefined : UNVISITED_STAMP}
           />
         ) : (
           <View style={styles.placeholder}>
@@ -105,7 +104,11 @@ const styles = StyleSheet.create({
   stamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.55 }],
+    transform: [{ scale: 1.3 }],
+  },
+  unvisitedStamp: {
+    opacity: 0.48,
+    filter: [{ grayscale: 1 }],
   },
   placeholder: {
     width: "100%",
