@@ -10,7 +10,16 @@ export type Visit = {
   subcountry: string;
   visitedAt: string;
   note: string;
+  verification?: VisitVerification;
   places: VisitedPlace[];
+};
+
+export type VisitVerification = {
+  status: "unverified" | "gps_verified" | "gps_failed";
+  checkedAt?: string;
+  matchedCountryCode?: string;
+  accuracyMeters?: number | null;
+  reason?: string;
 };
 
 export type PlaceType = "sight" | "airport";
@@ -52,12 +61,17 @@ const travelSlice = createSlice({
       },
     },
     visitReceived(state, action: PayloadAction<Visit>) {
-      state.visits.push({ ...action.payload, places: action.payload.places ?? [] });
+      state.visits.push({
+        ...action.payload,
+        places: action.payload.places ?? [],
+        verification: action.payload.verification ?? { status: "unverified" },
+      });
     },
     visitsHydrated(state, action: PayloadAction<Visit[]>) {
       state.visits = action.payload.map((visit) => ({
         ...visit,
         places: visit.places ?? [],
+        verification: visit.verification ?? { status: "unverified" },
       }));
     },
     travelStateHydrated(

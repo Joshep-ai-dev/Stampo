@@ -39,6 +39,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Stampo to use your location to verify visited places."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/favicon.png",
