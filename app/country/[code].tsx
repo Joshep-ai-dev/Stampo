@@ -184,11 +184,14 @@ export default function CountryScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <CountryMap code={code} name={name} />
-        {activeTab === "CITIES" && <CityAtlas code={code} name={name} />}
         <View style={s.panel}>
           <Text style={s.panelTitle}>About {name}</Text>
-          <Text style={s.body}>{guide.description}</Text>
+          <View style={s.aboutRow}>
+            <View style={s.aboutCopy}>
+              <Text style={s.body}>{guide.description}</Text>
+            </View>
+            <CountryMap code={code} name={name} compact />
+          </View>
           <View style={s.facts}>
             <Mini
               icon="business-outline"
@@ -272,26 +275,43 @@ export default function CountryScreen() {
               />
             </View>
             <Section title="France Collections" />
-            <View style={s.panel}>
-              {[
-                "UNESCO Sites",
-                "Castles & Châteaux",
-                "Museums",
-                "Beaches",
-                "Wine Regions",
-              ].map((x, i) => (
-                <View key={x} style={s.collection}>
-                  <Text style={s.collectionName}>{x}</Text>
-                  <Text style={s.collectionCount}>
-                    {[18, 24, 15, 9, 6][i]} / {[52, 80, 40, 33, 16][i]}
-                  </Text>
-                  <View style={s.collectionBar}>
-                    <View
-                      style={[s.fill, { width: `${[35, 30, 38, 27, 38][i]}%` }]}
-                    />
+            <View style={[s.panel, s.collectionsStatsPanel]}>
+              <View style={s.collectionsColumn}>
+                {[
+                  "UNESCO Sites",
+                  "Castles & Châteaux",
+                  "Museums",
+                  "Beaches",
+                  "Wine Regions",
+                ].map((x, i) => (
+                  <View key={x} style={s.collection}>
+                    <Text style={s.collectionName}>{x}</Text>
+                    <Text style={s.collectionCount}>
+                      {[18, 24, 15, 9, 6][i]} / {[52, 80, 40, 33, 16][i]}
+                    </Text>
+                    <View style={s.collectionBar}>
+                      <View
+                        style={[
+                          s.fill,
+                          { width: `${[35, 30, 38, 27, 38][i]}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+              <View style={s.statsColumn}>
+                <Text style={s.statsTitle}>France Stats</Text>
+                <CityAtlas code={code} name={name} compact />
+                <View style={s.statsBody}>
+                  <View style={s.statsList}>
+                    <Stat icon="location-outline" label="Visited" value="3 Cities" />
+                    <Stat icon="map-outline" label="Visited" value={`${done} Sights`} />
+                    <Stat icon="calendar-outline" label="Days Traveled" value="7" />
+                    <Stat icon="time-outline" label="Last Visited" value="Aug 2026" />
                   </View>
                 </View>
-              ))}
+              </View>
             </View>
           </>
         )}
@@ -345,6 +365,25 @@ function Section({ title, link }: { title: string; link?: string }) {
     <View style={s.section}>
       <Text style={s.sectionTitle}>{title}</Text>
       {link && <Text style={s.link}>{link}</Text>}
+    </View>
+  );
+}
+function Stat({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={s.stat}>
+      <Ionicons name={icon as never} size={15} color={BrandColors.copper} />
+      <View style={s.statCopy}>
+        <Text style={s.statLabel}>{label}</Text>
+        <Text style={s.statValue}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -543,6 +582,13 @@ const s = StyleSheet.create({
     lineHeight: 19,
     color: BrandColors.onDarkMuted,
   },
+  aboutRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  aboutCopy: { flex: 1.05, minWidth: 0 },
   facts: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12 },
   mini: { width: "46%", flexDirection: "row", alignItems: "center", gap: 8 },
   miniLabel: {
@@ -645,20 +691,57 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
-  collection: { height: 33, flexDirection: "row", alignItems: "center" },
-  collectionName: {
-    width: 130,
-    fontFamily: "Lora_500Medium",
+  collectionsStatsPanel: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  collectionsColumn: {
+    flex: 1.08,
+    minWidth: 0,
+    paddingRight: 8,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: BrandColors.paleGreen,
+  },
+  statsColumn: { flex: 1, minWidth: 0 },
+  statsTitle: {
+    fontFamily: "Lora_600SemiBold",
     fontSize: 14,
     color: BrandColors.onDark,
   },
-  collectionCount: {
-    width: 50,
+  statsBody: {
+    marginTop: 5,
+  },
+  statsList: { gap: 6 },
+  stat: { minHeight: 22, flexDirection: "row", alignItems: "center", gap: 5 },
+  statCopy: { flex: 1, minWidth: 0 },
+  statLabel: {
     fontFamily: "Lora_400Regular",
+    fontSize: 8,
+    color: BrandColors.onDarkMuted,
+  },
+  statValue: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 9,
+    color: BrandColors.onDark,
+  },
+  collection: { minHeight: 28, flexDirection: "row", alignItems: "center" },
+  collectionName: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: "Lora_500Medium",
     fontSize: 12,
+    color: BrandColors.onDark,
+  },
+  collectionCount: {
+    width: 42,
+    textAlign: "right",
+    fontFamily: "Lora_400Regular",
+    fontSize: 11,
     color: BrandColors.onDarkMuted,
   },
   collectionBar: {
+    display: "none",
     flex: 1,
     height: 5,
     borderRadius: 3,

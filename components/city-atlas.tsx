@@ -123,8 +123,8 @@ function buildAtlasData(features: Feature[], cities: CityPoint[]): AtlasData {
   };
 }
 
-function centeredViewBox(map: AtlasData, canvasWidth: number) {
-  const canvasAspect = canvasWidth / 260;
+function centeredViewBox(map: AtlasData, canvasWidth: number, canvasHeight: number) {
+  const canvasAspect = canvasWidth / canvasHeight;
   const mapAspect = map.bounds.width / map.bounds.height;
   if (mapAspect < canvasAspect) {
     const width = map.bounds.height * canvasAspect;
@@ -155,7 +155,15 @@ async function fetchCityAtlas(alpha2: string, cities: CityPoint[]) {
   return buildAtlasData(collection.features ?? [], cities);
 }
 
-export function CityAtlas({ code, name }: { code: string; name: string }) {
+export function CityAtlas({
+  code,
+  name,
+  compact = false,
+}: {
+  code: string;
+  name: string;
+  compact?: boolean;
+}) {
   const normalizedCode = code.toUpperCase();
   const cities = useMemo(() => {
     const knownCities = CITY_POINTS[normalizedCode] ?? [];
@@ -188,17 +196,22 @@ export function CityAtlas({ code, name }: { code: string; name: string }) {
   }, [attempt, cities, normalizedCode]);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.heading}>
-        <View>
-          <Text style={styles.eyebrow}>CITY ATLAS</Text>
-          <Text style={styles.title}>{name}</Text>
+    <View style={compact ? styles.compactCard : styles.card}>
+      {!compact && (
+        <View style={styles.heading}>
+          <View>
+            <Text style={styles.eyebrow}>CITY ATLAS</Text>
+            <Text style={styles.title}>{name}</Text>
+          </View>
+          <Text style={styles.hint}>
+            {cities.length > 0 ? `${cities.length} cities mapped` : "Live regions"}
+          </Text>
         </View>
-        <Text style={styles.hint}>
-          {cities.length > 0 ? `${cities.length} cities mapped` : "Live regions"}
-        </Text>
-      </View>
-      <View style={styles.canvas} onLayout={measureCanvas}>
+      )}
+      <View
+        style={compact ? styles.compactCanvas : styles.canvas}
+        onLayout={measureCanvas}
+      >
         {!atlas && !error && <ActivityIndicator color={BrandColors.copper} />}
         {error && (
           <View style={styles.errorBox}>
@@ -214,8 +227,8 @@ export function CityAtlas({ code, name }: { code: string; name: string }) {
         {atlas && canvasWidth > 0 && (
           <Svg
             width={canvasWidth}
-            height={260}
-            viewBox={centeredViewBox(atlas, canvasWidth)}
+            height={compact ? 130 : 260}
+            viewBox={centeredViewBox(atlas, canvasWidth, compact ? 130 : 260)}
             preserveAspectRatio="none"
           >
             {atlas.features.map((feature, featureIndex) =>
@@ -231,21 +244,22 @@ export function CityAtlas({ code, name }: { code: string; name: string }) {
                 />
               )),
             )}
-            {atlas.cities.map((city) => (
-              <Circle
-                key={city.id}
-                cx={city.longitude}
-                cy={-city.latitude}
-                r={0.18}
-                fill={BrandColors.copper}
-                stroke={BrandColors.onDark}
-                strokeWidth={0.05}
-              />
-            ))}
+            {!compact &&
+              atlas.cities.map((city) => (
+                <Circle
+                  key={city.id}
+                  cx={city.longitude}
+                  cy={-city.latitude}
+                  r={0.18}
+                  fill={BrandColors.copper}
+                  stroke={BrandColors.onDark}
+                  strokeWidth={0.05}
+                />
+              ))}
           </Svg>
         )}
       </View>
-      {cities.length > 0 && (
+      {!compact && cities.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -259,7 +273,7 @@ export function CityAtlas({ code, name }: { code: string; name: string }) {
           ))}
         </ScrollView>
       )}
-      <Text style={styles.credit}>Boundaries: geoBoundaries ADM1</Text>
+      {!compact && <Text style={styles.credit}>Boundaries: geoBoundaries ADM1</Text>}
     </View>
   );
 }
@@ -304,6 +318,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#06271D",
+  },
+  compactCard: {
+    flex: 1,
+    minWidth: 120,
+    alignSelf: "stretch",
+  },
+  compactCanvas: {
+    height: 130,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   errorBox: { alignItems: "center", gap: 12 },
   errorText: {

@@ -62,8 +62,8 @@ function buildMapData(geometry: Geometry): MapData {
   };
 }
 
-function centeredViewBox(map: MapData, canvasWidth: number) {
-  const canvasAspect = canvasWidth / 250;
+function centeredViewBox(map: MapData, canvasWidth: number, canvasHeight: number) {
+  const canvasAspect = canvasWidth / canvasHeight;
   const mapAspect = map.bounds.width / map.bounds.height;
   if (mapAspect < canvasAspect) {
     const width = map.bounds.height * canvasAspect;
@@ -90,7 +90,15 @@ async function fetchCountryMap(alpha2: string) {
   return buildMapData(geometry);
 }
 
-export function CountryMap({ code, name }: { code: string; name: string }) {
+export function CountryMap({
+  code,
+  name,
+  compact = false,
+}: {
+  code: string;
+  name: string;
+  compact?: boolean;
+}) {
   const [map, setMap] = useState<MapData>();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -116,18 +124,21 @@ export function CountryMap({ code, name }: { code: string; name: string }) {
   }, [attempt, code]);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.heading}>
-        <View>
-          <Text style={styles.eyebrow}>COUNTRY ATLAS</Text>
-          <Text style={styles.title}>{name}</Text>
+    <View style={compact ? styles.compactCard : styles.card}>
+      {!compact && (
+        <View style={styles.heading}>
+          <View>
+            <Text style={styles.eyebrow}>COUNTRY ATLAS</Text>
+            <Text style={styles.title}>{name}</Text>
+          </View>
+          <Text style={styles.hint}>Live geographic data</Text>
         </View>
-        <Text style={styles.hint}>Live geographic data</Text>
-      </View>
-      <View style={styles.canvas} onLayout={measureCanvas}>
-        {!map && !error && (
-          <ActivityIndicator color={BrandColors.copper} />
-        )}
+      )}
+      <View
+        style={compact ? styles.compactCanvas : styles.canvas}
+        onLayout={measureCanvas}
+      >
+        {!map && !error && <ActivityIndicator color={BrandColors.copper} />}
         {error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>Map needs an internet connection.</Text>
@@ -142,8 +153,8 @@ export function CountryMap({ code, name }: { code: string; name: string }) {
         {map && canvasWidth > 0 && (
           <Svg
             width={canvasWidth}
-            height={250}
-            viewBox={centeredViewBox(map, canvasWidth)}
+            height={compact ? 112 : 250}
+            viewBox={centeredViewBox(map, canvasWidth, compact ? 112 : 250)}
             preserveAspectRatio="none"
           >
             {map.paths.map((path, index) => (
@@ -203,6 +214,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#06271D",
+  },
+  compactCard: {
+    flex: 1,
+    minWidth: 132,
+    alignSelf: "stretch",
+  },
+  compactCanvas: {
+    height: 112,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   errorBox: { alignItems: "center", gap: 12 },
   errorText: {
