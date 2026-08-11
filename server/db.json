@@ -207,6 +207,19 @@
       "places": [],
       "id": "a4f8e39a-0490-4def-9c1f-98b68fca17a0",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "2968748",
+      "cityName": "Villefranche-sur-Saône",
+      "country": "France",
+      "countryCode": "FR",
+      "continentCode": "EU",
+      "subcountry": "Rhone-Alpes",
+      "visitedAt": "2026-08-12",
+      "note": "",
+      "places": [],
+      "id": "d7d31410-be89-47a2-99a8-ab5c72366682",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {

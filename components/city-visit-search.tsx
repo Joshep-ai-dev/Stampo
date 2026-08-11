@@ -34,24 +34,12 @@ const colors = {
   divider: BrandColors.line,
 };
 
-const countryFlags: Record<string, string> = {
-  Cambodia: "🇰🇭",
-  Canada: "🇨🇦",
-  France: "🇫🇷",
-  Japan: "🇯🇵",
-  Malaysia: "🇲🇾",
-  Mexico: "🇲🇽",
-  Netherlands: "🇳🇱",
-  Singapore: "🇸🇬",
-  "South Korea": "🇰🇷",
-  Thailand: "🇹🇭",
-  Turkey: "🇹🇷",
-  "United Arab Emirates": "🇦🇪",
-  "United States": "🇺🇸",
-};
-
-function flagFor(country: string) {
-  return countryFlags[country] ?? "🌍";
+function flagFor(countryCode: string) {
+  const normalized = countryCode.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return "🌍";
+  return String.fromCodePoint(
+    ...normalized.split("").map((character) => 127397 + character.charCodeAt(0)),
+  );
 }
 
 function today() {
@@ -214,7 +202,7 @@ export function CityVisitSearch({
                 ]}
                 onPress={() => selectCity(city)}
               >
-                <Text style={styles.flag}>{flagFor(city.country)}</Text>
+                <Text style={styles.flag}>{flagFor(city.countryCode)}</Text>
                 <View style={styles.resultText}>
                   <Text style={styles.cityName}>{city.name}</Text>
                   <Text style={styles.cityLocation} numberOfLines={1}>
@@ -259,7 +247,7 @@ export function CityVisitSearch({
               >
                 <View style={styles.selectedCard}>
                   <Text style={styles.selectedFlag}>
-                    {flagFor(selectedCity.country)}
+                    {flagFor(selectedCity.countryCode)}
                   </Text>
                   <View style={styles.selectedText}>
                     <Text style={styles.selectedCountry}>
@@ -370,7 +358,7 @@ const styles = StyleSheet.create({
   resultText: { flex: 1, paddingVertical: 8 },
   cityName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 18,
+    fontSize: 16,
     color: colors.ink,
   },
   cityLocation: {

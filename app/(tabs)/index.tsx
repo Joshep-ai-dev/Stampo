@@ -28,10 +28,7 @@ import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  travelStateHydrated,
-  visitsHydrated,
-} from "@/store/travel-slice";
+import { travelStateHydrated, visitsHydrated } from "@/store/travel-slice";
 
 const TOTALS: Record<string, number> = {
   AF: 54,
@@ -237,9 +234,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
-  const completedSightIds = useAppSelector(
-    (x) => x.travel.completedSightIds,
-  );
+  const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
@@ -282,10 +277,7 @@ export default function HomeScreen() {
       result[v.continentCode].add(v.countryCode);
     });
     return Object.fromEntries(
-      Object.entries(result).map(([code, countries]) => [
-        code,
-        countries.size,
-      ]),
+      Object.entries(result).map(([code, countries]) => [code, countries.size]),
     );
   }, [visits]);
   const recordedSights = visits.reduce(
@@ -307,17 +299,14 @@ export default function HomeScreen() {
   const serverHome = isSignedIn ? dashboard.data : null;
   const countryCodes = useMemo(
     () =>
-      serverHome
-        ? new Set(serverHome.visitedCountryCodes)
-        : localCountryCodes,
+      serverHome ? new Set(serverHome.visitedCountryCodes) : localCountryCodes,
     [localCountryCodes, serverHome],
   );
   const countryCount = serverHome?.counts.countries ?? localCountryCodes.size;
   const continentCount =
     serverHome?.counts.continents ?? localContinentCodes.size;
   const cityCount = serverHome?.counts.cities ?? localCityIds.size;
-  const continentCounts =
-    serverHome?.continentCounts ?? localContinentCounts;
+  const continentCounts = serverHome?.continentCounts ?? localContinentCounts;
   const score = serverHome?.score ?? localScore;
   const worldProgress =
     serverHome?.worldProgress ??

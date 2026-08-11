@@ -328,7 +328,7 @@ const s = StyleSheet.create({
   location: {
     marginTop: 8,
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   heroButtons: { marginTop: 13, width: "61%", flexDirection: "row", gap: 8 },
@@ -341,7 +341,7 @@ const s = StyleSheet.create({
   },
   addText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 11,
+    fontSize: 12,
     color: BrandColors.white,
   },
   wish: {
@@ -356,7 +356,7 @@ const s = StyleSheet.create({
   },
   wishText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   progress: {
@@ -372,7 +372,7 @@ const s = StyleSheet.create({
   },
   progressLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 7,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   progressValue: {
@@ -382,7 +382,7 @@ const s = StyleSheet.create({
   },
   progressText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   bar: {
@@ -421,7 +421,7 @@ const s = StyleSheet.create({
   },
   passTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.copper,
   },
   passStats: {
@@ -436,13 +436,13 @@ const s = StyleSheet.create({
   },
   metricLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 12,
     color: BrandColors.muted,
   },
   unlock: {
     marginTop: 11,
     fontFamily: "Lora_400Regular",
-    fontSize: 7,
+    fontSize: 12,
     color: BrandColors.muted,
   },
   circleProgress: {
@@ -461,7 +461,7 @@ const s = StyleSheet.create({
   },
   circleLabel: {
     fontFamily: "Lora_700Bold",
-    fontSize: 6,
+    fontSize: 8,
     color: BrandColors.muted,
   },
   tabs: {
@@ -473,12 +473,12 @@ const s = StyleSheet.create({
   },
   tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 8,
+    fontSize: 14,
     color: BrandColors.onDarkMuted,
   },
   tabActive: {
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: 14,
     color: BrandColors.copper,
     borderBottomWidth: 2,
     borderBottomColor: BrandColors.copper,
@@ -505,12 +505,12 @@ const s = StyleSheet.create({
   infoValue: {
     marginTop: 5,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 9,
+    fontSize: 11,
     color: BrandColors.onDark,
   },
   infoLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 7,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   header: {
@@ -523,13 +523,13 @@ const s = StyleSheet.create({
   },
   link: {
     fontFamily: "Lora_500Medium",
-    fontSize: 9,
+    fontSize: 12,
     color: BrandColors.copper,
   },
   cards: { paddingHorizontal: 14, gap: 8 },
   sight: {
     width: 116,
-    borderRadius: 9,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
@@ -551,14 +551,14 @@ const s = StyleSheet.create({
     margin: 7,
     marginBottom: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 9,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   area: {
     marginHorizontal: 7,
     marginBottom: 7,
     fontFamily: "Lora_400Regular",
-    fontSize: 7,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   grid: { margin: 14, flexDirection: "row", gap: 8 },
@@ -572,14 +572,14 @@ const s = StyleSheet.create({
   prog: { paddingHorizontal: 10, marginTop: 8 },
   progName: {
     fontFamily: "Lora_500Medium",
-    fontSize: 8,
+    fontSize: 11,
     color: BrandColors.onDark,
   },
   progValue: {
     position: "absolute",
     right: 10,
     fontFamily: "Lora_400Regular",
-    fontSize: 7,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   progBar: { height: 4, marginTop: 4, backgroundColor: BrandColors.paleGreen },
@@ -599,7 +599,7 @@ const s = StyleSheet.create({
   },
   challengeText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 9,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   challengeNum: {
@@ -611,7 +611,7 @@ const s = StyleSheet.create({
   reward: {
     marginTop: 7,
     fontFamily: "Lora_500Medium",
-    fontSize: 8,
+    fontSize: 11,
     color: BrandColors.copper,
   },
 });

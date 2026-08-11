@@ -419,7 +419,7 @@ const s = StyleSheet.create({
   heroCopy: { flex: 1, minWidth: 0 },
   country: {
     fontFamily: "Lora_700Bold",
-    fontSize: 27,
+    fontSize: 22,
     color: BrandColors.onDark,
   },
   motto: {
@@ -510,12 +510,12 @@ const s = StyleSheet.create({
   tabButtonActive: { borderBottomColor: BrandColors.copper },
   tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   tabActive: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.copper,
   },
   panel: {
@@ -543,12 +543,12 @@ const s = StyleSheet.create({
   mini: { width: "46%", flexDirection: "row", alignItems: "center", gap: 8 },
   miniLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   miniValue: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   section: {
@@ -584,7 +584,7 @@ const s = StyleSheet.create({
     right: 5,
     top: 5,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.surface,
   },
   cityName: {
@@ -598,7 +598,7 @@ const s = StyleSheet.create({
     marginHorizontal: 7,
     marginBottom: 7,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   stamps: {
@@ -638,20 +638,20 @@ const s = StyleSheet.create({
   stampDetail: {
     marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   collection: { height: 33, flexDirection: "row", alignItems: "center" },
   collectionName: {
     width: 130,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   collectionCount: {
     width: 50,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   collectionBar: {
