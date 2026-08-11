@@ -12,7 +12,7 @@ export function CountryStampCard({
   country,
   cityCount,
   onPress,
-  width = 148,
+  width = 156,
 }: {
   country: CountryRecord;
   cityCount: number;
@@ -68,7 +68,8 @@ export function CountryStampCard({
 
 const styles = StyleSheet.create({
   card: {
-    height: 238,
+    height: 240,
+    width: 184,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 9,
@@ -80,22 +81,22 @@ const styles = StyleSheet.create({
   },
   header: {
     width: "100%",
-    height: 30,
+    height: 24,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
-    gap: 7,
+    gap: 4,
   },
-  flag: { fontSize: 22 },
+  flag: { fontSize: 16 },
   name: {
     fontFamily: "Lora_500Medium",
-    fontSize: 16,
-    color: BrandColors.copperDark,
+    fontSize: 14,
+    color: BrandColors.green,
     flexShrink: 1,
   },
   stampFrame: {
-    width: 118,
-    height: 165,
+    width: 144,
+    height: 164,
     marginTop: 3,
     alignItems: "center",
     justifyContent: "center",
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   stamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.3 }],
+    transform: [{ scale: 1.2 }],
   },
   unvisitedStamp: {
     opacity: 0.48,
@@ -122,5 +123,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: BrandColors.muted,
   },
-  notVisited: { color: "#737B76" },
+  notVisited: { color: BrandColors.muted },
 });

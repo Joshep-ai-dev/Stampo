@@ -2,6 +2,22 @@
 
 Backend contract: [`docs/backend-api.md`](docs/backend-api.md)
 
+## Backend
+
+Start the development API in a separate terminal:
+
+```bash
+npm run server
+```
+
+The API listens on `http://localhost:3001` by default and stores development data in `server/db.json`. Configure the app with:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3001
+```
+
+See the [complete backend API documentation](docs/backend-api.md) for authentication, request and response models, homepage scoring, visits, profiles, completions, wishlist, plans, database structure, and production requirements.
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

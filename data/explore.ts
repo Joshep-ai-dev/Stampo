@@ -34,7 +34,7 @@ export const featuredCountries = [
   { code: "IT", name: "Italy", flag: "🇮🇹", cities: 5, progress: 22 },
 ];
 
-export const challenges = [
+export const collections = [
   { id: "wonders", title: "Seven Wonders", detail: "Visit all 7 wonders", icon: "earth-outline", progress: 12 },
   { id: "seas", title: "Seven Seas", detail: "Sail or visit all 7 seas", icon: "boat-outline", progress: 8 },
   { id: "unesco", title: "UNESCO Explorer", detail: "Visit heritage sites", icon: "library-outline", progress: 14 },

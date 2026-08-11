@@ -1,36 +1,92 @@
-# Stampo Backend API Contract
+# Stampo Backend API
 
-This document defines the HTTP contract expected by the Stampo Expo client. The production backend will be Laravel; the repository's JSON Server is a development-only substitute.
+This document is the HTTP contract implemented by [`server/index.mjs`](../server/index.mjs) and consumed by [`services/api.ts`](../services/api.ts).
 
-## 1. Conventions
+The included backend is a development server built with TinyHTTP and LowDB. It persists application data to JSON and keeps authentication sessions in memory. A production backend should preserve this contract while replacing the development storage and session implementation.
 
-- Production base URL: `https://api.example.com/api/v1`
-- Development base URL: `http://localhost:3001`
-- Content type: `application/json`
-- Dates: ISO 8601 calendar dates, `YYYY-MM-DD`
-- Timestamps: ISO 8601 UTC timestamps
-- Country codes: ISO 3166-1 alpha-2, such as `US`, `MX`, and `JP`
-- Continent codes: `AF`, `AN`, `AS`, `EU`, `NA`, `OC`, or `SA`
-- Production IDs: UUID strings are recommended
-- JSON property names use `camelCase`; Laravel database columns may remain `snake_case`
+## Quick start
 
-The client reads its base URL from:
+Install dependencies and start the API:
 
-```env
-EXPO_PUBLIC_API_URL=https://api.example.com/api/v1
+```bash
+npm install
+npm run server
 ```
 
-Authenticated requests send:
+The default URL is:
+
+```text
+http://localhost:3001
+```
+
+Configure the Expo client:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3001
+```
+
+For an Android emulator, use the host address that reaches the development machine, commonly:
+
+```env
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3001
+```
+
+Server environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3001` | HTTP port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `DB_FILE` | `server/db.json` | LowDB JSON file |
+
+## Conventions
+
+- Requests and responses use JSON unless the response is `204 No Content`.
+- Dates use `YYYY-MM-DD`.
+- Timestamps use ISO 8601.
+- Country codes use ISO 3166-1 alpha-2, such as `FR` and `US`.
+- Continent codes are `AF`, `AN`, `AS`, `EU`, `NA`, `OC`, and `SA`.
+- IDs are strings. The development server creates UUIDs for server-owned records.
+- JSON properties use `camelCase`.
+- The API enables CORS for development.
+- The mobile client uses an 8-second request timeout.
+
+## Authentication
+
+All endpoints except registration and login require a bearer token:
 
 ```http
-Authorization: Bearer <token>
+Authorization: Bearer dev-session-token
 Accept: application/json
 Content-Type: application/json
 ```
 
-## 2. Models
+Development sessions are stored in memory and are lost when the server restarts. The mobile client stores the current token using Expo SecureStore.
 
-### User
+### Error format
+
+Errors use an HTTP status and a JSON message:
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+Common statuses:
+
+| Status | Meaning |
+| --- | --- |
+| `200` | Successful read or update |
+| `201` | Resource created |
+| `204` | Successful action with no response body |
+| `401` | Missing, invalid, or expired session |
+| `404` | User-owned resource not found |
+| `422` | Invalid request or credentials |
+
+## Data models
+
+### Public user
 
 ```json
 {
@@ -38,41 +94,24 @@ Content-Type: application/json
   "name": "Robb",
   "email": "robb@example.com",
   "language": "English",
-  "createdAt": "2026-08-04T02:00:00Z",
-  "updatedAt": "2026-08-04T02:00:00Z"
+  "plan": "free"
 }
 ```
+
+`plan` is either `free` or `pro`.
 
 ### Profile
 
 ```json
 {
+  "id": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
   "name": "Robb",
-  "language": "English"
-}
-```
-
-### Country
-
-```json
-{
-  "code": "MX",
-  "name": "Mexico",
-  "continentCode": "NA",
-  "flag": "🇲🇽"
-}
-```
-
-### City
-
-```json
-{
-  "id": "3530597",
-  "name": "Mexico City",
-  "country": "Mexico",
-  "countryCode": "MX",
-  "continentCode": "NA",
-  "subcountry": "Mexico City"
+  "email": "robb@example.com",
+  "language": "English",
+  "plan": "free",
+  "nationality": "United States",
+  "dateOfBirth": "1990-05-14",
+  "photoUri": null
 }
 ```
 
@@ -81,26 +120,57 @@ Content-Type: application/json
 ```json
 {
   "id": "56aac7ea-8a05-482c-a762-995678f74395",
-  "cityId": "3530597",
-  "cityName": "Mexico City",
-  "country": "Mexico",
-  "countryCode": "MX",
-  "continentCode": "NA",
-  "subcountry": "Mexico City",
-  "visitedAt": "2026-08-04",
-  "note": "Beautiful city, unforgettable moments."
+  "cityId": "2988507",
+  "cityName": "Paris",
+  "country": "France",
+  "countryCode": "FR",
+  "continentCode": "EU",
+  "subcountry": "Ile-de-France",
+  "visitedAt": "2026-08-10",
+  "note": "Beautiful city.",
+  "places": [
+    {
+      "id": "cdg-airport",
+      "name": "Charles de Gaulle Airport",
+      "type": "airport"
+    }
+  ],
+  "userId": "5ec53967-acde-4ccf-bc78-3f80ee8da15d"
 }
 ```
 
-`cityId` corresponds to `geonameid` in the backend's imported `world-cities.csv`. The server is authoritative for city, country, and continent metadata. It must validate the submitted `cityId` and overwrite the submitted metadata with values from its city catalog.
+`places[].type` is `sight` or `airport`. The server adds `id` and `userId`; clients must not use `userId` to choose ownership.
 
-## 3. Authentication
+## Endpoint summary
 
-Use Laravel Sanctum for the mobile bearer-token flow. Do not use cookie-only SPA authentication for the native application.
+| Method | Path | Authentication | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | No | Create account and session |
+| `POST` | `/auth/login` | No | Create session |
+| `GET` | `/auth/me` | Yes | Restore current user |
+| `PUT` | `/auth/password` | Yes | Change password |
+| `POST` | `/auth/logout` | Yes | Revoke current session |
+| `GET` | `/profile` | Yes | Get complete profile |
+| `PUT` | `/profile` | Yes | Update profile |
+| `GET` | `/visits` | Yes | List the user's visits |
+| `POST` | `/visits` | Yes | Add a visit |
+| `PUT` | `/visits/:id` | Yes | Replace a visit |
+| `DELETE` | `/visits/:id` | Yes | Delete a visit |
+| `GET` | `/me/travel-state` | Yes | Hydrate completions, wishlist, rewards and plan |
+| `GET` | `/me/home` | Yes | Get the calculated homepage dashboard |
+| `PUT` | `/me/completions/:sightId` | Yes | Set sight completion state |
+| `PUT` | `/me/wishlist/:targetId` | Yes | Set wishlist state |
+| `PUT` | `/me/plan` | Yes | Change free/pro plan |
+| `GET` | `/collections?status=all` | Yes | List user collection progress |
+| `PUT` | `/me/collections/:collectionId` | Yes | Update collection progress |
+
+## Authentication endpoints
 
 ### Register
 
-`POST /auth/register`
+```http
+POST /auth/register
+```
 
 Request:
 
@@ -113,479 +183,484 @@ Request:
 }
 ```
 
+Rules:
+
+- Name, email, and password are required.
+- Password must contain at least 6 characters.
+- Password confirmation must match.
+- Email comparison is case-insensitive.
+- Email must be unique.
+
 Response: `201 Created`
 
 ```json
 {
-  "token": "1|sanctum-token",
+  "token": "dev-7bd7c61d-95bd-4331-896f-e3e69e38a47e",
   "user": {
     "id": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
     "name": "Robb",
     "email": "robb@example.com",
-    "language": "English"
+    "language": "English",
+    "plan": "free"
   }
 }
 ```
 
-### Sign in
+Passwords are stored as salted scrypt hashes. Legacy plain-text development records are accepted only for migration compatibility.
 
-`POST /auth/login`
+### Login
 
-```json
-{
-  "email": "robb@example.com",
-  "password": "secret-password",
-  "deviceName": "Robb's iPhone"
-}
+```http
+POST /auth/login
 ```
-
-Response: `200 OK`, using the same response shape as registration.
-
-### Current user
-
-`GET /auth/me`
-
-Response: `200 OK`
-
-```json
-{
-  "id": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
-  "name": "Robb",
-  "email": "robb@example.com",
-  "language": "English"
-}
-```
-
-### Sign out
-
-`POST /auth/logout`
-
-Revokes the current Sanctum token. Response: `204 No Content`.
-
-## 4. Profile
-
-All profile routes require authentication in production.
-
-### Get profile
-
-`GET /profile`
-
-Response: `200 OK`
-
-```json
-{
-  "name": "Robb",
-  "language": "English"
-}
-```
-
-### Update profile
-
-`PUT /profile`
-
-```json
-{
-  "name": "Robb",
-  "language": "Japanese"
-}
-```
-
-Response: `200 OK`, returning the updated profile.
-
-Validation:
-
-- `name`: required string, 1–80 characters
-- `language`: required supported-language identifier, 2–40 characters
-
-## 5. Visits
-
-All visit routes require authentication in production. A visit belongs to the authenticated user; never accept a `userId` from the client.
-
-### List visits
-
-`GET /visits`
-
-Response: `200 OK`
-
-```json
-[
-  {
-    "id": "56aac7ea-8a05-482c-a762-995678f74395",
-    "cityId": "3530597",
-    "cityName": "Mexico City",
-    "country": "Mexico",
-    "countryCode": "MX",
-    "continentCode": "NA",
-    "subcountry": "Mexico City",
-    "visitedAt": "2026-08-04",
-    "note": "Beautiful city, unforgettable moments."
-  }
-]
-```
-
-The initial client expects a plain array. If pagination is introduced, update the client and server together to use Laravel's `{ data, links, meta }` response.
-
-### Create visit
-
-`POST /visits`
 
 Request:
 
 ```json
 {
-  "cityId": "3530597",
-  "cityName": "Mexico City",
-  "country": "Mexico",
-  "countryCode": "MX",
-  "continentCode": "NA",
-  "subcountry": "Mexico City",
-  "visitedAt": "2026-08-04",
-  "note": "Beautiful city, unforgettable moments."
+  "email": "robb@example.com",
+  "password": "secret-password",
+  "deviceName": "Stampo mobile app"
 }
 ```
 
-Response: `201 Created`, returning the created `Visit` including its `id`.
+`deviceName` is accepted by the client contract but is not currently persisted by the development server.
 
-Validation:
+Response: `200 OK`, using the same `{ token, user }` shape as registration.
 
-- `cityId`: required string and valid city catalog ID
-- `cityName`: required string, maximum 150 characters
-- `country`: required string, maximum 100 characters
-- `countryCode`: required two-character ISO code
-- `continentCode`: required supported continent code
-- `subcountry`: nullable string, maximum 150 characters
-- `visitedAt`: required date
-- `note`: nullable string, maximum 140 characters
+Invalid credentials return `422`.
 
-Multiple visits to the same city are allowed. Country, continent, and city statistics are calculated from unique values by the client.
+### Current user
 
-### Update visit
+```http
+GET /auth/me
+```
 
-`PUT /visits/{visitId}`
+Response: `200 OK` with the Public user model. Invalid sessions return `401`.
 
-Accepts the same fields as creation and returns the updated `Visit`.
+### Update password
 
-### Delete visit
+```http
+PUT /auth/password
+```
 
-`DELETE /visits/{visitId}`
+Request:
+
+```json
+{
+  "currentPassword": "secret-password",
+  "newPassword": "new-secret-password"
+}
+```
+
+Rules:
+
+- The current password must match.
+- The new password must contain at least 8 characters.
 
 Response: `204 No Content`.
 
-The server must verify that the visit belongs to the authenticated user. Return `404` instead of exposing another user's resource.
+### Logout
 
-## 6. Country and City Catalog
+```http
+POST /auth/logout
+```
 
-Laravel owns the production city dataset. The mobile app must use these endpoints instead of parsing or shipping the full CSV after backend migration.
+Revokes the bearer token used for the request. Response: `204 No Content`.
 
-### List countries
+## Profile endpoints
 
-`GET /countries?continent=NA`
+### Get profile
 
-The `continent` parameter is optional. Response: `200 OK`
+```http
+GET /profile
+```
+
+Response: `200 OK` with the Profile model.
+
+### Update profile
+
+```http
+PUT /profile
+```
+
+Accepted properties:
+
+```json
+{
+  "name": "Robb",
+  "email": "robb@example.com",
+  "language": "English",
+  "nationality": "United States",
+  "dateOfBirth": "1990-05-14",
+  "photoUri": "file:///local/profile-photo.jpg"
+}
+```
+
+Only supplied accepted properties are updated. Response: `200 OK` with the complete updated Profile.
+
+The development server currently stores `photoUri` as a string; it does not upload image bytes. Production should use an authenticated upload endpoint and return a durable HTTPS URL.
+
+## Visit endpoints
+
+Every visit operation is scoped to the authenticated user.
+
+### List visits
+
+```http
+GET /visits
+```
+
+Response: `200 OK` with a plain array of Visit objects.
+
+### Create visit
+
+```http
+POST /visits
+```
+
+Request:
+
+```json
+{
+  "cityId": "2988507",
+  "cityName": "Paris",
+  "country": "France",
+  "countryCode": "FR",
+  "continentCode": "EU",
+  "subcountry": "Ile-de-France",
+  "visitedAt": "2026-08-10",
+  "note": "Beautiful city.",
+  "places": []
+}
+```
+
+Response: `201 Created` with the created Visit. The server generates `id`, assigns the authenticated `userId`, and defaults `places` to an empty array.
+
+### Update visit
+
+```http
+PUT /visits/:id
+```
+
+The client sends the complete Visit. The server preserves the route record's `id`, forces ownership to the authenticated user, and replaces the remaining fields.
+
+Response: `200 OK` with the updated Visit. A missing or foreign visit returns `404`.
+
+### Delete visit
+
+```http
+DELETE /visits/:id
+```
+
+Response: `204 No Content`. A missing or foreign visit returns `404`.
+
+## Travel state
+
+### Get travel state
+
+```http
+GET /me/travel-state
+```
+
+Response:
+
+```json
+{
+  "completedSightIds": ["eiffel-tower"],
+  "wishlistIds": ["city-paris", "country-JP"],
+  "rewards": [
+    {
+      "id": "reward-id",
+      "userId": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
+      "title": "Paris Explorer",
+      "krooPoints": 0.8,
+      "unlocked": true
+    }
+  ],
+  "challengePoints": 0.8,
+  "collections": [
+    {
+      "id": "wonders",
+      "title": "Seven Wonders",
+      "detail": "Visit all 7 wonders",
+      "progress": 12,
+      "status": "active"
+    }
+  ],
+  "plan": "free"
+}
+```
+
+`challengePoints` is calculated from unlocked rewards and capped at `6.25`.
+
+## Collections
+
+The Explore page calls this feature Collections. The supported views are `all`, `active`, and `completed`.
+
+### List collections
+
+```http
+GET /collections?status=all
+```
+
+`status` is optional and defaults to `all`. Accepted values are `all`, `active`, and `completed`.
+
+Response:
 
 ```json
 [
   {
-    "code": "MX",
-    "name": "Mexico",
-    "continentCode": "NA",
-    "flag": "🇲🇽"
+    "id": "wonders",
+    "title": "Seven Wonders",
+    "detail": "Visit all 7 wonders",
+    "progress": 12,
+    "status": "active"
   },
   {
-    "code": "US",
-    "name": "United States",
-    "continentCode": "NA",
-    "flag": "🇺🇸"
+    "id": "seas",
+    "title": "Seven Seas",
+    "detail": "Sail or visit all 7 seas",
+    "progress": 100,
+    "status": "completed",
+    "updatedAt": "2026-08-11T08:00:00.000Z"
   }
 ]
 ```
 
-Countries should be returned alphabetically. The atlas combines this catalog with the authenticated user's visits to determine active and locked stamps.
+### Update collection progress
 
-### Search cities
-
-`GET /cities?query=mexico&limit=10`
-
-```json
-[
-  {
-    "id": "3530597",
-    "name": "Mexico City",
-    "country": "Mexico",
-    "countryCode": "MX",
-    "continentCode": "NA",
-    "subcountry": "Mexico City"
-  }
-]
+```http
+PUT /me/collections/:collectionId
 ```
 
-Requirements:
-
-- Minimum query length: 2
-- Default limit: 10
-- Maximum limit: 50
-- Prioritize city-name prefix matches
-- Apply a database index suitable for normalized name search
-
-### Get city
-
-`GET /cities/{geonameId}`
-
-Returns one normalized city record or `404 Not Found`.
-
-### Dataset metadata
-
-`GET /catalog/version`
+Request:
 
 ```json
 {
-  "version": "2026-08-04",
-  "source": "world-cities.csv",
-  "cityCount": 34065,
-  "importedAt": "2026-08-04T03:00:00Z"
+  "progress": 100
 }
 ```
 
-The client may cache countries and recent city searches using this version as its invalidation key.
+Progress must be from `0` through `100`. Status is derived by the server: `100` is completed; any lower value is active. The endpoint creates or updates the authenticated user's progress and returns the updated collection.
 
-## 7. CSV Storage and Import
+### Set sight completion
 
-Store the source file outside the public web root:
-
-```text
-storage/app/imports/world-cities.csv
+```http
+PUT /me/completions/:sightId
 ```
 
-Do not serve the raw CSV as a public asset. Import it into normalized database tables and query those tables through the API.
+Request:
 
-The expected CSV header is:
-
-```csv
-name,country,subcountry,geonameid
+```json
+{
+  "completed": true
+}
 ```
 
-### Import command
+The operation is idempotent. `false` removes an existing completion; any other value adds it when missing.
 
-Provide an idempotent Artisan command:
+Response:
+
+```json
+{
+  "sightId": "eiffel-tower",
+  "completed": true
+}
+```
+
+### Set wishlist state
+
+```http
+PUT /me/wishlist/:targetId
+```
+
+Request:
+
+```json
+{
+  "saved": true
+}
+```
+
+Target IDs are client-defined namespaced strings such as `city-paris` and `country-FR`. The operation is idempotent.
+
+Response:
+
+```json
+{
+  "targetId": "city-paris",
+  "saved": true
+}
+```
+
+### Set plan
+
+```http
+PUT /me/plan
+```
+
+Request:
+
+```json
+{
+  "plan": "pro"
+}
+```
+
+Only `free` and `pro` are accepted. Response:
+
+```json
+{
+  "plan": "pro"
+}
+```
+
+## Homepage dashboard
+
+```http
+GET /me/home
+```
+
+This is the server-authoritative summary used by the Home tab.
+
+Response:
+
+```json
+{
+  "counts": {
+    "continents": 2,
+    "countries": 3,
+    "cities": 4,
+    "airports": 1,
+    "sights": 6
+  },
+  "score": 2.792,
+  "level": "Wanderer",
+  "challengePoints": 0,
+  "worldProgress": 2,
+  "visitedCountryCodes": ["BR", "FR", "US"],
+  "continentCounts": {
+    "AF": 0,
+    "AN": 0,
+    "AS": 0,
+    "EU": 1,
+    "NA": 1,
+    "OC": 0,
+    "SA": 1
+  },
+  "updatedAt": "2026-08-11T08:00:00.000Z"
+}
+```
+
+Counts use unique continent, country, and city IDs. Airport places are counted from visits. Sights combine unique visit sight IDs and checklist completions.
+
+### Kroo Score
+
+| Category | Points each | Maximum |
+| --- | ---: | ---: |
+| Continents | `1.0` | `7.0` |
+| Countries | `0.25` | `48.75` |
+| Cities | `0.005` | `10.0` |
+| Airports | `0.01` | `8.0` |
+| Sights | `0.002` | `20.0` |
+| Challenges | Variable | `6.25` |
+| Total |  | `100` |
+
+The server caps every category and the final total. The score is rounded to three decimal places.
+
+### Levels
+
+| Level | Score |
+| --- | ---: |
+| Wanderer | `0–4.999` |
+| Traveler | `5–14.999` |
+| Explorer | `15–29.999` |
+| Wayfarer | `30–49.999` |
+| Voyager | `50–74.999` |
+| Kroo Master | `75–100` |
+
+`worldProgress` is the rounded percentage of 195 recognized countries visited.
+
+## Client synchronization
+
+On startup, the client:
+
+1. Restores the bearer token from SecureStore.
+2. Calls `GET /auth/me`.
+3. Loads `GET /visits` and `GET /me/travel-state` in parallel.
+4. Loads `GET /me/home` into the Redux dashboard slice.
+
+The dashboard is refreshed after creating a visit, updating visit places, completing a sight, signing in, returning to Home, or pulling to refresh.
+
+AsyncStorage is an offline UI cache. The authenticated server is authoritative.
+
+## Development database
+
+The default file is [`server/db.json`](../server/db.json). Collections:
+
+| Collection | Purpose |
+| --- | --- |
+| `users` | Accounts, profile fields, password hashes and plan |
+| `visits` | User-owned city visits and places |
+| `completions` | Completed sight IDs |
+| `wishlists` | Saved target IDs |
+| `rewards` | Unlocked rewards and challenge score values |
+| `collectionProgress` | User-specific active/completed collection progress |
+
+Example completion record:
+
+```json
+{
+  "id": "uuid",
+  "userId": "user-uuid",
+  "sightId": "eiffel-tower",
+  "completedAt": "2026-08-11T08:00:00.000Z"
+}
+```
+
+Example wishlist record:
+
+```json
+{
+  "id": "uuid",
+  "userId": "user-uuid",
+  "targetId": "city-paris",
+  "savedAt": "2026-08-11T08:00:00.000Z"
+}
+```
+
+## Production requirements
+
+Before production deployment:
+
+- Replace in-memory sessions with durable, revocable tokens.
+- Replace LowDB with a transactional database.
+- Remove or disable JSON Server's generic fallback routes.
+- Add request schemas and stricter validation for profiles and visits.
+- Validate city IDs and derive country metadata server-side.
+- Enforce unique email validation during profile updates.
+- Add rate limiting for registration, login, and password changes.
+- Use a dedicated file upload service for profile photos.
+- Add password reset and email verification flows.
+- Restrict CORS to approved clients where applicable.
+- Add automated API, authorization, and score-calculation tests.
+- Never commit production credentials or real user passwords.
+
+## Example flow
+
+Register:
 
 ```bash
-php artisan cities:import storage/app/imports/world-cities.csv --version=2026-08-04
+curl -X POST http://localhost:3001/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Robb","email":"robb@example.com","password":"secret123","passwordConfirmation":"secret123"}'
 ```
 
-Recommended implementation:
-
-1. Open the file as a stream; do not load all rows into memory.
-2. Validate the header before processing rows.
-3. Resolve each country to an ISO alpha-2 code and continent code.
-4. Upsert countries by `code`.
-5. Upsert cities by `geoname_id` in chunks of 500–1,000 records.
-6. Store normalized lowercase search fields separately from display names.
-7. Record the dataset version, checksum, row count, and import timestamp.
-8. Wrap each chunk in a transaction rather than one transaction for the entire file.
-9. Report rejected rows and fail the command when the rejected-row threshold is exceeded.
-10. Clear catalog caches only after a successful import.
-
-Example import result:
-
-```text
-Imported 34,065 cities and 232 countries.
-Updated 0 cities, rejected 0 rows.
-Dataset version: 2026-08-04
-```
-
-### Dataset update policy
-
-- Keep the original CSV checksum for auditability.
-- Imports with the same checksum should exit without rewriting data unless `--force` is provided.
-- Never delete cities during a normal upsert import.
-- Use an explicit `--prune` mode if removal of cities absent from a new dataset is required.
-- Run the import as a deployment task or queued administrative job, not during an API request.
-- Back up the database before a prune operation.
-
-## 8. Error Responses
-
-Use standard HTTP status codes:
-
-- `400`: malformed request
-- `401`: unauthenticated or invalid token
-- `403`: authenticated but unauthorized
-- `404`: resource not found
-- `409`: conflicting update
-- `422`: validation failure
-- `429`: rate limit exceeded
-- `500`: unexpected server error
-
-Laravel validation response: `422 Unprocessable Entity`
-
-```json
-{
-  "message": "The given data was invalid.",
-  "errors": {
-    "visitedAt": ["The visited at field must be a valid date."],
-    "note": ["The note field must not be greater than 140 characters."]
-  }
-}
-```
-
-Unexpected error response:
-
-```json
-{
-  "message": "An unexpected error occurred.",
-  "requestId": "01J4GDX9BEF4X9A9V44K1QHTY0"
-}
-```
-
-Do not expose stack traces or SQL details outside local development.
-
-## 9. Laravel Data Model
-
-Suggested tables:
-
-### `users`
-
-- `id` UUID primary key
-- `name`
-- `email` unique
-- `password`
-- `language`
-- timestamps
-
-### `visits`
-
-- `id` UUID primary key
-- `user_id` foreign key, indexed
-- `city_id` foreign key to `cities.id`, indexed
-- `city_name`
-- `country`
-- `country_code`, indexed
-- `continent_code`, indexed
-- `subcountry`, nullable
-- `visited_at`, indexed
-- `note`, nullable
-- timestamps
-
-Recommended uniqueness depends on product behavior. Do not add a unique `(user_id, city_id)` constraint if repeat visits must remain possible.
-
-### `countries`
-
-- `code` fixed two-character primary key
-- `name`, indexed
-- `normalized_name`, indexed
-- `continent_code`, indexed
-- `flag`, nullable
-- timestamps
-
-### `cities`
-
-- `id` internal primary key
-- `geoname_id` string, unique and indexed
-- `name`
-- `normalized_name`, indexed
-- `country_code` foreign key to `countries.code`, indexed
-- `subcountry`, nullable
-- `normalized_subcountry`, nullable and indexed where supported
-- timestamps
-
-### `catalog_versions`
-
-- `id`
-- `dataset`
-- `version`
-- `checksum` unique
-- `row_count`
-- `imported_at`
-- timestamps
-
-For MySQL, a composite index such as `(country_code, normalized_name)` supports atlas-scoped searches. For PostgreSQL, consider `pg_trgm` indexes for fast contains matching.
-
-Suggested Laravel route structure:
-
-```php
-Route::prefix('v1')->group(function () {
-    Route::post('/auth/register', [AuthController::class, 'register']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
-
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/auth/me', [AuthController::class, 'me']);
-        Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::get('/profile', [ProfileController::class, 'show']);
-        Route::put('/profile', [ProfileController::class, 'update']);
-        Route::apiResource('visits', VisitController::class)->except(['show']);
-    });
-
-    Route::get('/countries', [CountryController::class, 'index']);
-    Route::get('/cities', [CityController::class, 'index']);
-    Route::get('/cities/{geonameId}', [CityController::class, 'show']);
-    Route::get('/catalog/version', [CatalogController::class, 'version']);
-});
-```
-
-Use API Resources to map database `snake_case` attributes to this document's `camelCase` JSON contract.
-
-## 10. Local JSON Server
-
-Start the mock backend:
+Use the returned token:
 
 ```bash
-npm run server
+curl http://localhost:3001/me/home \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Accept: application/json'
 ```
-
-Available development collections:
-
-- `GET/POST /visits`
-- `GET/PUT /profile`
-
-The development server also implements the production-shaped authentication routes:
-
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
-- `POST /auth/logout`
-
-Run these routes with `npm run server`. Development bearer tokens are stored in
-memory and are invalidated whenever the JSON Server process restarts.
-The raw `/users` collection is intentionally blocked; use the authentication
-routes so password fields are never returned by a collection endpoint.
-
-JSON Server authentication is intentionally fake and stores development passwords in plain text. It must never be deployed or used with real credentials.
-
-JSON Server does not import the 34,065-row CSV. During the transition, the client can continue using the bundled CSV for search while visits and profiles use JSON Server. Laravel becomes the authoritative catalog once `/countries`, `/cities`, and `/catalog/version` are available.
-
-For Android Emulator, when JSON Server runs on the Windows host:
-
-```env
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3001
-```
-
-For a physical device, use the computer's reachable LAN address. WSL networking may require exposing or forwarding port `3001`.
-
-## 11. Client Integration
-
-The client implementation is in `services/api.ts`.
-
-Before connecting Laravel:
-
-1. Set `EXPO_PUBLIC_API_URL` to the Laravel `/api/v1` URL.
-2. Add API client methods for `/countries`, `/cities`, and `/catalog/version`.
-3. Replace local `world-cities.csv` search with debounced `/cities` requests.
-4. Cache the country catalog and invalidate it when the backend dataset version changes.
-5. Replace the development in-memory auth implementation with Laravel Sanctum.
-6. Store the returned token in `expo-secure-store`, not AsyncStorage.
-7. Call `setApiToken(token)` during application hydration.
-8. Reconcile locally created visits with server visits using UUIDs or an idempotency key.
-9. Remove the bundled CSV and development JSON Server user flow after the Laravel migration is complete.
-# Stampo API and data model
-
-The development API uses a JSON-backed relational shape. Every user-owned record carries a `userId`; production can map the same resources to PostgreSQL tables with foreign keys and indexes on `(userId, targetId)`.
-
-Core collections: `users` (identity, profile, free/pro plan), `visits` (country/city/date), embedded `places` (sight/airport check-ins), `completions` (sight checklist state), `wishlists` (country/city/sight targets), and `rewards` (earned score milestone and redemption state).
-
-Travel-state endpoints:
-
-- `GET /me/travel-state` returns checklist, wishlist, rewards, and entitlement state.
-- `PUT /me/completions/:sightId` with `{ "completed": true }` checks a sight on or off.
-- `PUT /me/wishlist/:targetId` with `{ "saved": true }` saves or removes a target.
-- `PUT /me/plan` with `{ "plan": "free" | "pro" }` updates the development entitlement.
-
-Free accounts can record countries. Pro unlocks city-level visits and sights checklists; this must be enforced in the production API/payment webhook as well as represented in the UI.

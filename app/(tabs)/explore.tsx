@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -11,12 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BrandHeader } from "@/components/brand-header";
 import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
-import { challenges } from "@/data/explore";
+import { collections as defaultCollections } from "@/data/explore";
+import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
 const countryFilters = [
@@ -29,19 +30,32 @@ const countryFilters = [
   "Oceania",
   "South America",
 ];
-const challengeFilters = [
-  "All",
-  "Adventure",
-  "Collection",
-  "Culture",
-  "Geography",
-  "USA",
-];
+const collectionFilters = ["All", "Active", "Completed"] as const;
+const collectionImages: Record<string, number> = {
+  wonders: require("../../assets/images/stampo/Egypt.png"),
+  seas: require("../../assets/images/stampo/Fiji.png"),
+  unesco: require("../../assets/images/stampo/Italy.png"),
+  parks: require("../../assets/images/stampo/Canada.png"),
+  culture: require("../../assets/images/stampo/Japan.png"),
+};
 export default function ExploreScreen() {
   const router = useRouter();
   const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
-  const [challengeFilter, setChallengeFilter] = useState("All");
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const [collectionFilter, setCollectionFilter] =
+    useState<(typeof collectionFilters)[number]>("All");
+  const [collectionCatalog, setCollectionCatalog] = useState<
+    CollectionProgress[]
+  >(() =>
+    defaultCollections.map(({ id, title, detail, progress }) => ({
+      id,
+      title,
+      detail,
+      progress,
+      status: progress >= 100 ? "completed" : "active",
+    })),
+  );
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
   const countries = useMemo(
     () =>
@@ -64,23 +78,70 @@ export default function ExploreScreen() {
     });
     return counts;
   }, [visits]);
-  const visibleChallenges = useMemo(
+  useEffect(() => {
+    if (!isSignedIn) return;
+    void api
+      .listCollections()
+      .then(setCollectionCatalog)
+      .catch(() => undefined);
+  }, [isSignedIn]);
+  const visibleCollections = useMemo(
     () =>
-      challengeFilter === "All"
-        ? challenges
-        : challenges.filter(
-            (_, i) =>
-              ["Collection", "Adventure", "USA", "Geography", "Culture"][
-                i % 5
-              ] === challengeFilter,
+      collectionFilter === "All"
+        ? collectionCatalog
+        : collectionCatalog.filter(
+            (collection) =>
+              collection.status === collectionFilter.toLocaleLowerCase(),
           ),
-    [challengeFilter],
+    [collectionCatalog, collectionFilter],
   );
-  const showChallenge = (title: string, detail: string) =>
-    Alert.alert(
-      title,
-      `${detail}\n\nOpen this challenge to see its checklist, progress, Kroo Score value, and unlocked reward.`,
+  const setCollectionProgress = async (
+    collection: CollectionProgress,
+    progress: number,
+  ) => {
+    if (!isSignedIn) {
+      Alert.alert(
+        "Sign in required",
+        "Sign in from Passport to save collection progress.",
+      );
+      return;
+    }
+    const optimistic = {
+      ...collection,
+      progress,
+      status: progress >= 100 ? ("completed" as const) : ("active" as const),
+    };
+    setCollectionCatalog((current) =>
+      current.map((item) => (item.id === collection.id ? optimistic : item)),
     );
+    try {
+      const saved = await api.setCollectionProgress(collection.id, progress);
+      setCollectionCatalog((current) =>
+        current.map((item) => (item.id === saved.id ? saved : item)),
+      );
+    } catch {
+      setCollectionCatalog((current) =>
+        current.map((item) => (item.id === collection.id ? collection : item)),
+      );
+      Alert.alert("Not saved", "Collection progress could not be updated.");
+    }
+  };
+  const showCollection = (collection: CollectionProgress) =>
+    Alert.alert(collection.title, collection.detail, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Keep Active",
+        onPress: () =>
+          void setCollectionProgress(
+            collection,
+            Math.max(1, Math.min(collection.progress, 99)),
+          ),
+      },
+      {
+        text: "Mark Completed",
+        onPress: () => void setCollectionProgress(collection, 100),
+      },
+    ]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -88,10 +149,34 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={s.headerPad}>
-          <BrandHeader />
+          <View style={s.exploreHeader}>
+            <View style={s.logoCrop}>
+              <Image
+                source={require("../../assets/images/kroo_logo_text.png")}
+                style={s.exploreLogo}
+                contentFit="contain"
+              />
+            </View>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              hitSlop={10}
+              style={s.bell}
+              onPress={() =>
+                Alert.alert(
+                  "Notifications",
+                  "You’re all caught up. New stamps, rewards, and travel activity will appear here.",
+                )
+              }
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={27}
+                color={BrandColors.copper}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        <Text style={s.title}>Explore</Text>
-        <Text style={s.subtitle}>Collect the world with Kroo</Text>
 
         <Section
           title="Countries"
@@ -140,11 +225,11 @@ export default function ExploreScreen() {
         </ScrollView>
 
         <Section
-          title="Challenges"
+          title="Collections"
           onPress={() =>
             Alert.alert(
-              "All challenges",
-              "Browse collection, geography, USA, adventure, and culture challenges. Select a category or tap a challenge to see its goals.",
+              "Collections",
+              "Track active travel collections and review the ones you have completed.",
             )
           }
         />
@@ -153,12 +238,12 @@ export default function ExploreScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.pills}
         >
-          {challengeFilters.map((x) => (
+          {collectionFilters.map((x) => (
             <FilterBubble
               key={x}
               label={x}
-              selected={challengeFilter === x}
-              onPress={() => setChallengeFilter(x)}
+              selected={collectionFilter === x}
+              onPress={() => setCollectionFilter(x)}
             />
           ))}
         </ScrollView>
@@ -167,68 +252,42 @@ export default function ExploreScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.challengeRow}
         >
-          {visibleChallenges.length ? (
-            visibleChallenges.map((challenge) => (
+          {visibleCollections.length ? (
+            visibleCollections.map((collection) => (
               <TouchableOpacity
-                key={challenge.id}
+                key={collection.id}
                 style={s.challenge}
                 activeOpacity={0.82}
-                onPress={() => showChallenge(challenge.title, challenge.detail)}
+                onPress={() => showCollection(collection)}
               >
                 <View style={s.challengeSeal}>
-                  <Ionicons
-                    name={challenge.icon as never}
-                    size={42}
-                    color={BrandColors.green}
+                  <Image
+                    source={collectionImages[collection.id]}
+                    style={s.collectionImage}
+                    contentFit="contain"
                   />
                 </View>
-                <Text style={s.challengeTitle}>{challenge.title}</Text>
-                <Text style={s.challengeDetail}>{challenge.detail}</Text>
+                <Text style={s.challengeTitle}>{collection.title}</Text>
+                <Text style={s.challengeDetail}>{collection.detail}</Text>
                 <View style={s.challengeProgress}>
                   <View
                     style={[
                       s.progressFill,
-                      { width: `${challenge.progress}%` },
+                      { width: `${collection.progress}%` },
                     ]}
                   />
                 </View>
-                <Text style={s.challengePercent}>{challenge.progress}%</Text>
+                <Text style={s.challengePercent}>{collection.progress}%</Text>
               </TouchableOpacity>
             ))
           ) : (
             <View style={s.empty}>
               <Text style={s.emptyText}>
-                More {challengeFilter} challenges are coming soon.
+                No {collectionFilter.toLocaleLowerCase()} collections yet.
               </Text>
             </View>
           )}
         </ScrollView>
-        <View style={s.cta}>
-          <View style={s.compass}>
-            <Ionicons
-              name="compass-outline"
-              size={28}
-              color={BrandColors.copper}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.ctaTitle}>Keep Exploring</Text>
-            <Text style={s.ctaText}>
-              Every stamp tells a story.{"\n"}What will you conquer next?
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={s.ctaButton}
-            onPress={() => router.push("/visits")}
-          >
-            <Text style={s.ctaButtonText}>Add a Visit</Text>
-            <Ionicons
-              name="location-outline"
-              size={17}
-              color={BrandColors.copper}
-            />
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -247,19 +306,31 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 30 },
   headerPad: { paddingHorizontal: 18 },
-  title: {
-    textAlign: "center",
-    marginTop: 2,
-    fontFamily: "Lora_500Medium",
-    fontSize: 34,
-    color: BrandColors.onDark,
+  exploreHeader: {
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
-  subtitle: {
-    textAlign: "center",
-    marginTop: 3,
-    fontFamily: "Lora_400Regular",
-    fontSize: 13,
-    color: BrandColors.onDarkMuted,
+  logoCrop: {
+    width: 200,
+    height: 60,
+    overflow: "hidden",
+  },
+  exploreLogo: {
+    position: "absolute",
+    width: 200,
+    height: 75,
+    top: -15,
+    left: 0,
+  },
+  bell: {
+    position: "absolute",
+    right: 0,
+    width: 34,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headingRow: {
     marginTop: 23,
@@ -282,7 +353,7 @@ const s = StyleSheet.create({
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
   countryRow: {
     paddingHorizontal: 10,
-    gap: 7,
+    gap: 10,
     paddingTop: 5,
     paddingBottom: 12,
   },
@@ -325,12 +396,12 @@ const s = StyleSheet.create({
   },
   challengeRow: {
     paddingHorizontal: 10,
-    gap: 7,
+    gap: 10,
     paddingTop: 5,
     paddingBottom: 12,
   },
   challenge: {
-    width: 139,
+    width: 156,
     height: 220,
     padding: 10,
     borderRadius: 9,
@@ -342,12 +413,11 @@ const s = StyleSheet.create({
   challengeSeal: {
     width: 84,
     height: 88,
-    borderWidth: 2,
-    borderColor: BrandColors.green,
-    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
+  collectionImage: { width: "100%", height: "100%" },
   challengeTitle: {
     marginTop: 8,
     textAlign: "center",
@@ -378,51 +448,5 @@ const s = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: 10,
     color: BrandColors.muted,
-  },
-  cta: {
-    margin: 12,
-    marginTop: 5,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  compass: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaTitle: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 17,
-    color: BrandColors.onDark,
-  },
-  ctaText: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 11,
-    lineHeight: 15,
-    color: BrandColors.onDarkMuted,
-  },
-  ctaButton: {
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  ctaButtonText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
-    color: BrandColors.copper,
   },
 });

@@ -43,7 +43,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 type AuthResponse = {
   token: string;
-  user: { id: string; name: string; email: string; language: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    language: string;
+    plan: "free" | "pro";
+  };
 };
 
 export type AuthUser = AuthResponse["user"];
@@ -65,12 +71,62 @@ export type HomeDashboard = {
   updatedAt: string;
 };
 
+export type TravelStateResponse = {
+  completedSightIds: string[];
+  wishlistIds: string[];
+  rewards: unknown[];
+  challengePoints: number;
+  collections: CollectionProgress[];
+  plan: "free" | "pro";
+};
+
+export type RemoteProfile = {
+  id: string;
+  name: string;
+  email: string;
+  language: string;
+  plan: "free" | "pro";
+  nationality: string;
+  dateOfBirth: string;
+  photoUri: string | null;
+};
+
+export type CollectionProgress = {
+  id: string;
+  title: string;
+  detail: string;
+  progress: number;
+  status: "active" | "completed";
+  updatedAt?: string;
+};
+
 export const api = {
   homeDashboard: () => request<HomeDashboard>("/me/home"),
-  travelState: () => request<{completedSightIds:string[];wishlistIds:string[];rewards:unknown[];challengePoints:number;plan:"free"|"pro"}>("/me/travel-state"),
-  setSightCompleted: (sightId:string, completed:boolean) => request(`/me/completions/${encodeURIComponent(sightId)}`, {method:"PUT",body:JSON.stringify({completed})}),
-  setWishlist: (targetId:string, saved:boolean) => request(`/me/wishlist/${encodeURIComponent(targetId)}`, {method:"PUT",body:JSON.stringify({saved})}),
-  setPlan: (plan:"free"|"pro") => request<{plan:"free"|"pro"}>("/me/plan", {method:"PUT",body:JSON.stringify({plan})}),
+  travelState: () => request<TravelStateResponse>("/me/travel-state"),
+  setSightCompleted: (sightId: string, completed: boolean) =>
+    request<{ sightId: string; completed: boolean }>(
+      `/me/completions/${encodeURIComponent(sightId)}`,
+      { method: "PUT", body: JSON.stringify({ completed }) },
+    ),
+  setWishlist: (targetId: string, saved: boolean) =>
+    request<{ targetId: string; saved: boolean }>(
+      `/me/wishlist/${encodeURIComponent(targetId)}`,
+      { method: "PUT", body: JSON.stringify({ saved }) },
+    ),
+  setPlan: (plan: "free" | "pro") =>
+    request<{ plan: "free" | "pro" }>("/me/plan", {
+      method: "PUT",
+      body: JSON.stringify({ plan }),
+    }),
+  listCollections: (status: "all" | "active" | "completed" = "all") =>
+    request<CollectionProgress[]>(
+      `/collections?status=${encodeURIComponent(status)}`,
+    ),
+  setCollectionProgress: (collectionId: string, progress: number) =>
+    request<CollectionProgress>(
+      `/me/collections/${encodeURIComponent(collectionId)}`,
+      { method: "PUT", body: JSON.stringify({ progress }) },
+    ),
   listVisits: () => request<Visit[]>("/visits"),
   createVisit: (visit: NewVisit) =>
     request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
@@ -82,6 +138,7 @@ export const api = {
   deleteVisit: (visitId: string) =>
     request<void>(`/visits/${encodeURIComponent(visitId)}`, { method: "DELETE" }),
   currentUser: () => request<AuthUser>("/auth/me"),
+  getProfile: () => request<RemoteProfile>("/profile"),
   updatePassword: (payload: {
     currentPassword: string;
     newPassword: string;

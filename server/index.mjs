@@ -12,12 +12,13 @@ import { json } from "milliparsec";
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
 const file = resolve(process.cwd(), process.env.DB_FILE ?? "server/db.json");
-const db = new Low(new JSONFile(file), { visits: [], profile: {}, users: [], completions: [], wishlists: [], rewards: [] });
+const db = new Low(new JSONFile(file), { visits: [], profile: {}, users: [], completions: [], wishlists: [], rewards: [], collectionProgress: [] });
 await db.read();
 db.data.users ??= [];
 db.data.completions ??= [];
 db.data.wishlists ??= [];
 db.data.rewards ??= [];
+db.data.collectionProgress ??= [];
 const scrypt = promisify(scryptCallback);
 
 async function hashPassword(password) {
@@ -69,6 +70,30 @@ function requireUser(req, res) {
 
 const HOME_CONTINENT_TOTALS = { AF: 54, AN: 0, AS: 48, EU: 44, NA: 23, OC: 14, SA: 12 };
 const HOME_SCORE_MAXIMUMS = { continents: 7, countries: 48.75, cities: 10, airports: 8, sights: 20, challenges: 6.25 };
+const COLLECTIONS = [
+  { id: "wonders", title: "Seven Wonders", detail: "Visit all 7 wonders", defaultProgress: 12 },
+  { id: "seas", title: "Seven Seas", detail: "Sail or visit all 7 seas", defaultProgress: 8 },
+  { id: "unesco", title: "UNESCO Explorer", detail: "Visit heritage sites", defaultProgress: 14 },
+  { id: "parks", title: "National Parks", detail: "Visit national parks", defaultProgress: 16 },
+  { id: "culture", title: "Culture Keeper", detail: "Complete cultural visits", defaultProgress: 9 },
+];
+
+function collectionsFor(userId) {
+  return COLLECTIONS.map((collection) => {
+    const saved = db.data.collectionProgress.find(
+      (item) => String(item.userId) === String(userId) && item.collectionId === collection.id,
+    );
+    const progress = Math.min(100, Math.max(0, Number(saved?.progress ?? collection.defaultProgress)));
+    return {
+      id: collection.id,
+      title: collection.title,
+      detail: collection.detail,
+      progress,
+      status: progress >= 100 ? "completed" : "active",
+      updatedAt: saved?.updatedAt,
+    };
+  });
+}
 
 function cappedPoints(count, each, maximum) {
   return Math.min(Math.max(0, count) * each, maximum);
@@ -278,6 +303,7 @@ app.get("/me/travel-state", (req, res) => {
     wishlistIds: db.data.wishlists.filter(x => x.userId === user.id).map(x => x.targetId),
     rewards: db.data.rewards.filter(x => x.userId === user.id),
     challengePoints: challengePointsFor(user.id),
+    collections: collectionsFor(user.id),
     plan: user.plan ?? "free",
   });
 });
@@ -286,6 +312,39 @@ app.get("/me/home", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   return res.json(homeDashboardFor(user));
+});
+
+app.get("/collections", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const status = String(req.query?.status ?? "all").toLocaleLowerCase();
+  if (!["all", "active", "completed"].includes(status)) {
+    return res.status(422).json({ message: "Status must be all, active, or completed." });
+  }
+  const collections = collectionsFor(user.id);
+  return res.json(status === "all" ? collections : collections.filter((item) => item.status === status));
+});
+
+app.put("/me/collections/:collectionId", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const collection = COLLECTIONS.find((item) => item.id === String(req.params.collectionId));
+  if (!collection) return res.status(404).json({ message: "Collection not found." });
+  const progress = Number(req.body?.progress);
+  if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
+    return res.status(422).json({ message: "Progress must be between 0 and 100." });
+  }
+  let saved = db.data.collectionProgress.find(
+    (item) => String(item.userId) === String(user.id) && item.collectionId === collection.id,
+  );
+  if (!saved) {
+    saved = { id: randomUUID(), userId: user.id, collectionId: collection.id, progress: 0 };
+    db.data.collectionProgress.push(saved);
+  }
+  saved.progress = progress;
+  saved.updatedAt = new Date().toISOString();
+  await db.write();
+  return res.json(collectionsFor(user.id).find((item) => item.id === collection.id));
 });
 
 app.put("/me/completions/:sightId", async (req, res) => {

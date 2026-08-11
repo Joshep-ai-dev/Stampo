@@ -20,27 +20,27 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { stampAssets } from "@/data/stamps";
 import { BrandColors } from "@/constants/theme";
+import {
+  calculateKrooScoreFromVisits,
+  formatKrooNumber,
+} from "@/data/kroo-score";
+import { stampAssets } from "@/data/stamps";
+import { api } from "@/services/api";
+import { dashboardCleared, fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import type { ProfileState } from "@/store/profile-slice";
 import {
   authSessionChanged,
   photoChanged,
   profileDetailsChanged,
   signedOut,
 } from "@/store/profile-slice";
-import { api } from "@/services/api";
-import type { ProfileState } from "@/store/profile-slice";
-import {
-  calculateKrooScoreFromVisits,
-  formatKrooNumber,
-} from "@/data/kroo-score";
 import {
   travelStateHydrated,
   visitsCleared,
   visitsHydrated,
 } from "@/store/travel-slice";
-import { dashboardCleared, fetchHomeDashboard } from "@/store/dashboard-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -229,200 +229,215 @@ function IdentityPage({
   };
   return (
     <>
-    <View style={[styles.paper, styles.identityPaper, { width, height }]}>
-      <View style={styles.identityHeading}>
-        <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
-        <Text style={styles.identityType}>PASSPORT · P</Text>
-      </View>
-      {profile.isSignedIn ? (
-        <>
-          <View style={styles.identityBody}>
-            <TouchableOpacity
-              style={styles.photoBox}
-              onPress={() => void pickPhoto()}
-            >
-              {profile.photoUri ? (
-                <Image
-                  source={{ uri: profile.photoUri }}
-                  style={styles.identityPhoto}
-                  contentFit="cover"
-                />
-              ) : (
-                <>
-                  <Ionicons
-                    name="person"
-                    size={48}
-                    color={BrandColors.muted}
+      <View style={[styles.paper, styles.identityPaper, { width, height }]}>
+        <View style={styles.identityHeading}>
+          <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
+          <Text style={styles.identityType}>PASSPORT · P</Text>
+        </View>
+        {profile.isSignedIn ? (
+          <>
+            <View style={styles.identityBody}>
+              <TouchableOpacity
+                style={styles.photoBox}
+                onPress={() => void pickPhoto()}
+              >
+                {profile.photoUri ? (
+                  <Image
+                    source={{ uri: profile.photoUri }}
+                    style={styles.identityPhoto}
+                    contentFit="cover"
                   />
-                  <Text style={styles.addPhoto}>ADD PHOTO</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <View style={styles.identityFields}>
-              {(
-                [
-                  ["name", "GIVEN NAME", "First name"],
-                  ["email", "EMAIL", "you@example.com"],
-                  ["nationality", "NATIONALITY", "Country"],
-                  ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
-                ] as const
-              ).map(([key, label, placeholder]) => (
-                <View key={key} style={styles.identityField}>
-                  <Text style={styles.fieldCaption}>{label}</Text>
-                  <TextInput
-                    value={draft[key]}
-                    onChangeText={(value) =>
-                      setDraft((current) => ({ ...current, [key]: value }))
-                    }
-                    placeholder={placeholder}
-                    placeholderTextColor="#a89378"
-                    style={styles.identityInput}
-                    onBlur={save}
-                  />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="person"
+                      size={48}
+                      color={BrandColors.muted}
+                    />
+                    <Text style={styles.addPhoto}>ADD PHOTO</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <View style={styles.identityFields}>
+                {(
+                  [
+                    ["name", "GIVEN NAME", "First name"],
+                    ["email", "EMAIL", "you@example.com"],
+                    ["nationality", "NATIONALITY", "Country"],
+                    ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
+                  ] as const
+                ).map(([key, label, placeholder]) => (
+                  <View key={key} style={styles.identityField}>
+                    <Text style={styles.fieldCaption}>{label}</Text>
+                    <TextInput
+                      value={draft[key]}
+                      onChangeText={(value) =>
+                        setDraft((current) => ({ ...current, [key]: value }))
+                      }
+                      placeholder={placeholder}
+                      placeholderTextColor="#a89378"
+                      style={styles.identityInput}
+                      onBlur={save}
+                    />
+                  </View>
+                ))}
+                <View style={styles.accountActions}>
+                  <TouchableOpacity
+                    style={styles.passwordButton}
+                    onPress={() => setPasswordEditorVisible(true)}
+                  >
+                    <Text style={styles.passwordButtonText}>
+                      UPDATE PASSWORD
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.signOutButton}
+                    onPress={() => void signOut()}
+                  >
+                    <Text style={styles.signOutText}>SIGN OUT</Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
-              <View style={styles.accountActions}>
-                <TouchableOpacity
-                  style={styles.passwordButton}
-                  onPress={() => setPasswordEditorVisible(true)}
-                >
-                  <Text style={styles.passwordButtonText}>UPDATE PASSWORD</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.signOutButton}
-                  onPress={() => void signOut()}
-                >
-                  <Text style={styles.signOutText}>SIGN OUT</Text>
-                </TouchableOpacity>
               </View>
             </View>
+            <View style={styles.numberRow}>
+              <Text style={styles.numberLabel}>KROO NUMBER</Text>
+              <Text style={styles.passportNumber}>{krooNumber}</Text>
+            </View>
+            <Text
+              style={styles.machineCode}
+            >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
+            <Text
+              style={styles.machineCode}
+            >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
+          </>
+        ) : (
+          <View style={styles.authPage}>
+            <View style={styles.authSeal}>
+              <Image
+                source={require("@/assets/images/favicon.png")}
+                style={styles.authKrooMark}
+                contentFit="fill"
+              />
+            </View>
+            <Text style={styles.authTitle}>Your travel passport</Text>
+            <Text style={styles.authIntro}>
+              Sign in to collect stamps and continue your journey.
+            </Text>
+            <View style={styles.authField}>
+              <Text style={styles.authCaption}>EMAIL</Text>
+              <TextInput
+                value={draft.email}
+                onChangeText={(email) =>
+                  setDraft((current) => ({ ...current, email }))
+                }
+                placeholder="you@example.com"
+                placeholderTextColor="#a89378"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.authInput}
+              />
+            </View>
+            <View style={styles.authField}>
+              <Text style={styles.authCaption}>PASSWORD</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor="#a89378"
+                secureTextEntry
+                style={styles.authInput}
+              />
+            </View>
+            <View style={styles.authButtons}>
+              <TouchableOpacity
+                disabled={authBusy}
+                style={[
+                  styles.signInPrimary,
+                  styles.authButton,
+                  authBusy && styles.authButtonDisabled,
+                ]}
+                onPress={() => void signIn()}
+              >
+                <Text style={styles.signInPrimaryText}>
+                  {authBusy ? "PLEASE WAIT" : "SIGN IN"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={authBusy}
+                style={[
+                  styles.createSecondary,
+                  styles.authButton,
+                  authBusy && styles.authButtonDisabled,
+                ]}
+                onPress={() => void signUp()}
+              >
+                <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.numberRow}>
-            <Text style={styles.numberLabel}>KROO NUMBER</Text>
-            <Text style={styles.passportNumber}>{krooNumber}</Text>
-          </View>
-          <Text
-            style={styles.machineCode}
-          >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
-          <Text
-            style={styles.machineCode}
-          >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
-        </>
-      ) : (
-        <View style={styles.authPage}>
-          <View style={styles.authSeal}>
-            <Ionicons name="earth-outline" size={54} color={BrandColors.green} />
-          </View>
-          <Text style={styles.authTitle}>Your travel passport</Text>
-          <Text style={styles.authIntro}>
-            Sign in to collect stamps and continue your journey.
-          </Text>
-          <View style={styles.authField}>
-            <Text style={styles.authCaption}>EMAIL</Text>
-            <TextInput
-              value={draft.email}
-              onChangeText={(email) =>
-                setDraft((current) => ({ ...current, email }))
-              }
-              placeholder="you@example.com"
-              placeholderTextColor="#a89378"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.authInput}
-            />
-          </View>
-          <View style={styles.authField}>
-            <Text style={styles.authCaption}>PASSWORD</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor="#a89378"
-              secureTextEntry
-              style={styles.authInput}
-            />
-          </View>
-          <View style={styles.authButtons}>
-            <TouchableOpacity
-              disabled={authBusy}
-              style={[
-                styles.signInPrimary,
-                styles.authButton,
-                authBusy && styles.authButtonDisabled,
-              ]}
-              onPress={() => void signIn()}
-            >
-              <Text style={styles.signInPrimaryText}>
-                {authBusy ? "PLEASE WAIT" : "SIGN IN"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              disabled={authBusy}
-              style={[
-                styles.createSecondary,
-                styles.authButton,
-                authBusy && styles.authButtonDisabled,
-              ]}
-              onPress={() => void signUp()}
-            >
-              <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
-    <Modal
-      transparent
-      animationType="fade"
-      visible={passwordEditorVisible}
-      onRequestClose={closePasswordEditor}
-    >
-      <View style={styles.passwordModalRoot}>
-        <Pressable style={styles.passwordBackdrop} onPress={closePasswordEditor} />
-        <View style={styles.passwordSheet}>
-          <Text style={styles.passwordTitle}>Update password</Text>
-          <TextInput
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            placeholder="Current password"
-            placeholderTextColor={BrandColors.muted}
-            secureTextEntry
-            style={styles.passwordInput}
-          />
-          <TextInput
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="New password"
-            placeholderTextColor={BrandColors.muted}
-            secureTextEntry
-            style={styles.passwordInput}
-          />
-          <TextInput
-            value={passwordConfirmation}
-            onChangeText={setPasswordConfirmation}
-            placeholder="Confirm new password"
-            placeholderTextColor={BrandColors.muted}
-            secureTextEntry
-            style={styles.passwordInput}
-          />
-          <View style={styles.passwordActions}>
-            <TouchableOpacity style={styles.passwordCancel} onPress={closePasswordEditor}>
-              <Text style={styles.passwordCancelText}>CANCEL</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              disabled={authBusy}
-              style={[styles.passwordSave, authBusy && styles.authButtonDisabled]}
-              onPress={() => void updatePassword()}
-            >
-              <Text style={styles.passwordSaveText}>
-                {authBusy ? "SAVING" : "SAVE"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
       </View>
-    </Modal>
+      <Modal
+        transparent
+        animationType="fade"
+        visible={passwordEditorVisible}
+        onRequestClose={closePasswordEditor}
+      >
+        <View style={styles.passwordModalRoot}>
+          <Pressable
+            style={styles.passwordBackdrop}
+            onPress={closePasswordEditor}
+          />
+          <View style={styles.passwordSheet}>
+            <Text style={styles.passwordTitle}>Update password</Text>
+            <TextInput
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Current password"
+              placeholderTextColor={BrandColors.muted}
+              secureTextEntry
+              style={styles.passwordInput}
+            />
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New password"
+              placeholderTextColor={BrandColors.muted}
+              secureTextEntry
+              style={styles.passwordInput}
+            />
+            <TextInput
+              value={passwordConfirmation}
+              onChangeText={setPasswordConfirmation}
+              placeholder="Confirm new password"
+              placeholderTextColor={BrandColors.muted}
+              secureTextEntry
+              style={styles.passwordInput}
+            />
+            <View style={styles.passwordActions}>
+              <TouchableOpacity
+                style={styles.passwordCancel}
+                onPress={closePasswordEditor}
+              >
+                <Text style={styles.passwordCancelText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={authBusy}
+                style={[
+                  styles.passwordSave,
+                  authBusy && styles.authButtonDisabled,
+                ]}
+                onPress={() => void updatePassword()}
+              >
+                <Text style={styles.passwordSaveText}>
+                  {authBusy ? "SAVING" : "SAVE"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -512,13 +527,13 @@ export default function PassportScreen() {
       left.name.localeCompare(right.name),
     );
     return [
-      { id: "identity", type: "identity" as const },
       {
         id: "front-cover",
         type: "cover" as const,
         image: require("@/assets/images/other/passport-front.png"),
         accessibilityLabel: "Electronic passport front cover",
       },
+      { id: "identity", type: "identity" as const },
       ...chunkStamps(stamps),
       {
         id: "back-cover",
@@ -653,14 +668,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   authSeal: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    borderWidth: 2,
-    borderColor: BrandColors.copper,
+    width: 140,
+    height: 140,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
+    overflow: "hidden",
+  },
+  authKrooMark: {
+    width: 137,
+    height: 137,
+    transform: [{ translateX: 9 }],
   },
   authTitle: {
     fontFamily: "Lora_700Bold",
