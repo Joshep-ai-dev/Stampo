@@ -135,14 +135,11 @@ export default function CityScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={s.tabs}
           >
-            {["Overview", "Sights", "Experiences", "Neighborhoods", "Food"].map(
+            {["OVERVIEW", "SIGHTS", "EXPERIENCES", "NEIGHBORHOODS", "FOOD"].map(
               (tab) => (
                 <TouchableOpacity
                   key={tab}
-                  style={[
-                    s.tabButton,
-                    activeTab === tab && s.tabButtonActive,
-                  ]}
+                  style={[s.tabButton, activeTab === tab && s.tabButtonActive]}
                   onPress={() => setActiveTab(tab)}
                 >
                   <Text style={[s.tab, activeTab === tab && s.tabActive]}>
@@ -507,12 +504,12 @@ const s = StyleSheet.create({
   tabButtonActive: { borderBottomColor: BrandColors.copper },
   tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: 14,
     color: BrandColors.onDark,
   },
   tabActive: {
     fontFamily: "Lora_700Bold",
-    fontSize: 16,
+    fontSize: 14,
     color: BrandColors.copper,
   },
   glance: {
