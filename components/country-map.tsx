@@ -19,7 +19,7 @@ type Geometry = {
 };
 type MapData = {
   paths: string[];
-  viewBox: string;
+  bounds: { minX: number; minY: number; width: number; height: number };
 };
 
 function polygonsOf(geometry: Geometry) {
@@ -53,8 +53,26 @@ function buildMapData(geometry: Geometry): MapData {
   const padding = Math.max(width, height) * 0.08;
   return {
     paths,
-    viewBox: `${minX - padding} ${minY - padding} ${width + padding * 2} ${height + padding * 2}`,
+    bounds: {
+      minX: minX - padding,
+      minY: minY - padding,
+      width: width + padding * 2,
+      height: height + padding * 2,
+    },
   };
+}
+
+function centeredViewBox(map: MapData, canvasWidth: number) {
+  const canvasAspect = canvasWidth / 250;
+  const mapAspect = map.bounds.width / map.bounds.height;
+  if (mapAspect < canvasAspect) {
+    const width = map.bounds.height * canvasAspect;
+    const extra = width - map.bounds.width;
+    return `${map.bounds.minX - extra / 2} ${map.bounds.minY} ${width} ${map.bounds.height}`;
+  }
+  const height = map.bounds.width / canvasAspect;
+  const extra = height - map.bounds.height;
+  return `${map.bounds.minX} ${map.bounds.minY - extra / 2} ${map.bounds.width} ${height}`;
 }
 
 async function fetchCountryMap(alpha2: string) {
@@ -125,8 +143,8 @@ export function CountryMap({ code, name }: { code: string; name: string }) {
           <Svg
             width={canvasWidth}
             height={250}
-            viewBox={map.viewBox}
-            preserveAspectRatio="xMidYMid meet"
+            viewBox={centeredViewBox(map, canvasWidth)}
+            preserveAspectRatio="none"
           >
             {map.paths.map((path, index) => (
               <Path
