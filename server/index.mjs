@@ -75,7 +75,7 @@ const COLLECTIONS = [
   { id: "seas", title: "Seven Seas", detail: "Sail or visit all 7 seas", defaultProgress: 8 },
   { id: "unesco", title: "UNESCO Explorer", detail: "Visit heritage sites", defaultProgress: 14 },
   { id: "parks", title: "National Parks", detail: "Visit national parks", defaultProgress: 16 },
-  { id: "culture", title: "Culture Keeper", detail: "Complete cultural visits", defaultProgress: 9 },
+  { id: "usa", title: "United States Explorer", detail: "Visit all 50 states", defaultProgress: 0 },
 ];
 
 function collectionsFor(userId) {

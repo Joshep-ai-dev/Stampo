@@ -32,11 +32,11 @@ const countryFilters = [
 ];
 const collectionFilters = ["All", "Active", "Completed"] as const;
 const collectionImages: Record<string, number> = {
-  wonders: require("../../assets/images/stampo/Egypt.png"),
-  seas: require("../../assets/images/stampo/Fiji.png"),
-  unesco: require("../../assets/images/stampo/Italy.png"),
-  parks: require("../../assets/images/stampo/Canada.png"),
-  culture: require("../../assets/images/stampo/Japan.png"),
+  wonders: require("../../assets/images/collection/Seven Wonders.png"),
+  seas: require("../../assets/images/collection/Seven Seas.png"),
+  unesco: require("../../assets/images/collection/UNESCO Explorer.png"),
+  parks: require("../../assets/images/collection/National Parks Collector.png"),
+  usa: require("../../assets/images/collection/United States Explorer.png"),
 };
 export default function ExploreScreen() {
   const router = useRouter();
@@ -260,6 +260,11 @@ export default function ExploreScreen() {
                 activeOpacity={0.82}
                 onPress={() => showCollection(collection)}
               >
+                <View style={s.collectionHeader}>
+                  <Text style={s.challengeTitle} numberOfLines={1}>
+                    {collection.title}
+                  </Text>
+                </View>
                 <View style={s.challengeSeal}>
                   <Image
                     source={collectionImages[collection.id]}
@@ -267,17 +272,21 @@ export default function ExploreScreen() {
                     contentFit="contain"
                   />
                 </View>
-                <Text style={s.challengeTitle}>{collection.title}</Text>
-                <Text style={s.challengeDetail}>{collection.detail}</Text>
-                <View style={s.challengeProgress}>
-                  <View
-                    style={[
-                      s.progressFill,
-                      { width: `${collection.progress}%` },
-                    ]}
-                  />
-                </View>
-                <Text style={s.challengePercent}>{collection.progress}%</Text>
+                {collection.progress > 0 ? (
+                  <View style={s.collectionProgressRow}>
+                    <View style={s.challengeProgress}>
+                      <View
+                        style={[
+                          s.progressFill,
+                          { width: `${collection.progress}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={s.challengePercent}>
+                      {collection.progress}%
+                    </Text>
+                  </View>
+                ) : null}
               </TouchableOpacity>
             ))
           ) : (
@@ -401,50 +410,54 @@ const s = StyleSheet.create({
     paddingBottom: 12,
   },
   challenge: {
-    width: 156,
-    height: 220,
-    padding: 10,
-    borderRadius: 9,
+    width: 148,
+    height: 240,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 9,
+    borderRadius: 12,
     backgroundColor: BrandColors.surface,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
+    borderWidth: 2,
+    borderColor: "#C5A36C",
+  },
+  collectionHeader: {
+    width: "100%",
+    height: 24,
+    alignItems: "center",
+    justifyContent: "flex-start",
   },
   challengeSeal: {
-    width: 84,
-    height: 88,
+    width: 124,
+    height: 174,
+    marginTop: 3,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   collectionImage: { width: "100%", height: "100%" },
-  challengeTitle: {
-    marginTop: 8,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: 15,
-    color: BrandColors.green,
+  collectionProgressRow: {
+    width: "100%",
+    marginTop: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
-  challengeDetail: {
-    marginTop: 4,
+  challengeTitle: {
     textAlign: "center",
-    fontFamily: "Lora_400Regular",
-    fontSize: 11,
-    lineHeight: 14,
-    color: BrandColors.muted,
+    fontFamily: "Lora_500Medium",
+    fontSize: 14,
+    color: BrandColors.green,
+    flexShrink: 1,
   },
   challengeProgress: {
-    position: "absolute",
-    bottom: 13,
-    left: 12,
-    right: 34,
+    flex: 1,
     height: 4,
+    borderRadius: 2,
     backgroundColor: BrandColors.surfaceSoft,
+    overflow: "hidden",
   },
   challengePercent: {
-    position: "absolute",
-    right: 8,
-    bottom: 8,
     fontFamily: "Lora_500Medium",
     fontSize: 10,
     color: BrandColors.muted,

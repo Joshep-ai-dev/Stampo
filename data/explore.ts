@@ -39,7 +39,7 @@ export const collections = [
   { id: "seas", title: "Seven Seas", detail: "Sail or visit all 7 seas", icon: "boat-outline", progress: 8 },
   { id: "unesco", title: "UNESCO Explorer", detail: "Visit heritage sites", icon: "library-outline", progress: 14 },
   { id: "parks", title: "National Parks", detail: "Visit national parks", icon: "leaf-outline", progress: 16 },
-  { id: "culture", title: "Culture Keeper", detail: "Complete cultural visits", icon: "color-palette-outline", progress: 9 },
+  { id: "usa", title: "United States Explorer", detail: "Visit all 50 states", icon: "map-outline", progress: 0 },
 ];
 
 export const rewards = [
