@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -76,6 +77,10 @@ function IdentityPage({
   });
   const [password, setPassword] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
+  const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const pickPhoto = async () => {
     if (!profile.isSignedIn) {
       Alert.alert(
@@ -109,6 +114,11 @@ function IdentityPage({
     email: string;
     language: string;
   }) => {
+    setDraft((current) => ({
+      ...current,
+      name: user.name,
+      email: user.email,
+    }));
     dispatch(
       profileDetailsChanged({ ...draft, name: user.name, email: user.email }),
     );
@@ -127,16 +137,22 @@ function IdentityPage({
     }
   };
   const signUp = async () => {
-    if (!draft.name.trim() || !draft.email.trim() || password.length < 6) {
+    if (!draft.email.trim() || password.length < 6) {
       Alert.alert(
         "Check your details",
-        "Enter your name, email, and a password of at least 6 characters.",
+        "Enter your email and a password of at least 6 characters.",
       );
       return;
     }
+    const generatedName =
+      draft.email
+        .trim()
+        .split("@")[0]
+        .replace(/[._-]+/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Traveler";
     try {
       const user = await api.signUp({
-        name: draft.name.trim(),
+        name: generatedName,
         email: draft.email.trim(),
         password,
       });
@@ -179,116 +195,235 @@ function IdentityPage({
       dispatch(dashboardCleared());
     }
   };
+  const closePasswordEditor = () => {
+    setPasswordEditorVisible(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setPasswordConfirmation("");
+  };
+  const updatePassword = async () => {
+    if (!currentPassword || newPassword.length < 8) {
+      Alert.alert(
+        "Update password",
+        "Enter your current password and a new password of at least 8 characters.",
+      );
+      return;
+    }
+    if (newPassword !== passwordConfirmation) {
+      Alert.alert("Update password", "The new passwords do not match.");
+      return;
+    }
+    try {
+      setAuthBusy(true);
+      await api.updatePassword({ currentPassword, newPassword });
+      closePasswordEditor();
+      Alert.alert("Password updated", "Your new password is ready to use.");
+    } catch {
+      Alert.alert(
+        "Password not updated",
+        "Check your current password and try again.",
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  };
   return (
+    <>
     <View style={[styles.paper, styles.identityPaper, { width, height }]}>
       <View style={styles.identityHeading}>
         <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
         <Text style={styles.identityType}>PASSPORT · P</Text>
       </View>
-      <View style={styles.identityBody}>
-        <TouchableOpacity
-          style={styles.photoBox}
-          onPress={() => void pickPhoto()}
-        >
-          {profile.photoUri ? (
-            <Image
-              source={{ uri: profile.photoUri }}
-              style={styles.identityPhoto}
-              contentFit="cover"
-            />
-          ) : (
-            <>
-              <Ionicons name="person" size={48} color={BrandColors.muted} />
-              <Text style={styles.addPhoto}>ADD PHOTO</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <View style={styles.identityFields}>
-          {(
-            [
-              ["name", "GIVEN NAME", "First name"],
-              ["email", "EMAIL", "you@example.com"],
-              ["nationality", "NATIONALITY", "Country"],
-              ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
-            ] as const
-          ).map(([key, label, placeholder]) => (
-            <View key={key} style={styles.identityField}>
-              <Text style={styles.fieldCaption}>{label}</Text>
-              <TextInput
-                value={draft[key]}
-                onChangeText={(value) =>
-                  setDraft((current) => ({ ...current, [key]: value }))
-                }
-                placeholder={placeholder}
-                placeholderTextColor="#a89378"
-                style={styles.identityInput}
-                onBlur={save}
-              />
-            </View>
-          ))}
-          {!profile.isSignedIn && (
-            <View style={styles.identityField}>
-              <Text style={styles.fieldCaption}>PASSWORD</Text>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
-                placeholderTextColor="#a89378"
-                secureTextEntry
-                style={styles.identityInput}
-              />
-            </View>
-          )}
-          {profile.isSignedIn ? (
+      {profile.isSignedIn ? (
+        <>
+          <View style={styles.identityBody}>
             <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={() => void signOut()}
+              style={styles.photoBox}
+              onPress={() => void pickPhoto()}
             >
-              <Text style={styles.signOutText}>SIGN OUT</Text>
+              {profile.photoUri ? (
+                <Image
+                  source={{ uri: profile.photoUri }}
+                  style={styles.identityPhoto}
+                  contentFit="cover"
+                />
+              ) : (
+                <>
+                  <Ionicons
+                    name="person"
+                    size={48}
+                    color={BrandColors.muted}
+                  />
+                  <Text style={styles.addPhoto}>ADD PHOTO</Text>
+                </>
+              )}
             </TouchableOpacity>
-          ) : (
-            <View style={styles.authButtons}>
-              <TouchableOpacity
-                disabled={authBusy}
-                style={[
-                  styles.accountButton,
-                  styles.authButton,
-                  authBusy && styles.authButtonDisabled,
-                ]}
-                onPress={() => void signUp()}
-              >
-                <Text style={styles.accountButtonText}>
-                  {authBusy ? "WAIT" : "CREATE"}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={authBusy}
-                style={[
-                  styles.signInButton,
-                  styles.authButton,
-                  authBusy && styles.authButtonDisabled,
-                ]}
-                onPress={() => void signIn()}
-              >
-                <Text style={styles.signInText}>
-                  {authBusy ? "WAIT" : "SIGN IN"}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.identityFields}>
+              {(
+                [
+                  ["name", "GIVEN NAME", "First name"],
+                  ["email", "EMAIL", "you@example.com"],
+                  ["nationality", "NATIONALITY", "Country"],
+                  ["dateOfBirth", "DATE OF BIRTH", "YYYY-MM-DD"],
+                ] as const
+              ).map(([key, label, placeholder]) => (
+                <View key={key} style={styles.identityField}>
+                  <Text style={styles.fieldCaption}>{label}</Text>
+                  <TextInput
+                    value={draft[key]}
+                    onChangeText={(value) =>
+                      setDraft((current) => ({ ...current, [key]: value }))
+                    }
+                    placeholder={placeholder}
+                    placeholderTextColor="#a89378"
+                    style={styles.identityInput}
+                    onBlur={save}
+                  />
+                </View>
+              ))}
+              <View style={styles.accountActions}>
+                <TouchableOpacity
+                  style={styles.passwordButton}
+                  onPress={() => setPasswordEditorVisible(true)}
+                >
+                  <Text style={styles.passwordButtonText}>UPDATE PASSWORD</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.signOutButton}
+                  onPress={() => void signOut()}
+                >
+                  <Text style={styles.signOutText}>SIGN OUT</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+          </View>
+          <View style={styles.numberRow}>
+            <Text style={styles.numberLabel}>KROO NUMBER</Text>
+            <Text style={styles.passportNumber}>{krooNumber}</Text>
+          </View>
+          <Text
+            style={styles.machineCode}
+          >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
+          <Text
+            style={styles.machineCode}
+          >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
+        </>
+      ) : (
+        <View style={styles.authPage}>
+          <View style={styles.authSeal}>
+            <Ionicons name="earth-outline" size={54} color={BrandColors.green} />
+          </View>
+          <Text style={styles.authTitle}>Your travel passport</Text>
+          <Text style={styles.authIntro}>
+            Sign in to collect stamps and continue your journey.
+          </Text>
+          <View style={styles.authField}>
+            <Text style={styles.authCaption}>EMAIL</Text>
+            <TextInput
+              value={draft.email}
+              onChangeText={(email) =>
+                setDraft((current) => ({ ...current, email }))
+              }
+              placeholder="you@example.com"
+              placeholderTextColor="#a89378"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.authInput}
+            />
+          </View>
+          <View style={styles.authField}>
+            <Text style={styles.authCaption}>PASSWORD</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor="#a89378"
+              secureTextEntry
+              style={styles.authInput}
+            />
+          </View>
+          <View style={styles.authButtons}>
+            <TouchableOpacity
+              disabled={authBusy}
+              style={[
+                styles.signInPrimary,
+                styles.authButton,
+                authBusy && styles.authButtonDisabled,
+              ]}
+              onPress={() => void signIn()}
+            >
+              <Text style={styles.signInPrimaryText}>
+                {authBusy ? "PLEASE WAIT" : "SIGN IN"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={authBusy}
+              style={[
+                styles.createSecondary,
+                styles.authButton,
+                authBusy && styles.authButtonDisabled,
+              ]}
+              onPress={() => void signUp()}
+            >
+              <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+    <Modal
+      transparent
+      animationType="fade"
+      visible={passwordEditorVisible}
+      onRequestClose={closePasswordEditor}
+    >
+      <View style={styles.passwordModalRoot}>
+        <Pressable style={styles.passwordBackdrop} onPress={closePasswordEditor} />
+        <View style={styles.passwordSheet}>
+          <Text style={styles.passwordTitle}>Update password</Text>
+          <TextInput
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Current password"
+            placeholderTextColor={BrandColors.muted}
+            secureTextEntry
+            style={styles.passwordInput}
+          />
+          <TextInput
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="New password"
+            placeholderTextColor={BrandColors.muted}
+            secureTextEntry
+            style={styles.passwordInput}
+          />
+          <TextInput
+            value={passwordConfirmation}
+            onChangeText={setPasswordConfirmation}
+            placeholder="Confirm new password"
+            placeholderTextColor={BrandColors.muted}
+            secureTextEntry
+            style={styles.passwordInput}
+          />
+          <View style={styles.passwordActions}>
+            <TouchableOpacity style={styles.passwordCancel} onPress={closePasswordEditor}>
+              <Text style={styles.passwordCancelText}>CANCEL</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={authBusy}
+              style={[styles.passwordSave, authBusy && styles.authButtonDisabled]}
+              onPress={() => void updatePassword()}
+            >
+              <Text style={styles.passwordSaveText}>
+                {authBusy ? "SAVING" : "SAVE"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-      <View style={styles.numberRow}>
-        <Text style={styles.numberLabel}>KROO NUMBER</Text>
-        <Text style={styles.passportNumber}>{krooNumber}</Text>
-      </View>
-      <Text
-        style={styles.machineCode}
-      >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
-      <Text
-        style={styles.machineCode}
-      >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
-    </View>
+    </Modal>
+    </>
   );
 }
 
@@ -377,13 +512,13 @@ export default function PassportScreen() {
       left.name.localeCompare(right.name),
     );
     return [
+      { id: "identity", type: "identity" as const },
       {
         id: "front-cover",
         type: "cover" as const,
         image: require("@/assets/images/other/passport-front.png"),
         accessibilityLabel: "Electronic passport front cover",
       },
-      { id: "identity", type: "identity" as const },
       ...chunkStamps(stamps),
       {
         id: "back-cover",
@@ -511,6 +646,57 @@ const styles = StyleSheet.create({
     color: BrandColors.muted,
   },
   identityBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 18 },
+  authPage: {
+    flex: 1,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  authSeal: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  authTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 24,
+    color: BrandColors.green,
+    textAlign: "center",
+  },
+  authIntro: {
+    maxWidth: 300,
+    marginTop: 6,
+    marginBottom: 20,
+    fontFamily: "Lora_400Regular",
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+    color: BrandColors.muted,
+  },
+  authField: {
+    width: "100%",
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BrandColors.line,
+  },
+  authCaption: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    letterSpacing: 1,
+    color: BrandColors.muted,
+  },
+  authInput: {
+    height: 42,
+    padding: 0,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 16,
+    color: BrandColors.ink,
+  },
   photoBox: {
     width: "36%",
     height: "58%",
@@ -556,9 +742,51 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     color: BrandColors.white,
   },
-  authButtons: { flexDirection: "row", gap: 6 },
+  authButtons: { width: "100%", flexDirection: "row", gap: 6 },
   authButton: { flex: 1 },
   authButtonDisabled: { opacity: 0.55 },
+  signInPrimary: {
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: BrandColors.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signInPrimaryText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 10,
+    letterSpacing: 0.9,
+    color: BrandColors.white,
+  },
+  createSecondary: {
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BrandColors.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createSecondaryText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 9,
+    letterSpacing: 0.6,
+    color: BrandColors.green,
+  },
+  accountActions: { flexDirection: "row", gap: 6 },
+  passwordButton: {
+    flex: 1.5,
+    height: 30,
+    borderRadius: 7,
+    backgroundColor: BrandColors.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  passwordButtonText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 7,
+    letterSpacing: 0.4,
+    color: BrandColors.white,
+  },
   signInButton: {
     height: 30,
     borderRadius: 7,
@@ -574,6 +802,7 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
   },
   signOutButton: {
+    flex: 1,
     height: 30,
     borderRadius: 7,
     borderWidth: 1,
@@ -586,6 +815,70 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.8,
     color: BrandColors.copperDark,
+  },
+  passwordModalRoot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 22,
+  },
+  passwordBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3,29,20,.72)",
+  },
+  passwordSheet: {
+    width: "100%",
+    maxWidth: 420,
+    padding: 22,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.surface,
+  },
+  passwordTitle: {
+    marginBottom: 14,
+    fontFamily: "Lora_700Bold",
+    fontSize: 23,
+    color: BrandColors.green,
+  },
+  passwordInput: {
+    height: 50,
+    marginTop: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: BrandColors.line,
+    borderRadius: 9,
+    fontFamily: "Lora_500Medium",
+    fontSize: 14,
+    color: BrandColors.ink,
+  },
+  passwordActions: { marginTop: 16, flexDirection: "row", gap: 9 },
+  passwordCancel: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: BrandColors.green,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  passwordCancelText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 10,
+    color: BrandColors.green,
+  },
+  passwordSave: {
+    flex: 1,
+    height: 44,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.green,
+  },
+  passwordSaveText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 10,
+    color: BrandColors.white,
   },
   numberRow: {
     flexDirection: "row",

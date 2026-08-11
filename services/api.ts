@@ -82,6 +82,14 @@ export const api = {
   deleteVisit: (visitId: string) =>
     request<void>(`/visits/${encodeURIComponent(visitId)}`, { method: "DELETE" }),
   currentUser: () => request<AuthUser>("/auth/me"),
+  updatePassword: (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }) =>
+    request<void>("/auth/password", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
   updateProfile: (profile: ProfileState) =>
     request<ProfileState>("/profile", { method: "PUT", body: JSON.stringify(profile) }),
   signUp: async (payload: { name: string; email: string; password: string }) => {

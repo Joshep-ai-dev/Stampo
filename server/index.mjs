@@ -183,6 +183,21 @@ app.get("/auth/me", (req, res) => {
   return user ? res.json(publicUser(user)) : res.status(401).json({ message: "Unauthenticated." });
 });
 
+app.put("/auth/password", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const { currentPassword, newPassword } = req.body ?? {};
+  if (!(await passwordMatches(String(currentPassword ?? ""), user.password))) {
+    return res.status(422).json({ message: "The current password is incorrect." });
+  }
+  if (String(newPassword ?? "").length < 8) {
+    return res.status(422).json({ message: "The new password must contain at least 8 characters." });
+  }
+  user.password = await hashPassword(String(newPassword));
+  await db.write();
+  return res.status(204).send();
+});
+
 app.post("/auth/logout", (req, res) => {
   const token = bearerToken(req);
   if (token) sessions.delete(token);
