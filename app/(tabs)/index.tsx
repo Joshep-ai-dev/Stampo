@@ -25,8 +25,13 @@ import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
+import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  travelStateHydrated,
+  visitsHydrated,
+} from "@/store/travel-slice";
 
 const TOTALS: Record<string, number> = {
   AF: 54,
@@ -239,10 +244,24 @@ export default function HomeScreen() {
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
   const dashboard = useAppSelector((x) => x.dashboard);
+  const refreshSignedInTravel = useCallback(async () => {
+    const [visitsResult, travelStateResult] = await Promise.allSettled([
+      api.listVisits(),
+      api.travelState(),
+    ]);
+    if (visitsResult.status === "fulfilled") {
+      dispatch(visitsHydrated(visitsResult.value));
+    }
+    if (travelStateResult.status === "fulfilled") {
+      dispatch(travelStateHydrated(travelStateResult.value));
+    }
+  }, [dispatch]);
   useFocusEffect(
     useCallback(() => {
-      if (isSignedIn) void dispatch(fetchHomeDashboard());
-    }, [dispatch, isSignedIn]),
+      if (!isSignedIn) return;
+      void refreshSignedInTravel();
+      void dispatch(fetchHomeDashboard());
+    }, [dispatch, isSignedIn, refreshSignedInTravel]),
   );
   const localCountryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
@@ -304,8 +323,10 @@ export default function HomeScreen() {
     serverHome?.worldProgress ??
     Math.round((localCountryCodes.size / 195) * 100);
   const refreshHome = useCallback(() => {
-    if (isSignedIn) void dispatch(fetchHomeDashboard());
-  }, [dispatch, isSignedIn]);
+    if (!isSignedIn) return;
+    void refreshSignedInTravel();
+    void dispatch(fetchHomeDashboard());
+  }, [dispatch, isSignedIn, refreshSignedInTravel]);
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView

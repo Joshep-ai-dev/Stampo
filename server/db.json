@@ -181,6 +181,32 @@
       "places": [],
       "id": "cfdb85f6-7d9c-4588-9724-cb18841b57ba",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "2968748",
+      "cityName": "Villefranche-sur-Saône",
+      "country": "France",
+      "countryCode": "FR",
+      "continentCode": "EU",
+      "subcountry": "Rhone-Alpes",
+      "visitedAt": "2026-08-12",
+      "note": "",
+      "places": [],
+      "id": "47239b77-dc7d-4b73-b185-59a2334ebeb0",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "1847947",
+      "cityName": "Shingū",
+      "country": "Japan",
+      "countryCode": "JP",
+      "continentCode": "AS",
+      "subcountry": "Wakayama",
+      "visitedAt": "2026-08-12",
+      "note": "",
+      "places": [],
+      "id": "a4f8e39a-0490-4def-9c1f-98b68fca17a0",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
@@ -195,8 +221,8 @@
       "email": "darkhorse9372@gmail.com",
       "password": "kc9372KC!123",
       "language": "English",
-      "nationality": "",
-      "dateOfBirth": "",
+      "nationality": "China",
+      "dateOfBirth": "1993-07-02",
       "photoUri": null
     }
   ]

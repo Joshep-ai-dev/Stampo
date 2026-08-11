@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -123,18 +123,24 @@ function IdentityPage({
       profileDetailsChanged({ ...draft, name: user.name, email: user.email }),
     );
     dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-    try {
-      setAuthBusy(true);
-      const [visits, travelState] = await Promise.all([
-        api.listVisits(),
-        api.travelState(),
-      ]);
-      dispatch(visitsHydrated(visits));
-      dispatch(travelStateHydrated(travelState));
-      void dispatch(fetchHomeDashboard());
-    } catch {
-      // Authentication remains valid if visit synchronization is temporarily unavailable.
+    dispatch(visitsCleared());
+    setAuthBusy(true);
+    const [visitsResult, travelStateResult] = await Promise.allSettled([
+      api.listVisits(),
+      api.travelState(),
+    ]);
+    if (visitsResult.status === "fulfilled") {
+      dispatch(visitsHydrated(visitsResult.value));
+    } else {
+      Alert.alert(
+        "Visits not loaded",
+        "You are signed in, but your saved visited-country list could not be loaded. Pull down on Home to try again.",
+      );
     }
+    if (travelStateResult.status === "fulfilled") {
+      dispatch(travelStateHydrated(travelStateResult.value));
+    }
+    await dispatch(fetchHomeDashboard());
   };
   const signUp = async () => {
     if (!draft.email.trim() || password.length < 6) {
@@ -503,6 +509,14 @@ export default function PassportScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [activePage, setActivePage] = useState(0);
   const listRef = useRef<FlatList<PassportPage>>(null);
+  useFocusEffect(
+    useCallback(() => {
+      setActivePage(0);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      });
+    }, []),
+  );
   const pageWidth = Math.min(screenWidth - 36, 620);
   const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
   const krooNumber = useMemo(

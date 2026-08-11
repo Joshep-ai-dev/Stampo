@@ -18,7 +18,7 @@ import {
 
 import { BrandColors } from "@/constants/theme";
 
-import { CityRecord, searchCities } from "@/data/cities";
+import { CityRecord, getCities, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -60,7 +60,13 @@ function today() {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
-export function CityVisitSearch() {
+export function CityVisitSearch({
+  countryCode,
+  countryName,
+}: {
+  countryCode?: string;
+  countryName?: string;
+} = {}) {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [query, setQuery] = useState("");
@@ -74,7 +80,7 @@ export function CityVisitSearch() {
   useEffect(() => {
     let active = true;
     const timer = setTimeout(async () => {
-      if (normalizedQuery.length < 2) {
+      if (!countryCode && normalizedQuery.length < 2) {
         setResults([]);
         setLoading(false);
         return;
@@ -82,7 +88,19 @@ export function CityVisitSearch() {
 
       setLoading(true);
       try {
-        const matches = await searchCities(normalizedQuery);
+        const matches = countryCode
+          ? (await getCities())
+              .filter(
+                (city) =>
+                  city.countryCode === countryCode &&
+                  (!normalizedQuery ||
+                    city.searchText.includes(
+                      normalizedQuery.toLocaleLowerCase(),
+                    )),
+              )
+              .sort((left, right) => left.name.localeCompare(right.name))
+              .slice(0, 40)
+          : await searchCities(normalizedQuery);
         if (active) setResults(matches);
       } finally {
         if (active) setLoading(false);
@@ -93,7 +111,7 @@ export function CityVisitSearch() {
       active = false;
       clearTimeout(timer);
     };
-  }, [normalizedQuery]);
+  }, [countryCode, normalizedQuery]);
 
   const selectCity = (city: CityRecord) => {
     setSelectedCity(city);
@@ -146,7 +164,11 @@ export function CityVisitSearch() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search to add a visited city"
+            placeholder={
+              countryName
+                ? `Search cities in ${countryName}`
+                : "Search to add a visited city"
+            }
             placeholderTextColor="#aa9c8c"
             returnKeyType="search"
             autoCorrect={false}
@@ -178,7 +200,7 @@ export function CityVisitSearch() {
         </TouchableOpacity>
       </View>
 
-      {normalizedQuery.length >= 2 && (
+      {(Boolean(countryCode) || normalizedQuery.length >= 2) && (
         <View style={styles.resultsCard}>
           {!loading && results.length === 0 ? (
             <Text style={styles.emptyText}>No cities found</Text>

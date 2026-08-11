@@ -58,12 +58,16 @@ export async function hydrateStore() {
       );
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-      const [visits, travelState] = await Promise.all([
+      const [visitsResult, travelStateResult] = await Promise.allSettled([
         api.listVisits(),
         api.travelState(),
       ]);
-      store.dispatch(visitsHydrated(visits));
-      store.dispatch(travelStateHydrated(travelState));
+      if (visitsResult.status === "fulfilled") {
+        store.dispatch(visitsHydrated(visitsResult.value));
+      }
+      if (travelStateResult.status === "fulfilled") {
+        store.dispatch(travelStateHydrated(travelStateResult.value));
+      }
       await store.dispatch(fetchHomeDashboard());
     } else {
       store.dispatch(signedOut());

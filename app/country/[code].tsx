@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { countries, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ScrollView,
   Share,
@@ -22,6 +23,8 @@ export default function CountryScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
+  const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("OVERVIEW");
   const visits = useAppSelector((x) => x.travel.visits);
   const wished = useAppSelector((x) => x.travel.wishlistIds ?? []).includes(
     `country-${code}`,
@@ -36,6 +39,7 @@ export default function CountryScreen() {
   const progress = isFrance
     ? Math.max(18, Math.round((done / 1024) * 100))
     : Math.min(100, countryVisits.length * 12);
+  const countryStamp = stampAssets[code];
   const flag =
     code.length === 2
       ? String.fromCodePoint(
@@ -95,13 +99,17 @@ export default function CountryScreen() {
           </View>
         </View>
         <View style={s.hero}>
-          <Image
-            source={
-              stampAssets[code] ?? require("@/assets/images/stampo/France.png")
-            }
-            style={s.stamp}
-            contentFit="contain"
-          />
+          <View style={s.heroStampCard}>
+            {countryStamp ? (
+              <Image
+                source={countryStamp}
+                style={s.stamp}
+                contentFit="contain"
+              />
+            ) : (
+              <Ionicons name="earth-outline" size={48} color="#AAB5AF" />
+            )}
+          </View>
           <View style={s.heroCopy}>
             <Text style={s.country}>
               {guide.flag} {name}
@@ -127,27 +135,52 @@ export default function CountryScreen() {
           <Action
             icon="location-outline"
             label="Add Visit"
-            onPress={() => router.push("/visits")}
+            active={activeAction === "visit"}
+            onPress={() => {
+              setActiveAction("visit");
+              router.push({
+                pathname: "/visits",
+                params: { countryCode: code, countryName: name },
+              });
+            }}
           />
-          <Action icon="checkmark-circle-outline" label="Been Here" />
+          <Action
+            icon="checkmark-circle-outline"
+            label="Been Here"
+            active={activeAction === "been-here"}
+            onPress={() => setActiveAction("been-here")}
+          />
           <Action
             icon={wished ? "heart" : "heart-outline"}
             label="Wishlist"
-            onPress={() => dispatch(wishlistToggled(`country-${code}`))}
+            active={activeAction === "wishlist"}
+            onPress={() => {
+              setActiveAction("wishlist");
+              dispatch(wishlistToggled(`country-${code}`));
+            }}
           />
           <Action
             icon="share-outline"
             label="Share"
-            onPress={() =>
-              void Share.share({ message: `Explore ${name} with Kroo` })
-            }
+            active={activeAction === "share"}
+            onPress={() => {
+              setActiveAction("share");
+              void Share.share({ message: `Explore ${name} with Kroo` });
+            }}
           />
         </View>
         <View style={s.tabs}>
-          <Text style={s.tabActive}>OVERVIEW</Text>
-          <Text style={s.tab}>CITIES</Text>
-          <Text style={s.tab}>SIGHTS</Text>
-          <Text style={s.tab}>EXPERIENCES</Text>
+          {["OVERVIEW", "CITIES", "SIGHTS", "EXPERIENCES"].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[s.tabButton, activeTab === tab && s.tabButtonActive]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[s.tab, activeTab === tab && s.tabActive]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
         <View style={s.panel}>
           <Text style={s.panelTitle}>About {name}</Text>
@@ -265,16 +298,22 @@ export default function CountryScreen() {
 function Action({
   icon,
   label,
+  active,
   onPress,
 }: {
   icon: string;
   label: string;
+  active: boolean;
   onPress?: () => void;
 }) {
   return (
     <TouchableOpacity style={s.action} onPress={onPress}>
-      <Ionicons name={icon as never} size={23} color={BrandColors.copper} />
-      <Text style={s.actionText}>{label}</Text>
+      <Ionicons
+        name={icon as never}
+        size={24}
+        color={active ? BrandColors.copper : BrandColors.onDark}
+      />
+      <Text style={[s.actionText, active && s.actionTextActive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -359,15 +398,28 @@ const s = StyleSheet.create({
   },
   hero: {
     minHeight: 185,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  stamp: { width: 112, height: 150, transform: [{ scale: 1.45 }] },
-  heroCopy: { flex: 1, paddingLeft: 8 },
+  heroStampCard: {
+    width: 100,
+    height: 150,
+    padding: 4,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#C5A36C",
+    backgroundColor: BrandColors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  stamp: { width: "100%", height: "100%", transform: [{ scale: 1.36 }] },
+  heroCopy: { flex: 1, minWidth: 0 },
   country: {
     fontFamily: "Lora_700Bold",
-    fontSize: 30,
+    fontSize: 27,
     color: BrandColors.onDark,
   },
   motto: {
@@ -383,8 +435,8 @@ const s = StyleSheet.create({
     marginTop: 3,
   },
   progressCard: {
-    width: 105,
-    padding: 11,
+    width: 94,
+    padding: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
@@ -392,7 +444,7 @@ const s = StyleSheet.create({
   },
   progressLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 7,
+    fontSize: 9,
     color: BrandColors.onDarkMuted,
   },
   progressValue: {
@@ -402,7 +454,7 @@ const s = StyleSheet.create({
   },
   progressSmall: {
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.onDark,
   },
   bar: {
@@ -434,33 +486,41 @@ const s = StyleSheet.create({
   },
   actionText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 9,
+    fontSize: 11,
     color: BrandColors.onDark,
   },
+  actionTextActive: { color: BrandColors.copper },
   tabs: {
-    height: 47,
-    paddingHorizontal: 16,
+    height: 50,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
     borderBottomColor: BrandColors.paleGreen,
   },
+  tabButton: {
+    height: "100%",
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabButtonActive: { borderBottomColor: BrandColors.copper },
   tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 9,
-    color: BrandColors.onDarkMuted,
+    fontSize: 10,
+    color: BrandColors.onDark,
   },
   tabActive: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: 10,
     color: BrandColors.copper,
-    borderBottomWidth: 2,
-    borderBottomColor: BrandColors.copper,
-    paddingVertical: 16,
   },
   panel: {
     marginHorizontal: 14,
+    marginTop: 14,
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
@@ -475,20 +535,20 @@ const s = StyleSheet.create({
   body: {
     marginTop: 6,
     fontFamily: "Lora_400Regular",
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 19,
     color: BrandColors.onDarkMuted,
   },
   facts: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12 },
   mini: { width: "46%", flexDirection: "row", alignItems: "center", gap: 8 },
   miniLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   miniValue: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   section: {
@@ -506,7 +566,7 @@ const s = StyleSheet.create({
   },
   link: {
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.copper,
   },
   row: { paddingHorizontal: 14, gap: 9 },
@@ -524,7 +584,7 @@ const s = StyleSheet.create({
     right: 5,
     top: 5,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.surface,
   },
   cityName: {
@@ -538,7 +598,7 @@ const s = StyleSheet.create({
     marginHorizontal: 7,
     marginBottom: 7,
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   stamps: {
@@ -578,20 +638,20 @@ const s = StyleSheet.create({
   stampDetail: {
     marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   collection: { height: 33, flexDirection: "row", alignItems: "center" },
   collectionName: {
     width: 130,
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: 12,
     color: BrandColors.onDark,
   },
   collectionCount: {
-    width: 42,
+    width: 50,
     fontFamily: "Lora_400Regular",
-    fontSize: 8,
+    fontSize: 10,
     color: BrandColors.onDarkMuted,
   },
   collectionBar: {

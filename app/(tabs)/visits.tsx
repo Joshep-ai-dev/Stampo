@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
+import { CityVisitSearch } from "@/components/city-visit-search";
 import { VisitedCityCard } from "@/components/visited-city-card";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { PlaceType, placeAdded } from "@/store/travel-slice";
@@ -12,6 +14,11 @@ import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 
 export default function VisitsScreen() {
+  const router = useRouter();
+  const { countryCode, countryName } = useLocalSearchParams<{
+    countryCode?: string;
+    countryName?: string;
+  }>();
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
@@ -22,6 +29,43 @@ export default function VisitsScreen() {
     () => [...visits].sort((a, b) => b.visitedAt.localeCompare(a.visitedAt)),
     [visits],
   );
+
+  if (countryCode) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={styles.countryHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Back to country"
+          >
+            <Ionicons
+              name="chevron-back"
+              size={25}
+              color={BrandColors.onDark}
+            />
+          </TouchableOpacity>
+          <View style={styles.countryHeaderText}>
+            <Text style={styles.countryTitle}>Add a Visit</Text>
+            <Text style={styles.countrySubtitle}>
+              Choose a city in {countryName ?? countryCode}
+            </Text>
+          </View>
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.countrySearchContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <CityVisitSearch
+            countryCode={countryCode}
+            countryName={countryName ?? countryCode}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -86,6 +130,36 @@ export default function VisitsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BrandColors.canvas },
+  countryHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countryHeaderText: { flex: 1 },
+  countryTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 28,
+    color: BrandColors.onDark,
+  },
+  countrySubtitle: {
+    marginTop: 2,
+    fontFamily: "Lora_400Regular",
+    fontSize: 14,
+    color: BrandColors.onDarkMuted,
+  },
+  countrySearchContent: { paddingBottom: 40 },
   header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
   title: { fontFamily: "Lora_700Bold", fontSize: 38, color: BrandColors.onDark },
   subtitle: { marginTop: 4, fontFamily: "Lora_400Regular", fontSize: 14, color: BrandColors.onDarkMuted },
