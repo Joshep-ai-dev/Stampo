@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
+import { CountryMap } from "@/components/country-map";
 import { franceGuide } from "@/data/explore";
 import { stampAssets } from "@/data/stamps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -182,6 +183,7 @@ export default function CountryScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        <CountryMap code={code} name={name} />
         <View style={s.panel}>
           <Text style={s.panelTitle}>About {name}</Text>
           <Text style={s.body}>{guide.description}</Text>
