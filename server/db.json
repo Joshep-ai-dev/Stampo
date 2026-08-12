@@ -242,16 +242,16 @@
   ],
   "completions": [
     {
-      "id": "18b64d6f-e4e5-48d1-a03a-12027fd7ba05",
-      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "sightId": "eiffel",
-      "completedAt": "2026-08-12T11:36:52.962Z"
-    },
-    {
       "id": "a5f50798-6252-4f32-aa65-665a6b9017d7",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
       "sightId": "versailles",
       "completedAt": "2026-08-12T11:36:57.105Z"
+    },
+    {
+      "id": "f29a17d1-bbee-4c6b-83b6-cb3a1698b3e8",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
+      "sightId": "louvre",
+      "completedAt": "2026-08-12T12:22:37.341Z"
     }
   ],
   "wishlists": [],
