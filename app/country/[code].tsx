@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
-import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -17,12 +16,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DisplayBubble } from "@/components/display-bubble";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-
-const IMAGE_PLACEHOLDER = require("@/assets/images/other/globe-airplane.png");
 
 export default function CountryScreen() {
   const { width } = useWindowDimensions();
@@ -123,11 +121,10 @@ export default function CountryScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Open ${city.name}`}
             >
-              <Image
-                source={city.image ? { uri: city.image } : IMAGE_PLACEHOLDER}
+              <ProgressivePlaceImage
+                uri={city.image}
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
-                transition={180}
               />
               <View style={s.heroShade} />
               <View style={s.heroLabel}>
@@ -234,13 +231,10 @@ export default function CountryScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
                   >
-                    <Image
-                      source={
-                        sight.image ? { uri: sight.image } : IMAGE_PLACEHOLDER
-                      }
+                    <ProgressivePlaceImage
+                      uri={sight.image}
                       style={s.sightImage}
                       contentFit="cover"
-                      transition={150}
                     />
                     <Text numberOfLines={1} style={s.sightName}>
                       {sight.name}
@@ -267,14 +261,11 @@ export default function CountryScreen() {
                     style={[s.sightRow, s.lockedSightRow]}
                     accessibilityElementsHidden
                   >
-                    <Image
-                      source={
-                        sight.image ? { uri: sight.image } : IMAGE_PLACEHOLDER
-                      }
+                    <ProgressivePlaceImage
+                      uri={sight.image}
                       style={s.sightImage}
                       contentFit="cover"
                       blurRadius={32}
-                      transition={150}
                     />
                     <Text
                       numberOfLines={1}

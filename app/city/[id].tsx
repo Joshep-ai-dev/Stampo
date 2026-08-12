@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -13,9 +12,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { api, type CityDetail } from "@/services/api";
-
-const placeholder = require("@/assets/images/other/globe-airplane.png");
 
 export default function CityScreen() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
@@ -24,13 +22,25 @@ export default function CityScreen() {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
+    let refresh: ReturnType<typeof setTimeout> | undefined;
     setError("");
-    api
-      .cityDetail(id)
-      .then((value) => active && setCity(value))
-      .catch((e) => active && setError(e.message));
+    let attempts = 0;
+    const load = () =>
+      api
+        .cityDetail(id)
+        .then((value) => {
+          if (!active) return;
+          setCity(value);
+          const imagesPending =
+            !value.image || (value.sights ?? []).some((sight) => !sight.image);
+          if (imagesPending && attempts++ < 24)
+            refresh = setTimeout(load, 2_500);
+        })
+        .catch((e) => active && setError(e.message));
+    void load();
     return () => {
       active = false;
+      if (refresh) clearTimeout(refresh);
     };
   }, [id]);
   if (!city)
@@ -52,8 +62,8 @@ export default function CityScreen() {
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.hero}>
-          <Image
-            source={city.image ? { uri: city.image } : placeholder}
+          <ProgressivePlaceImage
+            uri={city.image}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
           />
@@ -87,8 +97,8 @@ export default function CityScreen() {
             style={s.row}
             onPress={() => router.push(`/sight/${sight.id}` as never)}
           >
-            <Image
-              source={sight.image ? { uri: sight.image } : placeholder}
+            <ProgressivePlaceImage
+              uri={sight.image}
               style={s.thumb}
               contentFit="cover"
             />

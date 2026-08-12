@@ -17,8 +17,13 @@ import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 import { json } from "milliparsec";
 import { importCountry } from "../scripts/import-country.mjs";
-import { ensureCatalog, rankEntities } from "./lib/catalog.mjs";
-import { geonamesCities, restCountry } from "./providers.mjs";
+import {
+  countryFeatureCollections,
+  ensureCatalog,
+  rankEntities,
+  rankSightsWithCityCoverage,
+} from "./lib/catalog.mjs";
+import { geonamesCities, restCountry, wikipediaSearch } from "./providers.mjs";
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
@@ -46,6 +51,10 @@ const transientCatalogs = new Map();
 
 function countryShell(code, country, cities) {
   const countryId = `live-country-${code}`;
+  const collections = countryFeatureCollections(country).map((item) => ({
+    id: `collection-${item.slug}`,
+    ...item,
+  }));
   return {
     countries: [
       {
@@ -56,7 +65,7 @@ function countryShell(code, country, cities) {
       },
     ],
     cities: cities.map((city, index) => ({
-      id: `live-city-${code}-${city.geonamesId}`,
+      id: `city-${code}-${city.geonamesId}`,
       countryId,
       ...city,
       slug: String(city.name)
@@ -68,10 +77,71 @@ function countryShell(code, country, cities) {
       displayOrder: index,
     })),
     sights: [],
-    collections: [],
-    countryCollections: [],
+    collections,
+    countryCollections: collections.map((collection, displayOrder) => ({
+      countryId,
+      collectionId: collection.id,
+      displayOrder,
+    })),
     imageCredits: [],
   };
+}
+
+async function addShellSights(code, country, catalog) {
+  const groups = await Promise.all(
+    catalog.cities.map(async (city) => {
+      const matches = await wikipediaSearch(
+        `tourist attractions landmarks ${city.name} ${country.name}`,
+        { timeoutMs: 5_000, retries: 0 },
+      ).catch(() => []);
+      return matches
+        .filter(
+          (item) =>
+            !/^(list of|tourism in)/i.test(item.name) &&
+            item.name.toLowerCase() !== country.name.toLowerCase(),
+        )
+        .slice(0, 3)
+        .map((item) => ({
+          ...item,
+          id: `sight-${item.wikidataId ?? `${code}-${item.wikipediaTitle}`}`,
+          countryId: catalog.countries[0].id,
+          cityId: city.id,
+          category: "attraction",
+          latitude: Number.isFinite(item.latitude)
+            ? item.latitude
+            : city.latitude,
+          longitude: Number.isFinite(item.longitude)
+            ? item.longitude
+            : city.longitude,
+          imageUrl: "",
+          isFeatured: true,
+        }));
+    }),
+  );
+  const candidates = groups
+    .flat()
+    .filter(
+      (item, index, all) =>
+        all.findIndex((candidate) => candidate.id === item.id) === index,
+    );
+  catalog.sights = rankSightsWithCityCoverage(
+    candidates,
+    catalog.cities.map((city) => city.id),
+    20,
+  ).map((item, index) => ({
+    ...item,
+    displayOrder: index,
+    isPremium: index >= 5,
+  }));
+  const collections = countryFeatureCollections(country, catalog.sights).map(
+    (item) => ({ id: `collection-${item.slug}`, ...item }),
+  );
+  catalog.collections = collections;
+  catalog.countryCollections = collections.map((collection, displayOrder) => ({
+    countryId: catalog.countries[0].id,
+    collectionId: collection.id,
+    displayOrder,
+  }));
 }
 
 function startAutomaticImport(code) {
@@ -80,13 +150,18 @@ function startAutomaticImport(code) {
 
   const task = Promise.all([restCountry(code), geonamesCities(code)])
     .then(([country, cities]) => {
-      transientCatalogs.set(code, countryShell(code, country, cities));
+      const catalog = countryShell(code, country, cities);
+      transientCatalogs.set(code, catalog);
+      void addShellSights(code, country, catalog);
     })
     .then(() => mkdtemp(join(tmpdir(), "stampo-country-")))
     .then(async (directory) => {
       const temporaryFile = join(directory, "catalog.json");
       try {
-        const summary = await importCountry(code, { dbFile: temporaryFile });
+        const summary = await importCountry(code, {
+          dbFile: temporaryFile,
+          onProgress: (catalog) => transientCatalogs.set(code, catalog),
+        });
         const catalog = JSON.parse(await readFile(temporaryFile, "utf8"));
         transientCatalogs.set(code, catalog);
         return summary;
@@ -649,6 +724,12 @@ function catalogCountryPayload(code, req) {
   const catalog = catalogForCountry(code);
   const country = catalog?.countries.find((item) => item.iso2 === code);
   if (!country) return null;
+  if (
+    catalog === transientCatalogs.get(code) &&
+    automaticImports.has(code) &&
+    catalog.sights.length === 0
+  )
+    return null;
   const cities = rankEntities(
     catalog.cities.filter(
       (item) => item.countryId === country.id && item.isFeatured !== false,

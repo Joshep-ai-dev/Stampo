@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -12,8 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandColors } from "@/constants/theme";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { api, type SightDetail } from "@/services/api";
-const placeholder = require("@/assets/images/other/globe-airplane.png");
 export default function SightScreen() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -21,12 +20,22 @@ export default function SightScreen() {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    api
-      .sightDetail(id)
-      .then((x) => active && setSight(x))
-      .catch((e) => active && setError(e.message));
+    let refresh: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const load = () =>
+      api
+        .sightDetail(id)
+        .then((value) => {
+          if (!active) return;
+          setSight(value);
+          if (!value.image && attempts++ < 24)
+            refresh = setTimeout(load, 2_500);
+        })
+        .catch((e) => active && setError(e.message));
+    void load();
     return () => {
       active = false;
+      if (refresh) clearTimeout(refresh);
     };
   }, [id]);
   if (!sight)
@@ -48,8 +57,8 @@ export default function SightScreen() {
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.hero}>
-          <Image
-            source={sight.image ? { uri: sight.image } : placeholder}
+          <ProgressivePlaceImage
+            uri={sight.image}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
           />

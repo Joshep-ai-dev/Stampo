@@ -4,10 +4,12 @@ import { JSONFile } from "lowdb/node";
 
 import {
   cleanDescription,
+  countryFeatureCollections,
   dedupeByStableId,
   ensureCatalog,
   imageCredit,
   rankEntities,
+  rankSightsWithCityCoverage,
   slugify,
   upsertImported,
 } from "../server/lib/catalog.mjs";
@@ -37,7 +39,11 @@ async function mapLimit(items, limit, mapper) {
 
 export async function importCountry(
   isoInput,
-  { dbFile = process.env.DB_FILE ?? "server/db.json", providers = {} } = {},
+  {
+    dbFile = process.env.DB_FILE ?? "server/db.json",
+    providers = {},
+    onProgress,
+  } = {},
 ) {
   const iso2 = String(isoInput ?? "")
     .trim()
@@ -74,83 +80,49 @@ export async function importCountry(
     dedupeByStableId(rawCities, ["geonamesId", "wikidataId"]),
     10,
   );
-  const cityImports = await mapLimit(rankedCities, 5, async (item, index) => {
-    let wiki = await getWiki(item.name, wikiOptions).catch(() => ({}));
-    if (!wiki.imageUrl) {
-      const matches = await searchWiki(
-        `${item.name} ${basic.name}`,
-        wikiOptions,
-      ).catch(() => []);
-      wiki = matches.find((match) => match.imageUrl) ?? wiki;
-    }
-    if (!wiki.imageUrl) {
-      const commons = await searchCommons(
-        `${item.name} ${basic.name} city skyline landmark`,
-        wikiOptions,
-      ).catch(() => ({}));
-      wiki = { ...wiki, ...commons };
-    }
-    const city = upsertImported(
-      db.data.cities,
-      (x) => x.geonamesId === item.geonamesId,
-      {
-        countryId: country.id,
-        ...item,
-        slug: slugify(item.name),
-        description: cleanDescription(wiki.description),
-        wikidataId: wiki.wikidataId ?? item.wikidataId,
-        wikipediaTitle: wiki.wikipediaTitle ?? item.wikipediaTitle,
-        imageUrl: wiki.imageUrl || wikiCountry.imageUrl || basic.flagUrl || "",
-        isFeatured: true,
-        displayOrder: index,
-        lastSyncedAt: now,
-      },
-    );
-    const credit = imageCredit("city", city.id, wiki);
-    if (credit)
-      upsertImported(
-        db.data.imageCredits,
-        (x) => x.entityType === "city" && x.entityId === city.id,
-        credit,
-      );
-    return city;
-  });
-  const cityRows = cityImports.filter(Boolean);
+  const cityRows = rankedCities.map((item, index) =>
+    upsertImported(db.data.cities, (x) => x.geonamesId === item.geonamesId, {
+      id: `city-${iso2}-${item.geonamesId}`,
+      countryId: country.id,
+      ...item,
+      slug: slugify(item.name),
+      description: "",
+      imageUrl: "",
+      isFeatured: true,
+      displayOrder: index,
+      lastSyncedAt: now,
+    }),
+  );
   let rawSights = await getSights(country, {
     timeoutMs: 8_000,
     retries: 0,
   }).catch(() => []);
   if (!rawSights.length && cityRows.length) {
-    const fallbackGroups = await mapLimit(
-      cityRows.slice(0, 4),
-      4,
-      async (city) => {
-        const matches = await searchWiki(
-          `tourist attractions landmarks ${city.name} ${basic.name}`,
-          wikiOptions,
-        ).catch(() => []);
-        return matches
-          .filter(
-            (item) =>
-              item.imageUrl &&
-              !/^(list of|tourism in)/i.test(item.name) &&
-              item.name.toLowerCase() !== basic.name.toLowerCase(),
-          )
-          .slice(0, 5)
-          .map((item) => ({
-            ...item,
-            category: "attraction",
-            latitude: Number.isFinite(item.latitude)
-              ? item.latitude
-              : city.latitude,
-            longitude: Number.isFinite(item.longitude)
-              ? item.longitude
-              : city.longitude,
-            cityId: city.id,
-            score: 1,
-          }));
-      },
-    );
+    const fallbackGroups = await mapLimit(cityRows, 10, async (city) => {
+      const matches = await searchWiki(
+        `tourist attractions landmarks ${city.name} ${basic.name}`,
+        wikiOptions,
+      ).catch(() => []);
+      return matches
+        .filter(
+          (item) =>
+            !/^(list of|tourism in)/i.test(item.name) &&
+            item.name.toLowerCase() !== basic.name.toLowerCase(),
+        )
+        .slice(0, 3)
+        .map((item) => ({
+          ...item,
+          category: "attraction",
+          latitude: Number.isFinite(item.latitude)
+            ? item.latitude
+            : city.latitude,
+          longitude: Number.isFinite(item.longitude)
+            ? item.longitude
+            : city.longitude,
+          cityId: city.id,
+          score: item.score ?? 1,
+        }));
+    });
     rawSights = fallbackGroups.flat();
   }
   const sightCandidates = rawSights
@@ -173,11 +145,69 @@ export async function importCountry(
       };
     })
     .filter((sight) => sight.cityId);
-  const rankedSights = rankEntities(
+  const rankedSights = rankSightsWithCityCoverage(
     dedupeByStableId(sightCandidates, ["wikidataId", "wikipediaTitle"]),
+    cityRows.map((city) => city.id),
     20,
   );
-  const sightImports = await mapLimit(rankedSights, 5, async (item, index) => {
+  const sightRows = rankedSights.map((item, index) =>
+    upsertImported(
+      db.data.sights,
+      (x) =>
+        (item.wikidataId && x.wikidataId === item.wikidataId) ||
+        (item.wikipediaTitle && x.wikipediaTitle === item.wikipediaTitle),
+      {
+        id: `sight-${item.wikidataId ?? `${iso2}-${item.wikipediaTitle ?? slugify(item.name)}`}`,
+        ...item,
+        slug: slugify(item.name),
+        description: cleanDescription(item.description),
+        imageUrl: "",
+        isFeatured: true,
+        isPremium: index >= 5,
+        displayOrder: index,
+        lastSyncedAt: now,
+      },
+    ),
+  );
+  onProgress?.(db.data);
+
+  const enrichCities = mapLimit(cityRows, 10, async (city) => {
+    let wiki = await getWiki(city.name, wikiOptions).catch(() => ({}));
+    if (!wiki.imageUrl) {
+      const matches = await searchWiki(
+        `${city.name} ${basic.name}`,
+        wikiOptions,
+      ).catch(() => []);
+      wiki = matches.find((match) => match.imageUrl) ?? wiki;
+    }
+    if (!wiki.imageUrl) {
+      const commons = await searchCommons(
+        `${city.name} ${basic.name} city skyline landmark`,
+        wikiOptions,
+      ).catch(() => ({}));
+      wiki = { ...wiki, ...commons };
+    }
+    Object.assign(city, {
+      description: cleanDescription(wiki.description),
+      wikidataId: wiki.wikidataId ?? city.wikidataId,
+      wikipediaTitle: wiki.wikipediaTitle ?? city.wikipediaTitle,
+      imageUrl: wiki.imageUrl || wikiCountry.imageUrl || basic.flagUrl || "",
+    });
+    const credit = imageCredit("city", city.id, wiki);
+    if (credit)
+      upsertImported(
+        db.data.imageCredits,
+        (x) => x.entityType === "city" && x.entityId === city.id,
+        credit,
+      );
+  });
+  const enrichSights = mapLimit(sightRows, 10, async (sight) => {
+    const item =
+      rankedSights.find(
+        (candidate) =>
+          candidate.wikidataId === sight.wikidataId ||
+          candidate.wikipediaTitle === sight.wikipediaTitle,
+      ) ?? sight;
     let wiki = item.imageUrl
       ? item
       : await getWiki(item.wikipediaTitle ?? item.name, wikiOptions).catch(
@@ -191,30 +221,17 @@ export async function importCountry(
       ).catch(() => ({}));
       wiki = { ...wiki, ...commons };
     }
-    const sight = upsertImported(
-      db.data.sights,
-      (x) =>
-        (item.wikidataId && x.wikidataId === item.wikidataId) ||
-        (item.wikipediaTitle && x.wikipediaTitle === item.wikipediaTitle),
-      {
-        ...item,
-        slug: slugify(item.name),
-        description: cleanDescription(wiki.description),
-        wikidataId: wiki.wikidataId ?? item.wikidataId,
-        wikipediaTitle: wiki.wikipediaTitle ?? item.wikipediaTitle,
-        imageUrl:
-          wiki.imageUrl ||
-          cityRows.find((candidate) => candidate.id === item.cityId)
-            ?.imageUrl ||
-          wikiCountry.imageUrl ||
-          basic.flagUrl ||
-          "",
-        isFeatured: true,
-        isPremium: index >= 5,
-        displayOrder: index,
-        lastSyncedAt: now,
-      },
-    );
+    Object.assign(sight, {
+      description: cleanDescription(wiki.description || sight.description),
+      wikidataId: wiki.wikidataId ?? sight.wikidataId,
+      wikipediaTitle: wiki.wikipediaTitle ?? sight.wikipediaTitle,
+      imageUrl:
+        wiki.imageUrl ||
+        cityRows.find((candidate) => candidate.id === sight.cityId)?.imageUrl ||
+        wikiCountry.imageUrl ||
+        basic.flagUrl ||
+        "",
+    });
     const credit = imageCredit("sight", sight.id, wiki);
     if (credit)
       upsertImported(
@@ -222,18 +239,9 @@ export async function importCountry(
         (x) => x.entityType === "sight" && x.entityId === sight.id,
         credit,
       );
-    return sight;
   });
-  const sightRows = sightImports.filter(Boolean);
-  const defaults = [
-    { name: "Cultural Icons", slug: "cultural-icons", icon: "🏛️" },
-    { name: "Food Capitals", slug: "food-capitals", icon: "🥐" },
-    {
-      name: `${basic.continent || "World"} Gems`,
-      slug: `${slugify(basic.continent || "world")}-gems`,
-      icon: "✨",
-    },
-  ];
+  await Promise.all([enrichCities, enrichSights]);
+  const defaults = countryFeatureCollections(basic, sightRows);
   defaults.forEach((item, index) => {
     const collection = upsertImported(
       db.data.collections,

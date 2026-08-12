@@ -25,6 +25,43 @@ export function slugify(value) {
     .replace(/^-|-$/g, "");
 }
 
+export function countryFeatureCollections(country, sights = []) {
+  const features = [];
+  const region = country.region || country.continent || "World";
+  const continent = country.continent || "World";
+  features.push({
+    name: `${region} Highlights`,
+    slug: `${slugify(region)}-highlights`,
+    icon: "🧭",
+  });
+  if (
+    sights.some((sight) =>
+      /museum|historic|castle|palace|monument/i.test(sight.category),
+    )
+  )
+    features.push({
+      name: "Cultural Icons",
+      slug: "cultural-icons",
+      icon: "🏛️",
+    });
+  if (
+    sights.some((sight) =>
+      /park|nature|mountain|beach|garden/i.test(sight.category),
+    )
+  )
+    features.push({
+      name: "Natural Wonders",
+      slug: "natural-wonders",
+      icon: "🌿",
+    });
+  features.push({
+    name: `${continent} Explorer`,
+    slug: `${slugify(continent)}-explorer`,
+    icon: "✨",
+  });
+  return features.slice(0, 3);
+}
+
 export function cleanDescription(value, maxSentences = 2) {
   const clean = String(value ?? "")
     .replace(/<[^>]+>/g, " ")
@@ -47,6 +84,30 @@ export function rankEntities(items, limit) {
         String(a.name).localeCompare(String(b.name)),
     )
     .slice(0, limit);
+}
+
+export function rankSightsWithCityCoverage(items, cityIds, limit = 20) {
+  const ranked = rankEntities(items, items.length);
+  const selected = ranked.slice(0, limit);
+  const counts = () =>
+    selected.reduce((result, item) => {
+      result.set(item.cityId, (result.get(item.cityId) ?? 0) + 1);
+      return result;
+    }, new Map());
+
+  for (const cityId of cityIds) {
+    if (selected.some((item) => item.cityId === cityId)) continue;
+    const candidate = ranked.find((item) => item.cityId === cityId);
+    if (!candidate) continue;
+    const cityCounts = counts();
+    const replaceAt = selected.findLastIndex(
+      (item) => (cityCounts.get(item.cityId) ?? 0) > 1,
+    );
+    if (replaceAt >= 0) selected[replaceAt] = candidate;
+  }
+
+  const selectedIds = new Set(selected.map((item) => item.id));
+  return ranked.filter((item) => selectedIds.has(item.id)).slice(0, limit);
 }
 
 export function dedupeByStableId(items, keys) {

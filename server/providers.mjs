@@ -85,7 +85,7 @@ export async function wikipediaSearch(query, options) {
   );
   return Object.values(data?.query?.pages ?? {})
     .sort((a, b) => Number(a.index ?? 999) - Number(b.index ?? 999))
-    .map((page) => ({
+    .map((page, index) => ({
       wikipediaTitle: page.title,
       wikidataId: page.pageprops?.wikibase_item ?? null,
       name: page.title,
@@ -94,6 +94,7 @@ export async function wikipediaSearch(query, options) {
       sourceUrl: page.fullurl ?? "",
       latitude: Number(page.coordinates?.[0]?.lat),
       longitude: Number(page.coordinates?.[0]?.lon),
+      score: 100 - index,
     }));
 }
 

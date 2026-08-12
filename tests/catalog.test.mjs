@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cleanDescription,
+  countryFeatureCollections,
   dedupeByStableId,
   rankEntities,
+  rankSightsWithCityCoverage,
   upsertImported,
 } from "../server/lib/catalog.mjs";
 
@@ -32,6 +34,27 @@ test("ranks manual order before population", () =>
     ).map((x) => x.name),
     ["A", "B"],
   ));
+test("country top sights preserve discovered city coverage", () => {
+  const sights = [
+    { id: "a1", cityId: "a", name: "A1", score: 100 },
+    { id: "a2", cityId: "a", name: "A2", score: 90 },
+    { id: "b1", cityId: "b", name: "B1", score: 10 },
+  ];
+  assert.deepEqual(
+    rankSightsWithCityCoverage(sights, ["a", "b"], 2).map((x) => x.id),
+    ["a1", "b1"],
+  );
+});
+test("country feature collections derive from country and sight data", () => {
+  const features = countryFeatureCollections(
+    { continent: "Europe", region: "Western Europe" },
+    [{ category: "historic monument" }, { category: "national park" }],
+  );
+  assert.deepEqual(
+    features.map((item) => item.name),
+    ["Western Europe Highlights", "Cultural Icons", "Natural Wonders"],
+  );
+});
 test("upsert preserves manually edited fields", () => {
   const list = [
     { id: "1", iso2: "FR", name: "My France", manualFields: ["name"] },
