@@ -12,6 +12,7 @@ import {
   upsertImported,
 } from "../server/lib/catalog.mjs";
 import {
+  commonsImageSearch,
   geonamesCities,
   restCountry,
   wikidataSights,
@@ -34,64 +35,6 @@ async function mapLimit(items, limit, mapper) {
   return results;
 }
 
-const FRANCE_FALLBACK_CITIES = [
-  ["2988507", "Paris", 2148000, 48.8566, 2.3522],
-  ["2995469", "Marseille", 870321, 43.2965, 5.3698],
-  ["2996944", "Lyon", 522250, 45.764, 4.8357],
-  ["3031582", "Bordeaux", 261804, 44.8378, -0.5792],
-  ["2990440", "Nice", 348085, 43.7102, 7.262],
-  ["2972315", "Toulouse", 504078, 43.6047, 1.4442],
-].map(([geonamesId, name, population, latitude, longitude]) => ({
-  geonamesId,
-  name,
-  population,
-  latitude,
-  longitude,
-}));
-const FRANCE_FALLBACK_SIGHTS = [
-  ["W17421", "Eiffel Tower", "architecture", 48.8584, 2.2945],
-  ["W26378", "Louvre Museum", "museums", 48.8606, 2.3376],
-  ["W22675", "Arc de Triomphe", "monuments", 48.8738, 2.295],
-  ["W17767", "Notre-Dame de Paris", "religion", 48.853, 2.3499],
-  ["W28561", "Sacré-Cœur, Paris", "religion", 48.8867, 2.3431],
-  ["W24773", "Palace of Versailles", "palaces", 48.8049, 2.1204],
-  ["W19583", "Musée d'Orsay", "museums", 48.86, 2.3266],
-  ["W36869", "Mont-Saint-Michel", "historic", 48.6361, -1.5115],
-  ["W17103", "Pont du Gard", "historic", 43.9475, 4.535],
-  ["W21112", "Château de Chambord", "castles", 47.6161, 1.5172],
-  ["W30001", "Old Port of Marseille", "historic", 43.2951, 5.3742],
-  [
-    "W30002",
-    "Basilica of Notre-Dame de Fourvière",
-    "religion",
-    45.7622,
-    4.8226,
-  ],
-  ["W30003", "Place de la Bourse", "architecture", 44.8415, -0.5702],
-  ["W30004", "Promenade des Anglais", "landmark", 43.6954, 7.2651],
-  ["W30005", "Basilica of Saint-Sernin, Toulouse", "religion", 43.6084, 1.4414],
-].map(([_legacyId, name, category, latitude, longitude]) => ({
-  wikipediaTitle: name,
-  name,
-  category,
-  latitude,
-  longitude,
-  score: 3,
-}));
-const FRANCE_BASIC = {
-  iso2: "FR",
-  iso3: "FRA",
-  name: "France",
-  officialName: "French Republic",
-  capital: "Paris",
-  population: 68605616,
-  languages: ["French"],
-  currencies: ["Euro"],
-  continent: "Europe",
-  region: "Western Europe",
-  flagUrl: "https://flagcdn.com/w640/fr.png",
-};
-
 export async function importCountry(
   isoInput,
   { dbFile = process.env.DB_FILE ?? "server/db.json", providers = {} } = {},
@@ -109,11 +52,9 @@ export async function importCountry(
   const getCities = providers.geonamesCities ?? geonamesCities;
   const getWiki = providers.wikipediaSummary ?? wikipediaSummary;
   const searchWiki = providers.wikipediaSearch ?? wikipediaSearch;
+  const searchCommons = providers.commonsImageSearch ?? commonsImageSearch;
   const getSights = providers.wikidataSights ?? wikidataSights;
-  const basic = await getCountry(iso2).catch((error) => {
-    if (iso2 === "FR") return FRANCE_BASIC;
-    throw error;
-  });
+  const basic = await getCountry(iso2);
   const now = new Date().toISOString();
   const wikiOptions = { timeoutMs: 6_000, retries: 1 };
   const wikiCountry = await getWiki(basic.name, wikiOptions).catch(() => ({}));
@@ -128,8 +69,7 @@ export async function importCountry(
     wikidataId: wikiCountry.wikidataId,
     lastSyncedAt: now,
   });
-  let rawCities = await getCities(iso2).catch(() => []);
-  if (!rawCities.length && iso2 === "FR") rawCities = FRANCE_FALLBACK_CITIES;
+  const rawCities = await getCities(iso2).catch(() => []);
   const rankedCities = rankEntities(
     dedupeByStableId(rawCities, ["geonamesId", "wikidataId"]),
     10,
@@ -143,6 +83,13 @@ export async function importCountry(
       ).catch(() => []);
       wiki = matches.find((match) => match.imageUrl) ?? wiki;
     }
+    if (!wiki.imageUrl) {
+      const commons = await searchCommons(
+        `${item.name} ${basic.name} city skyline landmark`,
+        wikiOptions,
+      ).catch(() => ({}));
+      wiki = { ...wiki, ...commons };
+    }
     const city = upsertImported(
       db.data.cities,
       (x) => x.geonamesId === item.geonamesId,
@@ -153,7 +100,7 @@ export async function importCountry(
         description: cleanDescription(wiki.description),
         wikidataId: wiki.wikidataId ?? item.wikidataId,
         wikipediaTitle: wiki.wikipediaTitle ?? item.wikipediaTitle,
-        imageUrl: wiki.imageUrl ?? "",
+        imageUrl: wiki.imageUrl || wikiCountry.imageUrl || basic.flagUrl || "",
         isFeatured: true,
         displayOrder: index,
         lastSyncedAt: now,
@@ -172,9 +119,7 @@ export async function importCountry(
   let rawSights = await getSights(country, {
     timeoutMs: 8_000,
     retries: 0,
-  }).catch(
-    () => [],
-  );
+  }).catch(() => []);
   if (!rawSights.length && cityRows.length) {
     const fallbackGroups = await mapLimit(
       cityRows.slice(0, 4),
@@ -228,33 +173,24 @@ export async function importCountry(
       };
     })
     .filter((sight) => sight.cityId);
-  if (!sightCandidates.length && iso2 === "FR" && cityRows.length)
-    for (const sight of FRANCE_FALLBACK_SIGHTS)
-      sightCandidates.push({
-        ...sight,
-        cityId: [...cityRows].sort(
-          (a, b) =>
-            Math.hypot(
-              a.latitude - sight.latitude,
-              a.longitude - sight.longitude,
-            ) -
-            Math.hypot(
-              b.latitude - sight.latitude,
-              b.longitude - sight.longitude,
-            ),
-        )[0].id,
-        countryId: country.id,
-      });
   const rankedSights = rankEntities(
     dedupeByStableId(sightCandidates, ["wikidataId", "wikipediaTitle"]),
     20,
   );
   const sightImports = await mapLimit(rankedSights, 5, async (item, index) => {
-    const wiki = item.imageUrl
+    let wiki = item.imageUrl
       ? item
       : await getWiki(item.wikipediaTitle ?? item.name, wikiOptions).catch(
           () => ({}),
         );
+    if (!wiki.imageUrl) {
+      const city = cityRows.find((candidate) => candidate.id === item.cityId);
+      const commons = await searchCommons(
+        `${item.name} ${city?.name ?? ""} ${basic.name} landmark`,
+        wikiOptions,
+      ).catch(() => ({}));
+      wiki = { ...wiki, ...commons };
+    }
     const sight = upsertImported(
       db.data.sights,
       (x) =>
@@ -266,7 +202,13 @@ export async function importCountry(
         description: cleanDescription(wiki.description),
         wikidataId: wiki.wikidataId ?? item.wikidataId,
         wikipediaTitle: wiki.wikipediaTitle ?? item.wikipediaTitle,
-        imageUrl: wiki.imageUrl ?? "",
+        imageUrl:
+          wiki.imageUrl ||
+          cityRows.find((candidate) => candidate.id === item.cityId)
+            ?.imageUrl ||
+          wikiCountry.imageUrl ||
+          basic.flagUrl ||
+          "",
         isFeatured: true,
         isPremium: index >= 5,
         displayOrder: index,
@@ -378,21 +320,5 @@ export async function importCountry(
     country: country.name,
     cities: cityRows.length,
     sights: sightRows.length,
-    credentials: {
-      geonames: true,
-      wikidata: true,
-    },
   };
 }
-
-if (process.argv[1]?.endsWith("import-country.mjs"))
-  importCountry(process.argv[2])
-    .then((summary) =>
-      console.log(
-        `Imported ${summary.country}: ${summary.cities} cities, ${summary.sights} sights. GeoNames=${summary.credentials.geonames ? "enabled" : "fallback"}; Wikidata=enabled.`,
-      ),
-    )
-    .catch((error) => {
-      console.error(error.message);
-      process.exitCode = 1;
-    });

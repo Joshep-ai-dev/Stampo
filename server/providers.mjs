@@ -122,6 +122,46 @@ export async function commonsMetadata(imageUrl, options) {
   };
 }
 
+export async function commonsImageSearch(query, options) {
+  if (!query) return {};
+  const params = new URLSearchParams({
+    action: "query",
+    format: "json",
+    generator: "search",
+    gsrsearch: query,
+    gsrnamespace: "6",
+    gsrlimit: "8",
+    prop: "imageinfo",
+    iiprop: "url|extmetadata|mime",
+    iiurlwidth: "1200",
+    origin: "*",
+  });
+  const data = await fetchJson(
+    `https://commons.wikimedia.org/w/api.php?${params}`,
+    options,
+  );
+  const pages = Object.values(data?.query?.pages ?? {});
+  const page = pages.find((item) => {
+    const info = item.imageinfo?.[0];
+    return info?.mime?.startsWith("image/") && info.mime !== "image/svg+xml";
+  });
+  const info = page?.imageinfo?.[0];
+  if (!info) return {};
+  const meta = info.extmetadata ?? {};
+  return {
+    imageUrl: info.thumburl ?? info.url ?? "",
+    sourceUrl: info.url ?? "",
+    filePageUrl: info.descriptionurl ?? "",
+    creator: cleanDescription(meta.Artist?.value, 1),
+    license: meta.LicenseShortName?.value ?? "",
+    licenseUrl: meta.LicenseUrl?.value ?? "",
+    attribution: cleanDescription(
+      meta.Attribution?.value || meta.Credit?.value,
+      1,
+    ),
+  };
+}
+
 export async function wikidataSights(country, options) {
   if (!country?.wikidataId) return [];
   const query = `SELECT DISTINCT ?item ?itemLabel ?coord ?article ?typeLabel ?sitelinks WHERE {
