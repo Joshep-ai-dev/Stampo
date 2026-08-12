@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image, type ImageSource } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -55,8 +55,12 @@ export default function CountryScreen() {
   );
   const detail =
     countryState.data?.code === code.toUpperCase() ? countryState.data : null;
-  const name = detail?.name ?? "";
-  const flag = detail?.flag ?? "";
+  const normalizedCode = code.toUpperCase() as TCountryCode;
+  const name =
+    countries[normalizedCode]?.name ?? detail?.name ?? code.toUpperCase();
+  const flag = countries[normalizedCode]
+    ? getEmojiFlag(normalizedCode)
+    : (detail?.flag ?? "🌍");
   const heroCities = detail?.heroCities ?? [];
   const sights = detail?.sights ?? [];
   const freeSights = sights.filter((sight) => !sight.premium);
@@ -85,15 +89,14 @@ export default function CountryScreen() {
               color={BrandColors.onDark}
             />
           </TouchableOpacity>
-          {detail ? (
-            <Text style={s.title}>
-              {flag} {name}
-            </Text>
-          ) : (
-            <View style={s.titleLoading}>
-              <ActivityIndicator size="small" color={BrandColors.copper} />
-            </View>
-          )}
+          <Text
+            style={s.title}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.68}
+          >
+            {flag} {name}
+          </Text>
           <TouchableOpacity
             accessibilityLabel={`Share ${name}`}
             style={s.iconButton}
@@ -293,8 +296,9 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 44 },
   header: {
-    height: 64,
+    minHeight: 64,
     paddingHorizontal: 16,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -312,9 +316,10 @@ const s = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: 28,
+    lineHeight: 34,
+    includeFontPadding: false,
     color: BrandColors.copper,
   },
-  titleLoading: { flex: 1, alignItems: "center" },
   heroTrack: { paddingHorizontal: 16, gap: 10 },
   heroCard: {
     aspectRatio: 9 / 16,
