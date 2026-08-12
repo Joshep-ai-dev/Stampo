@@ -37,6 +37,63 @@ async function mapLimit(items, limit, mapper) {
   return results;
 }
 
+function normalizedName(value) {
+  return slugify(value).replace(/-/g, " ");
+}
+
+function placeMatchScore(candidate, place, context) {
+  if (
+    place.wikidataId &&
+    candidate.wikidataId &&
+    place.wikidataId !== candidate.wikidataId
+  )
+    return -Infinity;
+  const expected = normalizedName(place.name);
+  const title = normalizedName(candidate.wikipediaTitle ?? candidate.name);
+  const distance =
+    Number.isFinite(candidate.latitude) && Number.isFinite(place.latitude)
+      ? Math.hypot(
+          candidate.latitude - place.latitude,
+          candidate.longitude - place.longitude,
+        )
+      : null;
+  return (
+    (title === expected ? 100 : title.includes(expected) ? 45 : 0) +
+    (candidate.wikidataId && candidate.wikidataId === place.wikidataId
+      ? 150
+      : 0) +
+    (candidate.imageUrl ? 20 : 0) +
+    (distance === null ? 0 : distance < 0.2 ? 50 : distance < 1 ? 20 : -50) +
+    (normalizedName(context)
+      .split(" ")
+      .some((word) => title.includes(word))
+      ? 5
+      : 0)
+  );
+}
+
+async function resolveWikipediaPlace(
+  place,
+  context,
+  getWiki,
+  searchWiki,
+  options,
+) {
+  const [exact, candidates] = await Promise.all([
+    getWiki(place.wikipediaTitle ?? place.name, options).catch(() => ({})),
+    searchWiki(`${place.name} ${context}`, options).catch(() => []),
+  ]);
+  const choices = [exact, ...candidates]
+    .filter((candidate) => candidate.wikipediaTitle || candidate.name)
+    .map((candidate) => ({
+      candidate,
+      score: placeMatchScore(candidate, place, context),
+    }))
+    .filter((item) => Number.isFinite(item.score) && item.score >= 40)
+    .sort((a, b) => b.score - a.score);
+  return choices[0]?.candidate ?? {};
+}
+
 export async function importCountry(
   isoInput,
   {
@@ -172,14 +229,13 @@ export async function importCountry(
   onProgress?.(db.data);
 
   const enrichCities = mapLimit(cityRows, 10, async (city) => {
-    let wiki = await getWiki(city.name, wikiOptions).catch(() => ({}));
-    if (!wiki.imageUrl) {
-      const matches = await searchWiki(
-        `${city.name} ${basic.name}`,
-        wikiOptions,
-      ).catch(() => []);
-      wiki = matches.find((match) => match.imageUrl) ?? wiki;
-    }
+    let wiki = await resolveWikipediaPlace(
+      city,
+      basic.name,
+      getWiki,
+      searchWiki,
+      wikiOptions,
+    );
     if (!wiki.imageUrl) {
       const commons = await searchCommons(
         `${city.name} ${basic.name} city skyline landmark`,
@@ -208,13 +264,17 @@ export async function importCountry(
           candidate.wikidataId === sight.wikidataId ||
           candidate.wikipediaTitle === sight.wikipediaTitle,
       ) ?? sight;
+    const city = cityRows.find((candidate) => candidate.id === sight.cityId);
     let wiki = item.imageUrl
       ? item
-      : await getWiki(item.wikipediaTitle ?? item.name, wikiOptions).catch(
-          () => ({}),
+      : await resolveWikipediaPlace(
+          item,
+          `${city?.name ?? ""} ${basic.name}`,
+          getWiki,
+          searchWiki,
+          wikiOptions,
         );
     if (!wiki.imageUrl) {
-      const city = cityRows.find((candidate) => candidate.id === item.cityId);
       const commons = await searchCommons(
         `${item.name} ${city?.name ?? ""} ${basic.name} landmark`,
         wikiOptions,

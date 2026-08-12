@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { wikipediaPhotoUrl } from "../server/providers.mjs";
 import {
   cleanDescription,
   countryFeatureCollections,
@@ -66,4 +67,23 @@ test("upsert preserves manually edited fields", () => {
   });
   assert.equal(list[0].name, "My France");
   assert.equal(list[0].population, 10);
+});
+test("normalizes Wikipedia photos and rejects non-photo media", () => {
+  assert.equal(
+    wikipediaPhotoUrl({
+      thumbnail: {
+        source:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Skopje_view.jpg/320px-Skopje_view.jpg",
+      },
+    }),
+    "https://commons.wikimedia.org/wiki/Special:Redirect/file/Skopje_view.jpg?width=1200",
+  );
+  assert.equal(
+    wikipediaPhotoUrl({
+      originalimage: {
+        source: "https://upload.wikimedia.org/wikipedia/commons/Flag_of_X.svg",
+      },
+    }),
+    "",
+  );
 });

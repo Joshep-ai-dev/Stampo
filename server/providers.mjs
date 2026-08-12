@@ -1,6 +1,27 @@
 import { cleanDescription } from "./lib/catalog.mjs";
 import { fetchJson } from "./lib/http.mjs";
 
+const NON_PHOTO_IMAGE =
+  /\b(flag|logo|map|diagram|coat[_ -]?of[_ -]?arms|emblem|locator|icon|seal)\b/i;
+
+export function wikipediaPhotoUrl(data) {
+  const source = data?.thumbnail?.source || data?.originalimage?.source || "";
+  if (!source || NON_PHOTO_IMAGE.test(decodeURIComponent(source))) return "";
+  if (!source.includes("upload.wikimedia.org")) return source;
+  try {
+    const url = new URL(source);
+    const parts = url.pathname.split("/").filter(Boolean);
+    const thumbIndex = parts.indexOf("thumb");
+    const filename = decodeURIComponent(
+      thumbIndex >= 0 ? parts[thumbIndex + 3] : parts.at(-1),
+    );
+    if (!filename || filename.toLowerCase().endsWith(".svg")) return "";
+    return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}?width=1200`;
+  } catch {
+    return source;
+  }
+}
+
 export async function restCountry(iso2, options) {
   const row = await fetchJson(
     `https://countries.dev/alpha/${encodeURIComponent(iso2)}`,
@@ -55,7 +76,7 @@ export async function wikipediaSummary(title, options) {
     wikipediaTitle: data.title ?? title,
     wikidataId: data.wikibase_item ?? null,
     description: cleanDescription(data.extract),
-    imageUrl: data.originalimage?.source ?? data.thumbnail?.source ?? "",
+    imageUrl: wikipediaPhotoUrl(data),
     sourceUrl: data.content_urls?.desktop?.page ?? "",
   };
 }
@@ -74,7 +95,7 @@ export async function wikipediaSearch(query, options) {
     explaintext: "1",
     exsentences: "2",
     piprop: "original|thumbnail",
-    pithumbsize: "800",
+    pithumbsize: "2000",
     inprop: "url",
     redirects: "1",
     origin: "*",
@@ -90,7 +111,7 @@ export async function wikipediaSearch(query, options) {
       wikidataId: page.pageprops?.wikibase_item ?? null,
       name: page.title,
       description: cleanDescription(page.extract),
-      imageUrl: page.original?.source ?? page.thumbnail?.source ?? "",
+      imageUrl: wikipediaPhotoUrl(page),
       sourceUrl: page.fullurl ?? "",
       latitude: Number(page.coordinates?.[0]?.lat),
       longitude: Number(page.coordinates?.[0]?.lon),
