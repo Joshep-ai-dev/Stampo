@@ -3,6 +3,7 @@ import { Image, type ImageSource } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -57,8 +58,8 @@ export default function CountryScreen() {
   );
   const detail =
     countryState.data?.code === code.toUpperCase() ? countryState.data : null;
-  const name = detail?.name ?? code.toUpperCase();
-  const flag = detail?.flag ?? "🌍";
+  const name = detail?.name ?? "";
+  const flag = detail?.flag ?? "";
   const heroCities = detail?.heroCities ?? [];
   const sights = detail?.sights ?? [];
   const freeSights = sights.filter((sight) => !sight.premium);
@@ -100,9 +101,15 @@ export default function CountryScreen() {
               color={BrandColors.onDark}
             />
           </TouchableOpacity>
-          <Text style={s.title}>
-            {flag} {name}
-          </Text>
+          {detail ? (
+            <Text style={s.title}>
+              {flag} {name}
+            </Text>
+          ) : (
+            <View style={s.titleLoading}>
+              <ActivityIndicator size="small" color={BrandColors.copper} />
+            </View>
+          )}
           <TouchableOpacity
             accessibilityLabel={`Share ${name}`}
             style={s.iconButton}
@@ -173,80 +180,86 @@ export default function CountryScreen() {
           />
         </View>
 
-        <SectionTitle>Featured In</SectionTitle>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.pills}
-        >
-          {(detail?.featuredIn ?? []).map((item) => (
-            <DisplayBubble key={item} label={item} />
-          ))}
-        </ScrollView>
+        {detail?.featuredIn.length ? (
+          <>
+            <SectionTitle>Featured In</SectionTitle>
+            <View style={s.pills}>
+              {detail.featuredIn.map((item) => (
+                <DisplayBubble key={item} label={item} />
+              ))}
+            </View>
+          </>
+        ) : null}
 
-        <SectionTitle>Top Sights</SectionTitle>
-        <View style={s.sightList}>
-          {freeSights.map((sight) => {
-            const checked = sight.completed;
-            return (
-              <TouchableOpacity
-                key={sight.id}
-                style={s.sightRow}
-                onPress={() => toggleSight(sight.id, checked)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
-              >
-                <Image
-                  source={SIGHT_IMAGES[sight.imageKey]}
-                  style={s.sightImage}
-                  contentFit="cover"
-                  transition={150}
-                />
-                <Text numberOfLines={1} style={s.sightName}>
-                  {sight.name}
-                </Text>
-                <Ionicons
-                  name={
-                    checked ? "checkmark-circle" : "checkmark-circle-outline"
-                  }
-                  size={28}
-                  color="#57D5A0"
-                />
-              </TouchableOpacity>
-            );
-          })}
-          <UpgradeBanner />
-          <View style={s.lockedList}>
-            {premiumSights.map((sight) => (
-              <View
-                key={sight.id}
-                style={[s.sightRow, s.lockedSightRow]}
-                accessibilityElementsHidden
-              >
-                <Image
-                  source={SIGHT_IMAGES[sight.imageKey]}
-                  style={s.sightImage}
-                  contentFit="cover"
-                  blurRadius={32}
-                  transition={150}
-                />
-                <Text
-                  numberOfLines={1}
-                  style={[s.sightName, s.lockedSightName]}
-                >
-                  {sight.name}
-                </Text>
-                <View style={s.lockedSightCheck}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={28}
-                    color={BrandColors.onDarkMuted}
-                  />
-                </View>
+        {sights.length ? (
+          <>
+            <SectionTitle>Top Sights</SectionTitle>
+            <View style={s.sightList}>
+              {freeSights.map((sight) => {
+                const checked = sight.completed;
+                return (
+                  <TouchableOpacity
+                    key={sight.id}
+                    style={s.sightRow}
+                    onPress={() => toggleSight(sight.id, checked)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                  >
+                    <Image
+                      source={SIGHT_IMAGES[sight.imageKey]}
+                      style={s.sightImage}
+                      contentFit="cover"
+                      transition={150}
+                    />
+                    <Text numberOfLines={1} style={s.sightName}>
+                      {sight.name}
+                    </Text>
+                    <Ionicons
+                      name={
+                        checked
+                          ? "checkmark-circle"
+                          : "checkmark-circle-outline"
+                      }
+                      size={28}
+                      color="#57D5A0"
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+              {premiumSights.length ? <UpgradeBanner /> : null}
+              <View style={s.lockedList}>
+                {premiumSights.map((sight) => (
+                  <View
+                    key={sight.id}
+                    style={[s.sightRow, s.lockedSightRow]}
+                    accessibilityElementsHidden
+                  >
+                    <Image
+                      source={SIGHT_IMAGES[sight.imageKey]}
+                      style={s.sightImage}
+                      contentFit="cover"
+                      blurRadius={32}
+                      transition={150}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[s.sightName, s.lockedSightName]}
+                    >
+                      {sight.name}
+                    </Text>
+                    <View style={s.lockedSightCheck}>
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={28}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </View>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
+          </>
+        ) : null}
 
         <SectionTitle>Cities Visited</SectionTitle>
         <View style={s.cityChips}>
@@ -312,6 +325,7 @@ const s = StyleSheet.create({
     fontSize: 28,
     color: BrandColors.copper,
   },
+  titleLoading: { flex: 1, alignItems: "center" },
   heroTrack: { paddingHorizontal: 16, gap: 10 },
   heroCard: {
     aspectRatio: 9 / 16,
@@ -363,7 +377,12 @@ const s = StyleSheet.create({
     fontSize: 21,
     color: BrandColors.onDark,
   },
-  pills: { paddingHorizontal: 14, gap: 8 },
+  pills: {
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   sightList: { marginHorizontal: 16 },
   sightRow: {
     minHeight: 62,

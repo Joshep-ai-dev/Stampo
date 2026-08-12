@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import { App } from "@tinyhttp/app";
 import { cors } from "@tinyhttp/cors";
 import { createApp } from "json-server/lib/app.js";
+import { countries, getEmojiFlag } from "countries-list";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 import { json } from "milliparsec";
@@ -291,11 +292,9 @@ function homeDashboardFor(user) {
 app.post("/auth/register", async (req, res) => {
   const { name, email, password, passwordConfirmation } = req.body ?? {};
   if (!name || !email || !password || password.length < 6) {
-    return res
-      .status(422)
-      .json({
-        message: "Name, email, and a 6-character password are required.",
-      });
+    return res.status(422).json({
+      message: "Name, email, and a 6-character password are required.",
+    });
   }
   if (password !== passwordConfirmation) {
     return res
@@ -362,11 +361,9 @@ app.put("/auth/password", async (req, res) => {
       .json({ message: "The current password is incorrect." });
   }
   if (String(newPassword ?? "").length < 8) {
-    return res
-      .status(422)
-      .json({
-        message: "The new password must contain at least 8 characters.",
-      });
+    return res.status(422).json({
+      message: "The new password must contain at least 8 characters.",
+    });
   }
   user.password = await hashPassword(String(newPassword));
   await db.write();
@@ -491,9 +488,10 @@ app.get("/countries/:code", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   const code = String(req.params.code ?? "").toUpperCase();
+  const countryIdentity = countries[code];
   const catalog = COUNTRY_CATALOG[code] ?? {
-    name: code,
-    flag: "🌍",
+    name: countryIdentity?.name ?? code,
+    flag: countryIdentity ? getEmojiFlag(code) : "🌍",
     heroCities: [],
     featuredIn: [],
     sights: [],
