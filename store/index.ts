@@ -6,6 +6,7 @@ import dashboardReducer, {
   dashboardCleared,
   fetchHomeDashboard,
 } from "./dashboard-slice";
+import countryDetailReducer from "./country-detail-slice";
 import profileReducer, {
   authSessionChanged,
   languageChanged,
@@ -26,6 +27,7 @@ export const store = configureStore({
     travel: travelReducer,
     profile: profileReducer,
     dashboard: dashboardReducer,
+    countryDetail: countryDetailReducer,
   },
 });
 

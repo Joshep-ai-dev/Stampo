@@ -107,7 +107,26 @@ export type CollectionProgress = {
   updatedAt?: string;
 };
 
+export type CountryDetailResponse = {
+  code: string;
+  name: string;
+  flag: string;
+  heroCities: { name: string; imageKey: string }[];
+  featuredIn: string[];
+  sights: {
+    id: string;
+    name: string;
+    imageKey: string;
+    premium: boolean;
+    completed: boolean;
+  }[];
+  stats: { cities: number; sights: number; airports: number };
+  visitedCities: { id: string; name: string }[];
+};
+
 export const api = {
+  countryDetail: (code: string) =>
+    request<CountryDetailResponse>(`/countries/${encodeURIComponent(code)}`),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   setSightCompleted: (sightId: string, completed: boolean) =>

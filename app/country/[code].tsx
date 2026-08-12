@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { countries, type TCountryCode } from "countries-list";
 import { Image, type ImageSource } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -20,131 +19,62 @@ import { DisplayBubble } from "@/components/display-bubble";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { api } from "@/services/api";
+import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sightToggled } from "@/store/travel-slice";
 
-const CITY_IMAGES: { name: string; source: ImageSource }[] = [
-  {
-    name: "Paris",
-    source: require("@/assets/images/cities/Golden-hour Paris with Eiffel Tower.png"),
-  },
-  {
-    name: "Lyon",
-    source: require("@/assets/images/cities/Lyon Old Town and Fourvière Basilica.png"),
-  },
-  {
-    name: "Marseille",
-    source: require("@/assets/images/cities/Marseille’s Vieux-Port and Notre-Dame.png"),
-  },
-  {
-    name: "Nice",
-    source: require("@/assets/images/cities/Nice Promenade and Turquoise Sea.png"),
-  },
-  {
-    name: "Paris",
-    source: require("@/assets/images/cities/Notre-Dame at golden hour.png"),
-  },
-];
+const CITY_IMAGES: Record<string, ImageSource> = {
+  "paris-eiffel": require("@/assets/images/cities/Golden-hour Paris with Eiffel Tower.png"),
+  lyon: require("@/assets/images/cities/Lyon Old Town and Fourvière Basilica.png"),
+  marseille: require("@/assets/images/cities/Marseille’s Vieux-Port and Notre-Dame.png"),
+  nice: require("@/assets/images/cities/Nice Promenade and Turquoise Sea.png"),
+  "paris-notre-dame": require("@/assets/images/cities/Notre-Dame at golden hour.png"),
+};
 
-const TOP_SIGHTS: { id: string; name: string; source: ImageSource }[] = [
-  {
-    id: "eiffel",
-    name: "Eiffel Tower",
-    source: require("@/assets/images/sights/Eiffel Tower from Trocadéro at golden hour.png"),
-  },
-  {
-    id: "louvre",
-    name: "Louvre Museum",
-    source: require("@/assets/images/sights/Paris Louvre Pyramid at Blue Hour.png"),
-  },
-  {
-    id: "arc",
-    name: "Arc de Triomphe",
-    source: require("@/assets/images/sights/Arc de Triomphe on the Champs-Élysées.png"),
-  },
-  {
-    id: "versailles",
-    name: "Palace of Versailles",
-    source: require("@/assets/images/sights/Versailles Palace and Geometric Gardens.png"),
-  },
-  {
-    id: "mont-saint-michel",
-    name: "Mont-Saint-Michel",
-    source: require("@/assets/images/sights/Mont-Saint-Michel at Sunrise.png"),
-  },
-  {
-    id: "pont-du-gard",
-    name: "Pont du Gard",
-    source: require("@/assets/images/sights/Pont du Gard in golden light.png"),
-  },
-  {
-    id: "villefranche",
-    name: "Villefranche-sur-Mer",
-    source: require("@/assets/images/sights/Villefranche-sur-Mer by the Turquoise Sea.png"),
-  },
-];
-
-const FEATURED = ["🏛️ Cultural Icons", "🥐 Food Capitals", "✨ European Gems"];
+const SIGHT_IMAGES: Record<string, ImageSource> = {
+  eiffel: require("@/assets/images/sights/Eiffel Tower from Trocadéro at golden hour.png"),
+  louvre: require("@/assets/images/sights/Paris Louvre Pyramid at Blue Hour.png"),
+  arc: require("@/assets/images/sights/Arc de Triomphe on the Champs-Élysées.png"),
+  versailles: require("@/assets/images/sights/Versailles Palace and Geometric Gardens.png"),
+  "mont-saint-michel": require("@/assets/images/sights/Mont-Saint-Michel at Sunrise.png"),
+  "pont-du-gard": require("@/assets/images/sights/Pont du Gard in golden light.png"),
+  villefranche: require("@/assets/images/sights/Villefranche-sur-Mer by the Turquoise Sea.png"),
+};
 
 export default function CountryScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
-  const visits = useAppSelector((state) => state.travel.visits);
-  const completed = useAppSelector(
-    (state) => state.travel.completedSightIds ?? [],
-  );
+  const countryState = useAppSelector((state) => state.countryDetail);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [slide, setSlide] = useState(0);
-  const name = countries[code as TCountryCode]?.name ?? "France";
-  const flag =
-    code.length === 2
-      ? String.fromCodePoint(
-          ...code
-            .toUpperCase()
-            .split("")
-            .map((char) => 127397 + char.charCodeAt(0)),
-        )
-      : "🌍";
-  const countryVisits = visits.filter((visit) => visit.countryCode === code);
-  const visitedCities = useMemo(
-    () => [
-      ...new Map(
-        countryVisits.map((visit) => [
-          visit.cityId,
-          { id: visit.cityId, name: visit.cityName },
-        ]),
-      ).values(),
-    ],
-    [countryVisits],
+  useFocusEffect(
+    useCallback(() => {
+      if (isSignedIn) void dispatch(fetchCountryDetail(code));
+    }, [code, dispatch, isSignedIn]),
   );
-  const recordedSights = countryVisits.reduce(
-    (total, visit) =>
-      total + visit.places.filter((place) => place.type === "sight").length,
-    0,
-  );
-  const airports = new Set(
-    countryVisits.flatMap((visit) =>
-      visit.places
-        .filter((place) => place.type === "airport")
-        .map((place) => place.name),
-    ),
-  ).size;
-  const sightCount =
-    recordedSights +
-    TOP_SIGHTS.filter((sight) => completed.includes(sight.id)).length;
+  const detail =
+    countryState.data?.code === code.toUpperCase() ? countryState.data : null;
+  const name = detail?.name ?? code.toUpperCase();
+  const flag = detail?.flag ?? "🌍";
+  const heroCities = detail?.heroCities ?? [];
+  const sights = detail?.sights ?? [];
+  const freeSights = sights.filter((sight) => !sight.premium);
+  const premiumSights = sights.filter((sight) => sight.premium);
   const cardWidth = Math.min((width - 32) * 0.42, 180);
 
-  const toggleSight = (id: string) => {
-    const wasCompleted = completed.includes(id);
-    dispatch(sightToggled(id));
+  const toggleSight = (id: string, wasCompleted: boolean) => {
     if (isSignedIn) {
       void api
         .setSightCompleted(id, !wasCompleted)
-        .then(() => dispatch(fetchHomeDashboard()))
-        .catch(() => dispatch(sightToggled(id)));
+        .then(() => {
+          dispatch(sightToggled(id));
+          void dispatch(fetchHomeDashboard());
+          void dispatch(fetchCountryDetail(code));
+        })
+        .catch(() => undefined);
     }
   };
 
@@ -196,13 +126,13 @@ export default function CountryScreen() {
           onMomentumScrollEnd={onHeroScroll}
           contentContainerStyle={s.heroTrack}
         >
-          {CITY_IMAGES.map((city, index) => (
+          {heroCities.map((city, index) => (
             <View
               key={`${city.name}-${index}`}
               style={[s.heroCard, { width: cardWidth }]}
             >
               <Image
-                source={city.source}
+                source={CITY_IMAGES[city.imageKey]}
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
                 transition={180}
@@ -216,7 +146,7 @@ export default function CountryScreen() {
           ))}
         </ScrollView>
         <View style={s.dots}>
-          {CITY_IMAGES.map((_, index) => (
+          {heroCities.map((_, index) => (
             <View key={index} style={[s.dot, slide === index && s.dotActive]} />
           ))}
         </View>
@@ -226,17 +156,17 @@ export default function CountryScreen() {
             items={[
               {
                 icon: "business-outline",
-                value: visitedCities.length,
+                value: detail?.stats.cities ?? 0,
                 label: "CITIES VISITED",
               },
               {
                 icon: "camera-outline",
-                value: sightCount,
+                value: detail?.stats.sights ?? 0,
                 label: "SIGHTS VISITED",
               },
               {
                 icon: "airplane-outline",
-                value: airports,
+                value: detail?.stats.airports ?? 0,
                 label: "AIRPORTS VISITED",
               },
             ]}
@@ -249,25 +179,25 @@ export default function CountryScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.pills}
         >
-          {FEATURED.map((item) => (
+          {(detail?.featuredIn ?? []).map((item) => (
             <DisplayBubble key={item} label={item} />
           ))}
         </ScrollView>
 
         <SectionTitle>Top Sights</SectionTitle>
         <View style={s.sightList}>
-          {TOP_SIGHTS.slice(0, 5).map((sight) => {
-            const checked = completed.includes(sight.id);
+          {freeSights.map((sight) => {
+            const checked = sight.completed;
             return (
               <TouchableOpacity
                 key={sight.id}
                 style={s.sightRow}
-                onPress={() => toggleSight(sight.id)}
+                onPress={() => toggleSight(sight.id, checked)}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked }}
               >
                 <Image
-                  source={sight.source}
+                  source={SIGHT_IMAGES[sight.imageKey]}
                   style={s.sightImage}
                   contentFit="cover"
                   transition={150}
@@ -287,14 +217,14 @@ export default function CountryScreen() {
           })}
           <UpgradeBanner />
           <View style={s.lockedList}>
-            {TOP_SIGHTS.slice(5).map((sight) => (
+            {premiumSights.map((sight) => (
               <View
                 key={sight.id}
                 style={[s.sightRow, s.lockedSightRow]}
                 accessibilityElementsHidden
               >
                 <Image
-                  source={sight.source}
+                  source={SIGHT_IMAGES[sight.imageKey]}
                   style={s.sightImage}
                   contentFit="cover"
                   blurRadius={32}
@@ -320,8 +250,8 @@ export default function CountryScreen() {
 
         <SectionTitle>Cities Visited</SectionTitle>
         <View style={s.cityChips}>
-          {visitedCities.length ? (
-            visitedCities.map((city) => (
+          {detail?.visitedCities.length ? (
+            detail.visitedCities.map((city) => (
               <TouchableOpacity
                 key={city.id}
                 style={s.cityChipAction}
