@@ -169,7 +169,7 @@ export default function CountryScreen() {
             />
           </TouchableOpacity>
           <Text style={s.title}>
-            {name} {flag}
+            {flag} {name}
           </Text>
           <TouchableOpacity
             accessibilityLabel={`Share ${name}`}
