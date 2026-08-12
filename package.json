@@ -9,7 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "server": "node server/index.mjs"
+    "server": "node server/index.mjs",
+    "import:country": "node scripts/import-country.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/lora": "^0.4.2",

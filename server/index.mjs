@@ -14,6 +14,7 @@ import { countries, getEmojiFlag } from "countries-list";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 import { json } from "milliparsec";
+import { ensureCatalog, rankEntities } from "./lib/catalog.mjs";
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
@@ -33,6 +34,7 @@ db.data.completions ??= [];
 db.data.wishlists ??= [];
 db.data.rewards ??= [];
 db.data.collectionProgress ??= [];
+ensureCatalog(db);
 const scrypt = promisify(scryptCallback);
 
 async function hashPassword(password) {
@@ -508,6 +510,202 @@ app.get("/me/home", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   return res.json(homeDashboardFor(user));
+});
+
+function creditFor(entityType, entityId) {
+  return (
+    db.data.imageCredits.find(
+      (item) => item.entityType === entityType && item.entityId === entityId,
+    ) ?? null
+  );
+}
+
+function publicCity(city) {
+  return {
+    id: city.id,
+    countryId: city.countryId,
+    geonamesId: city.geonamesId ?? null,
+    wikidataId: city.wikidataId ?? null,
+    wikipediaTitle: city.wikipediaTitle ?? null,
+    name: city.name,
+    slug: city.slug,
+    description: city.description ?? "",
+    population: Number(city.population ?? 0),
+    latitude: Number(city.latitude),
+    longitude: Number(city.longitude),
+    image: city.imageUrl ?? "",
+    imageCredit: creditFor("city", city.id),
+  };
+}
+
+function publicSight(sight) {
+  const city = db.data.cities.find((item) => item.id === sight.cityId);
+  return {
+    id: sight.id,
+    countryId: sight.countryId,
+    cityId: sight.cityId,
+    city: city?.name ?? "",
+    opentripmapXid: sight.opentripmapXid ?? null,
+    wikidataId: sight.wikidataId ?? null,
+    wikipediaTitle: sight.wikipediaTitle ?? null,
+    name: sight.name,
+    slug: sight.slug,
+    description: sight.description ?? "",
+    category: sight.category ?? "attraction",
+    latitude: Number(sight.latitude),
+    longitude: Number(sight.longitude),
+    image: sight.imageUrl ?? "",
+    imageCredit: creditFor("sight", sight.id),
+  };
+}
+
+function catalogCountryPayload(code, req) {
+  const country = db.data.countries.find((item) => item.iso2 === code);
+  if (!country) return null;
+  const cities = rankEntities(
+    db.data.cities.filter(
+      (item) => item.countryId === country.id && item.isFeatured !== false,
+    ),
+    10,
+  );
+  const sights = rankEntities(
+    db.data.sights.filter(
+      (item) => item.countryId === country.id && item.isFeatured !== false,
+    ),
+    20,
+  );
+  const featuredIn = db.data.countryCollections
+    .filter((item) => item.countryId === country.id)
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((join) =>
+      db.data.collections.find((item) => item.id === join.collectionId),
+    )
+    .filter(Boolean)
+    .map(({ name, icon, slug }) => ({ name, icon, slug }));
+  const user = authenticatedUser(req);
+  const visits = user
+    ? db.data.visits.filter(
+        (visit) =>
+          String(visit.userId) === String(user.id) &&
+          visit.countryCode === code,
+      )
+    : [];
+  const completed = new Set(
+    user
+      ? db.data.completions
+          .filter((item) => String(item.userId) === String(user.id))
+          .map((item) => item.sightId)
+      : [],
+  );
+  return {
+    country: {
+      id: country.id,
+      code: country.iso2,
+      iso3: country.iso3,
+      name: country.name,
+      officialName: country.officialName,
+      flag: country.flagUrl,
+      capital: country.capital,
+      population: country.population,
+      languages: country.languages ?? [],
+      currencies: country.currencies ?? [],
+      continent: country.continent,
+      region: country.region,
+      description: country.description,
+      coverImage: country.coverImageUrl ?? "",
+    },
+    featuredIn,
+    cities: cities.map(publicCity),
+    sights: sights.map((sight) => ({
+      ...publicSight(sight),
+      completed: completed.has(sight.id),
+    })),
+    stats: {
+      cities: new Set(visits.map((x) => x.cityId)).size,
+      sights:
+        completed.size +
+        visits.reduce(
+          (n, x) =>
+            n + (x.places ?? []).filter((p) => p.type === "sight").length,
+          0,
+        ),
+      airports: new Set(
+        visits.flatMap((x) =>
+          (x.places ?? [])
+            .filter((p) => p.type === "airport")
+            .map((p) => p.name),
+        ),
+      ).size,
+    },
+    visitedCities: [
+      ...new Map(
+        visits.map((x) => [x.cityId, { id: x.cityId, name: x.cityName }]),
+      ).values(),
+    ],
+  };
+}
+
+app.get("/api/countries/:code", (req, res) => {
+  const payload = catalogCountryPayload(
+    String(req.params.code).toUpperCase(),
+    req,
+  );
+  return payload
+    ? res.json(payload)
+    : res.status(404).json({ message: "Country has not been imported." });
+});
+app.get("/api/countries/:code/cities", (req, res) => {
+  const payload = catalogCountryPayload(
+    String(req.params.code).toUpperCase(),
+    req,
+  );
+  return payload
+    ? res.json(payload.cities)
+    : res.status(404).json({ message: "Country has not been imported." });
+});
+app.get("/api/cities/:id", (req, res) => {
+  const city = db.data.cities.find(
+    (item) =>
+      item.id === req.params.id ||
+      item.slug === req.params.id ||
+      item.geonamesId === req.params.id,
+  );
+  return city
+    ? res.json({
+        ...publicCity(city),
+        sights: rankEntities(
+          db.data.sights.filter((item) => item.cityId === city.id),
+          20,
+        ).map(publicSight),
+      })
+    : res.status(404).json({ message: "City not found." });
+});
+app.get("/api/cities/:id/sights", (req, res) => {
+  const city = db.data.cities.find(
+    (item) =>
+      item.id === req.params.id ||
+      item.slug === req.params.id ||
+      item.geonamesId === req.params.id,
+  );
+  return city
+    ? res.json(
+        rankEntities(
+          db.data.sights.filter((item) => item.cityId === city.id),
+          20,
+        ).map(publicSight),
+      )
+    : res.status(404).json({ message: "City not found." });
+});
+app.get("/api/sights/:id", (req, res) => {
+  const sight = db.data.sights.find(
+    (item) =>
+      item.id === req.params.id ||
+      item.slug === req.params.id ||
+      item.opentripmapXid === req.params.id,
+  );
+  return sight
+    ? res.json(publicSight(sight))
+    : res.status(404).json({ message: "Sight not found." });
 });
 
 app.get("/countries/:code", (req, res) => {

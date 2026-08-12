@@ -33,10 +33,10 @@ EXPO_PUBLIC_API_URL=http://10.0.2.2:3001
 
 Server environment variables:
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3001` | HTTP port |
-| `HOST` | `0.0.0.0` | Bind address |
+| Variable  | Default          | Purpose         |
+| --------- | ---------------- | --------------- |
+| `PORT`    | `3001`           | HTTP port       |
+| `HOST`    | `0.0.0.0`        | Bind address    |
 | `DB_FILE` | `server/db.json` | LowDB JSON file |
 
 ## Conventions
@@ -75,14 +75,14 @@ Errors use an HTTP status and a JSON message:
 
 Common statuses:
 
-| Status | Meaning |
-| --- | --- |
-| `200` | Successful read or update |
-| `201` | Resource created |
-| `204` | Successful action with no response body |
-| `401` | Missing, invalid, or expired session |
-| `404` | User-owned resource not found |
-| `422` | Invalid request or credentials |
+| Status | Meaning                                 |
+| ------ | --------------------------------------- |
+| `200`  | Successful read or update               |
+| `201`  | Resource created                        |
+| `204`  | Successful action with no response body |
+| `401`  | Missing, invalid, or expired session    |
+| `404`  | User-owned resource not found           |
+| `422`  | Invalid request or credentials          |
 
 ## Data models
 
@@ -143,26 +143,33 @@ Common statuses:
 
 ## Endpoint summary
 
-| Method | Path | Authentication | Purpose |
-| --- | --- | --- | --- |
-| `POST` | `/auth/register` | No | Create account and session |
-| `POST` | `/auth/login` | No | Create session |
-| `GET` | `/auth/me` | Yes | Restore current user |
-| `PUT` | `/auth/password` | Yes | Change password |
-| `POST` | `/auth/logout` | Yes | Revoke current session |
-| `GET` | `/profile` | Yes | Get complete profile |
-| `PUT` | `/profile` | Yes | Update profile |
-| `GET` | `/visits` | Yes | List the user's visits |
-| `POST` | `/visits` | Yes | Add a visit |
-| `PUT` | `/visits/:id` | Yes | Replace a visit |
-| `DELETE` | `/visits/:id` | Yes | Delete a visit |
-| `GET` | `/me/travel-state` | Yes | Hydrate completions, wishlist, rewards and plan |
-| `GET` | `/me/home` | Yes | Get the calculated homepage dashboard |
-| `PUT` | `/me/completions/:sightId` | Yes | Set sight completion state |
-| `PUT` | `/me/wishlist/:targetId` | Yes | Set wishlist state |
-| `PUT` | `/me/plan` | Yes | Change free/pro plan |
-| `GET` | `/collections?status=all` | Yes | List user collection progress |
-| `PUT` | `/me/collections/:collectionId` | Yes | Update collection progress |
+| Method   | Path                            | Authentication | Purpose                                                      |
+| -------- | ------------------------------- | -------------- | ------------------------------------------------------------ |
+| `POST`   | `/auth/register`                | No             | Create account and session                                   |
+| `POST`   | `/auth/login`                   | No             | Create session                                               |
+| `GET`    | `/auth/me`                      | Yes            | Restore current user                                         |
+| `PUT`    | `/auth/password`                | Yes            | Change password                                              |
+| `POST`   | `/auth/logout`                  | Yes            | Revoke current session                                       |
+| `GET`    | `/profile`                      | Yes            | Get complete profile                                         |
+| `PUT`    | `/profile`                      | Yes            | Update profile                                               |
+| `GET`    | `/visits`                       | Yes            | List the user's visits                                       |
+| `POST`   | `/visits`                       | Yes            | Add a visit                                                  |
+| `PUT`    | `/visits/:id`                   | Yes            | Replace a visit                                              |
+| `DELETE` | `/visits/:id`                   | Yes            | Delete a visit                                               |
+| `GET`    | `/me/travel-state`              | Yes            | Hydrate completions, wishlist, rewards and plan              |
+| `GET`    | `/me/home`                      | Yes            | Get the calculated homepage dashboard                        |
+| `PUT`    | `/me/completions/:sightId`      | Yes            | Set sight completion state                                   |
+| `PUT`    | `/me/wishlist/:targetId`        | Yes            | Set wishlist state                                           |
+| `PUT`    | `/me/plan`                      | Yes            | Change free/pro plan                                         |
+| `GET`    | `/collections?status=all`       | Yes            | List user collection progress                                |
+| `PUT`    | `/me/collections/:collectionId` | Yes            | Update collection progress                                   |
+| `GET`    | `/api/countries/:code`          | Optional       | Imported country, collections, cities, sights and user stats |
+| `GET`    | `/api/countries/:code/cities`   | Optional       | Featured imported cities                                     |
+| `GET`    | `/api/cities/:id`               | Optional       | City detail with sights                                      |
+| `GET`    | `/api/cities/:id/sights`        | Optional       | Sights in a city                                             |
+| `GET`    | `/api/sights/:id`               | Optional       | Sight detail and image attribution                           |
+
+Catalog records are normalized into `countries`, `cities`, `sights`, `collections`, `countryCollections`, and `imageCredits` arrays in LowDB. Run `npm run import:country -- FR` to upsert one country. Stable provider IDs prevent duplicates, and fields named in a record's `manualFields` array are preserved during refresh.
 
 ## Authentication endpoints
 
@@ -557,28 +564,28 @@ Counts use unique continent, country, and city IDs. Airport places are counted f
 
 ### Kroo Score
 
-| Category | Points each | Maximum |
-| --- | ---: | ---: |
-| Continents | `1.0` | `7.0` |
-| Countries | `0.25` | `48.75` |
-| Cities | `0.005` | `10.0` |
-| Airports | `0.01` | `8.0` |
-| Sights | `0.002` | `20.0` |
-| Challenges | Variable | `6.25` |
-| Total |  | `100` |
+| Category   | Points each | Maximum |
+| ---------- | ----------: | ------: |
+| Continents |       `1.0` |   `7.0` |
+| Countries  |      `0.25` | `48.75` |
+| Cities     |     `0.005` |  `10.0` |
+| Airports   |      `0.01` |   `8.0` |
+| Sights     |     `0.002` |  `20.0` |
+| Challenges |    Variable |  `6.25` |
+| Total      |             |   `100` |
 
 The server caps every category and the final total. The score is rounded to three decimal places.
 
 ### Levels
 
-| Level | Score |
-| --- | ---: |
-| Wanderer | `0–4.999` |
-| Traveler | `5–14.999` |
-| Explorer | `15–29.999` |
-| Wayfarer | `30–49.999` |
-| Voyager | `50–74.999` |
-| Kroo Master | `75–100` |
+| Level       |       Score |
+| ----------- | ----------: |
+| Wanderer    |   `0–4.999` |
+| Traveler    |  `5–14.999` |
+| Explorer    | `15–29.999` |
+| Wayfarer    | `30–49.999` |
+| Voyager     | `50–74.999` |
+| Kroo Master |    `75–100` |
 
 `worldProgress` is the rounded percentage of 195 recognized countries visited.
 
@@ -599,13 +606,13 @@ AsyncStorage is an offline UI cache. The authenticated server is authoritative.
 
 The default file is [`server/db.json`](../server/db.json). Collections:
 
-| Collection | Purpose |
-| --- | --- |
-| `users` | Accounts, profile fields, password hashes and plan |
-| `visits` | User-owned city visits and places |
-| `completions` | Completed sight IDs |
-| `wishlists` | Saved target IDs |
-| `rewards` | Unlocked rewards and challenge score values |
+| Collection           | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `users`              | Accounts, profile fields, password hashes and plan |
+| `visits`             | User-owned city visits and places                  |
+| `completions`        | Completed sight IDs                                |
+| `wishlists`          | Saved target IDs                                   |
+| `rewards`            | Unlocked rewards and challenge score values        |
 | `collectionProgress` | User-specific active/completed collection progress |
 
 Example completion record:

@@ -18,6 +18,14 @@ EXPO_PUBLIC_API_URL=http://localhost:3001
 
 See the [complete backend API documentation](docs/backend-api.md) for authentication, request and response models, homepage scoring, visits, profiles, completions, wishlist, plans, database structure, and production requirements.
 
+Import a normalized country catalog before opening its guide:
+
+```bash
+npm run import:country -- FR
+```
+
+The importer uses REST Countries, Wikidata, Wikipedia, and Wikimedia Commons. Configure `RESTCOUNTRIES_API_KEY` and `GEONAMES_USERNAME` in the backend environment for live country and city imports. Wikidata attraction discovery requires no API key. Imported records remain in `server/db.json` and are served without calling providers at runtime.
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

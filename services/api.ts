@@ -43,7 +43,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     clearTimeout(timeout);
   }
 
-  if (!response.ok) throw new ApiError(response.status, await response.text());
+  if (!response.ok) {
+    const body = await response.text();
+    let message = body.trim();
+    try {
+      const parsed = JSON.parse(body) as { message?: string; error?: string };
+      message = parsed.message ?? parsed.error ?? message;
+    } catch {
+      // Preserve plain-text server errors.
+    }
+    if (response.status === 404 && message === "Not Found") {
+      message = "Country guide API is unavailable. Restart the backend server.";
+    }
+    throw new ApiError(
+      response.status,
+      message || `Request failed (${response.status}).`,
+    );
+  }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
@@ -108,27 +124,83 @@ export type CollectionProgress = {
 };
 
 export type CountryDetailResponse = {
-  code: string;
-  name: string;
-  flag: string;
-  heroCities: { id: string; name: string; imageKey: string }[];
-  featuredIn: string[];
-  sights: {
+  country: {
     id: string;
+    code: string;
+    iso3: string;
     name: string;
-    imageKey: string;
-    cityId: string;
-    cityName: string;
-    premium: boolean;
-    completed: boolean;
-  }[];
+    officialName: string;
+    flag: string;
+    capital: string;
+    population: number;
+    languages: string[];
+    currencies: string[];
+    continent: string;
+    region: string;
+    description: string;
+    coverImage: string;
+  };
+  featuredIn: { name: string; icon: string; slug: string }[];
+  cities: CityDetail[];
+  sights: SightDetail[];
   stats: { cities: number; sights: number; airports: number };
   visitedCities: { id: string; name: string }[];
 };
 
+export type ImageCredit = {
+  sourceUrl: string;
+  filePageUrl: string;
+  creator: string;
+  license: string;
+  licenseUrl: string;
+  attribution: string;
+} | null;
+export type SightDetail = {
+  id: string;
+  countryId: string;
+  cityId: string;
+  city: string;
+  opentripmapXid: string | null;
+  wikidataId: string | null;
+  wikipediaTitle: string | null;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  image: string;
+  imageCredit: ImageCredit;
+  completed?: boolean;
+};
+export type CityDetail = {
+  id: string;
+  countryId: string;
+  geonamesId: string | null;
+  wikidataId: string | null;
+  wikipediaTitle: string | null;
+  name: string;
+  slug: string;
+  description: string;
+  population: number;
+  latitude: number;
+  longitude: number;
+  image: string;
+  imageCredit: ImageCredit;
+  sights?: SightDetail[];
+};
+
 export const api = {
   countryDetail: (code: string) =>
-    request<CountryDetailResponse>(`/countries/${encodeURIComponent(code)}`),
+    request<CountryDetailResponse>(
+      `/api/countries/${encodeURIComponent(code)}`,
+    ),
+  cityDetail: (id: string) =>
+    request<CityDetail>(`/api/cities/${encodeURIComponent(id)}`),
+  citySights: (id: string) =>
+    request<SightDetail[]>(`/api/cities/${encodeURIComponent(id)}/sights`),
+  sightDetail: (id: string) =>
+    request<SightDetail>(`/api/sights/${encodeURIComponent(id)}`),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   setSightCompleted: (sightId: string, completed: boolean) =>

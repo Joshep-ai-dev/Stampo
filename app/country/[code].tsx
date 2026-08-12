@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
-import { Image, type ImageSource } from "expo-image";
+import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -22,23 +22,7 @@ import { BrandColors } from "@/constants/theme";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-const CITY_IMAGES: Record<string, ImageSource> = {
-  "paris-eiffel": require("@/assets/images/cities/Golden-hour Paris with Eiffel Tower.png"),
-  lyon: require("@/assets/images/cities/Lyon Old Town and Fourvière Basilica.png"),
-  marseille: require("@/assets/images/cities/Marseille’s Vieux-Port and Notre-Dame.png"),
-  nice: require("@/assets/images/cities/Nice Promenade and Turquoise Sea.png"),
-  "paris-notre-dame": require("@/assets/images/cities/Notre-Dame at golden hour.png"),
-};
-
-const SIGHT_IMAGES: Record<string, ImageSource> = {
-  eiffel: require("@/assets/images/sights/Eiffel Tower from Trocadéro at golden hour.png"),
-  louvre: require("@/assets/images/sights/Paris Louvre Pyramid at Blue Hour.png"),
-  arc: require("@/assets/images/sights/Arc de Triomphe on the Champs-Élysées.png"),
-  versailles: require("@/assets/images/sights/Versailles Palace and Geometric Gardens.png"),
-  "mont-saint-michel": require("@/assets/images/sights/Mont-Saint-Michel at Sunrise.png"),
-  "pont-du-gard": require("@/assets/images/sights/Pont du Gard in golden light.png"),
-  villefranche: require("@/assets/images/sights/Villefranche-sur-Mer by the Turquoise Sea.png"),
-};
+const IMAGE_PLACEHOLDER = require("@/assets/images/other/globe-airplane.png");
 
 export default function CountryScreen() {
   const { width } = useWindowDimensions();
@@ -54,17 +38,19 @@ export default function CountryScreen() {
     }, [code, dispatch, isSignedIn]),
   );
   const detail =
-    countryState.data?.code === code.toUpperCase() ? countryState.data : null;
+    countryState.data?.country.code === code.toUpperCase()
+      ? countryState.data
+      : null;
   const normalizedCode = code.toUpperCase() as TCountryCode;
   const name =
-    countries[normalizedCode]?.name ?? detail?.name ?? code.toUpperCase();
-  const flag = countries[normalizedCode]
-    ? getEmojiFlag(normalizedCode)
-    : (detail?.flag ?? "🌍");
-  const heroCities = detail?.heroCities ?? [];
+    detail?.country.name ??
+    countries[normalizedCode]?.name ??
+    code.toUpperCase();
+  const flag = countries[normalizedCode] ? getEmojiFlag(normalizedCode) : "🌍";
+  const heroCities = detail?.cities ?? [];
   const sights = detail?.sights ?? [];
-  const freeSights = sights.filter((sight) => !sight.premium);
-  const premiumSights = sights.filter((sight) => sight.premium);
+  const freeSights = sights.slice(0, 5);
+  const premiumSights = sights.slice(5);
   const cardWidth = Math.min((width - 32) * 0.42, 180);
 
   const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -129,7 +115,7 @@ export default function CountryScreen() {
               accessibilityLabel={`Open ${city.name}`}
             >
               <Image
-                source={CITY_IMAGES[city.imageKey]}
+                source={city.image ? { uri: city.image } : IMAGE_PLACEHOLDER}
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
                 transition={180}
@@ -170,12 +156,54 @@ export default function CountryScreen() {
           />
         </View>
 
+        {countryState.status === "loading" && !detail ? (
+          <View style={s.messageCard}>
+            <Text style={s.messageText}>Loading country guide…</Text>
+          </View>
+        ) : null}
+        {countryState.status === "failed" && !detail ? (
+          <TouchableOpacity
+            style={s.messageCard}
+            onPress={() => void dispatch(fetchCountryDetail(code))}
+          >
+            <Text style={s.messageText}>
+              {countryState.error} Tap to retry.
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {detail ? (
+          <View style={s.aboutCard}>
+            <Text style={s.aboutTitle}>About {detail.country.name}</Text>
+            <Text style={s.description}>{detail.country.description}</Text>
+            <View style={s.factGrid}>
+              <Fact label="Capital" value={detail.country.capital} />
+              <Fact
+                label="Population"
+                value={detail.country.population.toLocaleString()}
+              />
+              <Fact
+                label="Languages"
+                value={detail.country.languages.join(", ")}
+              />
+              <Fact
+                label="Currency"
+                value={detail.country.currencies.join(", ")}
+              />
+              <Fact label="Continent" value={detail.country.continent} />
+              <Fact label="Region" value={detail.country.region} />
+            </View>
+          </View>
+        ) : null}
+
         {detail?.featuredIn.length ? (
           <>
             <SectionTitle>Featured In</SectionTitle>
             <View style={s.pills}>
               {detail.featuredIn.map((item) => (
-                <DisplayBubble key={item} label={item} />
+                <DisplayBubble
+                  key={item.slug}
+                  label={`${item.icon} ${item.name}`}
+                />
               ))}
             </View>
           </>
@@ -191,14 +219,14 @@ export default function CountryScreen() {
                   <TouchableOpacity
                     key={sight.id}
                     style={s.sightRow}
-                    onPress={() =>
-                      router.push(`/city/${sight.cityId}` as never)
-                    }
+                    onPress={() => router.push(`/sight/${sight.id}` as never)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Open ${sight.cityName}, home of ${sight.name}`}
+                    accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
                   >
                     <Image
-                      source={SIGHT_IMAGES[sight.imageKey]}
+                      source={
+                        sight.image ? { uri: sight.image } : IMAGE_PLACEHOLDER
+                      }
                       style={s.sightImage}
                       contentFit="cover"
                       transition={150}
@@ -227,7 +255,9 @@ export default function CountryScreen() {
                     accessibilityElementsHidden
                   >
                     <Image
-                      source={SIGHT_IMAGES[sight.imageKey]}
+                      source={
+                        sight.image ? { uri: sight.image } : IMAGE_PLACEHOLDER
+                      }
                       style={s.sightImage}
                       contentFit="cover"
                       blurRadius={32}
@@ -276,6 +306,15 @@ export default function CountryScreen() {
 
 function SectionTitle({ children }: { children: string }) {
   return <Text style={s.sectionTitle}>{children}</Text>;
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.fact}>
+      <Text style={s.factLabel}>{label}</Text>
+      <Text style={s.factValue}>{value || "—"}</Text>
+    </View>
+  );
 }
 
 function UpgradeBanner() {
@@ -363,6 +402,55 @@ const s = StyleSheet.create({
   },
   dotActive: { width: 17, backgroundColor: BrandColors.copper },
   statsWrap: { marginHorizontal: 14 },
+  messageCard: {
+    marginHorizontal: 14,
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,.2)",
+  },
+  messageText: {
+    textAlign: "center",
+    fontFamily: "Lora_500Medium",
+    fontSize: 13,
+    color: BrandColors.onDarkMuted,
+  },
+  aboutCard: {
+    marginHorizontal: 14,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,.2)",
+  },
+  aboutTitle: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 19,
+    color: BrandColors.onDark,
+  },
+  description: {
+    marginTop: 7,
+    fontFamily: "Lora_400Regular",
+    fontSize: 13,
+    lineHeight: 19,
+    color: BrandColors.onDarkMuted,
+  },
+  factGrid: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  fact: { width: "47%" },
+  factLabel: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 11,
+    color: BrandColors.copper,
+  },
+  factValue: {
+    marginTop: 2,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 13,
+    color: BrandColors.onDark,
+  },
   sectionTitle: {
     marginTop: 23,
     marginBottom: 10,
