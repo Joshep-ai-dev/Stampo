@@ -287,16 +287,22 @@ export default function CountryScreen() {
                   source={sight.source}
                   style={s.sightImage}
                   contentFit="cover"
+                  blurRadius={12}
                   transition={150}
                 />
-                <Text numberOfLines={1} style={s.sightName}>
+                <Text
+                  numberOfLines={1}
+                  style={[s.sightName, s.lockedSightName]}
+                >
                   {sight.name}
                 </Text>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={28}
-                  color={BrandColors.onDarkMuted}
-                />
+                <View style={s.lockedSightCheck}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={28}
+                    color={BrandColors.onDarkMuted}
+                  />
+                </View>
               </View>
             ))}
           </View>
@@ -502,6 +508,7 @@ const s = StyleSheet.create({
   lockedSightRow: {
     position: "relative",
     overflow: "hidden",
+    opacity: 0.5,
   },
   sightImage: {
     width: 46,
@@ -515,6 +522,13 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: BrandColors.onDark,
   },
+  lockedSightName: {
+    color: "rgba(248,234,212,.2)",
+    textShadowColor: BrandColors.onDarkMuted,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 7,
+  },
+  lockedSightCheck: { opacity: 0.28 },
   upgradeCard: {
     zIndex: 2,
     marginHorizontal: -2,
