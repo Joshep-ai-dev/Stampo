@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DisplayBubble } from "@/components/display-bubble";
+import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
@@ -219,16 +221,26 @@ export default function CountryScreen() {
           ))}
         </View>
 
-        <View style={s.stats}>
-          <Metric
-            icon="business"
-            value={visitedCities.length}
-            label="CITIES VISITED"
+        <View style={s.statsWrap}>
+          <TravelStats
+            items={[
+              {
+                icon: "business-outline",
+                value: visitedCities.length,
+                label: "CITIES VISITED",
+              },
+              {
+                icon: "camera-outline",
+                value: sightCount,
+                label: "SIGHTS VISITED",
+              },
+              {
+                icon: "airplane-outline",
+                value: airports,
+                label: "AIRPORTS VISITED",
+              },
+            ]}
           />
-          <View style={s.statDivider} />
-          <Metric icon="camera" value={sightCount} label="SIGHTS VISITED" />
-          <View style={s.statDivider} />
-          <Metric icon="airplane" value={airports} label="AIRPORTS VISITED" />
         </View>
 
         <SectionTitle>Featured In</SectionTitle>
@@ -238,9 +250,7 @@ export default function CountryScreen() {
           contentContainerStyle={s.pills}
         >
           {FEATURED.map((item) => (
-            <View key={item} style={s.pill}>
-              <Text style={s.pillText}>{item}</Text>
-            </View>
+            <DisplayBubble key={item} label={item} />
           ))}
         </ScrollView>
 
@@ -287,7 +297,7 @@ export default function CountryScreen() {
                   source={sight.source}
                   style={s.sightImage}
                   contentFit="cover"
-                  blurRadius={12}
+                  blurRadius={32}
                   transition={150}
                 />
                 <Text
@@ -314,10 +324,10 @@ export default function CountryScreen() {
             visitedCities.map((city) => (
               <TouchableOpacity
                 key={city.id}
-                style={s.cityChip}
+                style={s.cityChipAction}
                 onPress={() => router.push(`/city/${city.id}` as never)}
               >
-                <Text style={s.cityChipText}>{city.name}</Text>
+                <DisplayBubble label={city.name} accent />
               </TouchableOpacity>
             ))
           ) : (
@@ -326,37 +336,6 @@ export default function CountryScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Metric({
-  icon,
-  value,
-  label,
-}: {
-  icon: string;
-  value: number;
-  label: string;
-}) {
-  return (
-    <View style={s.metric}>
-      <View style={s.metricTop}>
-        <Ionicons
-          name={icon as never}
-          size={24}
-          color={BrandColors.copperDark}
-        />
-        <Text style={s.metricValue}>{value}</Text>
-      </View>
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.86}
-        style={s.metricLabel}
-      >
-        {label}
-      </Text>
-    </View>
   );
 }
 
@@ -445,36 +424,7 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.paleGreen,
   },
   dotActive: { width: 17, backgroundColor: BrandColors.copper },
-  stats: {
-    marginHorizontal: 16,
-    paddingVertical: 17,
-    borderRadius: 15,
-    borderWidth: 1.5,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.surface,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  metric: { flex: 1, minWidth: 0, paddingHorizontal: 4, alignItems: "center" },
-  metricTop: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metricValue: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 27,
-    color: BrandColors.ink,
-  },
-  metricLabel: {
-    width: "100%",
-    marginTop: 5,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: 12,
-    color: BrandColors.muted,
-  },
-  statDivider: {
-    width: 1,
-    height: 48,
-    backgroundColor: "rgba(185,121,80,.35)",
-  },
+  statsWrap: { marginHorizontal: 14 },
   sectionTitle: {
     marginTop: 23,
     marginBottom: 10,
@@ -483,18 +433,7 @@ const s = StyleSheet.create({
     fontSize: 21,
     color: BrandColors.onDark,
   },
-  pills: { paddingHorizontal: 16, gap: 8 },
-  pill: {
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 18,
-    backgroundColor: BrandColors.surface,
-  },
-  pillText: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.ink,
-  },
+  pills: { paddingHorizontal: 14, gap: 8 },
   sightList: { marginHorizontal: 16 },
   sightRow: {
     minHeight: 62,
@@ -523,10 +462,10 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   lockedSightName: {
-    color: "rgba(248,234,212,.2)",
-    textShadowColor: BrandColors.onDarkMuted,
+    color: "rgba(248,234,212,.4)",
+    textShadowColor: BrandColors.onDark,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 7,
+    textShadowRadius: 24,
   },
   lockedSightCheck: { opacity: 0.28 },
   upgradeCard: {
@@ -572,20 +511,7 @@ const s = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  cityChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 18,
-    backgroundColor: BrandColors.copper,
-  },
-  cityChipText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    color: BrandColors.white,
-  },
+  cityChipAction: { borderRadius: 18 },
   empty: {
     fontFamily: "Lora_400Regular_Italic",
     fontSize: 14,

@@ -23,6 +23,7 @@ import { SvgXml } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
+import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { api } from "@/services/api";
@@ -382,31 +383,28 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-          <View style={styles.stats}>
-            <Stat
-              icon="globe-outline"
-              value={countryCount}
-              total={195}
-              label="COUNTRIES"
-              info
-              onInfo={() =>
-                Alert.alert(
-                  "Countries",
-                  "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
-                )
-              }
-            />
-            <Stat
-              icon="flag-outline"
-              value={continentCount}
-              total={7}
-              label="CONTINENTS"
-            />
-            <Stat
-              icon="business-outline"
-              value={cityCount}
-              label="CITIES"
-              last
+          <View style={styles.statsShared}>
+            <TravelStats
+              items={[
+                {
+                  icon: "globe-outline",
+                  value: countryCount,
+                  total: 195,
+                  label: "COUNTRIES",
+                  onInfo: () =>
+                    Alert.alert(
+                      "Countries",
+                      "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
+                    ),
+                },
+                {
+                  icon: "flag-outline",
+                  value: continentCount,
+                  total: 7,
+                  label: "CONTINENTS",
+                },
+                { icon: "business-outline", value: cityCount, label: "CITIES" },
+              ]}
             />
           </View>
         </View>
@@ -443,42 +441,6 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-function Stat({
-  icon,
-  value,
-  total,
-  label,
-  last,
-  info,
-  onInfo,
-}: {
-  icon: string;
-  value: number;
-  total?: number;
-  label: string;
-  last?: boolean;
-  info?: boolean;
-  onInfo?: () => void;
-}) {
-  return (
-    <View style={[styles.stat, !last && styles.statBorder]}>
-      <View style={styles.statTop}>
-        <Ionicons name={icon as never} size={24} color={BrandColors.copper} />
-        <View style={styles.statNumberRow}>
-          <Text style={styles.statValue}>{value}</Text>
-          {total ? <Text style={styles.statTotal}>/{total}</Text> : null}
-        </View>
-      </View>
-      <View style={styles.statLabelRow}>
-        <Text style={styles.statLabel}>{label}</Text>
-        {info && onInfo ? (
-          <InfoButton label="About countries" onPress={onInfo} />
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
 function InfoButton({
   onPress,
   label,
@@ -569,6 +531,7 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     backgroundColor: "transparent",
   },
+  statsShared: { marginTop: 12 },
   scoreLine: {
     flexDirection: "row",
     alignItems: "center",
