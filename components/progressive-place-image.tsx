@@ -10,6 +10,9 @@ import {
 
 import { BrandColors } from "@/constants/theme";
 
+const DEFAULT_PLACE_IMAGE = require("@/assets/images/other/globe-airplane.png");
+const IMAGE_TIMEOUT_MS = 8_000;
+
 type Props = Pick<ImageProps, "contentFit" | "blurRadius"> & {
   uri?: string;
   style: StyleProp<ViewStyle>;
@@ -22,10 +25,15 @@ export function ProgressivePlaceImage({
   blurRadius,
 }: Props) {
   const [loaded, setLoaded] = useState(false);
+  const [useFallback, setUseFallback] = useState(!uri);
   const pulse = useRef(new Animated.Value(0.45)).current;
 
   useEffect(() => {
     setLoaded(false);
+    setUseFallback(!uri);
+    if (!uri) return;
+    const timeout = setTimeout(() => setUseFallback(true), IMAGE_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
   }, [uri]);
 
   useEffect(() => {
@@ -53,18 +61,16 @@ export function ProgressivePlaceImage({
       {!loaded ? (
         <Animated.View style={[styles.skeleton, { opacity: pulse }]} />
       ) : null}
-      {uri ? (
-        <Image
-          source={{ uri }}
-          style={StyleSheet.absoluteFill}
-          contentFit={contentFit}
-          blurRadius={blurRadius}
-          cachePolicy="memory-disk"
-          transition={220}
-          onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(false)}
-        />
-      ) : null}
+      <Image
+        source={useFallback ? DEFAULT_PLACE_IMAGE : { uri }}
+        style={StyleSheet.absoluteFill}
+        contentFit={contentFit}
+        blurRadius={blurRadius}
+        cachePolicy="memory-disk"
+        transition={220}
+        onLoad={() => setLoaded(true)}
+        onError={() => setUseFallback(true)}
+      />
     </View>
   );
 }

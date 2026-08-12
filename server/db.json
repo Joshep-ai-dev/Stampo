@@ -258,5 +258,9 @@
   "rewards": [],
   "collectionProgress": [],
   "importCache": [],
-  "importRuns": []
+  "importRuns": [],
+  "cities": [],
+  "sights": [],
+  "countries": [],
+  "imageCredits": []
 }
