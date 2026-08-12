@@ -1,47 +1,103 @@
 import { Ionicons } from "@expo/vector-icons";
 import { countries, type TCountryCode } from "countries-list";
-import { Image } from "expo-image";
+import { BlurView } from "expo-blur";
+import { Image, type ImageSource } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
-import { CityAtlas } from "@/components/city-atlas";
-import { CountryMap } from "@/components/country-map";
-import { franceGuide } from "@/data/explore";
-import { stampAssets } from "@/data/stamps";
+import { api } from "@/services/api";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { wishlistToggled } from "@/store/travel-slice";
+import { sightToggled } from "@/store/travel-slice";
+
+const CITY_IMAGES: { name: string; source: ImageSource }[] = [
+  {
+    name: "Paris",
+    source: require("@/assets/images/cities/Golden-hour Paris with Eiffel Tower.png"),
+  },
+  {
+    name: "Lyon",
+    source: require("@/assets/images/cities/Lyon Old Town and Fourvière Basilica.png"),
+  },
+  {
+    name: "Marseille",
+    source: require("@/assets/images/cities/Marseille’s Vieux-Port and Notre-Dame.png"),
+  },
+  {
+    name: "Nice",
+    source: require("@/assets/images/cities/Nice Promenade and Turquoise Sea.png"),
+  },
+  {
+    name: "Paris",
+    source: require("@/assets/images/cities/Notre-Dame at golden hour.png"),
+  },
+];
+
+const TOP_SIGHTS: { id: string; name: string; source: ImageSource }[] = [
+  {
+    id: "eiffel",
+    name: "Eiffel Tower",
+    source: require("@/assets/images/sights/Eiffel Tower from Trocadéro at golden hour.png"),
+  },
+  {
+    id: "louvre",
+    name: "Louvre Museum",
+    source: require("@/assets/images/sights/Paris Louvre Pyramid at Blue Hour.png"),
+  },
+  {
+    id: "arc",
+    name: "Arc de Triomphe",
+    source: require("@/assets/images/sights/Arc de Triomphe on the Champs-Élysées.png"),
+  },
+  {
+    id: "versailles",
+    name: "Palace of Versailles",
+    source: require("@/assets/images/sights/Versailles Palace and Geometric Gardens.png"),
+  },
+  {
+    id: "mont-saint-michel",
+    name: "Mont-Saint-Michel",
+    source: require("@/assets/images/sights/Mont-Saint-Michel at Sunrise.png"),
+  },
+  {
+    id: "pont-du-gard",
+    name: "Pont du Gard",
+    source: require("@/assets/images/sights/Pont du Gard in golden light.png"),
+  },
+  {
+    id: "villefranche",
+    name: "Villefranche-sur-Mer",
+    source: require("@/assets/images/sights/Villefranche-sur-Mer by the Turquoise Sea.png"),
+  },
+];
+
+const FEATURED = ["🏛️ Cultural Icons", "🥐 Food Capitals", "✨ European Gems"];
 
 export default function CountryScreen() {
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
-  const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("OVERVIEW");
-  const visits = useAppSelector((x) => x.travel.visits);
-  const wished = useAppSelector((x) => x.travel.wishlistIds ?? []).includes(
-    `country-${code}`,
+  const visits = useAppSelector((state) => state.travel.visits);
+  const completed = useAppSelector(
+    (state) => state.travel.completedSightIds ?? [],
   );
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const [slide, setSlide] = useState(0);
   const name = countries[code as TCountryCode]?.name ?? "France";
-  const isFrance = code === "FR";
-  const countryVisits = visits.filter((v) => v.countryCode === code);
-  const done = countryVisits.reduce(
-    (n, v) => n + v.places.filter((p) => p.type === "sight").length,
-    0,
-  );
-  const progress = isFrance
-    ? Math.max(18, Math.round((done / 1024) * 100))
-    : Math.min(100, countryVisits.length * 12);
-  const countryStamp = stampAssets[code];
   const flag =
     code.length === 2
       ? String.fromCodePoint(
@@ -51,701 +107,482 @@ export default function CountryScreen() {
             .map((char) => 127397 + char.charCodeAt(0)),
         )
       : "🌍";
-  const guide = isFrance
-    ? franceGuide
-    : {
-        ...franceGuide,
-        name,
-        code,
-        flag,
-        description: `Build your ${name} travel story. Add visits, save places, and collect the country stamp.`,
-        cities: [],
-      };
+  const countryVisits = visits.filter((visit) => visit.countryCode === code);
+  const visitedCities = useMemo(
+    () => [
+      ...new Map(
+        countryVisits.map((visit) => [
+          visit.cityId,
+          { id: visit.cityId, name: visit.cityName },
+        ]),
+      ).values(),
+    ],
+    [countryVisits],
+  );
+  const recordedSights = countryVisits.reduce(
+    (total, visit) =>
+      total + visit.places.filter((place) => place.type === "sight").length,
+    0,
+  );
+  const airports = new Set(
+    countryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
+        .map((place) => place.name),
+    ),
+  ).size;
+  const sightCount =
+    recordedSights +
+    TOP_SIGHTS.filter((sight) => completed.includes(sight.id)).length;
+  const cardWidth = Math.min((width - 32) * 0.42, 180);
+
+  const toggleSight = (id: string) => {
+    const wasCompleted = completed.includes(id);
+    dispatch(sightToggled(id));
+    if (isSignedIn) {
+      void api
+        .setSightCompleted(id, !wasCompleted)
+        .then(() => dispatch(fetchHomeDashboard()))
+        .catch(() => dispatch(sightToggled(id)));
+    }
+  };
+
+  const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setSlide(Math.round(event.nativeEvent.contentOffset.x / (cardWidth + 10)));
+  };
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={s.top}>
-          <TouchableOpacity style={s.circle} onPress={() => router.back()}>
+        <View style={s.header}>
+          <TouchableOpacity
+            accessibilityLabel="Go back"
+            style={s.iconButton}
+            onPress={() => router.back()}
+          >
             <Ionicons
               name="chevron-back"
-              size={24}
+              size={25}
               color={BrandColors.onDark}
             />
           </TouchableOpacity>
-          <View style={s.topActions}>
-            <TouchableOpacity
-              style={s.circle}
-              onPress={() => dispatch(wishlistToggled(`country-${code}`))}
-            >
-              <Ionicons
-                name={wished ? "heart" : "heart-outline"}
-                size={22}
-                color={wished ? BrandColors.copper : BrandColors.onDark}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={s.circle}
-              onPress={() =>
-                void Share.share({ message: `Explore ${name} with Kroo` })
-              }
-            >
-              <Ionicons
-                name="share-outline"
-                size={22}
-                color={BrandColors.onDark}
-              />
-            </TouchableOpacity>
-          </View>
+          <Text style={s.title}>
+            {name} {flag}
+          </Text>
+          <TouchableOpacity
+            accessibilityLabel={`Share ${name}`}
+            style={s.iconButton}
+            onPress={() =>
+              void Share.share({ message: `Explore ${name} with Kroo` })
+            }
+          >
+            <Ionicons
+              name="share-outline"
+              size={23}
+              color={BrandColors.onDark}
+            />
+          </TouchableOpacity>
         </View>
-        <View style={s.hero}>
-          <View style={s.heroStampCard}>
-            {countryStamp ? (
+
+        <ScrollView
+          horizontal
+          snapToInterval={cardWidth + 10}
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={onHeroScroll}
+          contentContainerStyle={s.heroTrack}
+        >
+          {CITY_IMAGES.map((city, index) => (
+            <View
+              key={`${city.name}-${index}`}
+              style={[s.heroCard, { width: cardWidth }]}
+            >
               <Image
-                source={countryStamp}
-                style={s.stamp}
-                contentFit="contain"
+                source={city.source}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                transition={180}
               />
-            ) : (
-              <Ionicons name="earth-outline" size={48} color="#AAB5AF" />
-            )}
-          </View>
-          <View style={s.heroCopy}>
-            <Text style={s.country}>
-              {guide.flag} {name}
-            </Text>
-            <Text style={s.motto}>
-              {isFrance
-                ? "“Liberté, Égalité, Fraternité”"
-                : "Your next great story"}
-            </Text>
-            <Text style={s.fact}>◉ {guide.region}</Text>
-            <Text style={s.fact}>⌖ Capital · {guide.capital}</Text>
-          </View>
-          <View style={s.progressCard}>
-            <Text style={s.progressLabel}>YOUR PROGRESS</Text>
-            <Text style={s.progressValue}>{progress}%</Text>
-            <Text style={s.progressSmall}>{done} sights visited</Text>
-            <View style={s.bar}>
-              <View style={[s.fill, { width: `${progress}%` }]} />
+              <View style={s.heroShade} />
+              <View style={s.heroLabel}>
+                <Ionicons name="location" size={14} color={BrandColors.white} />
+                <Text style={s.heroName}>{city.name}</Text>
+              </View>
             </View>
-          </View>
-        </View>
-        <View style={s.actions}>
-          <Action
-            icon="location-outline"
-            label="Add Visit"
-            active={activeAction === "visit"}
-            onPress={() => {
-              setActiveAction("visit");
-              router.push({
-                pathname: "/visits",
-                params: { countryCode: code, countryName: name },
-              });
-            }}
-          />
-          <Action
-            icon="checkmark-circle-outline"
-            label="Been Here"
-            active={activeAction === "been-here"}
-            onPress={() => setActiveAction("been-here")}
-          />
-          <Action
-            icon={wished ? "heart" : "heart-outline"}
-            label="Wishlist"
-            active={activeAction === "wishlist"}
-            onPress={() => {
-              setActiveAction("wishlist");
-              dispatch(wishlistToggled(`country-${code}`));
-            }}
-          />
-          <Action
-            icon="share-outline"
-            label="Share"
-            active={activeAction === "share"}
-            onPress={() => {
-              setActiveAction("share");
-              void Share.share({ message: `Explore ${name} with Kroo` });
-            }}
-          />
-        </View>
-        <View style={s.tabs}>
-          {["OVERVIEW", "CITIES", "SIGHTS", "EXPERIENCES"].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[s.tabButton, activeTab === tab && s.tabButtonActive]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[s.tab, activeTab === tab && s.tabActive]}>
-                {tab}
-              </Text>
-            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <View style={s.dots}>
+          {CITY_IMAGES.map((_, index) => (
+            <View key={index} style={[s.dot, slide === index && s.dotActive]} />
           ))}
         </View>
-        <View style={s.panel}>
-          <Text style={s.panelTitle}>About {name}</Text>
-          <View style={s.aboutRow}>
-            <View style={s.aboutCopy}>
-              <Text style={s.body}>{guide.description}</Text>
+
+        <View style={s.stats}>
+          <Metric
+            icon="business"
+            value={visitedCities.length}
+            label="CITIES VISITED"
+          />
+          <View style={s.statDivider} />
+          <Metric icon="camera" value={sightCount} label="SIGHTS VISITED" />
+          <View style={s.statDivider} />
+          <Metric icon="airplane" value={airports} label="AIRPORTS VISITED" />
+        </View>
+
+        <SectionTitle>Featured In</SectionTitle>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.pills}
+        >
+          {FEATURED.map((item) => (
+            <View key={item} style={s.pill}>
+              <Text style={s.pillText}>{item}</Text>
             </View>
-            <CountryMap code={code} name={name} compact />
-          </View>
-          <View style={s.facts}>
-            <Mini
-              icon="business-outline"
-              label="Capital"
-              value={guide.capital}
-            />
-            <Mini
-              icon="chatbubble-outline"
-              label="Language"
-              value={guide.language}
-            />
-            <Mini icon="cash-outline" label="Currency" value={guide.currency} />
-            <Mini icon="map-outline" label="Region" value={guide.region} />
+          ))}
+        </ScrollView>
+
+        <SectionTitle>Top Sights</SectionTitle>
+        <View style={s.sightList}>
+          {TOP_SIGHTS.slice(0, 5).map((sight) => {
+            const checked = completed.includes(sight.id);
+            return (
+              <TouchableOpacity
+                key={sight.id}
+                style={s.sightRow}
+                onPress={() => toggleSight(sight.id)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+              >
+                <Image
+                  source={sight.source}
+                  style={s.sightImage}
+                  contentFit="cover"
+                  transition={150}
+                />
+                <Text numberOfLines={1} style={s.sightName}>
+                  {sight.name}
+                </Text>
+                <Ionicons
+                  name={
+                    checked ? "checkmark-circle" : "checkmark-circle-outline"
+                  }
+                  size={28}
+                  color="#57D5A0"
+                />
+              </TouchableOpacity>
+            );
+          })}
+          <UpgradeBanner />
+          <View style={s.lockedList}>
+            {TOP_SIGHTS.slice(5).map((sight) => (
+              <View
+                key={sight.id}
+                style={s.sightRow}
+                accessibilityElementsHidden
+              >
+                <Image
+                  source={sight.source}
+                  style={s.sightImage}
+                  contentFit="cover"
+                  transition={150}
+                />
+                <Text numberOfLines={1} style={s.sightName}>
+                  {sight.name}
+                </Text>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={28}
+                  color={BrandColors.onDarkMuted}
+                />
+                <BlurView
+                  pointerEvents="none"
+                  intensity={42}
+                  tint="regular"
+                  experimentalBlurMethod="dimezisBlurView"
+                  style={s.lockedRowBlur}
+                />
+              </View>
+            ))}
           </View>
         </View>
-        {isFrance && (
-          <>
-            <Section title="Top Cities" link="View all 42 ›" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.row}
-            >
-              {guide.cities.map((city, i) => (
-                <TouchableOpacity
-                  key={city.id}
-                  style={s.cityCard}
-                  onPress={() => router.push(`/city/${city.id}` as never)}
-                >
-                  <View
-                    style={[
-                      s.cityArt,
-                      {
-                        backgroundColor: [
-                          "#BB8D68",
-                          "#5E8279",
-                          "#A9785A",
-                          "#617B86",
-                          "#927860",
-                        ][i],
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={i === 0 ? "business-outline" : "location-outline"}
-                      size={35}
-                      color={BrandColors.surface}
-                    />
-                    <Text style={s.cityPercent}>{[18, 12, 15, 10, 8][i]}%</Text>
-                  </View>
-                  <Text style={s.cityName}>{city.name}</Text>
-                  <Text style={s.cityMeta}>
-                    {city.sights.length || [0, 56, 48, 37, 34][i]} sights
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <Section title="Stamps to Earn" link="See collection ›" />
-            <View style={s.stamps}>
-              <Stamp
-                icon="flag-outline"
-                title="France Explorer"
-                detail="Visit France"
-                done={countryVisits.length > 0}
-              />
-              <Stamp
-                icon="business-outline"
-                title="Paris Passport"
-                detail="Visit 10 Paris sights"
-                done={done >= 10}
-              />
-              <Stamp
-                icon="wine-outline"
-                title="Wine Routes"
-                detail="Visit 3 wine regions"
-              />
-              <Stamp
-                icon="library-outline"
-                title="Culture Keeper"
-                detail="Visit 12 museums"
-              />
-            </View>
-            <Section title="France Collections" />
-            <View style={[s.panel, s.collectionsStatsPanel]}>
-              <View style={s.collectionsColumn}>
-                {[
-                  "UNESCO Sites",
-                  "Castles & Châteaux",
-                  "Museums",
-                  "Beaches",
-                  "Wine Regions",
-                ].map((x, i) => (
-                  <View key={x} style={s.collection}>
-                    <Text style={s.collectionName}>{x}</Text>
-                    <Text style={s.collectionCount}>
-                      {[18, 24, 15, 9, 6][i]} / {[52, 80, 40, 33, 16][i]}
-                    </Text>
-                    <View style={s.collectionBar}>
-                      <View
-                        style={[
-                          s.fill,
-                          { width: `${[35, 30, 38, 27, 38][i]}%` },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
-              <View style={s.statsColumn}>
-                <Text style={s.statsTitle}>France Stats</Text>
-                <CityAtlas code={code} name={name} compact />
-                <View style={s.statsBody}>
-                  <View style={s.statsList}>
-                    <Stat icon="location-outline" label="Visited" value="3 Cities" />
-                    <Stat icon="map-outline" label="Visited" value={`${done} Sights`} />
-                    <Stat icon="calendar-outline" label="Days Traveled" value="7" />
-                    <Stat icon="time-outline" label="Last Visited" value="Aug 2026" />
-                  </View>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
+
+        <SectionTitle>Cities Visited</SectionTitle>
+        <View style={s.cityChips}>
+          {visitedCities.length ? (
+            visitedCities.map((city) => (
+              <TouchableOpacity
+                key={city.id}
+                style={s.cityChip}
+                onPress={() => router.push(`/city/${city.id}` as never)}
+              >
+                <Text style={s.cityChipText}>{city.name}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={s.empty}>Your visited cities will appear here.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-function Action({
+
+function Metric({
   icon,
-  label,
-  active,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  active: boolean;
-  onPress?: () => void;
-}) {
-  return (
-    <TouchableOpacity style={s.action} onPress={onPress}>
-      <Ionicons
-        name={icon as never}
-        size={24}
-        color={active ? BrandColors.copper : BrandColors.onDark}
-      />
-      <Text style={[s.actionText, active && s.actionTextActive]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-function Mini({
-  icon,
-  label,
   value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={s.mini}>
-      <Ionicons name={icon as never} size={19} color={BrandColors.copper} />
-      <View>
-        <Text style={s.miniLabel}>{label}</Text>
-        <Text style={s.miniValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-function Section({ title, link }: { title: string; link?: string }) {
-  return (
-    <View style={s.section}>
-      <Text style={s.sectionTitle}>{title}</Text>
-      {link && <Text style={s.link}>{link}</Text>}
-    </View>
-  );
-}
-function Stat({
-  icon,
   label,
-  value,
 }: {
   icon: string;
+  value: number;
   label: string;
-  value: string;
 }) {
   return (
-    <View style={s.stat}>
-      <Ionicons name={icon as never} size={15} color={BrandColors.copper} />
-      <View style={s.statCopy}>
-        <Text style={s.statLabel}>{label}</Text>
-        <Text style={s.statValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-function Stamp({
-  icon,
-  title,
-  detail,
-  done = false,
-}: {
-  icon: string;
-  title: string;
-  detail: string;
-  done?: boolean;
-}) {
-  return (
-    <View style={[s.stampEarn, done && s.stampDone]}>
-      <View style={s.stampIcon}>
+    <View style={s.metric}>
+      <View style={s.metricTop}>
         <Ionicons
           name={icon as never}
-          size={28}
-          color={done ? BrandColors.surface : BrandColors.copper}
+          size={24}
+          color={BrandColors.copperDark}
         />
+        <Text style={s.metricValue}>{value}</Text>
       </View>
-      <Text style={[s.stampTitle, done && { color: BrandColors.surface }]}>
-        {title}
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.86}
+        style={s.metricLabel}
+      >
+        {label}
       </Text>
-      <Text style={[s.stampDetail, done && { color: BrandColors.onDarkMuted }]}>
-        {done ? "Earned" : detail}
-      </Text>
-      {done && <Ionicons name="checkmark-circle" size={18} color="#65C879" />}
+    </View>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return <Text style={s.sectionTitle}>{children}</Text>;
+}
+
+function UpgradeBanner() {
+  return (
+    <View style={s.upgradeCard}>
+      <View style={s.upgradeCopy}>
+        <Ionicons name="lock-closed" size={20} color={BrandColors.white} />
+        <Text style={s.upgradeText}>Unlock all 7 sights with Kroo+</Text>
+      </View>
+      <View style={s.upgradeButton}>
+        <Text style={s.upgradeButtonText}>Upgrade</Text>
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
-  content: { paddingBottom: 38 },
-  top: {
-    height: 54,
+  content: { paddingBottom: 44 },
+  header: {
+    height: 64,
     paddingHorizontal: 16,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  topActions: { flexDirection: "row", gap: 8 },
-  circle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(7,37,25,.82)",
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(49,87,73,.56)",
     alignItems: "center",
     justifyContent: "center",
   },
-  hero: {
-    minHeight: 185,
-    paddingHorizontal: 14,
+  title: {
+    flex: 1,
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: 28,
+    color: BrandColors.copper,
+  },
+  heroTrack: { paddingHorizontal: 16, gap: 10 },
+  heroCard: {
+    aspectRatio: 9 / 16,
+    borderRadius: 19,
+    overflow: "hidden",
+    backgroundColor: BrandColors.greenPanel,
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3,29,20,.12)",
+  },
+  heroLabel: {
+    position: "absolute",
+    left: 12,
+    bottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(3,29,20,.72)",
+  },
+  heroName: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 13,
+    color: BrandColors.white,
+  },
+  dots: {
+    height: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: BrandColors.paleGreen,
+  },
+  dotActive: { width: 17, backgroundColor: BrandColors.copper },
+  stats: {
+    marginHorizontal: 16,
+    paddingVertical: 17,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  metric: { flex: 1, minWidth: 0, paddingHorizontal: 4, alignItems: "center" },
+  metricTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  metricValue: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 27,
+    color: BrandColors.ink,
+  },
+  metricLabel: {
+    width: "100%",
+    marginTop: 5,
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: 12,
+    color: BrandColors.muted,
+  },
+  statDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: "rgba(185,121,80,.35)",
+  },
+  sectionTitle: {
+    marginTop: 23,
+    marginBottom: 10,
+    marginHorizontal: 17,
+    fontFamily: "Lora_700Bold",
+    fontSize: 21,
+    color: BrandColors.onDark,
+  },
+  pills: { paddingHorizontal: 16, gap: 8 },
+  pill: {
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: BrandColors.surface,
+  },
+  pillText: {
+    fontFamily: "Lora_500Medium",
+    fontSize: 12,
+    color: BrandColors.ink,
+  },
+  sightList: { marginHorizontal: 16 },
+  sightRow: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BrandColors.paleGreen,
+  },
+  lockedList: { overflow: "hidden" },
+  lockedRowBlur: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(128,128,128,.12)",
+  },
+  sightImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  sightName: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: 16,
+    color: BrandColors.onDark,
+  },
+  upgradeCard: {
+    zIndex: 2,
+    marginHorizontal: -2,
+    marginTop: 4,
+    marginBottom: -34,
+    padding: 11,
+    borderRadius: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: BrandColors.copperDark,
+  },
+  upgradeCopy: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  heroStampCard: {
-    width: 100,
-    height: 150,
-    padding: 4,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#C5A36C",
-    backgroundColor: BrandColors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  stamp: { width: "100%", height: "100%", transform: [{ scale: 1.36 }] },
-  heroCopy: { flex: 1, minWidth: 0 },
-  country: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 22,
-    color: BrandColors.onDark,
-  },
-  motto: {
-    fontFamily: "Lora_400Regular_Italic",
-    fontSize: 11,
-    color: BrandColors.copper,
-    marginVertical: 8,
-  },
-  fact: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 10,
-    color: BrandColors.onDarkMuted,
-    marginTop: 3,
-  },
-  progressCard: {
-    width: 94,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(4,29,20,.85)",
-  },
-  progressLabel: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 9,
-    color: BrandColors.onDarkMuted,
-  },
-  progressValue: {
-    fontFamily: "Lora_700Bold",
-    fontSize: 30,
-    color: BrandColors.copper,
-  },
-  progressSmall: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 10,
-    color: BrandColors.onDark,
-  },
-  bar: {
-    height: 5,
-    marginTop: 9,
-    borderRadius: 3,
-    backgroundColor: BrandColors.paleGreen,
-    overflow: "hidden",
-  },
-  fill: {
-    height: "100%",
-    backgroundColor: BrandColors.copper,
-    borderRadius: 4,
-  },
-  actions: {
-    margin: 14,
-    paddingVertical: 13,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    borderRadius: 13,
-    flexDirection: "row",
-  },
-  action: {
+  upgradeText: {
     flex: 1,
-    alignItems: "center",
-    gap: 5,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: BrandColors.paleGreen,
-  },
-  actionText: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 11,
-    color: BrandColors.onDark,
-  },
-  actionTextActive: { color: BrandColors.copper },
-  tabs: {
-    height: 50,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: BrandColors.paleGreen,
-  },
-  tabButton: {
-    height: "100%",
-    paddingHorizontal: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabButtonActive: { borderBottomColor: BrandColors.copper },
-  tab: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
-    color: BrandColors.onDark,
+    fontSize: 14,
+    color: BrandColors.white,
   },
-  tabActive: {
+  upgradeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 18,
+    backgroundColor: BrandColors.surface,
+  },
+  upgradeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 12,
-    color: BrandColors.copper,
-  },
-  panel: {
-    marginHorizontal: 14,
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: BrandColors.greenDeep,
-  },
-  panelTitle: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 18,
-    color: BrandColors.onDark,
-  },
-  body: {
-    marginTop: 6,
-    fontFamily: "Lora_400Regular",
-    fontSize: 13,
-    lineHeight: 19,
-    color: BrandColors.onDarkMuted,
-  },
-  aboutRow: {
-    marginTop: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  aboutCopy: { flex: 1.05, minWidth: 0 },
-  facts: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  mini: { width: "46%", flexDirection: "row", alignItems: "center", gap: 8 },
-  miniLabel: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 12,
-    color: BrandColors.onDarkMuted,
-  },
-  miniValue: {
-    fontFamily: "Lora_600SemiBold",
     fontSize: 14,
-    color: BrandColors.onDark,
+    color: BrandColors.copperDark,
   },
-  section: {
-    marginTop: 20,
-    marginBottom: 10,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 20,
-    color: BrandColors.onDark,
-  },
-  link: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.copper,
-  },
-  row: { paddingHorizontal: 14, gap: 9 },
-  cityCard: {
-    width: 112,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: BrandColors.greenDeep,
-  },
-  cityArt: { height: 77, alignItems: "center", justifyContent: "center" },
-  cityPercent: {
-    position: "absolute",
-    right: 5,
-    top: 5,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
-    color: BrandColors.surface,
-  },
-  cityName: {
-    margin: 7,
-    marginBottom: 1,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    color: BrandColors.onDark,
-  },
-  cityMeta: {
-    marginHorizontal: 7,
-    marginBottom: 7,
-    fontFamily: "Lora_400Regular",
-    fontSize: 12,
-    color: BrandColors.onDarkMuted,
-  },
-  stamps: {
-    paddingHorizontal: 14,
+  cityChips: {
+    marginHorizontal: 16,
+    marginVertical: 4,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 9,
+    gap: 8,
   },
-  stampEarn: {
-    width: "48%",
-    minHeight: 125,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: BrandColors.greenDeep,
-  },
-  stampDone: {
-    backgroundColor: BrandColors.paleGreen,
-    borderColor: BrandColors.copper,
-  },
-  stampIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stampTitle: {
-    marginTop: 8,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    color: BrandColors.onDark,
-  },
-  stampDetail: {
-    marginTop: 3,
-    fontFamily: "Lora_400Regular",
-    fontSize: 12,
-    color: BrandColors.onDarkMuted,
-  },
-  collectionsStatsPanel: {
+  cityChip: {
     flexDirection: "row",
-    alignItems: "stretch",
-    gap: 10,
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: BrandColors.copper,
   },
-  collectionsColumn: {
-    flex: 1.08,
-    minWidth: 0,
-    paddingRight: 8,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: BrandColors.paleGreen,
-  },
-  statsColumn: { flex: 1, minWidth: 0 },
-  statsTitle: {
+  cityChipText: {
     fontFamily: "Lora_600SemiBold",
     fontSize: 14,
-    color: BrandColors.onDark,
+    color: BrandColors.white,
   },
-  statsBody: {
-    marginTop: 5,
-  },
-  statsList: { gap: 6 },
-  stat: { minHeight: 22, flexDirection: "row", alignItems: "center", gap: 5 },
-  statCopy: { flex: 1, minWidth: 0 },
-  statLabel: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 8,
+  empty: {
+    fontFamily: "Lora_400Regular_Italic",
+    fontSize: 14,
     color: BrandColors.onDarkMuted,
-  },
-  statValue: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 9,
-    color: BrandColors.onDark,
-  },
-  collection: { minHeight: 28, flexDirection: "row", alignItems: "center" },
-  collectionName: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.onDark,
-  },
-  collectionCount: {
-    width: 42,
-    textAlign: "right",
-    fontFamily: "Lora_400Regular",
-    fontSize: 11,
-    color: BrandColors.onDarkMuted,
-  },
-  collectionBar: {
-    display: "none",
-    flex: 1,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: BrandColors.paleGreen,
-    overflow: "hidden",
   },
 });

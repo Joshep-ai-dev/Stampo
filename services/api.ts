@@ -1,6 +1,10 @@
 import type { ProfileState } from "@/store/profile-slice";
 import type { NewVisit, Visit } from "@/store/travel-slice";
-import { deleteStoredAuthToken, getStoredAuthToken, storeAuthToken } from "./auth-token";
+import {
+  deleteStoredAuthToken,
+  getStoredAuthToken,
+  storeAuthToken,
+} from "./auth-token";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -11,7 +15,10 @@ export function setApiToken(token: string | null) {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
     this.name = "ApiError";
   }
@@ -136,20 +143,26 @@ export const api = {
       body: JSON.stringify(visit),
     }),
   deleteVisit: (visitId: string) =>
-    request<void>(`/visits/${encodeURIComponent(visitId)}`, { method: "DELETE" }),
+    request<void>(`/visits/${encodeURIComponent(visitId)}`, {
+      method: "DELETE",
+    }),
   currentUser: () => request<AuthUser>("/auth/me"),
   getProfile: () => request<RemoteProfile>("/profile"),
-  updatePassword: (payload: {
-    currentPassword: string;
-    newPassword: string;
-  }) =>
+  updatePassword: (payload: { currentPassword: string; newPassword: string }) =>
     request<void>("/auth/password", {
       method: "PUT",
       body: JSON.stringify(payload),
     }),
   updateProfile: (profile: ProfileState) =>
-    request<ProfileState>("/profile", { method: "PUT", body: JSON.stringify(profile) }),
-  signUp: async (payload: { name: string; email: string; password: string }) => {
+    request<ProfileState>("/profile", {
+      method: "PUT",
+      body: JSON.stringify(profile),
+    }),
+  signUp: async (payload: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     const session = await request<AuthResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify({
