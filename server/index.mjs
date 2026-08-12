@@ -4,7 +4,9 @@ import {
   scrypt as scryptCallback,
   timingSafeEqual,
 } from "node:crypto";
-import { resolve } from "node:path";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { App } from "@tinyhttp/app";
@@ -14,7 +16,9 @@ import { countries, getEmojiFlag } from "countries-list";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 import { json } from "milliparsec";
+import { importCountry } from "../scripts/import-country.mjs";
 import { ensureCatalog, rankEntities } from "./lib/catalog.mjs";
+import { geonamesCities, restCountry } from "./providers.mjs";
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
@@ -36,6 +40,77 @@ db.data.rewards ??= [];
 db.data.collectionProgress ??= [];
 ensureCatalog(db);
 const scrypt = promisify(scryptCallback);
+const automaticImports = new Map();
+const automaticImportFailures = new Map();
+const transientCatalogs = new Map();
+
+function countryShell(code, country, cities) {
+  const countryId = `live-country-${code}`;
+  return {
+    countries: [
+      {
+        id: countryId,
+        ...country,
+        description: `${country.name} is a country in ${country.region || country.continent}.`,
+        coverImageUrl: "",
+      },
+    ],
+    cities: cities.map((city, index) => ({
+      id: `live-city-${code}-${city.geonamesId}`,
+      countryId,
+      ...city,
+      slug: String(city.name)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-"),
+      description: "",
+      imageUrl: "",
+      isFeatured: true,
+      displayOrder: index,
+    })),
+    sights: [],
+    collections: [],
+    countryCollections: [],
+    imageCredits: [],
+  };
+}
+
+function startAutomaticImport(code) {
+  const running = automaticImports.get(code);
+  if (running) return running;
+
+  const task = Promise.all([restCountry(code), geonamesCities(code)])
+    .then(([country, cities]) => {
+      transientCatalogs.set(code, countryShell(code, country, cities));
+    })
+    .then(() => mkdtemp(join(tmpdir(), "stampo-country-")))
+    .then(async (directory) => {
+      const temporaryFile = join(directory, "catalog.json");
+      try {
+        const summary = await importCountry(code, { dbFile: temporaryFile });
+        const catalog = JSON.parse(await readFile(temporaryFile, "utf8"));
+        transientCatalogs.set(code, catalog);
+        return summary;
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    })
+    .then((summary) => {
+      automaticImportFailures.delete(code);
+      return summary;
+    })
+    .catch((error) => {
+      automaticImportFailures.set(code, {
+        message:
+          error instanceof Error ? error.message : "Country import failed.",
+        failedAt: Date.now(),
+      });
+      return null;
+    })
+    .finally(() => automaticImports.delete(code));
+
+  automaticImports.set(code, task);
+  return task;
+}
 
 async function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
@@ -512,15 +587,25 @@ app.get("/me/home", (req, res) => {
   return res.json(homeDashboardFor(user));
 });
 
-function creditFor(entityType, entityId) {
+function catalogForCountry(code) {
+  return db.data.countries.some((item) => item.iso2 === code)
+    ? db.data
+    : transientCatalogs.get(code);
+}
+
+function availableCatalogs() {
+  return [db.data, ...transientCatalogs.values()];
+}
+
+function creditFor(entityType, entityId, catalog = db.data) {
   return (
-    db.data.imageCredits.find(
+    catalog.imageCredits.find(
       (item) => item.entityType === entityType && item.entityId === entityId,
     ) ?? null
   );
 }
 
-function publicCity(city) {
+function publicCity(city, catalog = db.data) {
   return {
     id: city.id,
     countryId: city.countryId,
@@ -534,12 +619,12 @@ function publicCity(city) {
     latitude: Number(city.latitude),
     longitude: Number(city.longitude),
     image: city.imageUrl ?? "",
-    imageCredit: creditFor("city", city.id),
+    imageCredit: creditFor("city", city.id, catalog),
   };
 }
 
-function publicSight(sight) {
-  const city = db.data.cities.find((item) => item.id === sight.cityId);
+function publicSight(sight, catalog = db.data) {
+  const city = catalog.cities.find((item) => item.id === sight.cityId);
   return {
     id: sight.id,
     countryId: sight.countryId,
@@ -555,30 +640,32 @@ function publicSight(sight) {
     latitude: Number(sight.latitude),
     longitude: Number(sight.longitude),
     image: sight.imageUrl ?? "",
-    imageCredit: creditFor("sight", sight.id),
+    imageCredit: creditFor("sight", sight.id, catalog),
+    isPremium: sight.isPremium === true,
   };
 }
 
 function catalogCountryPayload(code, req) {
-  const country = db.data.countries.find((item) => item.iso2 === code);
+  const catalog = catalogForCountry(code);
+  const country = catalog?.countries.find((item) => item.iso2 === code);
   if (!country) return null;
   const cities = rankEntities(
-    db.data.cities.filter(
+    catalog.cities.filter(
       (item) => item.countryId === country.id && item.isFeatured !== false,
     ),
     10,
   );
   const sights = rankEntities(
-    db.data.sights.filter(
+    catalog.sights.filter(
       (item) => item.countryId === country.id && item.isFeatured !== false,
     ),
     20,
   );
-  const featuredIn = db.data.countryCollections
+  const featuredIn = catalog.countryCollections
     .filter((item) => item.countryId === country.id)
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .map((join) =>
-      db.data.collections.find((item) => item.id === join.collectionId),
+      catalog.collections.find((item) => item.id === join.collectionId),
     )
     .filter(Boolean)
     .map(({ name, icon, slug }) => ({ name, icon, slug }));
@@ -597,7 +684,17 @@ function catalogCountryPayload(code, req) {
           .map((item) => item.sightId)
       : [],
   );
+  const catalogSightIds = new Set(sights.map((item) => item.id));
+  const visitedSightIds = new Set([
+    ...[...completed].filter((id) => catalogSightIds.has(id)),
+    ...visits.flatMap((visit) =>
+      (visit.places ?? [])
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
+  ]);
   return {
+    isEnriching: automaticImports.has(code),
     country: {
       id: country.id,
       code: country.iso2,
@@ -615,20 +712,16 @@ function catalogCountryPayload(code, req) {
       coverImage: country.coverImageUrl ?? "",
     },
     featuredIn,
-    cities: cities.map(publicCity),
+    cities: cities.map((city) => publicCity(city, catalog)),
     sights: sights.map((sight) => ({
-      ...publicSight(sight),
+      ...publicSight(sight, catalog),
       completed: completed.has(sight.id),
     })),
     stats: {
       cities: new Set(visits.map((x) => x.cityId)).size,
-      sights:
-        completed.size +
-        visits.reduce(
-          (n, x) =>
-            n + (x.places ?? []).filter((p) => p.type === "sight").length,
-          0,
-        ),
+      totalCities: cities.length,
+      sights: visitedSightIds.size,
+      totalSights: sights.length,
       airports: new Set(
         visits.flatMap((x) =>
           (x.places ?? [])
@@ -636,6 +729,7 @@ function catalogCountryPayload(code, req) {
             .map((p) => p.name),
         ),
       ).size,
+      premiumSights: sights.filter((item) => item.isPremium === true).length,
     },
     visitedCities: [
       ...new Map(
@@ -646,13 +740,26 @@ function catalogCountryPayload(code, req) {
 }
 
 app.get("/api/countries/:code", (req, res) => {
-  const payload = catalogCountryPayload(
-    String(req.params.code).toUpperCase(),
-    req,
-  );
-  return payload
-    ? res.json(payload)
-    : res.status(404).json({ message: "Country has not been imported." });
+  const code = String(req.params.code).trim().toUpperCase();
+  const payload = catalogCountryPayload(code, req);
+  if (payload) return res.json(payload);
+  if (!countries[code])
+    return res.status(404).json({ message: "Country is not supported." });
+
+  const failure = automaticImportFailures.get(code);
+  if (failure && Date.now() - failure.failedAt < 30_000)
+    return res.status(503).json({
+      message: failure.message,
+      retryAfterSeconds: 30,
+    });
+
+  automaticImportFailures.delete(code);
+  startAutomaticImport(code);
+  return res.status(202).json({
+    status: "importing",
+    code,
+    message: "Country data is being prepared.",
+  });
 });
 app.get("/api/countries/:code/cities", (req, res) => {
   const payload = catalogCountryPayload(
@@ -664,7 +771,15 @@ app.get("/api/countries/:code/cities", (req, res) => {
     : res.status(404).json({ message: "Country has not been imported." });
 });
 app.get("/api/cities/:id", (req, res) => {
-  const city = db.data.cities.find(
+  const catalog = availableCatalogs().find((source) =>
+    source.cities.some(
+      (item) =>
+        item.id === req.params.id ||
+        item.slug === req.params.id ||
+        item.geonamesId === req.params.id,
+    ),
+  );
+  const city = catalog?.cities.find(
     (item) =>
       item.id === req.params.id ||
       item.slug === req.params.id ||
@@ -672,16 +787,24 @@ app.get("/api/cities/:id", (req, res) => {
   );
   return city
     ? res.json({
-        ...publicCity(city),
+        ...publicCity(city, catalog),
         sights: rankEntities(
-          db.data.sights.filter((item) => item.cityId === city.id),
+          catalog.sights.filter((item) => item.cityId === city.id),
           20,
-        ).map(publicSight),
+        ).map((sight) => publicSight(sight, catalog)),
       })
     : res.status(404).json({ message: "City not found." });
 });
 app.get("/api/cities/:id/sights", (req, res) => {
-  const city = db.data.cities.find(
+  const catalog = availableCatalogs().find((source) =>
+    source.cities.some(
+      (item) =>
+        item.id === req.params.id ||
+        item.slug === req.params.id ||
+        item.geonamesId === req.params.id,
+    ),
+  );
+  const city = catalog?.cities.find(
     (item) =>
       item.id === req.params.id ||
       item.slug === req.params.id ||
@@ -690,21 +813,29 @@ app.get("/api/cities/:id/sights", (req, res) => {
   return city
     ? res.json(
         rankEntities(
-          db.data.sights.filter((item) => item.cityId === city.id),
+          catalog.sights.filter((item) => item.cityId === city.id),
           20,
-        ).map(publicSight),
+        ).map((sight) => publicSight(sight, catalog)),
       )
     : res.status(404).json({ message: "City not found." });
 });
 app.get("/api/sights/:id", (req, res) => {
-  const sight = db.data.sights.find(
+  const catalog = availableCatalogs().find((source) =>
+    source.sights.some(
+      (item) =>
+        item.id === req.params.id ||
+        item.slug === req.params.id ||
+        item.opentripmapXid === req.params.id,
+    ),
+  );
+  const sight = catalog?.sights.find(
     (item) =>
       item.id === req.params.id ||
       item.slug === req.params.id ||
       item.opentripmapXid === req.params.id,
   );
   return sight
-    ? res.json(publicSight(sight))
+    ? res.json(publicSight(sight, catalog))
     : res.status(404).json({ message: "Sight not found." });
 });
 

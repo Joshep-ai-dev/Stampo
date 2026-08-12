@@ -124,6 +124,7 @@ export type CollectionProgress = {
 };
 
 export type CountryDetailResponse = {
+  isEnriching: boolean;
   country: {
     id: string;
     code: string;
@@ -143,8 +144,21 @@ export type CountryDetailResponse = {
   featuredIn: { name: string; icon: string; slug: string }[];
   cities: CityDetail[];
   sights: SightDetail[];
-  stats: { cities: number; sights: number; airports: number };
+  stats: {
+    cities: number;
+    totalCities: number;
+    sights: number;
+    totalSights: number;
+    airports: number;
+    premiumSights: number;
+  };
   visitedCities: { id: string; name: string }[];
+};
+
+type CountryImportPendingResponse = {
+  status: "importing";
+  code: string;
+  message: string;
 };
 
 export type ImageCredit = {
@@ -172,6 +186,7 @@ export type SightDetail = {
   image: string;
   imageCredit: ImageCredit;
   completed?: boolean;
+  isPremium: boolean;
 };
 export type CityDetail = {
   id: string;
@@ -190,11 +205,26 @@ export type CityDetail = {
   sights?: SightDetail[];
 };
 
+async function countryDetail(code: string): Promise<CountryDetailResponse> {
+  const path = `/api/countries/${encodeURIComponent(code)}`;
+  for (let attempt = 0; attempt < 90; attempt += 1) {
+    const result = await request<
+      CountryDetailResponse | CountryImportPendingResponse
+    >(path);
+    if ("status" in result) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      continue;
+    }
+    return result;
+  }
+  throw new ApiError(
+    408,
+    "Country data is taking longer than expected. Tap to retry.",
+  );
+}
+
 export const api = {
-  countryDetail: (code: string) =>
-    request<CountryDetailResponse>(
-      `/api/countries/${encodeURIComponent(code)}`,
-    ),
+  countryDetail,
   cityDetail: (id: string) =>
     request<CityDetail>(`/api/cities/${encodeURIComponent(id)}`),
   citySights: (id: string) =>

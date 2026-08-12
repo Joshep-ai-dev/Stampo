@@ -13,11 +13,26 @@ import {
 } from "../server/lib/catalog.mjs";
 import {
   geonamesCities,
-  commonsMetadata,
   restCountry,
   wikidataSights,
+  wikipediaSearch,
   wikipediaSummary,
 } from "../server/providers.mjs";
+
+async function mapLimit(items, limit, mapper) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+  return results;
+}
 
 const FRANCE_FALLBACK_CITIES = [
   ["2988507", "Paris", 2148000, 48.8566, 2.3522],
@@ -44,8 +59,19 @@ const FRANCE_FALLBACK_SIGHTS = [
   ["W36869", "Mont-Saint-Michel", "historic", 48.6361, -1.5115],
   ["W17103", "Pont du Gard", "historic", 43.9475, 4.535],
   ["W21112", "Château de Chambord", "castles", 47.6161, 1.5172],
-].map(([opentripmapXid, name, category, latitude, longitude]) => ({
-  opentripmapXid,
+  ["W30001", "Old Port of Marseille", "historic", 43.2951, 5.3742],
+  [
+    "W30002",
+    "Basilica of Notre-Dame de Fourvière",
+    "religion",
+    45.7622,
+    4.8226,
+  ],
+  ["W30003", "Place de la Bourse", "architecture", 44.8415, -0.5702],
+  ["W30004", "Promenade des Anglais", "landmark", 43.6954, 7.2651],
+  ["W30005", "Basilica of Saint-Sernin, Toulouse", "religion", 43.6084, 1.4414],
+].map(([_legacyId, name, category, latitude, longitude]) => ({
+  wikipediaTitle: name,
   name,
   category,
   latitude,
@@ -74,9 +100,7 @@ export async function importCountry(
     .trim()
     .toUpperCase();
   if (!/^[A-Z]{2}$/.test(iso2))
-    throw new Error(
-      "Provide a two-letter ISO code, for example: npm run import:country -- FR",
-    );
+    throw new Error("A valid two-letter ISO country code is required.");
   const db = new Low(new JSONFile(resolve(process.cwd(), dbFile)), {});
   await db.read();
   db.data ??= {};
@@ -84,14 +108,15 @@ export async function importCountry(
   const getCountry = providers.restCountry ?? restCountry;
   const getCities = providers.geonamesCities ?? geonamesCities;
   const getWiki = providers.wikipediaSummary ?? wikipediaSummary;
+  const searchWiki = providers.wikipediaSearch ?? wikipediaSearch;
   const getSights = providers.wikidataSights ?? wikidataSights;
-  const getCommons = providers.commonsMetadata ?? commonsMetadata;
   const basic = await getCountry(iso2).catch((error) => {
     if (iso2 === "FR") return FRANCE_BASIC;
     throw error;
   });
   const now = new Date().toISOString();
-  const wikiCountry = await getWiki(basic.name).catch(() => ({}));
+  const wikiOptions = { timeoutMs: 6_000, retries: 1 };
+  const wikiCountry = await getWiki(basic.name, wikiOptions).catch(() => ({}));
   const country = upsertImported(db.data.countries, (x) => x.iso2 === iso2, {
     ...basic,
     description: cleanDescription(
@@ -105,12 +130,19 @@ export async function importCountry(
   });
   let rawCities = await getCities(iso2).catch(() => []);
   if (!rawCities.length && iso2 === "FR") rawCities = FRANCE_FALLBACK_CITIES;
-  const cityRows = [];
-  for (const [index, item] of rankEntities(
+  const rankedCities = rankEntities(
     dedupeByStableId(rawCities, ["geonamesId", "wikidataId"]),
     10,
-  ).entries()) {
-    const wiki = await getWiki(item.name).catch(() => ({}));
+  );
+  const cityImports = await mapLimit(rankedCities, 5, async (item, index) => {
+    let wiki = await getWiki(item.name, wikiOptions).catch(() => ({}));
+    if (!wiki.imageUrl) {
+      const matches = await searchWiki(
+        `${item.name} ${basic.name}`,
+        wikiOptions,
+      ).catch(() => []);
+      wiki = matches.find((match) => match.imageUrl) ?? wiki;
+    }
     const city = upsertImported(
       db.data.cities,
       (x) => x.geonamesId === item.geonamesId,
@@ -127,17 +159,56 @@ export async function importCountry(
         lastSyncedAt: now,
       },
     );
-    cityRows.push(city);
-    const metadata = await getCommons(wiki.imageUrl).catch(() => ({}));
-    const credit = imageCredit("city", city.id, { ...wiki, ...metadata });
+    const credit = imageCredit("city", city.id, wiki);
     if (credit)
       upsertImported(
         db.data.imageCredits,
         (x) => x.entityType === "city" && x.entityId === city.id,
         credit,
       );
+    return city;
+  });
+  const cityRows = cityImports.filter(Boolean);
+  let rawSights = await getSights(country, {
+    timeoutMs: 8_000,
+    retries: 0,
+  }).catch(
+    () => [],
+  );
+  if (!rawSights.length && cityRows.length) {
+    const fallbackGroups = await mapLimit(
+      cityRows.slice(0, 4),
+      4,
+      async (city) => {
+        const matches = await searchWiki(
+          `tourist attractions landmarks ${city.name} ${basic.name}`,
+          wikiOptions,
+        ).catch(() => []);
+        return matches
+          .filter(
+            (item) =>
+              item.imageUrl &&
+              !/^(list of|tourism in)/i.test(item.name) &&
+              item.name.toLowerCase() !== basic.name.toLowerCase(),
+          )
+          .slice(0, 5)
+          .map((item) => ({
+            ...item,
+            category: "attraction",
+            latitude: Number.isFinite(item.latitude)
+              ? item.latitude
+              : city.latitude,
+            longitude: Number.isFinite(item.longitude)
+              ? item.longitude
+              : city.longitude,
+            cityId: city.id,
+            score: 1,
+          }));
+      },
+    );
+    rawSights = fallbackGroups.flat();
   }
-  const sightCandidates = (await getSights(country).catch(() => []))
+  const sightCandidates = rawSights
     .map((sight) => {
       const city = [...cityRows].sort(
         (a, b) =>
@@ -150,22 +221,40 @@ export async function importCountry(
             b.longitude - sight.longitude,
           ),
       )[0];
-      return { ...sight, cityId: city?.id, countryId: country.id };
+      return {
+        ...sight,
+        cityId: sight.cityId ?? city?.id,
+        countryId: country.id,
+      };
     })
     .filter((sight) => sight.cityId);
   if (!sightCandidates.length && iso2 === "FR" && cityRows.length)
     for (const sight of FRANCE_FALLBACK_SIGHTS)
       sightCandidates.push({
         ...sight,
-        cityId: cityRows[0].id,
+        cityId: [...cityRows].sort(
+          (a, b) =>
+            Math.hypot(
+              a.latitude - sight.latitude,
+              a.longitude - sight.longitude,
+            ) -
+            Math.hypot(
+              b.latitude - sight.latitude,
+              b.longitude - sight.longitude,
+            ),
+        )[0].id,
         countryId: country.id,
       });
-  const sightRows = [];
-  for (const [index, item] of rankEntities(
+  const rankedSights = rankEntities(
     dedupeByStableId(sightCandidates, ["wikidataId", "wikipediaTitle"]),
     20,
-  ).entries()) {
-    const wiki = await getWiki(item.name).catch(() => ({}));
+  );
+  const sightImports = await mapLimit(rankedSights, 5, async (item, index) => {
+    const wiki = item.imageUrl
+      ? item
+      : await getWiki(item.wikipediaTitle ?? item.name, wikiOptions).catch(
+          () => ({}),
+        );
     const sight = upsertImported(
       db.data.sights,
       (x) =>
@@ -179,20 +268,21 @@ export async function importCountry(
         wikipediaTitle: wiki.wikipediaTitle ?? item.wikipediaTitle,
         imageUrl: wiki.imageUrl ?? "",
         isFeatured: true,
+        isPremium: index >= 5,
         displayOrder: index,
         lastSyncedAt: now,
       },
     );
-    sightRows.push(sight);
-    const metadata = await getCommons(wiki.imageUrl).catch(() => ({}));
-    const credit = imageCredit("sight", sight.id, { ...wiki, ...metadata });
+    const credit = imageCredit("sight", sight.id, wiki);
     if (credit)
       upsertImported(
         db.data.imageCredits,
         (x) => x.entityType === "sight" && x.entityId === sight.id,
         credit,
       );
-  }
+    return sight;
+  });
+  const sightRows = sightImports.filter(Boolean);
   const defaults = [
     { name: "Cultural Icons", slug: "cultural-icons", icon: "🏛️" },
     { name: "Food Capitals", slug: "food-capitals", icon: "🥐" },
@@ -231,13 +321,65 @@ export async function importCountry(
         .map((item) => [`${item.countryId}:${item.collectionId}`, item]),
     ).values(),
   ];
+  const countrySights = db.data.sights.filter(
+    (item) => item.countryId === country.id,
+  );
+  const sightGroups = new Map();
+  for (const sight of countrySights) {
+    const key = sight.wikidataId
+      ? `wd:${sight.wikidataId}`
+      : sight.wikipediaTitle
+        ? `wiki:${sight.wikipediaTitle.toLowerCase()}`
+        : `name:${slugify(sight.name)}`;
+    const group = sightGroups.get(key) ?? [];
+    group.push(sight);
+    sightGroups.set(key, group);
+  }
+  const removedSightIds = new Map();
+  for (const group of sightGroups.values()) {
+    if (group.length < 2) continue;
+    const keeper = [...group].sort(
+      (a, b) =>
+        (b.manualFields?.length ?? 0) - (a.manualFields?.length ?? 0) ||
+        String(a.id).localeCompare(String(b.id)),
+    )[0];
+    for (const duplicate of group)
+      if (duplicate.id !== keeper.id)
+        removedSightIds.set(duplicate.id, keeper.id);
+  }
+  if (removedSightIds.size) {
+    db.data.sights = db.data.sights.filter(
+      (item) => !removedSightIds.has(item.id),
+    );
+    for (const credit of db.data.imageCredits)
+      if (credit.entityType === "sight" && removedSightIds.has(credit.entityId))
+        credit.entityId = removedSightIds.get(credit.entityId);
+    db.data.imageCredits = [
+      ...new Map(
+        db.data.imageCredits.map((item) => [
+          `${item.entityType}:${item.entityId}`,
+          item,
+        ]),
+      ).values(),
+    ];
+    for (const completion of db.data.completions ?? [])
+      if (removedSightIds.has(completion.sightId))
+        completion.sightId = removedSightIds.get(completion.sightId);
+  }
+  rankEntities(
+    db.data.sights.filter((item) => item.countryId === country.id),
+    20,
+  ).forEach((sight, index) => {
+    if (!(sight.manualFields ?? []).includes("isPremium"))
+      sight.isPremium = index >= 5;
+  });
   await db.write();
   return {
     country: country.name,
     cities: cityRows.length,
     sights: sightRows.length,
     credentials: {
-      geonames: Boolean(process.env.GEONAMES_USERNAME),
+      geonames: true,
       wikidata: true,
     },
   };

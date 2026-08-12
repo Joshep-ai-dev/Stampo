@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -41,6 +41,14 @@ export default function CountryScreen() {
     countryState.data?.country.code === code.toUpperCase()
       ? countryState.data
       : null;
+  useEffect(() => {
+    if (!detail?.isEnriching || !isSignedIn) return;
+    const refresh = setTimeout(
+      () => void dispatch(fetchCountryDetail(code)),
+      2_500,
+    );
+    return () => clearTimeout(refresh);
+  }, [code, detail?.isEnriching, dispatch, isSignedIn, countryState.data]);
   const normalizedCode = code.toUpperCase() as TCountryCode;
   const name =
     detail?.country.name ??
@@ -49,8 +57,9 @@ export default function CountryScreen() {
   const flag = countries[normalizedCode] ? getEmojiFlag(normalizedCode) : "🌍";
   const heroCities = detail?.cities ?? [];
   const sights = detail?.sights ?? [];
-  const freeSights = sights.slice(0, 5);
-  const premiumSights = sights.slice(5);
+  const freeSights = sights.filter((sight) => !sight.isPremium);
+  const premiumSights = sights.filter((sight) => sight.isPremium);
+  const premiumSightPreview = premiumSights.slice(0, 3);
   const cardWidth = Math.min((width - 32) * 0.42, 180);
 
   const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -140,11 +149,13 @@ export default function CountryScreen() {
               {
                 icon: "business-outline",
                 value: detail?.stats.cities ?? 0,
+                total: detail?.stats.totalCities,
                 label: "CITIES VISITED",
               },
               {
                 icon: "camera-outline",
                 value: detail?.stats.sights ?? 0,
+                total: detail?.stats.totalSights,
                 label: "SIGHTS VISITED",
               },
               {
@@ -246,9 +257,11 @@ export default function CountryScreen() {
                   </TouchableOpacity>
                 );
               })}
-              {premiumSights.length ? <UpgradeBanner /> : null}
+              {premiumSights.length ? (
+                <UpgradeBanner count={premiumSights.length} />
+              ) : null}
               <View style={s.lockedList}>
-                {premiumSights.map((sight) => (
+                {premiumSightPreview.map((sight) => (
                   <View
                     key={sight.id}
                     style={[s.sightRow, s.lockedSightRow]}
@@ -317,12 +330,12 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function UpgradeBanner() {
+function UpgradeBanner({ count }: { count: number }) {
   return (
     <View style={s.upgradeCard}>
       <View style={s.upgradeCopy}>
         <Ionicons name="lock-closed" size={20} color={BrandColors.white} />
-        <Text style={s.upgradeText}>Unlock all 7 sights with Kroo+</Text>
+        <Text style={s.upgradeText}>Unlock {count} more sights with Kroo+</Text>
       </View>
       <View style={s.upgradeButton}>
         <Text style={s.upgradeButtonText}>Upgrade</Text>

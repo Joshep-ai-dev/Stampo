@@ -169,7 +169,7 @@ Common statuses:
 | `GET`    | `/api/cities/:id/sights`        | Optional       | Sights in a city                                             |
 | `GET`    | `/api/sights/:id`               | Optional       | Sight detail and image attribution                           |
 
-Catalog records are normalized into `countries`, `cities`, `sights`, `collections`, `countryCollections`, and `imageCredits` arrays in LowDB. Run `npm run import:country -- FR` to upsert one country. Stable provider IDs prevent duplicates, and fields named in a record's `manualFields` array are preserved during refresh.
+Catalog records use normalized `countries`, `cities`, `sights`, `collections`, `countryCollections`, and `imageCredits` arrays. When `GET /api/countries/:code` requests a supported country that is not already curated, the server builds an in-memory catalog and responds with `202 { status: "importing" }`. The app polls until the completed payload is available. Automatically downloaded reference data is not written to the main LowDB file; only explicit user actions persist user data.
 
 ## Authentication endpoints
 

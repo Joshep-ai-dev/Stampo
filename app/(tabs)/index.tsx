@@ -416,6 +416,11 @@ export default function HomeScreen() {
               Countries visited by continent
             </Text>
           </View>
+          {countryCount === 0 && dashboard.status !== "loading" ? (
+            <Text style={styles.continentEmptyText}>
+              Your visited countries will appear here.
+            </Text>
+          ) : null}
           {CONTINENTS.filter((item) => continentCounts[item.code]).map(
             (item) => {
               const count = continentCounts[item.code] ?? 0;
@@ -691,6 +696,14 @@ const styles = StyleSheet.create({
     fontSize: 19,
     textAlign: "center",
     color: BrandColors.onDark,
+  },
+  continentEmptyText: {
+    paddingVertical: 10,
+    fontFamily: "Lora_400Regular_Italic",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    color: BrandColors.copper,
   },
   continentRow: { height: 34, flexDirection: "row", alignItems: "center" },
   continentName: {

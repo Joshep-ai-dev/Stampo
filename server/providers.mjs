@@ -2,59 +2,45 @@ import { cleanDescription } from "./lib/catalog.mjs";
 import { fetchJson } from "./lib/http.mjs";
 
 export async function restCountry(iso2, options) {
-  const apiKey = options?.apiKey ?? process.env.RESTCOUNTRIES_API_KEY;
-  if (!apiKey)
-    throw new Error("RESTCOUNTRIES_API_KEY is required for REST Countries v5.");
-  const rows = await fetchJson(
-    `https://api.restcountries.com/countries/v5/codes.alpha_2/${encodeURIComponent(iso2)}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        ...(options?.headers ?? {}),
-      },
-    },
+  const row = await fetchJson(
+    `https://countries.dev/alpha/${encodeURIComponent(iso2)}`,
+    options,
   );
-  const row = rows?.data?.objects?.[0];
-  if (!row?.codes?.alpha_2 || !row?.names?.common)
-    throw new Error("REST Countries returned an invalid country.");
+  if (!row?.alpha2Code || !row?.name)
+    throw new Error("The country provider returned an invalid country.");
   return {
-    iso2: row.codes.alpha_2,
-    iso3: row.codes.alpha_3,
-    name: row.names.common,
-    officialName: row.names.official,
-    capital:
-      row.capitals?.find((x) => x.attributes?.primary)?.name ??
-      row.capitals?.[0]?.name ??
-      "",
+    iso2: row.alpha2Code,
+    iso3: row.alpha3Code,
+    name: row.name,
+    officialName: row.officialName ?? row.name,
+    capital: row.capital ?? "",
     population: Number(row.population ?? 0),
-    languages: (row.languages ?? []).map((x) => x.name),
-    currencies: (row.currencies ?? []).map((x) => x.name),
+    languages: (row.languages ?? []).map((x) => x.name ?? x),
+    currencies: (row.currencies ?? []).map((x) => x.name ?? x),
     continent: row.region ?? "",
     region: row.subregion ?? row.region ?? "",
-    flagUrl: row.flag?.url_png ?? row.flag?.url_svg ?? "",
+    flagUrl: row.flag ?? "",
   };
 }
 
 export async function geonamesCities(
   iso2,
-  username = process.env.GEONAMES_USERNAME,
+  _username = process.env.GEONAMES_USERNAME,
   options,
 ) {
-  if (!username) return [];
-  const data = await fetchJson(
-    `https://secure.geonames.org/searchJSON?country=${encodeURIComponent(iso2)}&featureClass=P&orderby=population&maxRows=10&username=${encodeURIComponent(username)}`,
+  const rows = await fetchJson(
+    `https://countries.dev/cities?country=${encodeURIComponent(iso2)}&limit=10`,
     options,
   );
-  if (!Array.isArray(data?.geonames)) return [];
-  return data.geonames
+  if (!Array.isArray(rows)) return [];
+  return rows
     .map((x) => ({
-      geonamesId: String(x.geonameId),
+      geonamesId: String(x.geonameId ?? ""),
       name: x.name,
       population: Number(x.population ?? 0),
-      latitude: Number(x.lat),
-      longitude: Number(x.lng),
-      adminName: x.adminName1 ?? "",
+      latitude: Number(x.latitude),
+      longitude: Number(x.longitude),
+      adminName: x.admin1Code ?? "",
     }))
     .filter((x) => x.geonamesId && Number.isFinite(x.latitude));
 }
@@ -72,6 +58,43 @@ export async function wikipediaSummary(title, options) {
     imageUrl: data.originalimage?.source ?? data.thumbnail?.source ?? "",
     sourceUrl: data.content_urls?.desktop?.page ?? "",
   };
+}
+
+export async function wikipediaSearch(query, options) {
+  if (!query) return [];
+  const params = new URLSearchParams({
+    action: "query",
+    format: "json",
+    generator: "search",
+    gsrsearch: query,
+    gsrnamespace: "0",
+    gsrlimit: "6",
+    prop: "extracts|pageimages|coordinates|pageprops|info",
+    exintro: "1",
+    explaintext: "1",
+    exsentences: "2",
+    piprop: "original|thumbnail",
+    pithumbsize: "800",
+    inprop: "url",
+    redirects: "1",
+    origin: "*",
+  });
+  const data = await fetchJson(
+    `https://en.wikipedia.org/w/api.php?${params}`,
+    options,
+  );
+  return Object.values(data?.query?.pages ?? {})
+    .sort((a, b) => Number(a.index ?? 999) - Number(b.index ?? 999))
+    .map((page) => ({
+      wikipediaTitle: page.title,
+      wikidataId: page.pageprops?.wikibase_item ?? null,
+      name: page.title,
+      description: cleanDescription(page.extract),
+      imageUrl: page.original?.source ?? page.thumbnail?.source ?? "",
+      sourceUrl: page.fullurl ?? "",
+      latitude: Number(page.coordinates?.[0]?.lat),
+      longitude: Number(page.coordinates?.[0]?.lon),
+    }));
 }
 
 export async function commonsMetadata(imageUrl, options) {
@@ -101,12 +124,12 @@ export async function commonsMetadata(imageUrl, options) {
 
 export async function wikidataSights(country, options) {
   if (!country?.wikidataId) return [];
-  const query = `SELECT ?item ?itemLabel ?coord ?article ?typeLabel ?sitelinks WHERE {
-    ?item wdt:P17 wd:${country.wikidataId}; wdt:P625 ?coord; wikibase:sitelinks ?sitelinks.
+  const query = `SELECT DISTINCT ?item ?itemLabel ?coord ?article ?typeLabel ?sitelinks WHERE {
+    VALUES ?type { wd:Q570116 wd:Q33506 wd:Q16970 wd:Q23413 wd:Q4989906 wd:Q811979 wd:Q839954 wd:Q174782 }
+    ?item wdt:P17 wd:${country.wikidataId}; wdt:P31 ?type; wdt:P625 ?coord; wikibase:sitelinks ?sitelinks.
     ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
-    OPTIONAL { ?item wdt:P31 ?type. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-  } ORDER BY DESC(?sitelinks) LIMIT 40`;
+  } ORDER BY DESC(?sitelinks) LIMIT 30`;
   const data = await fetchJson(
     `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`,
     {

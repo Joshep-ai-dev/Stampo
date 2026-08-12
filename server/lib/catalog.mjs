@@ -8,6 +8,7 @@ export const CATALOG_DEFAULTS = {
   countryCollections: [],
   imageCredits: [],
   importCache: [],
+  importRuns: [],
 };
 
 export function ensureCatalog(db) {
