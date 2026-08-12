@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { countries, type TCountryCode } from "countries-list";
-import { BlurView } from "expo-blur";
 import { Image, type ImageSource } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -281,7 +280,7 @@ export default function CountryScreen() {
             {TOP_SIGHTS.slice(5).map((sight) => (
               <View
                 key={sight.id}
-                style={s.sightRow}
+                style={[s.sightRow, s.lockedSightRow]}
                 accessibilityElementsHidden
               >
                 <Image
@@ -297,13 +296,6 @@ export default function CountryScreen() {
                   name="checkmark-circle-outline"
                   size={28}
                   color={BrandColors.onDarkMuted}
-                />
-                <BlurView
-                  pointerEvents="none"
-                  intensity={42}
-                  tint="regular"
-                  experimentalBlurMethod="dimezisBlurView"
-                  style={s.lockedRowBlur}
                 />
               </View>
             ))}
@@ -507,9 +499,9 @@ const s = StyleSheet.create({
     borderBottomColor: BrandColors.paleGreen,
   },
   lockedList: { overflow: "hidden" },
-  lockedRowBlur: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(128,128,128,.12)",
+  lockedSightRow: {
+    position: "relative",
+    overflow: "hidden",
   },
   sightImage: {
     width: 46,
