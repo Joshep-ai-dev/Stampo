@@ -111,12 +111,14 @@ export type CountryDetailResponse = {
   code: string;
   name: string;
   flag: string;
-  heroCities: { name: string; imageKey: string }[];
+  heroCities: { id: string; name: string; imageKey: string }[];
   featuredIn: string[];
   sights: {
     id: string;
     name: string;
     imageKey: string;
+    cityId: string;
+    cityName: string;
     premium: boolean;
     completed: boolean;
   }[];

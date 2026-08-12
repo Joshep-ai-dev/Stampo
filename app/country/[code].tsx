@@ -19,11 +19,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DisplayBubble } from "@/components/display-bubble";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
-import { api } from "@/services/api";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
-import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { sightToggled } from "@/store/travel-slice";
 
 const CITY_IMAGES: Record<string, ImageSource> = {
   "paris-eiffel": require("@/assets/images/cities/Golden-hour Paris with Eiffel Tower.png"),
@@ -65,19 +62,6 @@ export default function CountryScreen() {
   const freeSights = sights.filter((sight) => !sight.premium);
   const premiumSights = sights.filter((sight) => sight.premium);
   const cardWidth = Math.min((width - 32) * 0.42, 180);
-
-  const toggleSight = (id: string, wasCompleted: boolean) => {
-    if (isSignedIn) {
-      void api
-        .setSightCompleted(id, !wasCompleted)
-        .then(() => {
-          dispatch(sightToggled(id));
-          void dispatch(fetchHomeDashboard());
-          void dispatch(fetchCountryDetail(code));
-        })
-        .catch(() => undefined);
-    }
-  };
 
   const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setSlide(Math.round(event.nativeEvent.contentOffset.x / (cardWidth + 10)));
@@ -134,9 +118,12 @@ export default function CountryScreen() {
           contentContainerStyle={s.heroTrack}
         >
           {heroCities.map((city, index) => (
-            <View
+            <TouchableOpacity
               key={`${city.name}-${index}`}
               style={[s.heroCard, { width: cardWidth }]}
+              onPress={() => router.push(`/city/${city.id}` as never)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${city.name}`}
             >
               <Image
                 source={CITY_IMAGES[city.imageKey]}
@@ -149,7 +136,7 @@ export default function CountryScreen() {
                 <Ionicons name="location" size={14} color={BrandColors.white} />
                 <Text style={s.heroName}>{city.name}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
         <View style={s.dots}>
@@ -201,9 +188,11 @@ export default function CountryScreen() {
                   <TouchableOpacity
                     key={sight.id}
                     style={s.sightRow}
-                    onPress={() => toggleSight(sight.id, checked)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked }}
+                    onPress={() =>
+                      router.push(`/city/${sight.cityId}` as never)
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${sight.cityName}, home of ${sight.name}`}
                   >
                     <Image
                       source={SIGHT_IMAGES[sight.imageKey]}
