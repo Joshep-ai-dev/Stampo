@@ -696,13 +696,13 @@ const styles = StyleSheet.create({
     marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 0,
   },
-  levelCompass: { width: 32, height: 32 },
+  levelCompass: { width: 34, height: 34 },
   levelText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 15,
-    color: "#5d8f5a",
+    fontSize: 16,
+    color: "#74a372",
   },
   globe: {
     position: "absolute",
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
   locationTitle: {
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 21,
     color: BrandColors.onDark,
   },
@@ -748,8 +748,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 15,
-    color: BrandColors.onDarkMuted,
+    fontSize: 16,
+    color: BrandColors.onDark,
   },
   scoreLine: {
     flexDirection: "row",
