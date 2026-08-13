@@ -20,10 +20,10 @@ export const BrandColors = {
   muted: "#846E5B",
   line: "#B97950",
   paleGreen: "#315749",
-  mapGreen: "#408F60",
+  mapGreen: "#568A68",
   mapVisited: "#A7B673",
   progressGreen: "#55B965",
-  onDark: "#F8EAD4",
+  onDark: "#e6caa3",
   onDarkMuted: "#D9A477",
 } as const;
 

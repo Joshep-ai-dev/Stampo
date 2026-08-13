@@ -62,7 +62,11 @@ function buildMapData(geometry: Geometry): MapData {
   };
 }
 
-function centeredViewBox(map: MapData, canvasWidth: number, canvasHeight: number) {
+function centeredViewBox(
+  map: MapData,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
   const canvasAspect = canvasWidth / canvasHeight;
   const mapAspect = map.bounds.width / map.bounds.height;
   if (mapAspect < canvasAspect) {
@@ -141,7 +145,9 @@ export function CountryMap({
         {!map && !error && <ActivityIndicator color={BrandColors.copper} />}
         {error && (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>Map needs an internet connection.</Text>
+            <Text style={styles.errorText}>
+              Map needs an internet connection.
+            </Text>
             <TouchableOpacity
               style={styles.retry}
               onPress={() => setAttempt((value) => value + 1)}
@@ -182,7 +188,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: BrandColors.greenDeep,
+    backgroundColor: "transparent",
   },
   heading: {
     flexDirection: "row",
@@ -213,7 +219,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#06271D",
+    backgroundColor: "transparent",
   },
   compactCard: {
     flex: 1,

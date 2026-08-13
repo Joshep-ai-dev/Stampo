@@ -502,9 +502,7 @@ export default function HomeScreen() {
             style={styles.globe}
             contentFit="contain"
           />
-        </View>
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreLine}>
+          <View style={styles.heroScoreLine}>
             <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
@@ -533,6 +531,8 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
+        </View>
+        <View style={styles.scoreCard}>
           <View style={styles.statsShared}>
             <TravelStats
               items={[
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     color: BrandColors.white,
   },
   hero: {
-    height: 205,
+    height: 264,
     paddingHorizontal: 22,
     paddingTop: 0,
     overflow: "hidden",
@@ -702,18 +702,18 @@ const styles = StyleSheet.create({
   levelText: {
     fontFamily: "Lora_500Medium",
     fontSize: 16,
-    color: "#74a372",
+    color: "#8aad88",
+    marginHorizontal: 10,
   },
   globe: {
     position: "absolute",
-    right: 30,
-    top: 5,
-    width: 210,
-    height: 210,
+    right: 24,
+    top: 10,
+    width: 280,
+    height: 280,
     zIndex: 0,
   },
   scoreCard: {
-    marginTop: -24,
     marginHorizontal: 8,
     paddingHorizontal: 0,
     paddingTop: 4,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,0.20)",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
   locationTitle: {
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: 18,
     lineHeight: 21,
     color: BrandColors.onDark,
   },
@@ -748,26 +748,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: 18,
     color: BrandColors.onDark,
   },
-  scoreLine: {
+  heroScoreLine: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    bottom: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 18,
-    paddingHorizontal: 14,
   },
   score: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_600SemiBold",
     fontSize: 42,
     lineHeight: 52,
     color: BrandColors.onDark,
     includeFontPadding: false,
   },
-  scoreDetails: { flex: 1 },
+  scoreDetails: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 218,
+  },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 18,
+    fontSize: 20,
     letterSpacing: 0.3,
     color: BrandColors.onDark,
   },
@@ -814,7 +822,7 @@ const styles = StyleSheet.create({
   worldPercent: {
     fontFamily: "Lora_500Medium",
     fontSize: 13,
-    color: BrandColors.progressGreen,
+    color: "#8aad88",
   },
   worldText: {
     fontFamily: "Lora_400Regular",
@@ -827,7 +835,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,0.20)",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
   },
@@ -847,7 +855,7 @@ const styles = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   statLabel: {
-    fontFamily: "Lora_600SemiBold",
+    fontFamily: "Lora_600Bold",
     fontSize: 13,
     color: BrandColors.onDark,
   },
@@ -887,8 +895,8 @@ const styles = StyleSheet.create({
   },
   mapPositionPin: {
     position: "absolute",
-    width: 18,
-    height: 24,
+    width: 24,
+    height: 30,
     marginLeft: -9,
     marginTop: -24,
   },
@@ -910,7 +918,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,0.20)",
+    backgroundColor: "transparent",
   },
   continentHeader: {
     alignItems: "center",
@@ -918,7 +926,7 @@ const styles = StyleSheet.create({
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 19,
+    fontSize: 21,
     textAlign: "center",
     color: BrandColors.onDark,
   },

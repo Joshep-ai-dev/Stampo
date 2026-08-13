@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,0.20)",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
   },
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   label: {
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: 15,
     color: BrandColors.onDark,
   },
   infoButton: {

@@ -106,20 +106,11 @@ export default function CountryScreen() {
         </View>
 
         <View style={s.stampHero}>
-          {stamp ? (
-            <Image
-              source={stamp}
-              style={s.stampImage}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : (
-            <Image
-              source={require("@/assets/images/other/globe-airplane.png")}
-              style={s.stampImage}
-              contentFit="cover"
-            />
-          )}
+          <Image
+            source={require("@/assets/images/other/globe-airplane.png")}
+            style={s.stampImage}
+            contentFit="cover"
+          />
         </View>
 
         <View style={s.statsWrap}>
@@ -328,7 +319,7 @@ const s = StyleSheet.create({
   stampImage: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.2 }],
+    transform: [{ scale: 1.3 }],
   },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
@@ -338,7 +329,7 @@ const s = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,.2)",
+    backgroundColor: "transparent",
   },
   messageText: {
     textAlign: "center",
@@ -455,7 +446,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    backgroundColor: "rgba(10,43,32,.2)",
+    backgroundColor: "transparent",
   },
   gpsText: {
     flex: 1,

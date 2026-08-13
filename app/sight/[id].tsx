@@ -122,7 +122,7 @@ const s = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,.2)",
+    backgroundColor: "transparent",
   },
   title: {
     fontFamily: "Lora_700Bold",

@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   },
   identityCountry: {
     fontFamily: "Lora_700Bold",
-    fontSize: 19,
+    fontSize: 21,
     color: BrandColors.green,
     letterSpacing: 1.2,
   },

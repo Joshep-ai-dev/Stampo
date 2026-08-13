@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     justifyContent: "center",
-    backgroundColor: "rgba(10,43,32,.25)",
+    backgroundColor: "transparent",
   },
   accentBubble: {
     borderColor: BrandColors.copper,

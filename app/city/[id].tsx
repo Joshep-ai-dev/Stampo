@@ -161,7 +161,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     borderRadius: 13,
-    backgroundColor: "rgba(10,43,32,.2)",
+    backgroundColor: "transparent",
   },
   description: {
     fontFamily: "Lora_400Regular",
