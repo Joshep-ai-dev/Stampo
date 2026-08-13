@@ -497,37 +497,41 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <Image
-            source={require("@/assets/images/other/globe-airplane.png")}
-            style={styles.globe}
-            contentFit="contain"
-          />
-          <View style={styles.heroScoreLine}>
-            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
-            <View style={styles.scoreDetails}>
-              <View style={styles.infoTitleRow}>
-                <Text style={styles.scoreTitle}>KROO SCORE</Text>
-                <InfoButton
-                  label="About Kroo Score"
-                  onPress={() =>
-                    Alert.alert(
-                      "Kroo Score",
-                      "Your Kroo Score is out of 100: continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
-                    )
-                  }
-                />
-              </View>
-              <View style={styles.scoreBar}>
-                <View
-                  style={[
-                    styles.scoreFill,
-                    { width: `${Math.min(score, 100)}%` },
-                  ]}
-                />
-              </View>
-              <View style={styles.worldTextRow}>
-                <Text style={styles.worldPercent}>{worldProgress}%</Text>
-                <Text style={styles.worldText}> of the world explored</Text>
+          <View style={styles.heroScoreRow}>
+            <View style={styles.scoreNumberSlot}>
+              <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+            </View>
+            <View style={styles.globeColumn}>
+              <Image
+                source={require("@/assets/images/other/globe-airplane.png")}
+                style={styles.globe}
+                contentFit="contain"
+              />
+              <View style={styles.scoreDetails}>
+                <View style={styles.infoTitleRow}>
+                  <Text style={styles.scoreTitle}>KROO SCORE</Text>
+                  <InfoButton
+                    label="About Kroo Score"
+                    onPress={() =>
+                      Alert.alert(
+                        "Kroo Score",
+                        "Your Kroo Score is out of 100: continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
+                      )
+                    }
+                  />
+                </View>
+                <View style={styles.scoreBar}>
+                  <View
+                    style={[
+                      styles.scoreFill,
+                      { width: `${Math.min(score, 100)}%` },
+                    ]}
+                  />
+                </View>
+                <View style={styles.worldTextRow}>
+                  <Text style={styles.worldPercent}>{worldProgress}%</Text>
+                  <Text style={styles.worldText}> of the world explored</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -669,7 +673,7 @@ const styles = StyleSheet.create({
     color: BrandColors.white,
   },
   hero: {
-    height: 264,
+    height: 292,
     paddingHorizontal: 22,
     paddingTop: 0,
     overflow: "hidden",
@@ -706,12 +710,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   globe: {
-    position: "absolute",
-    right: 24,
-    top: 5,
     width: 240,
     height: 240,
-    zIndex: 0,
+  },
+  globeColumn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  heroScoreRow: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+    bottom: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  scoreNumberSlot: {
+    width: 82,
+    paddingBottom: 10,
+    alignItems: "flex-start",
   },
   scoreCard: {
     marginHorizontal: 8,
@@ -751,15 +770,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: BrandColors.onDark,
   },
-  heroScoreLine: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-  },
   score: {
     fontFamily: "Lora_600SemiBold",
     fontSize: 42,
@@ -768,10 +778,8 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   scoreDetails: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
     width: 218,
+    alignItems: "center",
   },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
@@ -801,7 +809,7 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    width: "100%",
+    width: 218,
     height: 5,
     marginTop: 5,
     borderRadius: 4,
