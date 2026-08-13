@@ -1,16 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
+import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,17 +17,16 @@ import { DisplayBubble } from "@/components/display-bubble";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
+import { stampAssets } from "@/data/stamps";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export default function CountryScreen() {
-  const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
   const countryState = useAppSelector((state) => state.countryDetail);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
-  const [slide, setSlide] = useState(0);
   useFocusEffect(
     useCallback(() => {
       if (isSignedIn) void dispatch(fetchCountryDetail(code));
@@ -53,16 +50,11 @@ export default function CountryScreen() {
     countries[normalizedCode]?.name ??
     code.toUpperCase();
   const flag = countries[normalizedCode] ? getEmojiFlag(normalizedCode) : "🌍";
-  const heroCities = detail?.cities ?? [];
   const sights = detail?.sights ?? [];
   const freeSights = sights.filter((sight) => !sight.isPremium);
   const premiumSights = sights.filter((sight) => sight.isPremium);
   const premiumSightPreview = premiumSights.slice(0, 3);
-  const cardWidth = Math.min((width - 32) * 0.42, 180);
-
-  const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setSlide(Math.round(event.nativeEvent.contentOffset.x / (cardWidth + 10)));
-  };
+  const stamp = stampAssets[normalizedCode];
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -105,39 +97,16 @@ export default function CountryScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          horizontal
-          snapToInterval={cardWidth + 10}
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onHeroScroll}
-          contentContainerStyle={s.heroTrack}
-        >
-          {heroCities.map((city, index) => (
-            <TouchableOpacity
-              key={`${city.name}-${index}`}
-              style={[s.heroCard, { width: cardWidth }]}
-              onPress={() => router.push(`/city/${city.id}` as never)}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${city.name}`}
-            >
-              <ProgressivePlaceImage
-                uri={city.image}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-              />
-              <View style={s.heroShade} />
-              <View style={s.heroLabel}>
-                <Ionicons name="location" size={14} color={BrandColors.white} />
-                <Text style={s.heroName}>{city.name}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <View style={s.dots}>
-          {heroCities.map((_, index) => (
-            <View key={index} style={[s.dot, slide === index && s.dotActive]} />
-          ))}
+        <View style={s.stampHero}>
+          {stamp ? (
+            <Image source={stamp} style={s.stampImage} contentFit="contain" />
+          ) : (
+            <Image
+              source={require("@/assets/images/other/globe-airplane.png")}
+              style={s.stampImage}
+              contentFit="cover"
+            />
+          )}
         </View>
 
         <View style={s.statsWrap}>
@@ -146,13 +115,11 @@ export default function CountryScreen() {
               {
                 icon: "business-outline",
                 value: detail?.stats.cities ?? 0,
-                total: detail?.stats.totalCities,
                 label: "CITIES VISITED",
               },
               {
                 icon: "camera-outline",
                 value: detail?.stats.sights ?? 0,
-                total: detail?.stats.totalSights,
                 label: "SIGHTS VISITED",
               },
               {
@@ -179,44 +146,6 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        {detail ? (
-          <View style={s.aboutCard}>
-            <Text style={s.aboutTitle}>About {detail.country.name}</Text>
-            <Text style={s.description}>{detail.country.description}</Text>
-            <View style={s.factGrid}>
-              <Fact label="Capital" value={detail.country.capital} />
-              <Fact
-                label="Population"
-                value={detail.country.population.toLocaleString()}
-              />
-              <Fact
-                label="Languages"
-                value={detail.country.languages.join(", ")}
-              />
-              <Fact
-                label="Currency"
-                value={detail.country.currencies.join(", ")}
-              />
-              <Fact label="Continent" value={detail.country.continent} />
-              <Fact label="Region" value={detail.country.region} />
-            </View>
-          </View>
-        ) : null}
-
-        {detail?.featuredIn.length ? (
-          <>
-            <SectionTitle>Featured In</SectionTitle>
-            <View style={s.pills}>
-              {detail.featuredIn.map((item) => (
-                <DisplayBubble
-                  key={item.slug}
-                  label={`${item.icon} ${item.name}`}
-                />
-              ))}
-            </View>
-          </>
-        ) : null}
-
         {sights.length ? (
           <>
             <SectionTitle>Top Sights</SectionTitle>
@@ -303,6 +232,17 @@ export default function CountryScreen() {
             <Text style={s.empty}>Your visited cities will appear here.</Text>
           )}
         </View>
+        <View style={s.gpsCard}>
+          <Ionicons
+            name="location-outline"
+            size={20}
+            color={BrandColors.copper}
+          />
+          <Text style={s.gpsText}>
+            Kroo+ can automatically add visited cities using GPS when you opt
+            in.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -312,21 +252,14 @@ function SectionTitle({ children }: { children: string }) {
   return <Text style={s.sectionTitle}>{children}</Text>;
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.fact}>
-      <Text style={s.factLabel}>{label}</Text>
-      <Text style={s.factValue}>{value || "—"}</Text>
-    </View>
-  );
-}
-
 function UpgradeBanner({ count }: { count: number }) {
   return (
     <View style={s.upgradeCard}>
       <View style={s.upgradeCopy}>
         <Ionicons name="lock-closed" size={20} color={BrandColors.white} />
-        <Text style={s.upgradeText}>Unlock {count} more sights with Kroo+</Text>
+        <Text style={s.upgradeText}>
+          Unlock all {count} top sights with Kroo+
+        </Text>
       </View>
       <View style={s.upgradeButton}>
         <Text style={s.upgradeButtonText}>Upgrade</Text>
@@ -363,49 +296,18 @@ const s = StyleSheet.create({
     includeFontPadding: false,
     color: BrandColors.copper,
   },
-  heroTrack: { paddingHorizontal: 16, gap: 10 },
-  heroCard: {
-    aspectRatio: 9 / 16,
-    borderRadius: 19,
+  stampHero: {
+    height: 220,
+    marginHorizontal: 14,
+    marginBottom: 14,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: BrandColors.greenPanel,
+    borderWidth: 1,
+    borderColor: BrandColors.copperDark,
+    backgroundColor: BrandColors.surface,
   },
-  heroShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(3,29,20,.12)",
-  },
-  heroLabel: {
-    position: "absolute",
-    left: 12,
-    bottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: "rgba(3,29,20,.72)",
-  },
-  heroName: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
-    color: BrandColors.white,
-  },
-  dots: {
-    height: 24,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 5,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: BrandColors.paleGreen,
-  },
-  dotActive: { width: 17, backgroundColor: BrandColors.copper },
-  statsWrap: { marginHorizontal: 14 },
+  stampImage: { width: "100%", height: "100%" },
+  statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,
     marginTop: 14,
@@ -421,40 +323,6 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
-  aboutCard: {
-    marginHorizontal: 14,
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,.2)",
-  },
-  aboutTitle: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 19,
-    color: BrandColors.onDark,
-  },
-  description: {
-    marginTop: 7,
-    fontFamily: "Lora_400Regular",
-    fontSize: 13,
-    lineHeight: 19,
-    color: BrandColors.onDarkMuted,
-  },
-  factGrid: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  fact: { width: "47%" },
-  factLabel: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 11,
-    color: BrandColors.copper,
-  },
-  factValue: {
-    marginTop: 2,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
-    color: BrandColors.onDark,
-  },
   sectionTitle: {
     marginTop: 23,
     marginBottom: 10,
@@ -462,12 +330,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: 21,
     color: BrandColors.onDark,
-  },
-  pills: {
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
   sightList: { marginHorizontal: 16 },
   sightRow: {
@@ -547,6 +409,25 @@ const s = StyleSheet.create({
     gap: 8,
   },
   cityChipAction: { borderRadius: 18 },
+  gpsCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: "rgba(10,43,32,.2)",
+  },
+  gpsText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: 13,
+    lineHeight: 18,
+    color: BrandColors.onDarkMuted,
+  },
   empty: {
     fontFamily: "Lora_400Regular_Italic",
     fontSize: 14,
