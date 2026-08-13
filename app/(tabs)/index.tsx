@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
   scoreNumberSlot: {
     width: 82,
     paddingBottom: 10,
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   scoreCard: {
     marginHorizontal: 8,
@@ -778,7 +778,8 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   scoreDetails: {
-    width: 218,
+    width: 196,
+    marginTop: -22,
     alignItems: "center",
   },
   scoreTitle: {
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    width: 218,
+    width: 196,
     height: 5,
     marginTop: 5,
     borderRadius: 4,
