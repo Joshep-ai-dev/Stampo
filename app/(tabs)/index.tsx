@@ -69,10 +69,6 @@ function iso3For(code: string) {
   }
 }
 
-function formatCoordinate(value: number, positive: string, negative: string) {
-  return `${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
-}
-
 // Robinson-map coordinates for ISO territories the source groups into a parent
 // country or omits because they are too small to draw at mobile scale.
 const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
@@ -116,14 +112,12 @@ function WorldMap({
   const [xml, setXml] = useState<string>();
   const markerPosition = useMemo(() => {
     if (!position) return null;
-    // The authored map uses linear longitude and a Mercator-style latitude
-    // curve. Its mapsvg:geoViewBox does not describe that projection.
-    const x = ((479.68275 + position.longitude * 2.82) / 1009.6727) * 100;
-    const latitude = Math.max(-85, Math.min(85, position.latitude));
-    const projectedLatitude =
-      (180 / Math.PI) *
-      Math.log(Math.tan(Math.PI / 4 + (latitude * Math.PI) / 360));
-    const y = ((399.25 - projectedLatitude * 1.75) / 665.96301) * 100;
+    const left = -169.110266;
+    const top = 83.600842;
+    const right = 190.486279;
+    const bottom = -58.508473;
+    const x = ((position.longitude - left) / (right - left)) * 100;
+    const y = ((top - position.latitude) / (top - bottom)) * 100;
     return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
   }, [position]);
   useEffect(() => {
@@ -348,10 +342,16 @@ export default function HomeScreen() {
         setLocationStatus("failed");
         return;
       }
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
-        mayShowUserSettingsDialog: true,
-      });
+      const position =
+        (await Location.getLastKnownPositionAsync({
+          maxAge: 5 * 60 * 1_000,
+          requiredAccuracy: 1_000,
+        }).catch(() => null)) ??
+        (await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1_000,
+          mayShowUserSettingsDialog: true,
+        }));
       let address: Location.LocationGeocodedAddress | undefined;
       try {
         [address] = await Location.reverseGeocodeAsync(position.coords);
@@ -382,7 +382,7 @@ export default function HomeScreen() {
         if (!permission.granted) return;
         subscription = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.BestForNavigation,
+            accuracy: Location.Accuracy.High,
             distanceInterval: 1,
             timeInterval: 1_000,
           },
@@ -588,8 +588,8 @@ export default function HomeScreen() {
             </Text>
             {currentLocation ? (
               <Text style={styles.locationCoords}>
-                Lat: {formatCoordinate(currentLocation.latitude, "N", "S")},{" "}
-                Lon: {formatCoordinate(currentLocation.longitude, "E", "W")}
+                Lat: {currentLocation.latitude.toFixed(4)}°, Lon:{" "}
+                {currentLocation.longitude.toFixed(4)}°
               </Text>
             ) : null}
           </View>
@@ -690,8 +690,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
     maxWidth: "58%",
     fontFamily: "Lora_700Bold",
-    fontSize: 40,
-    lineHeight: 48,
+    fontSize: 48,
+    lineHeight: 56,
     color: BrandColors.onDark,
   },
   levelRow: {
@@ -716,8 +716,8 @@ const styles = StyleSheet.create({
   },
   scoreCard: {
     marginTop: -24,
-    marginHorizontal: 8,
-    paddingHorizontal: 0,
+    marginHorizontal: 14,
+    paddingHorizontal: 6,
     paddingTop: 4,
     paddingBottom: 13,
     backgroundColor: "transparent",
@@ -878,12 +878,14 @@ const styles = StyleSheet.create({
     color: BrandColors.mapGreen,
   },
   mapWrap: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    aspectRatio: 1009.6727 / 665.96301,
+    height: 250,
+    marginHorizontal: 2,
+    marginTop: 20,
     backgroundColor: "transparent",
+    overflow: "hidden",
+    justifyContent: "center",
   },
-  mapArtwork: { width: "100%", height: "100%" },
+  mapArtwork: { width: "100%", aspectRatio: 1009.6727 / 665.96301 },
   mapPositionPin: {
     position: "absolute",
     width: 18,

@@ -22,7 +22,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
           <View style={styles.top}>
             <Ionicons
               name={item.icon as never}
-              size={26}
+              size={24}
               color={BrandColors.copper}
             />
             <View style={styles.numberRow}>
@@ -61,7 +61,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
 
 const styles = StyleSheet.create({
   card: {
-    height: 106,
+    height: 94,
     borderRadius: 13,
     borderWidth: 1,
     borderColor: "rgba(179,141,118,.58)",
@@ -78,18 +78,18 @@ const styles = StyleSheet.create({
   numberRow: { flexDirection: "row", alignItems: "baseline" },
   value: {
     fontFamily: "Lora_400Regular",
-    fontSize: 26,
+    fontSize: 23,
     color: BrandColors.onDark,
   },
   total: {
     marginLeft: 2,
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   labelRow: {
     width: "100%",
-    marginTop: 7,
+    marginTop: 4,
     paddingHorizontal: 4,
     flexDirection: "row",
     alignItems: "center",
