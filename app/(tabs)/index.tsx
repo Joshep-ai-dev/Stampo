@@ -69,7 +69,27 @@ function iso3For(code: string) {
   }
 }
 
-// Robinson-map coordinates for ISO territories the source groups into a parent
+function mercatorMapPoint(latitude: number, longitude: number) {
+  const left = -169.110266;
+  const right = 190.486279;
+  const top = 83.600842;
+  const bottom = -58.508473;
+  const projectLatitude = (value: number) => {
+    const radians = (Math.max(-85, Math.min(85, value)) * Math.PI) / 180;
+    return Math.log(Math.tan(Math.PI / 4 + radians / 2));
+  };
+  const projectedTop = projectLatitude(top);
+  const projectedBottom = projectLatitude(bottom);
+  return {
+    x: ((longitude - left) / (right - left)) * 100,
+    y:
+      ((projectedTop - projectLatitude(latitude)) /
+        (projectedTop - projectedBottom)) *
+      100,
+  };
+}
+
+// Map coordinates for ISO territories the source groups into a parent
 // country or omits because they are too small to draw at mobile scale.
 const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
   ASC: [-14, 10],
@@ -112,10 +132,7 @@ function WorldMap({
   const [xml, setXml] = useState<string>();
   const markerPosition = useMemo(() => {
     if (!position) return null;
-    // Convert GPS coordinates into this asset's authored map coordinates.
-    // The embedded geoViewBox metadata does not match the visible path bounds.
-    const x = ((479.68275 + position.longitude * 2.82) / 1009.6727) * 100;
-    const y = ((399.25 - position.latitude * 2.05) / 665.96301) * 100;
+    const { x, y } = mercatorMapPoint(position.latitude, position.longitude);
     return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
   }, [position]);
   useEffect(() => {
@@ -906,8 +923,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 24,
     height: 30,
-    marginLeft: -9,
-    marginTop: -24,
+    marginLeft: -12,
+    marginTop: -30,
   },
   mapLoading: {
     flex: 1,
