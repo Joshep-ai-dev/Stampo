@@ -18,6 +18,7 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
+import { api } from "@/services/api";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -55,6 +56,13 @@ export default function CountryScreen() {
   const premiumSights = sights.slice(3);
   const premiumSightPreview = premiumSights.slice(0, 3);
   const stamp = stampAssets[normalizedCode];
+  const toggleSight = useCallback(
+    async (sightId: string, completed: boolean) => {
+      await api.setSightCompleted(sightId, !completed);
+      await dispatch(fetchCountryDetail(code));
+    },
+    [code, dispatch],
+  );
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -172,13 +180,25 @@ export default function CountryScreen() {
                   <Text numberOfLines={1} style={s.sightName}>
                     {sight.name}
                   </Text>
-                  <Ionicons
-                    name={
-                      checked ? "checkmark-circle" : "checkmark-circle-outline"
-                    }
-                    size={28}
-                    color="#57D5A0"
-                  />
+                  <TouchableOpacity
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                    accessibilityLabel={`${checked ? "Unmark" : "Mark"} ${sight.name} as visited`}
+                    hitSlop={10}
+                    style={[s.sightCheck, checked && s.sightCheckCompleted]}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      void toggleSight(sight.id, Boolean(checked));
+                    }}
+                  >
+                    {checked ? (
+                      <Ionicons
+                        name="checkmark"
+                        size={19}
+                        color={BrandColors.green}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             })}
@@ -364,6 +384,19 @@ const s = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: 16,
     color: BrandColors.onDark,
+  },
+  sightCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#57D5A0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sightCheckCompleted: {
+    borderColor: "#57D5A0",
+    backgroundColor: "#57D5A0",
   },
   lockedSightName: {
     color: "rgba(248,234,212,.4)",

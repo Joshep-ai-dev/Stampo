@@ -220,6 +220,19 @@
       "places": [],
       "id": "d7d31410-be89-47a2-99a8-ab5c72366682",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "2970479",
+      "cityName": "Paris 15 Vaugirard",
+      "country": "France",
+      "countryCode": "FR",
+      "continentCode": "EU",
+      "subcountry": "Ile-de-France",
+      "visitedAt": "2026-08-13",
+      "note": "",
+      "places": [],
+      "id": "b931128d-9c8f-463c-8f79-47d4719882d5",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
@@ -262,5 +275,7 @@
   "cities": [],
   "sights": [],
   "countries": [],
-  "imageCredits": []
+  "imageCredits": [],
+  "collections": [],
+  "countryCollections": []
 }

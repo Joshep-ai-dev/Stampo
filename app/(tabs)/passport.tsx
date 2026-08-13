@@ -561,6 +561,38 @@ export default function PassportScreen() {
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setActivePage(Math.round(event.nativeEvent.contentOffset.x / screenWidth));
   };
+  const openStamp = useCallback(
+    (stamp: Stamp) => router.push(`/country/${stamp.code}` as never),
+    [router],
+  );
+  const renderPassportPage = useCallback(
+    ({ item }: { item: PassportPage }) => (
+      <View style={[styles.pageFrame, { width: screenWidth }]}>
+        {item.type === "cover" ? (
+          <Image
+            source={item.image}
+            style={{ width: pageHeight, height: pageHeight }}
+            contentFit="contain"
+          />
+        ) : item.type === "identity" ? (
+          <IdentityPage
+            profile={profile}
+            krooNumber={krooNumber}
+            width={pageWidth}
+            height={pageHeight}
+          />
+        ) : (
+          <StampPage
+            slots={item.slots}
+            width={pageWidth}
+            height={pageHeight}
+            onStampPress={openStamp}
+          />
+        )}
+      </View>
+    ),
+    [krooNumber, openStamp, pageHeight, pageWidth, profile, screenWidth],
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -573,39 +605,17 @@ export default function PassportScreen() {
           bounces={false}
           showsHorizontalScrollIndicator={false}
           keyExtractor={(page) => page.id}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          removeClippedSubviews
           onMomentumScrollEnd={handleScrollEnd}
           getItemLayout={(_, index) => ({
             length: screenWidth,
             offset: screenWidth * index,
             index,
           })}
-          renderItem={({ item }) => (
-            <View style={[styles.pageFrame, { width: screenWidth }]}>
-              {item.type === "cover" ? (
-                <Image
-                  source={item.image}
-                  style={{ width: pageHeight, height: pageHeight }}
-                  contentFit="contain"
-                />
-              ) : item.type === "identity" ? (
-                <IdentityPage
-                  profile={profile}
-                  krooNumber={krooNumber}
-                  width={pageWidth}
-                  height={pageHeight}
-                />
-              ) : (
-                <StampPage
-                  slots={item.slots}
-                  width={pageWidth}
-                  height={pageHeight}
-                  onStampPress={(stamp) =>
-                    router.push(`/country/${stamp.code}` as never)
-                  }
-                />
-              )}
-            </View>
-          )}
+          renderItem={renderPassportPage}
         />
         <TouchableOpacity
           style={styles.shareButton}

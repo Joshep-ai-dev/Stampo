@@ -7,6 +7,7 @@ import {
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
+import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -240,6 +241,45 @@ export default function HomeScreen() {
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
   const dashboard = useAppSelector((x) => x.dashboard);
+  const [currentLocation, setCurrentLocation] = useState<{
+    label: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "denied" | "failed"
+  >("idle");
+  const locateUser = useCallback(async () => {
+    setLocationStatus("loading");
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setLocationStatus("denied");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const [address] = await Location.reverseGeocodeAsync(position.coords);
+      const label =
+        [address?.city || address?.subregion, address?.country]
+          .filter(Boolean)
+          .join(", ") || "Current position";
+      setCurrentLocation({
+        label,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setLocationStatus("idle");
+    } catch {
+      setLocationStatus("failed");
+    }
+  }, []);
+  useEffect(() => {
+    void Location.getForegroundPermissionsAsync().then((permission) => {
+      if (permission.granted) void locateUser();
+    });
+  }, [locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -409,6 +449,34 @@ export default function HomeScreen() {
           </View>
         </View>
         <CityVisitSearch />
+        <TouchableOpacity
+          style={styles.locationCard}
+          accessibilityRole="button"
+          accessibilityLabel="Get your current location"
+          disabled={locationStatus === "loading"}
+          onPress={() => void locateUser()}
+        >
+          <Ionicons name="location" size={22} color={BrandColors.copper} />
+          <View style={styles.locationCopy}>
+            <Text style={styles.locationTitle}>
+              {currentLocation
+                ? `Your current location: ${currentLocation.label}`
+                : locationStatus === "loading"
+                  ? "Finding your current location…"
+                  : locationStatus === "denied"
+                    ? "Location access is off. Tap to try again."
+                    : locationStatus === "failed"
+                      ? "Location unavailable. Tap to retry."
+                      : "Tap to show your current location"}
+            </Text>
+            {currentLocation ? (
+              <Text style={styles.locationCoords}>
+                Lat: {currentLocation.latitude.toFixed(4)}°, Lon:{" "}
+                {currentLocation.longitude.toFixed(4)}°
+              </Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
         <WorldMap visited={countryCodes} />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
@@ -537,6 +605,35 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   statsShared: { marginTop: 12 },
+  locationCard: {
+    marginHorizontal: 8,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    minHeight: 66,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,0.20)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+  },
+  locationCopy: { flex: 1, alignItems: "center" },
+  locationTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 15,
+    lineHeight: 21,
+    color: BrandColors.onDark,
+  },
+  locationCoords: {
+    marginTop: 2,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: 13,
+    color: BrandColors.onDarkMuted,
+  },
   scoreLine: {
     flexDirection: "row",
     alignItems: "center",
