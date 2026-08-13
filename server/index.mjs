@@ -178,7 +178,7 @@ async function addShellSights(code, country, catalog) {
   ).map((item, index) => ({
     ...item,
     displayOrder: index,
-    isPremium: index >= 5,
+    isPremium: index >= 3,
   }));
   const collections = countryFeatureCollections(country, catalog.sights).map(
     (item) => ({ id: `collection-${item.slug}`, ...item }),

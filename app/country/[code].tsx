@@ -51,8 +51,8 @@ export default function CountryScreen() {
     code.toUpperCase();
   const flag = countries[normalizedCode] ? getEmojiFlag(normalizedCode) : "🌍";
   const sights = detail?.sights ?? [];
-  const freeSights = sights.filter((sight) => !sight.isPremium);
-  const premiumSights = sights.filter((sight) => sight.isPremium);
+  const freeSights = sights.slice(0, 3);
+  const premiumSights = sights.slice(3);
   const premiumSightPreview = premiumSights.slice(0, 3);
   const stamp = stampAssets[normalizedCode];
 
@@ -99,7 +99,12 @@ export default function CountryScreen() {
 
         <View style={s.stampHero}>
           {stamp ? (
-            <Image source={stamp} style={s.stampImage} contentFit="contain" />
+            <Image
+              source={stamp}
+              style={s.stampImage}
+              contentFit="cover"
+              contentPosition="center"
+            />
           ) : (
             <Image
               source={require("@/assets/images/other/globe-airplane.png")}
@@ -115,17 +120,17 @@ export default function CountryScreen() {
               {
                 icon: "business-outline",
                 value: detail?.stats.cities ?? 0,
-                label: "CITIES VISITED",
+                label: "CITIES",
               },
               {
                 icon: "camera-outline",
                 value: detail?.stats.sights ?? 0,
-                label: "SIGHTS VISITED",
+                label: "SIGHTS",
               },
               {
                 icon: "airplane-outline",
                 value: detail?.stats.airports ?? 0,
-                label: "AIRPORTS VISITED",
+                label: "AIRPORTS",
               },
             ]}
           />
@@ -133,7 +138,7 @@ export default function CountryScreen() {
 
         {countryState.status === "loading" && !detail ? (
           <View style={s.messageCard}>
-            <Text style={s.messageText}>Loading country guide…</Text>
+            <Text style={s.messageText}>Loading top sights…</Text>
           </View>
         ) : null}
         {countryState.status === "failed" && !detail ? (
@@ -146,75 +151,75 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
+        <SectionTitle>Top Sights</SectionTitle>
         {sights.length ? (
-          <>
-            <SectionTitle>Top Sights</SectionTitle>
-            <View style={s.sightList}>
-              {freeSights.map((sight) => {
-                const checked = sight.completed;
-                return (
-                  <TouchableOpacity
-                    key={sight.id}
-                    style={s.sightRow}
-                    onPress={() => router.push(`/sight/${sight.id}` as never)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
+          <View style={s.sightList}>
+            {freeSights.map((sight) => {
+              const checked = sight.completed;
+              return (
+                <TouchableOpacity
+                  key={sight.id}
+                  style={s.sightRow}
+                  onPress={() => router.push(`/sight/${sight.id}` as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
+                >
+                  <ProgressivePlaceImage
+                    uri={sight.image}
+                    style={s.sightImage}
+                    contentFit="cover"
+                  />
+                  <Text numberOfLines={1} style={s.sightName}>
+                    {sight.name}
+                  </Text>
+                  <Ionicons
+                    name={
+                      checked ? "checkmark-circle" : "checkmark-circle-outline"
+                    }
+                    size={28}
+                    color="#57D5A0"
+                  />
+                </TouchableOpacity>
+              );
+            })}
+            {premiumSights.length ? (
+              <UpgradeBanner count={premiumSights.length} />
+            ) : null}
+            <View style={s.lockedList}>
+              {premiumSightPreview.map((sight) => (
+                <View
+                  key={sight.id}
+                  style={[s.sightRow, s.lockedSightRow]}
+                  accessibilityElementsHidden
+                >
+                  <ProgressivePlaceImage
+                    uri={sight.image}
+                    style={s.sightImage}
+                    contentFit="cover"
+                    blurRadius={32}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={[s.sightName, s.lockedSightName]}
                   >
-                    <ProgressivePlaceImage
-                      uri={sight.image}
-                      style={s.sightImage}
-                      contentFit="cover"
-                    />
-                    <Text numberOfLines={1} style={s.sightName}>
-                      {sight.name}
-                    </Text>
+                    {sight.name}
+                  </Text>
+                  <View style={s.lockedSightCheck}>
                     <Ionicons
-                      name={
-                        checked
-                          ? "checkmark-circle"
-                          : "checkmark-circle-outline"
-                      }
+                      name="checkmark-circle-outline"
                       size={28}
-                      color="#57D5A0"
+                      color={BrandColors.onDarkMuted}
                     />
-                  </TouchableOpacity>
-                );
-              })}
-              {premiumSights.length ? (
-                <UpgradeBanner count={premiumSights.length} />
-              ) : null}
-              <View style={s.lockedList}>
-                {premiumSightPreview.map((sight) => (
-                  <View
-                    key={sight.id}
-                    style={[s.sightRow, s.lockedSightRow]}
-                    accessibilityElementsHidden
-                  >
-                    <ProgressivePlaceImage
-                      uri={sight.image}
-                      style={s.sightImage}
-                      contentFit="cover"
-                      blurRadius={32}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={[s.sightName, s.lockedSightName]}
-                    >
-                      {sight.name}
-                    </Text>
-                    <View style={s.lockedSightCheck}>
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={28}
-                        color={BrandColors.onDarkMuted}
-                      />
-                    </View>
                   </View>
-                ))}
-              </View>
+                </View>
+              ))}
             </View>
-          </>
-        ) : null}
+          </View>
+        ) : (
+          <Text style={[s.empty, s.sightsEmpty]}>
+            Top sights will appear here.
+          </Text>
+        )}
 
         <SectionTitle>Cities Visited</SectionTitle>
         <View style={s.cityChips}>
@@ -257,9 +262,7 @@ function UpgradeBanner({ count }: { count: number }) {
     <View style={s.upgradeCard}>
       <View style={s.upgradeCopy}>
         <Ionicons name="lock-closed" size={20} color={BrandColors.white} />
-        <Text style={s.upgradeText}>
-          Unlock all {count} top sights with Kroo+
-        </Text>
+        <Text style={s.upgradeText}>Unlock all top sights with Kroo+</Text>
       </View>
       <View style={s.upgradeButton}>
         <Text style={s.upgradeButtonText}>Upgrade</Text>
@@ -306,7 +309,11 @@ const s = StyleSheet.create({
     borderColor: BrandColors.copperDark,
     backgroundColor: BrandColors.surface,
   },
-  stampImage: { width: "100%", height: "100%" },
+  stampImage: {
+    width: "100%",
+    height: "100%",
+    transform: [{ scale: 1.2 }],
+  },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,
@@ -433,4 +440,5 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: BrandColors.onDarkMuted,
   },
+  sightsEmpty: { marginHorizontal: 16 },
 });

@@ -227,7 +227,7 @@ export async function importCountry(
         description: cleanDescription(item.description),
         imageUrl: "",
         isFeatured: true,
-        isPremium: index >= 5,
+        isPremium: index >= 3,
         displayOrder: index,
         lastSyncedAt: now,
       },
@@ -386,7 +386,7 @@ export async function importCountry(
     20,
   ).forEach((sight, index) => {
     if (!(sight.manualFields ?? []).includes("isPremium"))
-      sight.isPremium = index >= 5;
+      sight.isPremium = index >= 3;
   });
   await db.write();
   return {
