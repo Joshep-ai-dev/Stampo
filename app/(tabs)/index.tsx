@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     height: 292,
-    paddingHorizontal: 22,
+    paddingHorizontal: 12,
     paddingTop: 0,
     overflow: "hidden",
   },
@@ -707,11 +707,11 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: 16,
     color: "#8aad88",
-    marginHorizontal: 10,
+    marginHorizontal: 0,
   },
   globe: {
-    width: 240,
-    height: 240,
+    width: 230,
+    height: 230,
   },
   globeColumn: {
     flex: 1,
@@ -720,8 +720,8 @@ const styles = StyleSheet.create({
   },
   heroScoreRow: {
     position: "absolute",
-    left: 22,
-    right: 22,
+    left: 12,
+    right: 12,
     bottom: 0,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    width: 196,
+    width: 240,
     height: 5,
     marginTop: 5,
     borderRadius: 4,
