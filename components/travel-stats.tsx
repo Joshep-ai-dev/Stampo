@@ -22,7 +22,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
           <View style={styles.top}>
             <Ionicons
               name={item.icon as never}
-              size={24}
+              size={26}
               color={BrandColors.copper}
             />
             <View style={styles.numberRow}>
@@ -61,32 +61,35 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
 
 const styles = StyleSheet.create({
   card: {
-    height: 94,
+    height: 106,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: "rgba(10,43,32,0.20)",
+    borderColor: "rgba(179,141,118,.58)",
+    backgroundColor: "rgba(8,42,32,.34)",
     flexDirection: "row",
     alignItems: "center",
   },
   stat: { flex: 1, minWidth: 0, alignItems: "center" },
-  border: { borderRightWidth: 1, borderRightColor: BrandColors.paleGreen },
+  border: {
+    borderRightWidth: 1,
+    borderRightColor: "rgba(246,241,228,.2)",
+  },
   top: { flexDirection: "row", alignItems: "center", gap: 6 },
   numberRow: { flexDirection: "row", alignItems: "baseline" },
   value: {
     fontFamily: "Lora_400Regular",
-    fontSize: 23,
+    fontSize: 26,
     color: BrandColors.onDark,
   },
   total: {
     marginLeft: 2,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: 13,
     color: BrandColors.onDarkMuted,
   },
   labelRow: {
     width: "100%",
-    marginTop: 4,
+    marginTop: 7,
     paddingHorizontal: 4,
     flexDirection: "row",
     alignItems: "center",
@@ -95,8 +98,10 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: "center",
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontFamily: "monospace",
+    fontWeight: "700",
+    fontSize: 11,
+    letterSpacing: 0.45,
     color: BrandColors.onDark,
   },
   infoButton: {

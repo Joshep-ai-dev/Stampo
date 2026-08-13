@@ -30,7 +30,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: "#49B964",
+        tabBarActiveTintColor: BrandColors.progressGreen,
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
           fontSize: 11,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     height: 58,
     marginTop: -20,
     borderRadius: 29,
-    backgroundColor: BrandColors.mapGreen,
+    backgroundColor: BrandColors.progressGreen,
     borderWidth: 4,
     borderColor: BrandColors.greenDeep,
     alignItems: "center",
