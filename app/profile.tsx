@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 19,
+    fontSize: 21,
     letterSpacing: 1,
     color: "#fffaf1",
   },

@@ -708,9 +708,9 @@ const styles = StyleSheet.create({
   globe: {
     position: "absolute",
     right: 24,
-    top: 10,
-    width: 280,
-    height: 280,
+    top: 5,
+    width: 240,
+    height: 240,
     zIndex: 0,
   },
   scoreCard: {
