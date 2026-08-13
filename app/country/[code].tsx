@@ -225,11 +225,7 @@ export default function CountryScreen() {
                     {sight.name}
                   </Text>
                   <View style={s.lockedSightCheck}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={28}
-                      color={BrandColors.onDarkMuted}
-                    />
+                    <View style={s.sightCheck} />
                   </View>
                 </View>
               ))}

@@ -9,7 +9,7 @@ import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -23,7 +23,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
-import { CityVisitSearch } from "@/components/city-visit-search";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
@@ -48,6 +47,20 @@ const CONTINENTS = [
   { code: "NA", name: "North America" },
   { code: "SA", name: "South America" },
 ];
+function distanceMeters(
+  first: { latitude: number; longitude: number },
+  second: { latitude: number; longitude: number },
+) {
+  const radians = (value: number) => (value * Math.PI) / 180;
+  const latitudeDelta = radians(second.latitude - first.latitude);
+  const longitudeDelta = radians(second.longitude - first.longitude);
+  const value =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(first.latitude)) *
+      Math.cos(radians(second.latitude)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return 12_742_000 * Math.asin(Math.sqrt(value));
+}
 function iso3For(code: string) {
   try {
     return getCountryData(code.toUpperCase() as TCountryCode).iso3;
@@ -90,8 +103,41 @@ const HIDDEN_MAP_ISO3 = new Set(
     .map((country) => country.iso3),
 );
 
-function WorldMap({ visited }: { visited: Set<string> }) {
+function WorldMap({
+  visited,
+  position,
+}: {
+  visited: Set<string>;
+  position?: { latitude: number; longitude: number } | null;
+}) {
   const [xml, setXml] = useState<string>();
+  const addPositionMarker = useCallback(
+    (svg: string) => {
+      if (!position) return svg;
+      const left = -169.110266;
+      const top = 83.600842;
+      const right = 190.486279;
+      const bottom = -58.508473;
+      const x = ((position.longitude - left) / (right - left)) * 1009.6727;
+      const mercatorY = (latitude: number) =>
+        Math.log(
+          Math.tan(
+            Math.PI / 4 +
+              (Math.max(-85, Math.min(85, latitude)) * Math.PI) / 360,
+          ),
+        );
+      const y =
+        ((mercatorY(top) - mercatorY(position.latitude)) /
+          (mercatorY(top) - mercatorY(bottom))) *
+        665.96301;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return svg;
+      return svg.replace(
+        "</svg>",
+        `<g transform="translate(${x - 15} ${y - 34})"><path d="M15 1C7.8 1 2 6.8 2 14c0 10 13 20 13 20s13-10 13-20C28 6.8 22.2 1 15 1Z" fill="${BrandColors.copper}" stroke="${BrandColors.onDark}" stroke-width="3"/><circle cx="15" cy="14" r="5" fill="${BrandColors.greenDeep}"/></g></svg>`,
+      );
+    },
+    [position],
+  );
   useEffect(() => {
     let active = true;
     (async () => {
@@ -165,7 +211,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           );
         // Keep the supplied artwork in charge of geometry. ISO2 ids such as
         // FR and JP, plus optional ISO3 metadata, respond to saved visits.
-        if (active) setXml(brandedMap);
+        if (active) setXml(addPositionMarker(brandedMap));
         return;
       }
       const visitedClasses = [...visited].map(iso3For).filter(Boolean);
@@ -206,12 +252,12 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           );
         }
       });
-      if (active) setXml(svg);
+      if (active) setXml(addPositionMarker(svg));
     })();
     return () => {
       active = false;
     };
-  }, [visited]);
+  }, [addPositionMarker, visited]);
   return (
     <View
       style={styles.mapWrap}
@@ -249,6 +295,42 @@ export default function HomeScreen() {
   const [locationStatus, setLocationStatus] = useState<
     "idle" | "loading" | "denied" | "failed"
   >("idle");
+  const lastGeocodedPosition = useRef<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const geocodeInFlight = useRef(false);
+  const updateLiveLocation = useCallback(
+    async (position: Location.LocationObject) => {
+      const coordinates = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      setCurrentLocation((current) => ({
+        label: current?.label ?? "Current position",
+        ...coordinates,
+      }));
+      setLocationStatus("idle");
+      const previous = lastGeocodedPosition.current;
+      const moved = previous ? distanceMeters(coordinates, previous) : Infinity;
+      if (moved < 1_000 || geocodeInFlight.current) return;
+      geocodeInFlight.current = true;
+      try {
+        const [address] = await Location.reverseGeocodeAsync(coordinates);
+        const label =
+          [address?.city || address?.subregion, address?.country]
+            .filter(Boolean)
+            .join(", ") || "Current position";
+        lastGeocodedPosition.current = coordinates;
+        setCurrentLocation({ label, ...coordinates });
+      } catch {
+        lastGeocodedPosition.current = coordinates;
+      } finally {
+        geocodeInFlight.current = false;
+      }
+    },
+    [],
+  );
   const locateUser = useCallback(async () => {
     setLocationStatus("loading");
     try {
@@ -257,10 +339,27 @@ export default function HomeScreen() {
         setLocationStatus("denied");
         return;
       }
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const [address] = await Location.reverseGeocodeAsync(position.coords);
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationStatus("failed");
+        return;
+      }
+      const position =
+        (await Location.getLastKnownPositionAsync({
+          maxAge: 5 * 60 * 1_000,
+          requiredAccuracy: 1_000,
+        }).catch(() => null)) ??
+        (await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1_000,
+          mayShowUserSettingsDialog: true,
+        }));
+      let address: Location.LocationGeocodedAddress | undefined;
+      try {
+        [address] = await Location.reverseGeocodeAsync(position.coords);
+      } catch {
+        address = undefined;
+      }
       const label =
         [address?.city || address?.subregion, address?.country]
           .filter(Boolean)
@@ -276,10 +375,25 @@ export default function HomeScreen() {
     }
   }, []);
   useEffect(() => {
-    void Location.getForegroundPermissionsAsync().then((permission) => {
-      if (permission.granted) void locateUser();
-    });
+    void locateUser();
   }, [locateUser]);
+  useEffect(() => {
+    let subscription: Location.LocationSubscription | undefined;
+    void Location.requestForegroundPermissionsAsync().then(
+      async (permission) => {
+        if (!permission.granted) return;
+        subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            distanceInterval: 1,
+            timeInterval: 1_000,
+          },
+          (position) => void updateLiveLocation(position),
+        );
+      },
+    );
+    return () => subscription?.remove();
+  }, [updateLiveLocation]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -448,7 +562,6 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-        <CityVisitSearch />
         <TouchableOpacity
           style={styles.locationCard}
           accessibilityRole="button"
@@ -456,7 +569,6 @@ export default function HomeScreen() {
           disabled={locationStatus === "loading"}
           onPress={() => void locateUser()}
         >
-          <Ionicons name="location" size={22} color={BrandColors.copper} />
           <View style={styles.locationCopy}>
             <Text style={styles.locationTitle}>
               {currentLocation
@@ -477,7 +589,7 @@ export default function HomeScreen() {
             ) : null}
           </View>
         </TouchableOpacity>
-        <WorldMap visited={countryCodes} />
+        <WorldMap visited={countryCodes} position={currentLocation} />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
             <Text style={styles.continentTitle}>
