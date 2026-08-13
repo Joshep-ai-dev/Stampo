@@ -23,7 +23,12 @@ import {
   rankEntities,
   rankSightsWithCityCoverage,
 } from "./lib/catalog.mjs";
-import { geonamesCities, restCountry, wikipediaSearch } from "./providers.mjs";
+import {
+  commonsImageSearch,
+  geonamesCities,
+  restCountry,
+  wikipediaSearch,
+} from "./providers.mjs";
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
@@ -85,6 +90,48 @@ function countryShell(code, country, cities) {
     })),
     imageCredits: [],
   };
+}
+
+async function enrichShellCityImages(country, catalog) {
+  let cursor = 0;
+  async function worker() {
+    while (cursor < catalog.cities.length) {
+      const city = catalog.cities[cursor++];
+      const matches = await wikipediaSearch(`${city.name} ${country.name}`, {
+        timeoutMs: 8_000,
+        retries: 1,
+      }).catch(() => []);
+      const nearby = matches
+        .filter(
+          (item) =>
+            item.imageUrl &&
+            Number.isFinite(item.latitude) &&
+            Number.isFinite(item.longitude),
+        )
+        .map((item) => ({
+          ...item,
+          distance: Math.hypot(
+            item.latitude - city.latitude,
+            item.longitude - city.longitude,
+          ),
+        }))
+        .filter((item) => item.distance < 0.5)
+        .sort((a, b) => a.distance - b.distance);
+      let image = nearby[0];
+      if (!image) {
+        image = await commonsImageSearch(
+          `${city.name} ${country.name} city skyline photograph`,
+          { timeoutMs: 8_000, retries: 1 },
+        ).catch(() => ({}));
+      }
+      if (image?.imageUrl) {
+        city.imageUrl = image.imageUrl;
+        city.wikipediaTitle = image.wikipediaTitle ?? city.wikipediaTitle;
+        city.wikidataId = image.wikidataId ?? city.wikidataId;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: 4 }, () => worker()));
 }
 
 async function addShellSights(code, country, catalog) {
@@ -153,6 +200,7 @@ function startAutomaticImport(code) {
       const catalog = countryShell(code, country, cities);
       transientCatalogs.set(code, catalog);
       void addShellSights(code, country, catalog);
+      void enrichShellCityImages(country, catalog);
     })
     .then(() => mkdtemp(join(tmpdir(), "stampo-country-")))
     .then(async (directory) => {

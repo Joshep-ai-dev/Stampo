@@ -1,6 +1,6 @@
-import { resolve } from "node:path";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
+import { resolve } from "node:path";
 
 import {
   cleanDescription,
@@ -57,6 +57,12 @@ function placeMatchScore(candidate, place, context) {
           candidate.longitude - place.longitude,
         )
       : null;
+  const missingLocationPenalty =
+    Number.isFinite(place.latitude) &&
+    distance === null &&
+    (!place.wikidataId || candidate.wikidataId !== place.wikidataId)
+      ? -90
+      : 0;
   return (
     (title === expected ? 100 : title.includes(expected) ? 45 : 0) +
     (candidate.wikidataId && candidate.wikidataId === place.wikidataId
@@ -64,6 +70,7 @@ function placeMatchScore(candidate, place, context) {
       : 0) +
     (candidate.imageUrl ? 20 : 0) +
     (distance === null ? 0 : distance < 0.2 ? 50 : distance < 1 ? 20 : -50) +
+    missingLocationPenalty +
     (normalizedName(context)
       .split(" ")
       .some((word) => title.includes(word))
@@ -119,7 +126,7 @@ export async function importCountry(
   const getSights = providers.wikidataSights ?? wikidataSights;
   const basic = await getCountry(iso2);
   const now = new Date().toISOString();
-  const wikiOptions = { timeoutMs: 6_000, retries: 1 };
+  const wikiOptions = { timeoutMs: 10_000, retries: 2 };
   const wikiCountry = await getWiki(basic.name, wikiOptions).catch(() => ({}));
   const country = upsertImported(db.data.countries, (x) => x.iso2 === iso2, {
     ...basic,
@@ -228,7 +235,7 @@ export async function importCountry(
   );
   onProgress?.(db.data);
 
-  const enrichCities = mapLimit(cityRows, 10, async (city) => {
+  const enrichCities = mapLimit(cityRows, 4, async (city) => {
     let wiki = await resolveWikipediaPlace(
       city,
       basic.name,
@@ -247,7 +254,7 @@ export async function importCountry(
       description: cleanDescription(wiki.description),
       wikidataId: wiki.wikidataId ?? city.wikidataId,
       wikipediaTitle: wiki.wikipediaTitle ?? city.wikipediaTitle,
-      imageUrl: wiki.imageUrl || wikiCountry.imageUrl || basic.flagUrl || "",
+      imageUrl: wiki.imageUrl || "",
     });
     const credit = imageCredit("city", city.id, wiki);
     if (credit)
@@ -257,7 +264,7 @@ export async function importCountry(
         credit,
       );
   });
-  const enrichSights = mapLimit(sightRows, 10, async (sight) => {
+  const enrichSights = mapLimit(sightRows, 4, async (sight) => {
     const item =
       rankedSights.find(
         (candidate) =>
@@ -288,8 +295,6 @@ export async function importCountry(
       imageUrl:
         wiki.imageUrl ||
         cityRows.find((candidate) => candidate.id === sight.cityId)?.imageUrl ||
-        wikiCountry.imageUrl ||
-        basic.flagUrl ||
         "",
     });
     const credit = imageCredit("sight", sight.id, wiki);

@@ -37,6 +37,17 @@ test("country import is idempotent with mocked providers", async () => {
       imageUrl: "image",
       sourceUrl: "source",
     }),
+    wikipediaSearch: async (title) => [
+      {
+        wikipediaTitle: title,
+        name: title,
+        description: `${title} is famous.`,
+        imageUrl: "image",
+        sourceUrl: "source",
+        latitude: 48.8,
+        longitude: 2.3,
+      },
+    ],
     wikidataSights: async () => [
       {
         wikidataId: "Q1",
