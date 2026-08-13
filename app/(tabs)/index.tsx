@@ -102,7 +102,6 @@ const HIDDEN_MAP_ISO3 = new Set(
     )
     .map((country) => country.iso3),
 );
-
 function WorldMap({
   visited,
   position,
@@ -111,33 +110,16 @@ function WorldMap({
   position?: { latitude: number; longitude: number } | null;
 }) {
   const [xml, setXml] = useState<string>();
-  const addPositionMarker = useCallback(
-    (svg: string) => {
-      if (!position) return svg;
-      const left = -169.110266;
-      const top = 83.600842;
-      const right = 190.486279;
-      const bottom = -58.508473;
-      const x = ((position.longitude - left) / (right - left)) * 1009.6727;
-      const mercatorY = (latitude: number) =>
-        Math.log(
-          Math.tan(
-            Math.PI / 4 +
-              (Math.max(-85, Math.min(85, latitude)) * Math.PI) / 360,
-          ),
-        );
-      const y =
-        ((mercatorY(top) - mercatorY(position.latitude)) /
-          (mercatorY(top) - mercatorY(bottom))) *
-        665.96301;
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return svg;
-      return svg.replace(
-        "</svg>",
-        `<g transform="translate(${x - 15} ${y - 34})"><path d="M15 1C7.8 1 2 6.8 2 14c0 10 13 20 13 20s13-10 13-20C28 6.8 22.2 1 15 1Z" fill="${BrandColors.copper}" stroke="${BrandColors.onDark}" stroke-width="3"/><circle cx="15" cy="14" r="5" fill="${BrandColors.greenDeep}"/></g></svg>`,
-      );
-    },
-    [position],
-  );
+  const markerPosition = useMemo(() => {
+    if (!position) return null;
+    const left = -169.110266;
+    const top = 83.600842;
+    const right = 190.486279;
+    const bottom = -58.508473;
+    const x = ((position.longitude - left) / (right - left)) * 100;
+    const y = ((top - position.latitude) / (top - bottom)) * 100;
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+  }, [position]);
   useEffect(() => {
     let active = true;
     (async () => {
@@ -211,7 +193,7 @@ function WorldMap({
           );
         // Keep the supplied artwork in charge of geometry. ISO2 ids such as
         // FR and JP, plus optional ISO3 metadata, respond to saved visits.
-        if (active) setXml(addPositionMarker(brandedMap));
+        if (active) setXml(brandedMap);
         return;
       }
       const visitedClasses = [...visited].map(iso3For).filter(Boolean);
@@ -252,19 +234,35 @@ function WorldMap({
           );
         }
       });
-      if (active) setXml(addPositionMarker(svg));
+      if (active) setXml(svg);
     })();
     return () => {
       active = false;
     };
-  }, [addPositionMarker, visited]);
+  }, [visited]);
   return (
     <View
       style={styles.mapWrap}
       accessibilityLabel={`${visited.size} visited countries highlighted in green`}
     >
       {xml ? (
-        <SvgXml xml={xml} width="100%" height="100%" />
+        <View style={styles.mapArtwork}>
+          <SvgXml xml={xml} width="100%" height="100%" />
+          {markerPosition ? (
+            <Image
+              source={require("@/assets/images/other/location-pin.png")}
+              style={[
+                styles.mapPositionPin,
+                {
+                  left: `${markerPosition.x}%`,
+                  top: `${markerPosition.y}%`,
+                },
+              ]}
+              contentFit="contain"
+              accessibilityLabel="Your current location"
+            />
+          ) : null}
+        </View>
       ) : (
         <View style={styles.mapLoading}>
           <Ionicons
@@ -491,10 +489,10 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>WELCOME</Text>
             <Text style={styles.name}>{name || "Traveler"}</Text>
             <View style={styles.levelRow}>
-              <Ionicons
-                name="ribbon-outline"
-                size={15}
-                color={BrandColors.onDark}
+              <Image
+                source={require("@/assets/images/other/compass.png")}
+                style={styles.levelCompass}
+                contentFit="contain"
               />
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
@@ -571,15 +569,22 @@ export default function HomeScreen() {
         >
           <View style={styles.locationCopy}>
             <Text style={styles.locationTitle}>
-              {currentLocation
-                ? `Your current location: ${currentLocation.label}`
-                : locationStatus === "loading"
-                  ? "Finding your current location…"
-                  : locationStatus === "denied"
-                    ? "Location access is off. Tap to try again."
-                    : locationStatus === "failed"
-                      ? "Location unavailable. Tap to retry."
-                      : "Tap to show your current location"}
+              {currentLocation ? (
+                <>
+                  Your current location: {""}
+                  <Text style={styles.locationName}>
+                    {currentLocation.label}
+                  </Text>
+                </>
+              ) : locationStatus === "loading" ? (
+                "Finding your current location…"
+              ) : locationStatus === "denied" ? (
+                "Location access is off. Tap to try again."
+              ) : locationStatus === "failed" ? (
+                "Location unavailable. Tap to retry."
+              ) : (
+                "Tap to show your current location"
+              )}
             </Text>
             {currentLocation ? (
               <Text style={styles.locationCoords}>
@@ -695,6 +700,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  levelCompass: { width: 22, height: 22 },
   levelText: {
     fontFamily: "Lora_500Medium",
     fontSize: 13,
@@ -734,16 +740,17 @@ const styles = StyleSheet.create({
   locationCopy: { flex: 1, alignItems: "center" },
   locationTitle: {
     textAlign: "center",
-    fontFamily: "Lora_600SemiBold",
+    fontFamily: "Lora_400Regular",
     fontSize: 15,
     lineHeight: 21,
     color: BrandColors.onDark,
   },
+  locationName: { fontFamily: "Lora_700Bold" },
   locationCoords: {
     marginTop: 2,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: 15,
     color: BrandColors.onDarkMuted,
   },
   scoreLine: {
@@ -875,6 +882,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: "transparent",
     overflow: "hidden",
+    justifyContent: "center",
+  },
+  mapArtwork: { width: "100%", aspectRatio: 1009.6727 / 665.96301 },
+  mapPositionPin: {
+    position: "absolute",
+    width: 18,
+    height: 24,
+    marginLeft: -9,
+    marginTop: -24,
   },
   mapLoading: {
     flex: 1,
