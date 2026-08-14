@@ -18,6 +18,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 
@@ -91,6 +97,58 @@ const HIDDEN_MAP_ISO3 = new Set(
 
 function WorldMap({ visited }: { visited: Set<string> }) {
   const [xml, setXml] = useState<string>();
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((event) => {
+      scale.value = Math.min(4, Math.max(1, savedScale.value * event.scale));
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      if (scale.value === 1) {
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      }
+    });
+  const panGesture = Gesture.Pan()
+    .minPointers(2)
+    .onUpdate((event) => {
+      if (scale.value <= 1) return;
+      translateX.value = savedTranslateX.value + event.translationX;
+      translateY.value = savedTranslateY.value + event.translationY;
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+  const resetGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      scale.value = withTiming(1);
+      savedScale.value = 1;
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+      savedTranslateX.value = 0;
+      savedTranslateY.value = 0;
+    });
+  const mapGesture = Gesture.Exclusive(
+    resetGesture,
+    Gesture.Simultaneous(pinchGesture, panGesture),
+  );
+  const animatedMapStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
   useEffect(() => {
     let active = true;
     (async () => {
@@ -217,7 +275,11 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       accessibilityLabel={`${visited.size} visited countries highlighted in green`}
     >
       {xml ? (
-        <SvgXml xml={xml} width="100%" height="100%" />
+        <GestureDetector gesture={mapGesture}>
+          <Animated.View style={[styles.zoomableMap, animatedMapStyle]}>
+            <SvgXml xml={xml} width="100%" height="100%" />
+          </Animated.View>
+        </GestureDetector>
       ) : (
         <View style={styles.mapLoading}>
           <Ionicons
@@ -676,6 +738,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+  },
+  zoomableMap: {
+    width: "100%",
+    height: "100%",
   },
   mapLoadingText: {
     fontFamily: "Lora_400Regular",
