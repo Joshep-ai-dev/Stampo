@@ -337,10 +337,10 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>WELCOME</Text>
             <Text style={styles.name}>{name || "Traveler"}</Text>
             <View style={styles.levelRow}>
-              <Ionicons
-                name="ribbon-outline"
-                size={15}
-                color={BrandColors.onDark}
+              <Image
+                source={require("@/assets/images/other/compass.png")}
+                style={styles.levelCompass}
+                contentFit="contain"
               />
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
@@ -513,7 +513,11 @@ const styles = StyleSheet.create({
     marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
+  },
+  levelCompass: {
+    width: 34,
+    height: 34,
   },
   levelText: {
     fontFamily: "Lora_500Medium",
