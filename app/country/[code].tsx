@@ -102,6 +102,7 @@ export default function CountryScreen() {
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
       >
         <View style={s.header}>
           <TouchableOpacity
@@ -195,32 +196,38 @@ export default function CountryScreen() {
         <SectionTitle>{`Top Sights ${name}`}</SectionTitle>
         {sights.length ? (
           <View style={s.sightList}>
-            {visibleSights.map((sight) => {
-              const checked = sight.completed;
-              return (
-                <TouchableOpacity
-                  key={sight.id}
-                  style={s.sightRow}
-                  onPress={() => setSelectedSight(sight)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
-                >
-                  <ProgressivePlaceImage
-                    uri={sight.image}
-                    style={s.sightImage}
-                    contentFit="cover"
-                  />
-                  <Text numberOfLines={1} style={s.sightName}>
-                    {sight.name}
-                  </Text>
-                  <Ionicons
-                    name={checked ? "checkmark-circle" : "ellipse-outline"}
-                    size={28}
-                    color="#57D5A0"
-                  />
-                </TouchableOpacity>
-              );
-            })}
+            <ScrollView
+              style={s.sightScroller}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={visibleSights.length > 6}
+            >
+              {visibleSights.map((sight) => {
+                const checked = sight.completed;
+                return (
+                  <TouchableOpacity
+                    key={sight.id}
+                    style={s.sightRow}
+                    onPress={() => setSelectedSight(sight)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
+                  >
+                    <ProgressivePlaceImage
+                      uri={sight.image}
+                      style={s.sightImage}
+                      contentFit="cover"
+                    />
+                    <Text numberOfLines={1} style={s.sightName}>
+                      {sight.name}
+                    </Text>
+                    <Ionicons
+                      name={checked ? "checkmark-circle" : "ellipse-outline"}
+                      size={28}
+                      color="#57D5A0"
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
             {premiumSights.length ? (
               <UpgradeBanner
                 count={premiumSights.length}
@@ -289,7 +296,11 @@ export default function CountryScreen() {
         )}
 
         <SectionTitle>{`Cities Visited in ${name}`}</SectionTitle>
-        <View style={s.cityList}>
+        <ScrollView
+          style={s.cityList}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={visitedCities.length > 6}
+        >
           {visitedCities.length ? (
             visitedCities.map((city) => {
               const cityDetail = detail?.cities.find(
@@ -325,7 +336,7 @@ export default function CountryScreen() {
           ) : (
             <Text style={s.empty}>Your visited cities will appear here.</Text>
           )}
-        </View>
+        </ScrollView>
         <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
@@ -595,6 +606,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   sightList: { marginHorizontal: 16 },
+  sightScroller: { maxHeight: 372 },
   sightRow: {
     minHeight: 62,
     flexDirection: "row",
@@ -665,6 +677,7 @@ const s = StyleSheet.create({
     color: BrandColors.copperDark,
   },
   cityList: {
+    maxHeight: 396,
     marginHorizontal: 16,
     marginVertical: 4,
   },
