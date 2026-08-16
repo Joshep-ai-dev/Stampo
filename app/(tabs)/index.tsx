@@ -22,6 +22,7 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
+  type SharedValue,
   useAnimatedProps,
   useSharedValue,
   withTiming,
@@ -110,6 +111,45 @@ type MapCountry = {
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
 const AnimatedGroup = Animated.createAnimatedComponent(G);
+const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
+
+function CountryMapLabel({
+  country,
+  scale,
+  onPress,
+}: {
+  country: MapCountry;
+  scale: SharedValue<number>;
+  onPress: () => void;
+}) {
+  const animatedProps = useAnimatedProps(() => {
+    const minimumZoom = country.width >= 12 && country.height >= 7 ? 4 : 6;
+    const visible =
+      scale.value >= minimumZoom && country.width >= 4 && country.height >= 3;
+
+    return {
+      opacity: visible ? 1 : 0,
+      strokeWidth: 3 / scale.value,
+      fontSize: 36 / scale.value,
+    };
+  });
+
+  return (
+    <AnimatedSvgText
+      animatedProps={animatedProps}
+      x={country.centerX}
+      y={country.centerY}
+      fill="#B9B9B9"
+      stroke="#202020"
+      fontFamily="sans-serif"
+      fontWeight="500"
+      textAnchor="middle"
+      onPress={onPress}
+    >
+      {country.name}
+    </AnimatedSvgText>
+  );
+}
 
 // This particular map uses a relative `m` followed by implicit relative line
 // coordinates. Calculating its bounds gives us label positions without a
@@ -320,12 +360,19 @@ function WorldMap({ visited }: { visited: Set<string> }) {
   );
   const animatedGroupProps = useAnimatedProps(() => {
     const unitsPerPixel = MAP_WIDTH / mapCanvasWidth;
+    const svgTranslateX = translateX.value * unitsPerPixel;
+    const svgTranslateY = translateY.value * unitsPerPixel;
+
     return {
-      originX: MAP_WIDTH / 2,
-      originY: MAP_HEIGHT / 2,
-      scale: scale.value,
-      translateX: translateX.value * unitsPerPixel,
-      translateY: translateY.value * unitsPerPixel,
+      transform: [
+        { translateX: svgTranslateX },
+        { translateY: svgTranslateY },
+        { translateX: MAP_WIDTH / 2 },
+        { translateY: MAP_HEIGHT / 2 },
+        { scale: scale.value },
+        { translateX: -MAP_WIDTH / 2 },
+        { translateY: -MAP_HEIGHT / 2 },
+      ],
     };
   });
   const visitedIso2 = useMemo(() => {
@@ -497,32 +544,16 @@ function WorldMap({ visited }: { visited: Set<string> }) {
                   accessibilityLabel={`Open ${country.name}`}
                 />
               ))}
-              {zoomLevel >= 4
-                ? countriesOnMap
-                    .filter((country) =>
-                      zoomLevel >= 6
-                        ? country.width >= 4 && country.height >= 3
-                        : country.width >= 12 && country.height >= 7,
-                    )
-                    .map((country) => (
-                      <SvgText
-                        key={`label-${country.code}`}
-                        x={country.centerX}
-                        y={country.centerY}
-                        fill={BrandColors.onDark}
-                        stroke={BrandColors.greenDeep}
-                        strokeWidth={7 / zoomLevel}
-                        fontSize={60 / zoomLevel}
-                        fontWeight="700"
-                        textAnchor="middle"
-                        onPress={() =>
-                          router.push(`/country/${country.code}` as never)
-                        }
-                      >
-                        {country.name}
-                      </SvgText>
-                    ))
-                : null}
+              {countriesOnMap.map((country) => (
+                <CountryMapLabel
+                  key={`label-${country.code}`}
+                  country={country}
+                  scale={scale}
+                  onPress={() =>
+                    router.push(`/country/${country.code}` as never)
+                  }
+                />
+              ))}
               </AnimatedGroup>
             </Svg>
           </View>

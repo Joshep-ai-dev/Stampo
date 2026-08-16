@@ -183,9 +183,7 @@ export default function CountryScreen() {
                     {sight.name}
                   </Text>
                   <Ionicons
-                    name={
-                      checked ? "checkmark-circle" : "checkmark-circle-outline"
-                    }
+                    name={checked ? "checkmark-circle" : "ellipse-outline"}
                     size={28}
                     color="#57D5A0"
                   />
@@ -229,9 +227,13 @@ export default function CountryScreen() {
                     </Text>
                     <View style={s.lockedSightCheck}>
                       <Ionicons
-                        name="checkmark-circle-outline"
+                        name={
+                          sight.completed ? "checkmark-circle" : "ellipse-outline"
+                        }
                         size={28}
-                        color={BrandColors.onDarkMuted}
+                        color={
+                          sight.completed ? "#57D5A0" : BrandColors.onDarkMuted
+                        }
                       />
                     </View>
                   </View>
