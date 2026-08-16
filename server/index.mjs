@@ -54,6 +54,7 @@ const automaticImports = new Map();
 const automaticImportFailures = new Map();
 const transientCatalogs = new Map();
 const resolvedCityImages = new Map();
+const resolvedPlaceImages = new Map();
 
 function countryShell(code, country, cities) {
   const countryId = `live-country-${code}`;
@@ -161,7 +162,7 @@ async function addShellSights(code, country, catalog) {
           longitude: Number.isFinite(item.longitude)
             ? item.longitude
             : city.longitude,
-          imageUrl: "",
+          imageUrl: item.imageUrl ?? "",
           isFeatured: true,
         }));
     }),
@@ -960,6 +961,41 @@ app.get("/api/city-image", async (req, res) => {
     image = commons.imageUrl ?? "";
   }
   if (image) resolvedCityImages.set(cacheKey, image);
+  return res.json({ image });
+});
+app.get("/api/place-image", async (req, res) => {
+  const name = String(req.query?.name ?? "").trim();
+  const city = String(req.query?.city ?? "").trim();
+  const country = String(req.query?.country ?? "").trim();
+  if (!name || !country) {
+    return res.status(422).json({ message: "Place name and country are required." });
+  }
+  const cacheKey = `${name.toLocaleLowerCase()}|${city.toLocaleLowerCase()}|${country.toLocaleLowerCase()}`;
+  if (resolvedPlaceImages.has(cacheKey)) {
+    return res.json({ image: resolvedPlaceImages.get(cacheKey) });
+  }
+
+  const matches = await wikipediaSearch(`${name} ${city} ${country}`, {
+    timeoutMs: 7_000,
+    retries: 1,
+  }).catch(() => []);
+  const normalize = (value) =>
+    String(value).normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase();
+  const target = normalize(name);
+  const named = matches.filter(
+    (item) =>
+      item.imageUrl &&
+      (normalize(item.name) === target || normalize(item.name).includes(target)),
+  );
+  let image = named[0]?.imageUrl ?? matches.find((item) => item.imageUrl)?.imageUrl ?? "";
+  if (!image) {
+    const commons = await commonsImageSearch(
+      `${name} ${city} ${country} landmark photograph`,
+      { timeoutMs: 7_000, retries: 1 },
+    ).catch(() => ({}));
+    image = commons.imageUrl ?? "";
+  }
+  if (image) resolvedPlaceImages.set(cacheKey, image);
   return res.json({ image });
 });
 app.get("/api/cities/:id", (req, res) => {

@@ -153,13 +153,11 @@ function projectToWorldMap(latitude: number, longitude: number) {
     Math.log(Math.tan(Math.PI / 4 + radians / 2));
   return {
     x:
-      ((wrappedLongitude - MAP_GEO_LEFT) /
-        (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
+      ((wrappedLongitude - MAP_GEO_LEFT) / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
       MAP_WIDTH,
     y:
       MAP_HEIGHT -
-      projectionScale *
-        (mercatorY(latitudeRadians) - mercatorY(bottomRadians)),
+      projectionScale * (mercatorY(latitudeRadians) - mercatorY(bottomRadians)),
   };
 }
 
@@ -188,12 +186,10 @@ function CurrentPositionPin({
     transform: [
       {
         translateX:
-          translateX.value +
-          (baseX - canvasWidth / 2) * (scale.value - 1),
+          translateX.value + (baseX - canvasWidth / 2) * (scale.value - 1),
       },
       {
-        translateY:
-          translateY.value + (baseY - 125) * (scale.value - 1),
+        translateY: translateY.value + (baseY - 125) * (scale.value - 1),
       },
     ],
   }));
@@ -232,9 +228,9 @@ function CountryMapLabel({
 
     return {
       opacity: visible ? 1 : 0,
-      strokeWidth: 1.35 / scale.value,
+      strokeWidth: 1.5 / scale.value,
       fontSize: 35 / scale.value,
-      x: country.centerX - (country.name.length * 9.6) / scale.value,
+      x: country.centerX - (country.name.length * 9.4) / scale.value,
     };
   });
 
@@ -244,19 +240,7 @@ function CountryMapLabel({
         animatedProps={animatedProps}
         y={country.centerY}
         fill="#FFFFFF"
-        stroke="#FFFFFF"
-        fontFamily="sans-serif-condensed"
-        fontWeight="900"
-        textAnchor="start"
-      >
-        {country.name}
-      </AnimatedSvgText>
-      <AnimatedSvgText
-        animatedProps={animatedProps}
-        y={country.centerY}
-        fill="#000000"
-        fontFamily="sans-serif-condensed"
-        fontWeight="900"
+        fontFamily="Roboto_900Black"
         textAnchor="start"
       >
         {country.name}
@@ -720,7 +704,7 @@ function WorldMap({
                     accessibilityLabel={`Preview ${country.name}`}
                   />
                 ))}
-              {countriesOnMap.map((country) => (
+                {countriesOnMap.map((country) => (
                   <CountryMapLabel
                     key={`label-${country.code}`}
                     country={country}

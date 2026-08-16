@@ -225,7 +225,7 @@ export async function importCountry(
         ...item,
         slug: slugify(item.name),
         description: cleanDescription(item.description),
-        imageUrl: "",
+        imageUrl: item.imageUrl ?? "",
         isFeatured: true,
         isPremium: index >= 3,
         displayOrder: index,

@@ -1,3 +1,4 @@
+import "@/services/arrival-monitoring";
 import {
   Lora_400Regular,
   Lora_400Regular_Italic,
@@ -6,18 +7,18 @@ import {
   Lora_700Bold,
   useFonts,
 } from "@expo-google-fonts/lora";
+import { Roboto_900Black } from "@expo-google-fonts/roboto";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Provider } from "react-redux";
 import "react-native-reanimated";
-import "@/services/arrival-monitoring";
+import { Provider } from "react-redux";
 
-import { hydrateStore, store } from "@/store";
-import { SubscriptionSync } from "@/components/subscription-sync";
 import { ArrivalSuggestionPrompt } from "@/components/arrival-suggestion";
+import { SubscriptionSync } from "@/components/subscription-sync";
+import { hydrateStore, store } from "@/store";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
     Lora_500Medium,
     Lora_600SemiBold,
     Lora_700Bold,
+    Roboto_900Black,
   });
 
   useEffect(() => {

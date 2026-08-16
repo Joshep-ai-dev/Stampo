@@ -247,6 +247,18 @@ export const api = {
           : {}),
       }).toString()}`,
     ),
+  resolvePlaceImage: (input: {
+    name: string;
+    city?: string;
+    country: string;
+  }) =>
+    request<{ image: string }>(
+      `/api/place-image?${new URLSearchParams({
+        name: input.name,
+        country: input.country,
+        ...(input.city ? { city: input.city } : {}),
+      }).toString()}`,
+    ),
   citySights: (id: string) =>
     request<SightDetail[]>(`/api/cities/${encodeURIComponent(id)}/sights`),
   sightDetail: (id: string) =>

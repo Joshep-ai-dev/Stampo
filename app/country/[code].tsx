@@ -9,10 +9,12 @@ import {
   Pressable,
   ScrollView,
   Share,
+  type StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -211,8 +213,11 @@ export default function CountryScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
                   >
-                    <ProgressivePlaceImage
-                      uri={sight.image}
+                    <ResolvedPlaceImage
+                      initialUri={sight.image}
+                      placeName={sight.name}
+                      cityName={sight.city}
+                      countryName={name}
                       style={s.sightImage}
                       contentFit="cover"
                     />
@@ -259,8 +264,11 @@ export default function CountryScreen() {
                     style={[s.sightRow, s.lockedSightRow]}
                     accessibilityElementsHidden
                   >
-                    <ProgressivePlaceImage
-                      uri={sight.image}
+                    <ResolvedPlaceImage
+                      initialUri={sight.image}
+                      placeName={sight.name}
+                      cityName={sight.city}
+                      countryName={name}
                       style={s.sightImage}
                       contentFit="cover"
                       blurRadius={32}
@@ -323,6 +331,8 @@ export default function CountryScreen() {
                   countryName={name}
                   regionName={recordedVisit?.subcountry}
                   initialUri={cityDetail?.image}
+                  latitude={cityDetail?.latitude}
+                  longitude={cityDetail?.longitude}
                 />
                 <Text style={s.cityName}>{city.name}</Text>
                 <Ionicons
@@ -374,8 +384,11 @@ export default function CountryScreen() {
           />
           {selectedSight ? (
             <View style={s.sightModal}>
-              <ProgressivePlaceImage
-                uri={selectedSight.image}
+              <ResolvedPlaceImage
+                initialUri={selectedSight.image}
+                placeName={selectedSight.name}
+                cityName={selectedSight.city}
+                countryName={name}
                 style={s.modalImage}
                 contentFit="cover"
               />
@@ -411,12 +424,16 @@ function CityThumbnail({
   countryName,
   regionName,
   initialUri,
+  latitude,
+  longitude,
 }: {
   cityId: string;
   cityName: string;
   countryName: string;
   regionName?: string;
   initialUri?: string;
+  latitude?: number;
+  longitude?: number;
 }) {
   const [uri, setUri] = useState(initialUri ?? "");
 
@@ -436,6 +453,8 @@ function CityThumbnail({
           name: cityName,
           country: countryName,
           region: regionName,
+          latitude,
+          longitude,
         })
         .catch(() => null);
       if (active && resolved?.image) setUri(resolved.image);
@@ -443,7 +462,7 @@ function CityThumbnail({
     return () => {
       active = false;
     };
-  }, [cityId, cityName, countryName, initialUri, regionName]);
+  }, [cityId, cityName, countryName, initialUri, latitude, longitude, regionName]);
 
   return (
     <View style={s.cityImageFrame}>
@@ -453,6 +472,54 @@ function CityThumbnail({
         contentFit="cover"
       />
     </View>
+  );
+}
+
+function ResolvedPlaceImage({
+  initialUri,
+  placeName,
+  cityName,
+  countryName,
+  style,
+  contentFit = "cover",
+  blurRadius,
+}: {
+  initialUri?: string;
+  placeName: string;
+  cityName?: string;
+  countryName: string;
+  style: StyleProp<ViewStyle>;
+  contentFit?: "cover" | "contain";
+  blurRadius?: number;
+}) {
+  const [uri, setUri] = useState(initialUri ?? "");
+
+  useEffect(() => {
+    setUri(initialUri ?? "");
+    if (initialUri) return;
+    let active = true;
+    void api
+      .resolvePlaceImage({
+        name: placeName,
+        city: cityName,
+        country: countryName,
+      })
+      .then((result) => {
+        if (active && result.image) setUri(result.image);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [cityName, countryName, initialUri, placeName]);
+
+  return (
+    <ProgressivePlaceImage
+      uri={uri}
+      style={style}
+      contentFit={contentFit}
+      blurRadius={blurRadius}
+    />
   );
 }
 
