@@ -31,7 +31,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { G, Path, Text as SvgText } from "react-native-svg";
+import Svg, { G, Image as SvgImage, Path, Text as SvgText } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
@@ -40,6 +40,10 @@ import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
+import {
+  getCurrentMapLocation,
+  watchCurrentMapLocation,
+} from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -118,8 +122,35 @@ type MapCountry = {
 
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
+const MAP_GEO_LEFT = -169.110266;
+const MAP_GEO_TOP = 83.600842;
+const MAP_GEO_RIGHT = 190.486279;
+const MAP_GEO_BOTTOM = -58.508473;
 const AnimatedGroup = Animated.createAnimatedComponent(G);
 const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
+
+function projectToWorldMap(latitude: number, longitude: number) {
+  const clampedLatitude = Math.max(
+    MAP_GEO_BOTTOM,
+    Math.min(MAP_GEO_TOP, latitude),
+  );
+  let wrappedLongitude = longitude;
+  while (wrappedLongitude < MAP_GEO_LEFT) wrappedLongitude += 360;
+  while (wrappedLongitude > MAP_GEO_RIGHT) wrappedLongitude -= 360;
+  const mercator = (value: number) => {
+    const radians = (value * Math.PI) / 180;
+    return Math.log(Math.tan(Math.PI / 4 + radians / 2));
+  };
+  const top = mercator(MAP_GEO_TOP);
+  const bottom = mercator(MAP_GEO_BOTTOM);
+  return {
+    x:
+      ((wrappedLongitude - MAP_GEO_LEFT) /
+        (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
+      MAP_WIDTH,
+    y: ((top - mercator(clampedLatitude)) / (top - bottom)) * MAP_HEIGHT,
+  };
+}
 
 function CountryMapLabel({
   country,
@@ -131,7 +162,7 @@ function CountryMapLabel({
   onPress: () => void;
 }) {
   const animatedProps = useAnimatedProps(() => {
-    const minimumZoom = country.width >= 12 && country.height >= 7 ? 4 : 6;
+    const minimumZoom = country.width >= 12 && country.height >= 7 ? 2 : 4;
     const visible =
       scale.value >= minimumZoom && country.width >= 4 && country.height >= 3;
 
@@ -314,6 +345,11 @@ function WorldMap({
   const [selectedCountry, setSelectedCountry] = useState<MapCountry | null>(
     null,
   );
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [gpsPinUri, setGpsPinUri] = useState("");
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -428,6 +464,60 @@ function WorldMap({
         .filter(Boolean),
     );
   }, [visited]);
+  const verifiedIso2 = useMemo(() => {
+    const countryList = getCountryDataList();
+    return new Set(
+      visits
+        .filter((visit) => visit.verification?.status === "gps_verified")
+        .map((visit) => {
+          const code = visit.countryCode.toUpperCase();
+          return code.length === 2
+            ? code
+            : (countryList.find((country) => country.iso3 === code)?.iso2 ??
+                "");
+        })
+        .filter(Boolean),
+    );
+  }, [visits]);
+  useEffect(() => {
+    let active = true;
+    let removeWatcher: (() => void) | undefined;
+    void getCurrentMapLocation()
+      .then((location) => {
+        if (active && location) setCurrentLocation(location.coords);
+      })
+      .catch(() => undefined);
+    void watchCurrentMapLocation((location) => {
+      if (active) setCurrentLocation(location.coords);
+    })
+      .then((subscription) => {
+        if (!active) {
+          subscription?.remove();
+          return;
+        }
+        removeWatcher = () => subscription?.remove();
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      removeWatcher?.();
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const pinAsset = Asset.fromModule(
+      require("@/assets/images/gps-position-pin.png"),
+    );
+    void pinAsset.downloadAsync().then(() => {
+      if (active) setGpsPinUri(pinAsset.localUri ?? pinAsset.uri);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const projectedLocation = currentLocation
+    ? projectToWorldMap(currentLocation.latitude, currentLocation.longitude)
+    : null;
   const selectedCountryVisits = useMemo(() => {
     if (!selectedCountry) return [];
     const countryList = getCountryDataList();
@@ -592,9 +682,11 @@ function WorldMap({
                     key={country.code}
                     d={country.path}
                     fill={
-                      visitedIso2.has(country.code)
-                        ? BrandColors.mapVisited
-                        : BrandColors.mapGreen
+                      verifiedIso2.has(country.code)
+                        ? BrandColors.copper
+                        : visitedIso2.has(country.code)
+                          ? BrandColors.mapVisited
+                          : BrandColors.mapGreen
                     }
                     stroke={BrandColors.green}
                     strokeWidth={0.7 / zoomLevel}
@@ -603,6 +695,17 @@ function WorldMap({
                     accessibilityLabel={`Preview ${country.name}`}
                   />
                 ))}
+              {projectedLocation && gpsPinUri ? (
+                <SvgImage
+                  pointerEvents="none"
+                  href={{ uri: gpsPinUri }}
+                  x={projectedLocation.x - 18 / zoomLevel}
+                  y={projectedLocation.y - 48 / zoomLevel}
+                  width={36 / zoomLevel}
+                  height={48 / zoomLevel}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              ) : null}
                 {countriesOnMap.map((country) => (
                   <CountryMapLabel
                     key={`label-${country.code}`}
@@ -663,11 +766,22 @@ function WorldMap({
                     {getEmojiFlag(selectedCountry.code as TCountryCode)}{" "}
                     {selectedCountry.name}
                   </Text>
-                  <Text style={styles.sheetVisitStatus}>
-                    {visitedIso2.has(selectedCountry.code)
-                      ? "VISITED"
-                      : "NOT VISITED"}
-                  </Text>
+                  <View style={styles.sheetVisitStatusRow}>
+                    {verifiedIso2.has(selectedCountry.code) ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={BrandColors.copper}
+                      />
+                    ) : null}
+                    <Text style={styles.sheetVisitStatus}>
+                      {verifiedIso2.has(selectedCountry.code)
+                        ? "VISIT VERIFIED"
+                        : visitedIso2.has(selectedCountry.code)
+                          ? "VISITED"
+                          : "NOT VISITED"}
+                    </Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.sheetStats}>
@@ -1206,7 +1320,7 @@ const styles = StyleSheet.create({
   sheetStamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.3 }],
+    transform: [{ scale: 1.2 }],
   },
   sheetCountryCopy: { flex: 1 },
   sheetCountryName: {
@@ -1216,11 +1330,16 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   sheetVisitStatus: {
-    marginTop: 4,
     fontFamily: "Lora_600SemiBold",
     fontSize: 14,
     letterSpacing: 1.8,
     color: BrandColors.progressGreen,
+  },
+  sheetVisitStatusRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   sheetStats: {
     marginTop: 22,

@@ -227,6 +227,26 @@ export const api = {
   countryDetail,
   cityDetail: (id: string) =>
     request<CityDetail>(`/api/cities/${encodeURIComponent(id)}`),
+  resolveCityImage: (input: {
+    name: string;
+    country: string;
+    region?: string;
+    latitude?: number;
+    longitude?: number;
+  }) =>
+    request<{ image: string }>(
+      `/api/city-image?${new URLSearchParams({
+        name: input.name,
+        country: input.country,
+        ...(input.region ? { region: input.region } : {}),
+        ...(Number.isFinite(input.latitude)
+          ? { latitude: String(input.latitude) }
+          : {}),
+        ...(Number.isFinite(input.longitude)
+          ? { longitude: String(input.longitude) }
+          : {}),
+      }).toString()}`,
+    ),
   citySights: (id: string) =>
     request<SightDetail[]>(`/api/cities/${encodeURIComponent(id)}/sights`),
   sightDetail: (id: string) =>

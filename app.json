@@ -42,9 +42,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Stampo to use your location to verify visited places."
+          "locationWhenInUsePermission": "Allow Stampo to show your position and verify visited places.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Stampo to recognize new city and airport arrivals and suggest GPS-verified visits.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
+      "expo-notifications",
       [
         "expo-splash-screen",
         {

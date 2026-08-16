@@ -53,6 +53,7 @@ const scrypt = promisify(scryptCallback);
 const automaticImports = new Map();
 const automaticImportFailures = new Map();
 const transientCatalogs = new Map();
+const resolvedCityImages = new Map();
 
 function countryShell(code, country, cities) {
   const countryId = `live-country-${code}`;
@@ -898,6 +899,68 @@ app.get("/api/countries/:code/cities", (req, res) => {
   return payload
     ? res.json(payload.cities)
     : res.status(404).json({ message: "Country has not been imported." });
+});
+app.get("/api/city-image", async (req, res) => {
+  const name = String(req.query?.name ?? "").trim();
+  const country = String(req.query?.country ?? "").trim();
+  const region = String(req.query?.region ?? "").trim();
+  const latitude = Number(req.query?.latitude);
+  const longitude = Number(req.query?.longitude);
+  if (!name || !country) {
+    return res.status(422).json({ message: "City name and country are required." });
+  }
+  const cacheKey = `${name.toLocaleLowerCase()}|${region.toLocaleLowerCase()}|${country.toLocaleLowerCase()}`;
+  if (resolvedCityImages.has(cacheKey)) {
+    return res.json({ image: resolvedCityImages.get(cacheKey) });
+  }
+
+  const matches = await wikipediaSearch(
+    `${name} ${region} ${country} municipality`,
+    {
+    timeoutMs: 7_000,
+    retries: 1,
+    },
+  ).catch(() => []);
+  const normalizeName = (value) =>
+    String(value)
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLocaleLowerCase();
+  const targetName = normalizeName(name);
+  const photographs = matches.filter(
+    (item) =>
+      item.imageUrl &&
+      (normalizeName(item.name) === targetName ||
+        normalizeName(item.name).startsWith(`${targetName},`)),
+  );
+  const nearby =
+    Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? photographs
+          .filter(
+            (item) =>
+              Number.isFinite(item.latitude) &&
+              Number.isFinite(item.longitude),
+          )
+          .map((item) => ({
+            ...item,
+            distance: Math.hypot(
+              item.latitude - latitude,
+              item.longitude - longitude,
+            ),
+          }))
+          .filter((item) => item.distance < 0.75)
+          .sort((a, b) => a.distance - b.distance)
+      : [];
+  let image = nearby[0]?.imageUrl ?? photographs[0]?.imageUrl ?? "";
+  if (!image) {
+    const commons = await commonsImageSearch(
+      `${name} ${region} ${country}`,
+      { timeoutMs: 7_000, retries: 1 },
+    ).catch(() => ({}));
+    image = commons.imageUrl ?? "";
+  }
+  if (image) resolvedCityImages.set(cacheKey, image);
+  return res.json({ image });
 });
 app.get("/api/cities/:id", (req, res) => {
   const catalog = availableCatalogs().find((source) =>

@@ -21,6 +21,7 @@ import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
+import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import {
   isKrooPlus as customerHasKrooPlus,
   manageKrooPlus,
@@ -36,6 +37,7 @@ export default function CountryScreen() {
   const dispatch = useAppDispatch();
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
   const countryState = useAppSelector((state) => state.countryDetail);
+  const allVisits = useAppSelector((state) => state.travel.visits);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
@@ -73,6 +75,27 @@ export default function CountryScreen() {
     a.name.localeCompare(b.name),
   );
   const stamp = stampAssets[normalizedCode];
+  const enableGpsArrivals = async () => {
+    if (!subscription.isKrooPlus) {
+      Alert.alert(
+        "Kroo+ GPS arrivals",
+        "Upgrade to Kroo+ to detect arrivals and create GPS-verified visits.",
+      );
+      return;
+    }
+    try {
+      await startArrivalMonitoring();
+      Alert.alert(
+        "GPS arrivals enabled",
+        "Stampo can now suggest a verified visit when you arrive in a new city or airport.",
+      );
+    } catch (error) {
+      Alert.alert(
+        "GPS arrivals",
+        error instanceof Error ? error.message : "Could not enable GPS arrivals.",
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -203,6 +226,14 @@ export default function CountryScreen() {
                 count={premiumSights.length}
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
+                onPreviewToggle={() =>
+                  dispatch(
+                    subscriptionUpdated({
+                      configured: false,
+                      isKrooPlus: !subscription.isKrooPlus,
+                    }),
+                  )
+                }
                 onCustomerInfo={(customerInfo) =>
                   dispatch(
                     subscriptionUpdated({
@@ -264,6 +295,9 @@ export default function CountryScreen() {
               const cityDetail = detail?.cities.find(
                 (item) => item.id === city.id,
               );
+              const recordedVisit = allVisits.find(
+                (visit) => visit.cityId === city.id,
+              );
               return (
               <TouchableOpacity
                 key={city.id}
@@ -274,6 +308,9 @@ export default function CountryScreen() {
               >
                 <CityThumbnail
                   cityId={city.id}
+                  cityName={city.name}
+                  countryName={name}
+                  regionName={recordedVisit?.subcountry}
                   initialUri={cityDetail?.image}
                 />
                 <Text style={s.cityName}>{city.name}</Text>
@@ -289,7 +326,12 @@ export default function CountryScreen() {
             <Text style={s.empty}>Your visited cities will appear here.</Text>
           )}
         </View>
-        <View style={s.gpsCard}>
+        <TouchableOpacity
+          style={s.gpsCard}
+          onPress={() => void enableGpsArrivals()}
+          accessibilityRole="button"
+          accessibilityLabel="Enable Kroo+ GPS arrivals"
+        >
           <Ionicons
             name="location-outline"
             size={20}
@@ -299,7 +341,12 @@ export default function CountryScreen() {
             Kroo+ can automatically add visited cities using GPS when you opt
             in.
           </Text>
-        </View>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={BrandColors.copper}
+          />
+        </TouchableOpacity>
       </ScrollView>
       <Modal
         visible={selectedSight !== null}
@@ -349,9 +396,15 @@ function SectionTitle({ children }: { children: string }) {
 
 function CityThumbnail({
   cityId,
+  cityName,
+  countryName,
+  regionName,
   initialUri,
 }: {
   cityId: string;
+  cityName: string;
+  countryName: string;
+  regionName?: string;
   initialUri?: string;
 }) {
   const [uri, setUri] = useState(initialUri ?? "");
@@ -360,31 +413,26 @@ function CityThumbnail({
     setUri(initialUri ?? "");
     if (initialUri) return;
     let active = true;
-    let refresh: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-    const load = () => {
-      void api
-        .cityDetail(cityId)
-        .then((city) => {
-          if (!active) return;
-          if (city.image) {
-            setUri(city.image);
-          } else if (attempts++ < 24) {
-            refresh = setTimeout(load, 2_500);
-          }
+    void (async () => {
+      const cityDetail = await api.cityDetail(cityId).catch(() => null);
+      if (!active) return;
+      if (cityDetail?.image) {
+        setUri(cityDetail.image);
+        return;
+      }
+      const resolved = await api
+        .resolveCityImage({
+          name: cityName,
+          country: countryName,
+          region: regionName,
         })
-        .catch(() => {
-          if (active && attempts++ < 24) {
-            refresh = setTimeout(load, 2_500);
-          }
-        });
-    };
-    load();
+        .catch(() => null);
+      if (active && resolved?.image) setUri(resolved.image);
+    })();
     return () => {
       active = false;
-      if (refresh) clearTimeout(refresh);
     };
-  }, [cityId, initialUri]);
+  }, [cityId, cityName, countryName, initialUri, regionName]);
 
   return (
     <View style={s.cityImageFrame}>
@@ -401,11 +449,13 @@ function UpgradeBanner({
   count,
   active,
   configured,
+  onPreviewToggle,
   onCustomerInfo,
 }: {
   count: number;
   active: boolean;
   configured: boolean;
+  onPreviewToggle: () => void;
   onCustomerInfo: (
     customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
   ) => void;
@@ -417,6 +467,10 @@ function UpgradeBanner({
     );
   const openPurchaseOptions = () => {
     if (!configured) {
+      if (__DEV__) {
+        onPreviewToggle();
+        return;
+      }
       Alert.alert(
         "Kroo+ setup required",
         "Add the RevenueCat iOS and Android public SDK keys, then rebuild the app.",
@@ -446,7 +500,13 @@ function UpgradeBanner({
       style={s.upgradeCard}
       onPress={openPurchaseOptions}
       accessibilityRole="button"
-      accessibilityLabel={active ? "Manage Kroo+" : "Upgrade to Kroo+"}
+      accessibilityLabel={
+        active
+          ? configured
+            ? "Manage Kroo+"
+            : "Switch to Kroo Free preview"
+          : "Switch to Kroo+ preview"
+      }
     >
       <View style={s.upgradeCopy}>
         <Ionicons
@@ -459,7 +519,9 @@ function UpgradeBanner({
         </Text>
       </View>
       <View style={s.upgradeButton}>
-        <Text style={s.upgradeButtonText}>{active ? "Manage" : "Upgrade"}</Text>
+        <Text style={s.upgradeButtonText}>
+          {active ? (configured ? "Manage" : "Kroo Free") : configured ? "Upgrade" : "Kroo+"}
+        </Text>
       </View>
     </TouchableOpacity>
   );
