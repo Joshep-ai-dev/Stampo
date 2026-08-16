@@ -27,11 +27,12 @@ import Animated, {
   runOnJS,
   type SharedValue,
   useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { G, Image as SvgImage, Path, Text as SvgText } from "react-native-svg";
+import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
@@ -150,6 +151,59 @@ function projectToWorldMap(latitude: number, longitude: number) {
       MAP_WIDTH,
     y: ((top - mercator(clampedLatitude)) / (top - bottom)) * MAP_HEIGHT,
   };
+}
+
+function CurrentPositionPin({
+  latitude,
+  longitude,
+  canvasWidth,
+  scale,
+  translateX,
+  translateY,
+}: {
+  latitude: number;
+  longitude: number;
+  canvasWidth: number;
+  scale: SharedValue<number>;
+  translateX: SharedValue<number>;
+  translateY: SharedValue<number>;
+}) {
+  const projected = projectToWorldMap(latitude, longitude);
+  const fitScale = Math.min(canvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+  const offsetX = (canvasWidth - MAP_WIDTH * fitScale) / 2;
+  const offsetY = (250 - MAP_HEIGHT * fitScale) / 2;
+  const baseX = offsetX + projected.x * fitScale;
+  const baseY = offsetY + projected.y * fitScale;
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX:
+          translateX.value +
+          (baseX - canvasWidth / 2) * (scale.value - 1),
+      },
+      {
+        translateY:
+          translateY.value + (baseY - 125) * (scale.value - 1),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.currentPositionPin,
+        { left: baseX - 22, top: baseY - 58 },
+        animatedStyle,
+      ]}
+    >
+      <Image
+        source={require("@/assets/images/gps-position-pin.png")}
+        contentFit="contain"
+        style={styles.currentPositionPinImage}
+      />
+    </Animated.View>
+  );
 }
 
 function CountryMapLabel({
@@ -349,7 +403,6 @@ function WorldMap({
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [gpsPinUri, setGpsPinUri] = useState("");
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -503,21 +556,6 @@ function WorldMap({
       removeWatcher?.();
     };
   }, []);
-  useEffect(() => {
-    let active = true;
-    const pinAsset = Asset.fromModule(
-      require("@/assets/images/gps-position-pin.png"),
-    );
-    void pinAsset.downloadAsync().then(() => {
-      if (active) setGpsPinUri(pinAsset.localUri ?? pinAsset.uri);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-  const projectedLocation = currentLocation
-    ? projectToWorldMap(currentLocation.latitude, currentLocation.longitude)
-    : null;
   const selectedCountryVisits = useMemo(() => {
     if (!selectedCountry) return [];
     const countryList = getCountryDataList();
@@ -695,18 +733,7 @@ function WorldMap({
                     accessibilityLabel={`Preview ${country.name}`}
                   />
                 ))}
-              {projectedLocation && gpsPinUri ? (
-                <SvgImage
-                  pointerEvents="none"
-                  href={{ uri: gpsPinUri }}
-                  x={projectedLocation.x - 18 / zoomLevel}
-                  y={projectedLocation.y - 48 / zoomLevel}
-                  width={36 / zoomLevel}
-                  height={48 / zoomLevel}
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              ) : null}
-                {countriesOnMap.map((country) => (
+              {countriesOnMap.map((country) => (
                   <CountryMapLabel
                     key={`label-${country.code}`}
                     country={country}
@@ -728,6 +755,16 @@ function WorldMap({
           <Text style={styles.mapLoadingText}>Loading your travel map…</Text>
         </View>
       )}
+      {currentLocation && mapCanvasWidth > 1 ? (
+        <CurrentPositionPin
+          latitude={currentLocation.latitude}
+          longitude={currentLocation.longitude}
+          canvasWidth={mapCanvasWidth}
+          scale={scale}
+          translateX={translateX}
+          translateY={translateY}
+        />
+      ) : null}
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -1272,6 +1309,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  currentPositionPin: {
+    position: "absolute",
+    zIndex: 5,
+    width: 44,
+    height: 58,
+  },
+  currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
     fontFamily: "Lora_400Regular",
     fontSize: 11,
