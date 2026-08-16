@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
+  countries,
   getCountryData,
   getCountryDataList,
   type TCountryCode,
@@ -7,7 +8,7 @@ import {
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -20,12 +21,13 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  useAnimatedStyle,
+  runOnJS,
+  useAnimatedProps,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SvgXml } from "react-native-svg";
+import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
@@ -95,21 +97,185 @@ const HIDDEN_MAP_ISO3 = new Set(
     .map((country) => country.iso3),
 );
 
+type MapCountry = {
+  code: string;
+  name: string;
+  path: string;
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+};
+
+const MAP_WIDTH = 1009.6727;
+const MAP_HEIGHT = 665.96301;
+const AnimatedGroup = Animated.createAnimatedComponent(G);
+
+// This particular map uses a relative `m` followed by implicit relative line
+// coordinates. Calculating its bounds gives us label positions without a
+// second geographic data source.
+function relativePathBounds(path: string) {
+  const tokens =
+    path.match(/[mz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:e[-+]?\d+)?/gi) ?? [];
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let index = 0;
+  let startsSubpath = false;
+  let currentPolygon: { x: number; y: number }[] = [];
+  let largestPolygon: { x: number; y: number }[] = [];
+  let largestArea = 0;
+
+  const finishPolygon = () => {
+    if (currentPolygon.length < 3) return;
+    let twiceArea = 0;
+    for (let pointIndex = 0; pointIndex < currentPolygon.length; pointIndex += 1) {
+      const current = currentPolygon[pointIndex];
+      const next = currentPolygon[(pointIndex + 1) % currentPolygon.length];
+      twiceArea += current.x * next.y - next.x * current.y;
+    }
+    if (Math.abs(twiceArea) > largestArea) {
+      largestArea = Math.abs(twiceArea);
+      largestPolygon = currentPolygon;
+    }
+  };
+
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (token.toLowerCase() === "m") {
+      finishPolygon();
+      currentPolygon = [];
+      startsSubpath = true;
+      index += 1;
+      continue;
+    }
+    if (token.toLowerCase() === "z") {
+      finishPolygon();
+      currentPolygon = [];
+      x = startX;
+      y = startY;
+      index += 1;
+      continue;
+    }
+    const dx = Number(token);
+    const dy = Number(tokens[index + 1]);
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) break;
+    x += dx;
+    y += dy;
+    if (startsSubpath) {
+      startX = x;
+      startY = y;
+      startsSubpath = false;
+    }
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+    currentPolygon.push({ x, y });
+    index += 2;
+  }
+  finishPolygon();
+
+  let centerX = (minX + maxX) / 2;
+  let centerY = (minY + maxY) / 2;
+  if (largestPolygon.length >= 3) {
+    let twiceArea = 0;
+    let weightedX = 0;
+    let weightedY = 0;
+    for (let pointIndex = 0; pointIndex < largestPolygon.length; pointIndex += 1) {
+      const current = largestPolygon[pointIndex];
+      const next = largestPolygon[(pointIndex + 1) % largestPolygon.length];
+      const cross = current.x * next.y - next.x * current.y;
+      twiceArea += cross;
+      weightedX += (current.x + next.x) * cross;
+      weightedY += (current.y + next.y) * cross;
+    }
+    if (Math.abs(twiceArea) > 0.001) {
+      centerX = weightedX / (3 * twiceArea);
+      centerY = weightedY / (3 * twiceArea);
+    }
+  }
+  return { minX, minY, maxX, maxY, centerX, centerY };
+}
+
+function extractMapCountries(svg: string): MapCountry[] {
+  return [...svg.matchAll(/<path\b([\s\S]*?)\/>/g)].flatMap((match) => {
+    const attributes = match[1];
+    const code = attributes.match(/\bid="([A-Z]{2})"/)?.[1];
+    const name = attributes.match(/\btitle="([^"]+)"/)?.[1];
+    const path = attributes.match(/\bd="([^"]+)"/)?.[1];
+    if (!code || !name || !path || !countries[code as TCountryCode]) return [];
+    const bounds = relativePathBounds(path);
+    if (
+      ![bounds.minX, bounds.minY, bounds.maxX, bounds.maxY].every(
+        Number.isFinite,
+      )
+    )
+      return [];
+    return [
+      {
+        code,
+        name,
+        path,
+      centerX: bounds.centerX,
+      centerY: bounds.centerY,
+        width: bounds.maxX - bounds.minX,
+        height: bounds.maxY - bounds.minY,
+      },
+    ];
+  });
+}
+
 function WorldMap({ visited }: { visited: Set<string> }) {
+  const router = useRouter();
   const [xml, setXml] = useState<string>();
+  const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>([]);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+  const pinchStartTranslateX = useSharedValue(0);
+  const pinchStartTranslateY = useSharedValue(0);
+  const pinchStartFocalX = useSharedValue(0);
+  const pinchStartFocalY = useSharedValue(0);
 
   const pinchGesture = Gesture.Pinch()
+    .onStart((event) => {
+      pinchStartTranslateX.value = savedTranslateX.value;
+      pinchStartTranslateY.value = savedTranslateY.value;
+      pinchStartFocalX.value = event.focalX;
+      pinchStartFocalY.value = event.focalY;
+    })
     .onUpdate((event) => {
-      scale.value = Math.min(4, Math.max(1, savedScale.value * event.scale));
+      const nextScale = Math.min(
+        20,
+        Math.max(1, savedScale.value * event.scale),
+      );
+      const scaleChange = nextScale / savedScale.value;
+      scale.value = nextScale;
+      translateX.value =
+        pinchStartTranslateX.value +
+        (pinchStartFocalX.value - mapCanvasWidth / 2 - pinchStartTranslateX.value) *
+          (1 - scaleChange);
+      translateY.value =
+        pinchStartTranslateY.value +
+        (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
+          (1 - scaleChange);
     })
     .onEnd(() => {
       savedScale.value = scale.value;
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+      runOnJS(setZoomLevel)(scale.value);
       if (scale.value === 1) {
         translateX.value = withTiming(0);
         translateY.value = withTiming(0);
@@ -118,11 +284,20 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       }
     });
   const panGesture = Gesture.Pan()
-    .minPointers(2)
+    .minPointers(1)
+    .maxPointers(1)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
+      const maxX = (mapCanvasWidth * (scale.value - 1)) / 2;
+      const maxY = (250 * (scale.value - 1)) / 2;
+      translateX.value = Math.max(
+        -maxX,
+        Math.min(maxX, savedTranslateX.value + event.translationX),
+      );
+      translateY.value = Math.max(
+        -maxY,
+        Math.min(maxY, savedTranslateY.value + event.translationY),
+      );
     })
     .onEnd(() => {
       savedTranslateX.value = translateX.value;
@@ -131,6 +306,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
   const resetGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
+      runOnJS(setZoomLevel)(1);
       scale.value = withTiming(1);
       savedScale.value = 1;
       translateX.value = withTiming(0);
@@ -142,13 +318,30 @@ function WorldMap({ visited }: { visited: Set<string> }) {
     resetGesture,
     Gesture.Simultaneous(pinchGesture, panGesture),
   );
-  const animatedMapStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
+  const animatedGroupProps = useAnimatedProps(() => {
+    const unitsPerPixel = MAP_WIDTH / mapCanvasWidth;
+    return {
+      originX: MAP_WIDTH / 2,
+      originY: MAP_HEIGHT / 2,
+      scale: scale.value,
+      translateX: translateX.value * unitsPerPixel,
+      translateY: translateY.value * unitsPerPixel,
+    };
+  });
+  const visitedIso2 = useMemo(() => {
+    const countryList = getCountryDataList();
+    return new Set(
+      [...visited]
+        .map((rawCode) => {
+          const code = rawCode.toUpperCase();
+          return code.length === 2
+            ? code
+            : (countryList.find((country) => country.iso3 === code)?.iso2 ??
+                "");
+        })
+        .filter(Boolean),
+    );
+  }, [visited]);
   useEffect(() => {
     let active = true;
     (async () => {
@@ -160,6 +353,7 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       } catch {
         if (asset.localUri) svg = await new File(asset.localUri).text();
       }
+      if (active) setCountriesOnMap(extractMapCountries(svg));
       // The project map may be an Illustrator export with a single branded
       // land style rather than per-country ISO groups. Preserve its geometry.
       if (
@@ -273,12 +467,65 @@ function WorldMap({ visited }: { visited: Set<string> }) {
     <View
       style={styles.mapWrap}
       accessibilityLabel={`${visited.size} visited countries highlighted in green`}
+      onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       {xml ? (
         <GestureDetector gesture={mapGesture}>
-          <Animated.View style={[styles.zoomableMap, animatedMapStyle]}>
-            <SvgXml xml={xml} width="100%" height="100%" />
-          </Animated.View>
+          <View style={styles.zoomableMap} collapsable={false}>
+            <Svg
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <AnimatedGroup animatedProps={animatedGroupProps}>
+              {countriesOnMap.map((country) => (
+                <Path
+                  key={country.code}
+                  d={country.path}
+                  fill={
+                    visitedIso2.has(country.code)
+                      ? BrandColors.mapVisited
+                      : BrandColors.mapGreen
+                  }
+                  stroke={BrandColors.green}
+                  strokeWidth={0.7 / zoomLevel}
+                  strokeLinejoin="round"
+                  onPress={() =>
+                    router.push(`/country/${country.code}` as never)
+                  }
+                  accessibilityLabel={`Open ${country.name}`}
+                />
+              ))}
+              {zoomLevel >= 4
+                ? countriesOnMap
+                    .filter((country) =>
+                      zoomLevel >= 6
+                        ? country.width >= 4 && country.height >= 3
+                        : country.width >= 12 && country.height >= 7,
+                    )
+                    .map((country) => (
+                      <SvgText
+                        key={`label-${country.code}`}
+                        x={country.centerX}
+                        y={country.centerY}
+                        fill={BrandColors.onDark}
+                        stroke={BrandColors.greenDeep}
+                        strokeWidth={7 / zoomLevel}
+                        fontSize={60 / zoomLevel}
+                        fontWeight="700"
+                        textAnchor="middle"
+                        onPress={() =>
+                          router.push(`/country/${country.code}` as never)
+                        }
+                      >
+                        {country.name}
+                      </SvgText>
+                    ))
+                : null}
+              </AnimatedGroup>
+            </Svg>
+          </View>
         </GestureDetector>
       ) : (
         <View style={styles.mapLoading}>
