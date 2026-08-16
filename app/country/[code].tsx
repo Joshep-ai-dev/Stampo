@@ -20,7 +20,7 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import type { SightDetail } from "@/services/api";
+import { api, type SightDetail } from "@/services/api";
 import {
   isKrooPlus as customerHasKrooPlus,
   manageKrooPlus,
@@ -67,7 +67,7 @@ export default function CountryScreen() {
   );
   const freeSights = sights.filter((sight) => !sight.isPremium);
   const premiumSights = sights.filter((sight) => sight.isPremium);
-  const premiumSightPreview = premiumSights.slice(0, 3);
+  const premiumSightPreview = premiumSights.slice(0, 1);
   const visibleSights = subscription.isKrooPlus ? sights : freeSights;
   const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
@@ -272,21 +272,10 @@ export default function CountryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${city.name}`}
               >
-                <View style={s.cityImageFrame}>
-                  {cityDetail?.image ? (
-                    <ProgressivePlaceImage
-                      uri={cityDetail.image}
-                      style={s.cityImage}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <Ionicons
-                      name="business-outline"
-                      size={24}
-                      color={BrandColors.copper}
-                    />
-                  )}
-                </View>
+                <CityThumbnail
+                  cityId={city.id}
+                  initialUri={cityDetail?.image}
+                />
                 <Text style={s.cityName}>{city.name}</Text>
                 <Ionicons
                   name="chevron-forward"
@@ -356,6 +345,56 @@ export default function CountryScreen() {
 
 function SectionTitle({ children }: { children: string }) {
   return <Text style={s.sectionTitle}>{children}</Text>;
+}
+
+function CityThumbnail({
+  cityId,
+  initialUri,
+}: {
+  cityId: string;
+  initialUri?: string;
+}) {
+  const [uri, setUri] = useState(initialUri ?? "");
+
+  useEffect(() => {
+    setUri(initialUri ?? "");
+    if (initialUri) return;
+    let active = true;
+    let refresh: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const load = () => {
+      void api
+        .cityDetail(cityId)
+        .then((city) => {
+          if (!active) return;
+          if (city.image) {
+            setUri(city.image);
+          } else if (attempts++ < 24) {
+            refresh = setTimeout(load, 2_500);
+          }
+        })
+        .catch(() => {
+          if (active && attempts++ < 24) {
+            refresh = setTimeout(load, 2_500);
+          }
+        });
+    };
+    load();
+    return () => {
+      active = false;
+      if (refresh) clearTimeout(refresh);
+    };
+  }, [cityId, initialUri]);
+
+  return (
+    <View style={s.cityImageFrame}>
+      <ProgressivePlaceImage
+        uri={uri}
+        style={s.cityImage}
+        contentFit="cover"
+      />
+    </View>
+  );
 }
 
 function UpgradeBanner({

@@ -3,6 +3,7 @@ import {
   countries,
   getCountryData,
   getCountryDataList,
+  getEmojiFlag,
   type TCountryCode,
 } from "countries-list";
 import { Asset } from "expo-asset";
@@ -12,6 +13,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -35,10 +38,15 @@ import { CityVisitSearch } from "@/components/city-visit-search";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
+import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { travelStateHydrated, visitsHydrated } from "@/store/travel-slice";
+import {
+  travelStateHydrated,
+  type Visit,
+  visitsHydrated,
+} from "@/store/travel-slice";
 
 const TOTALS: Record<string, number> = {
   AF: 54,
@@ -129,25 +137,37 @@ function CountryMapLabel({
 
     return {
       opacity: visible ? 1 : 0,
-      strokeWidth: 3 / scale.value,
-      fontSize: 36 / scale.value,
+      strokeWidth: 1.5 / scale.value,
+      fontSize: 42 / scale.value,
     };
   });
 
   return (
-    <AnimatedSvgText
-      animatedProps={animatedProps}
-      x={country.centerX}
-      y={country.centerY}
-      fill="#FFFFFF"
-      stroke="#000000"
-      fontFamily="sans-serif"
-      fontWeight="500"
-      textAnchor="middle"
-      onPress={onPress}
-    >
-      {country.name}
-    </AnimatedSvgText>
+    <G onPress={onPress}>
+      <AnimatedSvgText
+        animatedProps={animatedProps}
+        x={country.centerX}
+        y={country.centerY}
+        fill="#000000"
+        stroke="#000000"
+        fontFamily="sans-serif"
+        fontWeight="500"
+        textAnchor="middle"
+      >
+        {country.name}
+      </AnimatedSvgText>
+      <AnimatedSvgText
+        animatedProps={animatedProps}
+        x={country.centerX}
+        y={country.centerY}
+        fill="#FFFFFF"
+        fontFamily="sans-serif"
+        fontWeight="500"
+        textAnchor="middle"
+      >
+        {country.name}
+      </AnimatedSvgText>
+    </G>
   );
 }
 
@@ -174,7 +194,11 @@ function relativePathBounds(path: string) {
   const finishPolygon = () => {
     if (currentPolygon.length < 3) return;
     let twiceArea = 0;
-    for (let pointIndex = 0; pointIndex < currentPolygon.length; pointIndex += 1) {
+    for (
+      let pointIndex = 0;
+      pointIndex < currentPolygon.length;
+      pointIndex += 1
+    ) {
       const current = currentPolygon[pointIndex];
       const next = currentPolygon[(pointIndex + 1) % currentPolygon.length];
       twiceArea += current.x * next.y - next.x * current.y;
@@ -227,7 +251,11 @@ function relativePathBounds(path: string) {
     let twiceArea = 0;
     let weightedX = 0;
     let weightedY = 0;
-    for (let pointIndex = 0; pointIndex < largestPolygon.length; pointIndex += 1) {
+    for (
+      let pointIndex = 0;
+      pointIndex < largestPolygon.length;
+      pointIndex += 1
+    ) {
       const current = largestPolygon[pointIndex];
       const next = largestPolygon[(pointIndex + 1) % largestPolygon.length];
       const cross = current.x * next.y - next.x * current.y;
@@ -262,8 +290,8 @@ function extractMapCountries(svg: string): MapCountry[] {
         code,
         name,
         path,
-      centerX: bounds.centerX,
-      centerY: bounds.centerY,
+        centerX: bounds.centerX,
+        centerY: bounds.centerY,
         width: bounds.maxX - bounds.minX,
         height: bounds.maxY - bounds.minY,
       },
@@ -271,12 +299,21 @@ function extractMapCountries(svg: string): MapCountry[] {
   });
 }
 
-function WorldMap({ visited }: { visited: Set<string> }) {
+function WorldMap({
+  visited,
+  visits,
+}: {
+  visited: Set<string>;
+  visits: Visit[];
+}) {
   const router = useRouter();
   const [xml, setXml] = useState<string>();
   const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
+  const [selectedCountry, setSelectedCountry] = useState<MapCountry | null>(
+    null,
+  );
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -304,7 +341,9 @@ function WorldMap({ visited }: { visited: Set<string> }) {
       scale.value = nextScale;
       translateX.value =
         pinchStartTranslateX.value +
-        (pinchStartFocalX.value - mapCanvasWidth / 2 - pinchStartTranslateX.value) *
+        (pinchStartFocalX.value -
+          mapCanvasWidth / 2 -
+          pinchStartTranslateX.value) *
           (1 - scaleChange);
       translateY.value =
         pinchStartTranslateY.value +
@@ -389,6 +428,28 @@ function WorldMap({ visited }: { visited: Set<string> }) {
         .filter(Boolean),
     );
   }, [visited]);
+  const selectedCountryVisits = useMemo(() => {
+    if (!selectedCountry) return [];
+    const countryList = getCountryDataList();
+    return visits.filter((visit) => {
+      const rawCode = visit.countryCode.toUpperCase();
+      const iso2 =
+        rawCode.length === 2
+          ? rawCode
+          : countryList.find((country) => country.iso3 === rawCode)?.iso2;
+      return iso2 === selectedCountry.code;
+    });
+  }, [selectedCountry, visits]);
+  const selectedCityCount = new Set(
+    selectedCountryVisits.map((visit) => visit.cityId),
+  ).size;
+  const selectedSightCount = new Set(
+    selectedCountryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
+  ).size;
   useEffect(() => {
     let active = true;
     (async () => {
@@ -526,34 +587,30 @@ function WorldMap({ visited }: { visited: Set<string> }) {
               preserveAspectRatio="xMidYMid meet"
             >
               <AnimatedGroup animatedProps={animatedGroupProps}>
-              {countriesOnMap.map((country) => (
-                <Path
-                  key={country.code}
-                  d={country.path}
-                  fill={
-                    visitedIso2.has(country.code)
-                      ? BrandColors.mapVisited
-                      : BrandColors.mapGreen
-                  }
-                  stroke={BrandColors.green}
-                  strokeWidth={0.7 / zoomLevel}
-                  strokeLinejoin="round"
-                  onPress={() =>
-                    router.push(`/country/${country.code}` as never)
-                  }
-                  accessibilityLabel={`Open ${country.name}`}
-                />
-              ))}
-              {countriesOnMap.map((country) => (
-                <CountryMapLabel
-                  key={`label-${country.code}`}
-                  country={country}
-                  scale={scale}
-                  onPress={() =>
-                    router.push(`/country/${country.code}` as never)
-                  }
-                />
-              ))}
+                {countriesOnMap.map((country) => (
+                  <Path
+                    key={country.code}
+                    d={country.path}
+                    fill={
+                      visitedIso2.has(country.code)
+                        ? BrandColors.mapVisited
+                        : BrandColors.mapGreen
+                    }
+                    stroke={BrandColors.green}
+                    strokeWidth={0.7 / zoomLevel}
+                    strokeLinejoin="round"
+                    onPress={() => setSelectedCountry(country)}
+                    accessibilityLabel={`Preview ${country.name}`}
+                  />
+                ))}
+                {countriesOnMap.map((country) => (
+                  <CountryMapLabel
+                    key={`label-${country.code}`}
+                    country={country}
+                    scale={scale}
+                    onPress={() => setSelectedCountry(country)}
+                  />
+                ))}
               </AnimatedGroup>
             </Svg>
           </View>
@@ -568,6 +625,86 @@ function WorldMap({ visited }: { visited: Set<string> }) {
           <Text style={styles.mapLoadingText}>Loading your travel map…</Text>
         </View>
       )}
+      <Modal
+        visible={selectedCountry !== null}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setSelectedCountry(null)}
+      >
+        <View style={styles.countrySheetOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedCountry(null)}
+            accessibilityLabel="Close country preview"
+          />
+          {selectedCountry ? (
+            <View style={styles.countrySheet}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetCountryHeader}>
+                <View style={styles.sheetStampFrame}>
+                  {stampAssets[selectedCountry.code] ? (
+                    <Image
+                      source={stampAssets[selectedCountry.code]}
+                      style={styles.sheetStamp}
+                      contentFit="cover"
+                      contentPosition="center"
+                    />
+                  ) : (
+                    <Ionicons
+                      name="earth-outline"
+                      size={44}
+                      color={BrandColors.copper}
+                    />
+                  )}
+                </View>
+                <View style={styles.sheetCountryCopy}>
+                  <Text style={styles.sheetCountryName} numberOfLines={2}>
+                    {getEmojiFlag(selectedCountry.code as TCountryCode)}{" "}
+                    {selectedCountry.name}
+                  </Text>
+                  <Text style={styles.sheetVisitStatus}>
+                    {visitedIso2.has(selectedCountry.code)
+                      ? "VISITED"
+                      : "NOT VISITED"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.sheetStats}>
+                {[
+                  { value: selectedCityCount, label: "CITIES" },
+                  { value: selectedSightCount, label: "SIGHTS" },
+                  { value: selectedCountryVisits.length, label: "VISITS" },
+                ].map((stat) => (
+                  <View key={stat.label} style={styles.sheetStat}>
+                    <Text style={styles.sheetStatValue}>{stat.value}</Text>
+                    <Text style={styles.sheetStatLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={styles.sheetCountryButton}
+                onPress={() => {
+                  const countryCode = selectedCountry.code;
+                  setSelectedCountry(null);
+                  router.push(`/country/${countryCode}` as never);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`View full ${selectedCountry.name} country page`}
+              >
+                <Text style={styles.sheetCountryButtonText}>
+                  VIEW FULL COUNTRY PAGE
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={21}
+                  color={BrandColors.green}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -749,7 +886,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <CityVisitSearch />
-        <WorldMap visited={countryCodes} />
+        <WorldMap visited={countryCodes} visits={visits} />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
             <Text style={styles.continentTitle}>
@@ -1025,6 +1162,109 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     fontSize: 11,
     color: BrandColors.onDarkMuted,
+  },
+  countrySheetOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,.5)",
+  },
+  countrySheet: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  sheetHandle: {
+    width: 48,
+    height: 5,
+    marginBottom: 22,
+    borderRadius: 3,
+    alignSelf: "center",
+    backgroundColor: BrandColors.paleGreen,
+  },
+  sheetCountryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  sheetStampFrame: {
+    width: 88,
+    height: 100,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.surface,
+  },
+  sheetStamp: {
+    width: "100%",
+    height: "100%",
+    transform: [{ scale: 1.3 }],
+  },
+  sheetCountryCopy: { flex: 1 },
+  sheetCountryName: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 27,
+    lineHeight: 34,
+    color: BrandColors.onDark,
+  },
+  sheetVisitStatus: {
+    marginTop: 4,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 14,
+    letterSpacing: 1.8,
+    color: BrandColors.progressGreen,
+  },
+  sheetStats: {
+    marginTop: 22,
+    flexDirection: "row",
+    gap: 10,
+  },
+  sheetStat: {
+    flex: 1,
+    minHeight: 86,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(49,87,73,.22)",
+  },
+  sheetStatValue: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 25,
+    color: BrandColors.onDark,
+  },
+  sheetStatLabel: {
+    marginTop: 3,
+    fontFamily: "Lora_500Medium",
+    fontSize: 11,
+    letterSpacing: 1.1,
+    color: BrandColors.onDarkMuted,
+  },
+  sheetCountryButton: {
+    minHeight: 58,
+    marginTop: 22,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: BrandColors.copper,
+  },
+  sheetCountryButtonText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 14,
+    letterSpacing: 1.1,
+    color: BrandColors.green,
   },
   continentCard: {
     marginHorizontal: 8,
