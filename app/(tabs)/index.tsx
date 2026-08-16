@@ -142,18 +142,15 @@ function projectToWorldMap(latitude: number, longitude: number) {
   let wrappedLongitude = longitude;
   while (wrappedLongitude < MAP_GEO_LEFT) wrappedLongitude += 360;
   while (wrappedLongitude > MAP_GEO_RIGHT) wrappedLongitude -= 360;
-  const mercator = (value: number) => {
-    const radians = (value * Math.PI) / 180;
-    return Math.log(Math.tan(Math.PI / 4 + radians / 2));
-  };
-  const top = mercator(MAP_GEO_TOP);
-  const bottom = mercator(MAP_GEO_BOTTOM);
   return {
     x:
       ((wrappedLongitude - MAP_GEO_LEFT) /
         (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
       MAP_WIDTH,
-    y: ((top - mercator(clampedLatitude)) / (top - bottom)) * MAP_HEIGHT,
+    y:
+      ((MAP_GEO_TOP - clampedLatitude) /
+        (MAP_GEO_TOP - MAP_GEO_BOTTOM)) *
+      MAP_HEIGHT,
   };
 }
 
@@ -237,8 +234,8 @@ function CountryMapLabel({
         animatedProps={animatedProps}
         x={country.centerX}
         y={country.centerY}
-        fill="#000000"
-        stroke="#000000"
+        fill="#FFFFFF"
+        stroke="#FFFFFF"
         fontFamily="sans-serif"
         fontWeight="400"
         textAnchor="middle"
@@ -249,7 +246,7 @@ function CountryMapLabel({
         animatedProps={animatedProps}
         x={country.centerX}
         y={country.centerY}
-        fill="#FFFFFF"
+        fill="#000000"
         fontFamily="sans-serif"
         fontWeight="400"
         textAnchor="middle"
@@ -743,6 +740,32 @@ function WorldMap({
           translateY={translateY}
         />
       ) : null}
+      <View style={styles.mapStatusLegend} pointerEvents="none">
+        <View style={styles.mapStatusLegendItem}>
+          <View
+            style={[
+              styles.mapStatusDot,
+              { backgroundColor: BrandColors.mapGreen },
+            ]}
+          />
+          <Text style={styles.mapStatusLegendText}>Not Visited</Text>
+        </View>
+        <View style={styles.mapStatusLegendItem}>
+          <View
+            style={[
+              styles.mapStatusDot,
+              { backgroundColor: BrandColors.mapVisited },
+            ]}
+          />
+          <Text style={styles.mapStatusLegendText}>Visited</Text>
+        </View>
+        <View style={styles.mapStatusLegendItem}>
+          <View style={styles.mapVerifiedDot}>
+            <Ionicons name="checkmark" size={7} color={BrandColors.green} />
+          </View>
+          <Text style={styles.mapStatusLegendText}>Visit Verified</Text>
+        </View>
+      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -783,11 +806,13 @@ function WorldMap({
                   </Text>
                   <View style={styles.sheetVisitStatusRow}>
                     {verifiedIso2.has(selectedCountry.code) ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color={BrandColors.copper}
-                      />
+                      <View style={styles.sheetVerifiedBadge}>
+                        <Ionicons
+                          name="checkmark"
+                          size={11}
+                          color={BrandColors.green}
+                        />
+                      </View>
                     ) : null}
                     <Text style={styles.sheetVisitStatus}>
                       {verifiedIso2.has(selectedCountry.code)
@@ -1354,6 +1379,44 @@ const styles = StyleSheet.create({
     height: 34,
   },
   currentPositionPinImage: { width: "100%", height: "100%" },
+  mapStatusLegend: {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    bottom: 5,
+    minHeight: 25,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "rgba(0, 39, 29, .88)",
+  },
+  mapStatusLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  mapStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: BrandColors.paleGreen,
+  },
+  mapVerifiedDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
+  },
+  mapStatusLegendText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 8,
+    color: BrandColors.onDark,
+  },
   mapLoadingText: {
     fontFamily: "Lora_400Regular",
     fontSize: 11,
@@ -1422,6 +1485,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+  },
+  sheetVerifiedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
   },
   sheetStats: {
     marginTop: 22,
