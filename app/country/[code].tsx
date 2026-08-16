@@ -2,9 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -14,11 +16,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DisplayBubble } from "@/components/display-bubble";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
+import type { SightDetail } from "@/services/api";
 import {
   isKrooPlus as customerHasKrooPlus,
   manageKrooPlus,
@@ -36,6 +38,7 @@ export default function CountryScreen() {
   const countryState = useAppSelector((state) => state.countryDetail);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
+  const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
   useFocusEffect(
     useCallback(() => {
       if (isSignedIn) void dispatch(fetchCountryDetail(code));
@@ -59,11 +62,16 @@ export default function CountryScreen() {
     countries[normalizedCode]?.name ??
     code.toUpperCase();
   const flag = countries[normalizedCode] ? getEmojiFlag(normalizedCode) : "🌍";
-  const sights = detail?.sights ?? [];
-  const freeSights = sights.slice(0, 3);
-  const premiumSights = sights.slice(3);
+  const sights = [...(detail?.sights ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  const freeSights = sights.filter((sight) => !sight.isPremium);
+  const premiumSights = sights.filter((sight) => sight.isPremium);
   const premiumSightPreview = premiumSights.slice(0, 3);
   const visibleSights = subscription.isKrooPlus ? sights : freeSights;
+  const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
   const stamp = stampAssets[normalizedCode];
 
   return (
@@ -170,7 +178,7 @@ export default function CountryScreen() {
                 <TouchableOpacity
                   key={sight.id}
                   style={s.sightRow}
-                  onPress={() => router.push(`/sight/${sight.id}` as never)}
+                  onPress={() => setSelectedSight(sight)}
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
                 >
@@ -228,7 +236,9 @@ export default function CountryScreen() {
                     <View style={s.lockedSightCheck}>
                       <Ionicons
                         name={
-                          sight.completed ? "checkmark-circle" : "ellipse-outline"
+                          sight.completed
+                            ? "checkmark-circle"
+                            : "ellipse-outline"
                         }
                         size={28}
                         color={
@@ -247,18 +257,45 @@ export default function CountryScreen() {
           </Text>
         )}
 
-        <SectionTitle>Cities Visited</SectionTitle>
-        <View style={s.cityChips}>
-          {detail?.visitedCities.length ? (
-            detail.visitedCities.map((city) => (
+        <SectionTitle>{`Cities Visited in ${name}`}</SectionTitle>
+        <View style={s.cityList}>
+          {visitedCities.length ? (
+            visitedCities.map((city) => {
+              const cityDetail = detail?.cities.find(
+                (item) => item.id === city.id,
+              );
+              return (
               <TouchableOpacity
                 key={city.id}
-                style={s.cityChipAction}
+                style={s.cityRow}
                 onPress={() => router.push(`/city/${city.id}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${city.name}`}
               >
-                <DisplayBubble label={city.name} accent />
+                <View style={s.cityImageFrame}>
+                  {cityDetail?.image ? (
+                    <ProgressivePlaceImage
+                      uri={cityDetail.image}
+                      style={s.cityImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Ionicons
+                      name="business-outline"
+                      size={24}
+                      color={BrandColors.copper}
+                    />
+                  )}
+                </View>
+                <Text style={s.cityName}>{city.name}</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={19}
+                  color={BrandColors.onDarkMuted}
+                />
               </TouchableOpacity>
-            ))
+              );
+            })
           ) : (
             <Text style={s.empty}>Your visited cities will appear here.</Text>
           )}
@@ -275,6 +312,44 @@ export default function CountryScreen() {
           </Text>
         </View>
       </ScrollView>
+      <Modal
+        visible={selectedSight !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setSelectedSight(null)}
+      >
+        <View style={s.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedSight(null)}
+            accessibilityLabel="Close sight details"
+          />
+          {selectedSight ? (
+            <View style={s.sightModal}>
+              <ProgressivePlaceImage
+                uri={selectedSight.image}
+                style={s.modalImage}
+                contentFit="cover"
+              />
+              <Text style={s.modalTitle}>{selectedSight.name}</Text>
+              <Text style={s.modalLocation}>{selectedSight.city}</Text>
+              <Text style={s.modalDescription}>
+                {selectedSight.description ||
+                  "A famous attraction ready to explore."}
+              </Text>
+              <TouchableOpacity
+                style={s.modalClose}
+                onPress={() => setSelectedSight(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={30} color={BrandColors.copper} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -488,14 +563,36 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: BrandColors.copperDark,
   },
-  cityChips: {
+  cityList: {
     marginHorizontal: 16,
     marginVertical: 4,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
-  cityChipAction: { borderRadius: 18 },
+  cityRow: {
+    minHeight: 66,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BrandColors.paleGreen,
+  },
+  cityImageFrame: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.greenPanel,
+  },
+  cityImage: { width: "100%", height: "100%" },
+  cityName: {
+    flex: 1,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 16,
+    color: BrandColors.onDark,
+  },
   gpsCard: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -514,6 +611,66 @@ const s = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: BrandColors.onDarkMuted,
+  },
+  modalOverlay: {
+    flex: 1,
+    paddingHorizontal: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(3,29,20,.78)",
+  },
+  sightModal: {
+    width: "100%",
+    maxWidth: 390,
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    backgroundColor: BrandColors.greenPanel,
+    shadowColor: "#000",
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  modalImage: {
+    width: "100%",
+    height: 190,
+    borderRadius: 16,
+    backgroundColor: BrandColors.greenDeep,
+  },
+  modalTitle: {
+    marginTop: 16,
+    fontFamily: "Lora_700Bold",
+    fontSize: 25,
+    textAlign: "center",
+    color: BrandColors.copper,
+  },
+  modalLocation: {
+    marginTop: 5,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 14,
+    color: BrandColors.onDarkMuted,
+  },
+  modalDescription: {
+    marginTop: 13,
+    fontFamily: "Lora_400Regular",
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+    color: BrandColors.onDark,
+  },
+  modalClose: {
+    width: 48,
+    height: 48,
+    marginTop: 16,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.greenDeep,
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",

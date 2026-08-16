@@ -139,8 +139,8 @@ function CountryMapLabel({
       animatedProps={animatedProps}
       x={country.centerX}
       y={country.centerY}
-      fill="#B9B9B9"
-      stroke="#202020"
+      fill="#FFFFFF"
+      stroke="#000000"
       fontFamily="sans-serif"
       fontWeight="500"
       textAnchor="middle"
