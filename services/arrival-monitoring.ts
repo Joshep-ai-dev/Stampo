@@ -185,3 +185,9 @@ export async function startArrivalMonitoring() {
 export async function arrivalMonitoringEnabled() {
   return Location.hasStartedLocationUpdatesAsync(ARRIVAL_LOCATION_TASK);
 }
+
+export async function stopArrivalMonitoring() {
+  if (await Location.hasStartedLocationUpdatesAsync(ARRIVAL_LOCATION_TASK)) {
+    await Location.stopLocationUpdatesAsync(ARRIVAL_LOCATION_TASK);
+  }
+}

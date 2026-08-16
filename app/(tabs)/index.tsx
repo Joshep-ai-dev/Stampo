@@ -42,6 +42,7 @@ import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
+import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -196,7 +197,7 @@ function CurrentPositionPin({
       pointerEvents="none"
       style={[
         styles.currentPositionPin,
-        { left: baseX - 22, top: baseY - 58 },
+        { left: baseX - 13, top: baseY - 34 },
         animatedStyle,
       ]}
     >
@@ -225,8 +226,8 @@ function CountryMapLabel({
 
     return {
       opacity: visible ? 1 : 0,
-      strokeWidth: 1.5 / scale.value,
-      fontSize: 42 / scale.value,
+      strokeWidth: 0.65 / scale.value,
+      fontSize: 28 / scale.value,
     };
   });
 
@@ -239,7 +240,7 @@ function CountryMapLabel({
         fill="#000000"
         stroke="#000000"
         fontFamily="sans-serif"
-        fontWeight="500"
+        fontWeight="400"
         textAnchor="middle"
       >
         {country.name}
@@ -250,7 +251,7 @@ function CountryMapLabel({
         y={country.centerY}
         fill="#FFFFFF"
         fontFamily="sans-serif"
-        fontWeight="500"
+        fontWeight="400"
         textAnchor="middle"
       >
         {country.name}
@@ -844,20 +845,15 @@ export default function HomeScreen() {
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
+  const isKrooPlus = useAppSelector((x) => x.subscription.isKrooPlus);
   const dashboard = useAppSelector((x) => x.dashboard);
   const [currentLocation, setCurrentLocation] =
     useState<CurrentMapLocation | null>(null);
-  const [locationStatus, setLocationStatus] = useState<
-    "idle" | "loading" | "denied" | "failed"
-  >("idle");
   const locateUser = useCallback(async () => {
-    setLocationStatus("loading");
+    if (!isKrooPlus) return;
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        setLocationStatus("denied");
-        return;
-      }
+      if (!permission.granted) return;
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
@@ -870,14 +866,18 @@ export default function HomeScreen() {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-      setLocationStatus("idle");
-    } catch {
-      setLocationStatus("failed");
-    }
-  }, []);
+    } catch {}
+  }, [isKrooPlus]);
   useEffect(() => {
     let active = true;
     let subscription: Location.LocationSubscription | undefined;
+    if (!isKrooPlus) {
+      setCurrentLocation(null);
+      void stopArrivalMonitoring().catch(() => undefined);
+      return () => {
+        active = false;
+      };
+    }
     void Location.getForegroundPermissionsAsync().then(async (permission) => {
       if (!active || !permission.granted) return;
       void locateUser();
@@ -894,7 +894,6 @@ export default function HomeScreen() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           }));
-          setLocationStatus("idle");
         },
       );
     });
@@ -902,7 +901,7 @@ export default function HomeScreen() {
       active = false;
       subscription?.remove();
     };
-  }, [locateUser]);
+  }, [isKrooPlus, locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -1072,38 +1071,10 @@ export default function HomeScreen() {
           </View>
         </View>
         <CityVisitSearch />
-        <TouchableOpacity
-          style={styles.locationCard}
-          accessibilityRole="button"
-          accessibilityLabel="Get your current location"
-          disabled={locationStatus === "loading"}
-          onPress={() => void locateUser()}
-        >
-          <Ionicons name="location" size={20} color={BrandColors.copper} />
-          <View style={styles.locationCopy}>
-            <Text style={styles.locationTitle}>
-              {currentLocation
-                ? currentLocation.label
-                : locationStatus === "loading"
-                  ? "Finding your current location…"
-                  : locationStatus === "denied"
-                    ? "Location access is off. Tap to retry."
-                    : locationStatus === "failed"
-                      ? "Location unavailable. Tap to retry."
-                      : "Tap to show your current location"}
-            </Text>
-            {currentLocation ? (
-              <Text style={styles.locationCoords}>
-                {currentLocation.latitude.toFixed(5)}°, {currentLocation.longitude.toFixed(5)}°
-              </Text>
-            ) : null}
-          </View>
-          <Ionicons name="locate-outline" size={19} color={BrandColors.copper} />
-        </TouchableOpacity>
         <WorldMap
           visited={countryCodes}
           visits={visits}
-          currentLocation={currentLocation}
+          currentLocation={isKrooPlus ? currentLocation : null}
         />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
@@ -1359,31 +1330,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: BrandColors.mapGreen,
   },
-  locationCard: {
-    minHeight: 52,
-    marginHorizontal: 12,
-    marginTop: 12,
-    paddingHorizontal: 13,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    backgroundColor: "rgba(10,43,32,.24)",
-  },
-  locationCopy: { flex: 1 },
-  locationTitle: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
-    color: BrandColors.onDark,
-  },
-  locationCoords: {
-    marginTop: 2,
-    fontFamily: "Lora_400Regular",
-    fontSize: 11,
-    color: BrandColors.onDarkMuted,
-  },
   mapWrap: {
     height: 250,
     marginHorizontal: 2,
@@ -1404,8 +1350,8 @@ const styles = StyleSheet.create({
   currentPositionPin: {
     position: "absolute",
     zIndex: 5,
-    width: 44,
-    height: 58,
+    width: 26,
+    height: 34,
   },
   currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
