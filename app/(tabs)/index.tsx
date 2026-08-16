@@ -142,15 +142,24 @@ function projectToWorldMap(latitude: number, longitude: number) {
   let wrappedLongitude = longitude;
   while (wrappedLongitude < MAP_GEO_LEFT) wrappedLongitude += 360;
   while (wrappedLongitude > MAP_GEO_RIGHT) wrappedLongitude -= 360;
+  // Match MapSVG's own geo-to-pixel conversion. Its world asset uses a
+  // spherical Mercator Y scale derived from the SVG width and longitude span;
+  // geoViewBox's top latitude is metadata, not the SVG's y=0 edge.
+  const latitudeRadians = (clampedLatitude * Math.PI) / 180;
+  const bottomRadians = (MAP_GEO_BOTTOM * Math.PI) / 180;
+  const projectionScale =
+    (MAP_WIDTH / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) * (180 / Math.PI);
+  const mercatorY = (radians: number) =>
+    Math.log(Math.tan(Math.PI / 4 + radians / 2));
   return {
     x:
       ((wrappedLongitude - MAP_GEO_LEFT) /
         (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
       MAP_WIDTH,
     y:
-      ((MAP_GEO_TOP - clampedLatitude) /
-        (MAP_GEO_TOP - MAP_GEO_BOTTOM)) *
-      MAP_HEIGHT,
+      MAP_HEIGHT -
+      projectionScale *
+        (mercatorY(latitudeRadians) - mercatorY(bottomRadians)),
   };
 }
 
@@ -223,8 +232,9 @@ function CountryMapLabel({
 
     return {
       opacity: visible ? 1 : 0,
-      strokeWidth: 0.65 / scale.value,
-      fontSize: 28 / scale.value,
+      strokeWidth: 1.35 / scale.value,
+      fontSize: 35 / scale.value,
+      x: country.centerX - (country.name.length * 9.6) / scale.value,
     };
   });
 
@@ -232,24 +242,22 @@ function CountryMapLabel({
     <G onPress={onPress}>
       <AnimatedSvgText
         animatedProps={animatedProps}
-        x={country.centerX}
         y={country.centerY}
         fill="#FFFFFF"
         stroke="#FFFFFF"
-        fontFamily="sans-serif"
-        fontWeight="400"
-        textAnchor="middle"
+        fontFamily="sans-serif-condensed"
+        fontWeight="900"
+        textAnchor="start"
       >
         {country.name}
       </AnimatedSvgText>
       <AnimatedSvgText
         animatedProps={animatedProps}
-        x={country.centerX}
         y={country.centerY}
         fill="#000000"
-        fontFamily="sans-serif"
-        fontWeight="400"
-        textAnchor="middle"
+        fontFamily="sans-serif-condensed"
+        fontWeight="900"
+        textAnchor="start"
       >
         {country.name}
       </AnimatedSvgText>
@@ -486,7 +494,11 @@ function WorldMap({
     Gesture.Simultaneous(pinchGesture, panGesture),
   );
   const animatedGroupProps = useAnimatedProps(() => {
-    const unitsPerPixel = MAP_WIDTH / mapCanvasWidth;
+    const fittedMapScale = Math.min(
+      mapCanvasWidth / MAP_WIDTH,
+      250 / MAP_HEIGHT,
+    );
+    const unitsPerPixel = 1 / fittedMapScale;
     const svgTranslateX = translateX.value * unitsPerPixel;
     const svgTranslateY = translateY.value * unitsPerPixel;
 
@@ -740,32 +752,6 @@ function WorldMap({
           translateY={translateY}
         />
       ) : null}
-      <View style={styles.mapStatusLegend} pointerEvents="none">
-        <View style={styles.mapStatusLegendItem}>
-          <View
-            style={[
-              styles.mapStatusDot,
-              { backgroundColor: BrandColors.mapGreen },
-            ]}
-          />
-          <Text style={styles.mapStatusLegendText}>Not Visited</Text>
-        </View>
-        <View style={styles.mapStatusLegendItem}>
-          <View
-            style={[
-              styles.mapStatusDot,
-              { backgroundColor: BrandColors.mapVisited },
-            ]}
-          />
-          <Text style={styles.mapStatusLegendText}>Visited</Text>
-        </View>
-        <View style={styles.mapStatusLegendItem}>
-          <View style={styles.mapVerifiedDot}>
-            <Ionicons name="checkmark" size={7} color={BrandColors.green} />
-          </View>
-          <Text style={styles.mapStatusLegendText}>Visit Verified</Text>
-        </View>
-      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -806,13 +792,11 @@ function WorldMap({
                   </Text>
                   <View style={styles.sheetVisitStatusRow}>
                     {verifiedIso2.has(selectedCountry.code) ? (
-                      <View style={styles.sheetVerifiedBadge}>
-                        <Ionicons
-                          name="checkmark"
-                          size={11}
-                          color={BrandColors.green}
-                        />
-                      </View>
+                      <Image
+                        source={require("@/assets/images/verified-seal.png")}
+                        style={styles.sheetVerifiedSeal}
+                        contentFit="contain"
+                      />
                     ) : null}
                     <Text style={styles.sheetVisitStatus}>
                       {verifiedIso2.has(selectedCountry.code)
@@ -1379,44 +1363,6 @@ const styles = StyleSheet.create({
     height: 34,
   },
   currentPositionPinImage: { width: "100%", height: "100%" },
-  mapStatusLegend: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    bottom: 5,
-    minHeight: 25,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    backgroundColor: "rgba(0, 39, 29, .88)",
-  },
-  mapStatusLegendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  mapStatusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 0.5,
-    borderColor: BrandColors.paleGreen,
-  },
-  mapVerifiedDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.copper,
-  },
-  mapStatusLegendText: {
-    fontFamily: "Lora_400Regular",
-    fontSize: 8,
-    color: BrandColors.onDark,
-  },
   mapLoadingText: {
     fontFamily: "Lora_400Regular",
     fontSize: 11,
@@ -1486,14 +1432,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
   },
-  sheetVerifiedBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.copper,
-  },
+  sheetVerifiedSeal: { width: 22, height: 22 },
   sheetStats: {
     marginTop: 22,
     flexDirection: "row",

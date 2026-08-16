@@ -220,6 +220,19 @@
       "places": [],
       "id": "d7d31410-be89-47a2-99a8-ab5c72366682",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
+    },
+    {
+      "cityId": "3369157",
+      "cityName": "Cape Town",
+      "country": "South Africa",
+      "countryCode": "ZA",
+      "continentCode": "AF",
+      "subcountry": "Western Cape",
+      "visitedAt": "2026-08-17",
+      "note": "",
+      "places": [],
+      "id": "1185ed52-583f-44c2-b5c1-c9dc6c3bb4aa",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c"
     }
   ],
   "profile": {
@@ -262,5 +275,7 @@
   "cities": [],
   "sights": [],
   "countries": [],
-  "imageCredits": []
+  "imageCredits": [],
+  "collections": [],
+  "countryCollections": []
 }
