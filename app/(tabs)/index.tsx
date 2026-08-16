@@ -9,6 +9,7 @@ import {
 import { Asset } from "expo-asset";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
+import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -41,10 +42,6 @@ import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
-import {
-  getCurrentMapLocation,
-  watchCurrentMapLocation,
-} from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -119,6 +116,12 @@ type MapCountry = {
   centerY: number;
   width: number;
   height: number;
+};
+
+type CurrentMapLocation = {
+  label: string;
+  latitude: number;
+  longitude: number;
 };
 
 const MAP_WIDTH = 1009.6727;
@@ -387,9 +390,11 @@ function extractMapCountries(svg: string): MapCountry[] {
 function WorldMap({
   visited,
   visits,
+  currentLocation,
 }: {
   visited: Set<string>;
   visits: Visit[];
+  currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
   const [xml, setXml] = useState<string>();
@@ -399,10 +404,6 @@ function WorldMap({
   const [selectedCountry, setSelectedCountry] = useState<MapCountry | null>(
     null,
   );
-  const [currentLocation, setCurrentLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -532,30 +533,6 @@ function WorldMap({
         .filter(Boolean),
     );
   }, [visits]);
-  useEffect(() => {
-    let active = true;
-    let removeWatcher: (() => void) | undefined;
-    void getCurrentMapLocation()
-      .then((location) => {
-        if (active && location) setCurrentLocation(location.coords);
-      })
-      .catch(() => undefined);
-    void watchCurrentMapLocation((location) => {
-      if (active) setCurrentLocation(location.coords);
-    })
-      .then((subscription) => {
-        if (!active) {
-          subscription?.remove();
-          return;
-        }
-        removeWatcher = () => subscription?.remove();
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-      removeWatcher?.();
-    };
-  }, []);
   const selectedCountryVisits = useMemo(() => {
     if (!selectedCountry) return [];
     const countryList = getCountryDataList();
@@ -868,6 +845,64 @@ export default function HomeScreen() {
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
   const dashboard = useAppSelector((x) => x.dashboard);
+  const [currentLocation, setCurrentLocation] =
+    useState<CurrentMapLocation | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "denied" | "failed"
+  >("idle");
+  const locateUser = useCallback(async () => {
+    setLocationStatus("loading");
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setLocationStatus("denied");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const [address] = await Location.reverseGeocodeAsync(position.coords);
+      setCurrentLocation({
+        label:
+          [address?.city || address?.subregion, address?.country]
+            .filter(Boolean)
+            .join(", ") || "Current position",
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setLocationStatus("idle");
+    } catch {
+      setLocationStatus("failed");
+    }
+  }, []);
+  useEffect(() => {
+    let active = true;
+    let subscription: Location.LocationSubscription | undefined;
+    void Location.getForegroundPermissionsAsync().then(async (permission) => {
+      if (!active || !permission.granted) return;
+      void locateUser();
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 5,
+          timeInterval: 3_000,
+        },
+        (position) => {
+          if (!active) return;
+          setCurrentLocation((previous) => ({
+            label: previous?.label ?? "Current position",
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+          setLocationStatus("idle");
+        },
+      );
+    });
+    return () => {
+      active = false;
+      subscription?.remove();
+    };
+  }, [locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -1037,7 +1072,39 @@ export default function HomeScreen() {
           </View>
         </View>
         <CityVisitSearch />
-        <WorldMap visited={countryCodes} visits={visits} />
+        <TouchableOpacity
+          style={styles.locationCard}
+          accessibilityRole="button"
+          accessibilityLabel="Get your current location"
+          disabled={locationStatus === "loading"}
+          onPress={() => void locateUser()}
+        >
+          <Ionicons name="location" size={20} color={BrandColors.copper} />
+          <View style={styles.locationCopy}>
+            <Text style={styles.locationTitle}>
+              {currentLocation
+                ? currentLocation.label
+                : locationStatus === "loading"
+                  ? "Finding your current location…"
+                  : locationStatus === "denied"
+                    ? "Location access is off. Tap to retry."
+                    : locationStatus === "failed"
+                      ? "Location unavailable. Tap to retry."
+                      : "Tap to show your current location"}
+            </Text>
+            {currentLocation ? (
+              <Text style={styles.locationCoords}>
+                {currentLocation.latitude.toFixed(5)}°, {currentLocation.longitude.toFixed(5)}°
+              </Text>
+            ) : null}
+          </View>
+          <Ionicons name="locate-outline" size={19} color={BrandColors.copper} />
+        </TouchableOpacity>
+        <WorldMap
+          visited={countryCodes}
+          visits={visits}
+          currentLocation={currentLocation}
+        />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
             <Text style={styles.continentTitle}>
@@ -1291,6 +1358,31 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: 10,
     color: BrandColors.mapGreen,
+  },
+  locationCard: {
+    minHeight: 52,
+    marginHorizontal: 12,
+    marginTop: 12,
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: "rgba(10,43,32,.24)",
+  },
+  locationCopy: { flex: 1 },
+  locationTitle: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 13,
+    color: BrandColors.onDark,
+  },
+  locationCoords: {
+    marginTop: 2,
+    fontFamily: "Lora_400Regular",
+    fontSize: 11,
+    color: BrandColors.onDarkMuted,
   },
   mapWrap: {
     height: 250,
