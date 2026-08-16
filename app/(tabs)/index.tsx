@@ -228,7 +228,7 @@ function CountryMapLabel({
 
     return {
       opacity: visible ? 1 : 0,
-      strokeWidth: 1.5 / scale.value,
+      strokeWidth: 0.15 / scale.value,
       fontSize: 35 / scale.value,
       x: country.centerX - (country.name.length * 9.4) / scale.value,
     };
@@ -240,6 +240,7 @@ function CountryMapLabel({
         animatedProps={animatedProps}
         y={country.centerY}
         fill="#FFFFFF"
+        stroke="#000000"
         fontFamily="Roboto_900Black"
         textAnchor="start"
       >
