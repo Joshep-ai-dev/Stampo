@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import {
+  Alert,
   ScrollView,
   Share,
   StyleSheet,
@@ -18,8 +19,15 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
+import {
+  isKrooPlus as customerHasKrooPlus,
+  manageKrooPlus,
+  presentKrooPlusPaywall,
+  restoreKrooPlus,
+} from "@/services/subscriptions";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { subscriptionUpdated } from "@/store/subscription-slice";
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -27,6 +35,7 @@ export default function CountryScreen() {
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
   const countryState = useAppSelector((state) => state.countryDetail);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const subscription = useAppSelector((state) => state.subscription);
   useFocusEffect(
     useCallback(() => {
       if (isSignedIn) void dispatch(fetchCountryDetail(code));
@@ -54,6 +63,7 @@ export default function CountryScreen() {
   const freeSights = sights.slice(0, 3);
   const premiumSights = sights.slice(3);
   const premiumSightPreview = premiumSights.slice(0, 3);
+  const visibleSights = subscription.isKrooPlus ? sights : freeSights;
   const stamp = stampAssets[normalizedCode];
 
   return (
@@ -151,10 +161,10 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <SectionTitle>Top Sights</SectionTitle>
+        <SectionTitle>{`Top Sights ${name}`}</SectionTitle>
         {sights.length ? (
           <View style={s.sightList}>
-            {freeSights.map((sight) => {
+            {visibleSights.map((sight) => {
               const checked = sight.completed;
               return (
                 <TouchableOpacity
@@ -183,37 +193,51 @@ export default function CountryScreen() {
               );
             })}
             {premiumSights.length ? (
-              <UpgradeBanner count={premiumSights.length} />
+              <UpgradeBanner
+                count={premiumSights.length}
+                active={subscription.isKrooPlus}
+                configured={subscription.configured}
+                onCustomerInfo={(customerInfo) =>
+                  dispatch(
+                    subscriptionUpdated({
+                      configured: true,
+                      isKrooPlus: customerHasKrooPlus(customerInfo),
+                    }),
+                  )
+                }
+              />
             ) : null}
-            <View style={s.lockedList}>
-              {premiumSightPreview.map((sight) => (
-                <View
-                  key={sight.id}
-                  style={[s.sightRow, s.lockedSightRow]}
-                  accessibilityElementsHidden
-                >
-                  <ProgressivePlaceImage
-                    uri={sight.image}
-                    style={s.sightImage}
-                    contentFit="cover"
-                    blurRadius={32}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    style={[s.sightName, s.lockedSightName]}
+            {!subscription.isKrooPlus ? (
+              <View style={s.lockedList}>
+                {premiumSightPreview.map((sight) => (
+                  <View
+                    key={sight.id}
+                    style={[s.sightRow, s.lockedSightRow]}
+                    accessibilityElementsHidden
                   >
-                    {sight.name}
-                  </Text>
-                  <View style={s.lockedSightCheck}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={28}
-                      color={BrandColors.onDarkMuted}
+                    <ProgressivePlaceImage
+                      uri={sight.image}
+                      style={s.sightImage}
+                      contentFit="cover"
+                      blurRadius={32}
                     />
+                    <Text
+                      numberOfLines={1}
+                      style={[s.sightName, s.lockedSightName]}
+                    >
+                      {sight.name}
+                    </Text>
+                    <View style={s.lockedSightCheck}>
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={28}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : (
           <Text style={[s.empty, s.sightsEmpty]}>
@@ -257,17 +281,71 @@ function SectionTitle({ children }: { children: string }) {
   return <Text style={s.sectionTitle}>{children}</Text>;
 }
 
-function UpgradeBanner({ count }: { count: number }) {
+function UpgradeBanner({
+  count,
+  active,
+  configured,
+  onCustomerInfo,
+}: {
+  count: number;
+  active: boolean;
+  configured: boolean;
+  onCustomerInfo: (
+    customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
+  ) => void;
+}) {
+  const showError = (error: unknown) =>
+    Alert.alert(
+      "Kroo+",
+      error instanceof Error ? error.message : "Please try again.",
+    );
+  const openPurchaseOptions = () => {
+    if (!configured) {
+      Alert.alert(
+        "Kroo+ setup required",
+        "Add the RevenueCat iOS and Android public SDK keys, then rebuild the app.",
+      );
+      return;
+    }
+    if (active) {
+      void manageKrooPlus().then(onCustomerInfo).catch(showError);
+      return;
+    }
+    Alert.alert("Unlock Kroo+", `Unlock ${count} more top sights.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Restore Purchases",
+        onPress: () =>
+          void restoreKrooPlus().then(onCustomerInfo).catch(showError),
+      },
+      {
+        text: "Continue",
+        onPress: () =>
+          void presentKrooPlusPaywall().then(onCustomerInfo).catch(showError),
+      },
+    ]);
+  };
   return (
-    <View style={s.upgradeCard}>
+    <TouchableOpacity
+      style={s.upgradeCard}
+      onPress={openPurchaseOptions}
+      accessibilityRole="button"
+      accessibilityLabel={active ? "Manage Kroo+" : "Upgrade to Kroo+"}
+    >
       <View style={s.upgradeCopy}>
-        <Ionicons name="lock-closed" size={20} color={BrandColors.white} />
-        <Text style={s.upgradeText}>Unlock all top sights with Kroo+</Text>
+        <Ionicons
+          name={active ? "checkmark-circle" : "lock-closed"}
+          size={20}
+          color={BrandColors.white}
+        />
+        <Text style={s.upgradeText}>
+          {active ? "Kroo+ is active" : "Unlock all top sights with Kroo+"}
+        </Text>
       </View>
       <View style={s.upgradeButton}>
-        <Text style={s.upgradeButtonText}>Upgrade</Text>
+        <Text style={s.upgradeButtonText}>{active ? "Manage" : "Upgrade"}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

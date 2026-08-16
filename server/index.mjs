@@ -1126,16 +1126,6 @@ app.put("/me/wishlist/:targetId", async (req, res) => {
   return res.json({ targetId, saved: req.body?.saved !== false });
 });
 
-app.put("/me/plan", async (req, res) => {
-  const user = requireUser(req, res);
-  if (!user) return;
-  if (!["free", "pro"].includes(req.body?.plan))
-    return res.status(422).json({ message: "Plan must be free or pro." });
-  user.plan = req.body.plan;
-  await db.write();
-  return res.json({ plan: user.plan });
-});
-
 app.use("/users", (_req, res) => {
   return res.status(404).json({ message: "Use the /auth endpoints." });
 });

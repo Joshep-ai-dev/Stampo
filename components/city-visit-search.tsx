@@ -150,7 +150,6 @@ export function CityVisitSearch({
     <View style={styles.wrapper}>
       <View style={styles.searchRow}>
         <View style={styles.searchInputWrap}>
-          <Ionicons name="search-outline" size={21} color={colors.muted} />
           <TextInput
             value={query}
             onChangeText={setQuery}

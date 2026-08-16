@@ -19,6 +19,7 @@ import travelReducer, {
   visitsCleared,
   visitsHydrated,
 } from "./travel-slice";
+import subscriptionReducer from "./subscription-slice";
 
 const STORAGE_KEY = "stampo.app-state.v1";
 
@@ -28,6 +29,7 @@ export const store = configureStore({
     profile: profileReducer,
     dashboard: dashboardReducer,
     countryDetail: countryDetailReducer,
+    subscription: subscriptionReducer,
   },
 });
 

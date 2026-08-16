@@ -243,11 +243,6 @@ export const api = {
       `/me/wishlist/${encodeURIComponent(targetId)}`,
       { method: "PUT", body: JSON.stringify({ saved }) },
     ),
-  setPlan: (plan: "free" | "pro") =>
-    request<{ plan: "free" | "pro" }>("/me/plan", {
-      method: "PUT",
-      body: JSON.stringify({ plan }),
-    }),
   listCollections: (status: "all" | "active" | "completed" = "all") =>
     request<CollectionProgress[]>(
       `/collections?status=${encodeURIComponent(status)}`,

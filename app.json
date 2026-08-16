@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.darkhorse9372.Stampo",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false

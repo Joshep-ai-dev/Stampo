@@ -15,6 +15,7 @@ import { Provider } from "react-redux";
 import "react-native-reanimated";
 
 import { hydrateStore, store } from "@/store";
+import { SubscriptionSync } from "@/components/subscription-sync";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +42,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
+        <SubscriptionSync />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
         </Stack>
