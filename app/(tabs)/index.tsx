@@ -1211,8 +1211,10 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     fontSize: 42,
     lineHeight: 52,
+    width: 100,
     color: BrandColors.onDark,
     includeFontPadding: false,
+    textAlign: "center",
   },
   scoreDetails: { flex: 1 },
   scoreTitle: {
@@ -1463,7 +1465,7 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
   },
   continentCard: {
-    marginHorizontal: 8,
+    marginHorizontal: 20,
     marginTop: 8,
     padding: 14,
     borderRadius: 15,
