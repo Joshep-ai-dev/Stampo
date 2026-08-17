@@ -327,6 +327,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    textAlign: "center",
     fontFamily: "Lora_500Medium",
     fontSize: 16,
     color: colors.ink,
