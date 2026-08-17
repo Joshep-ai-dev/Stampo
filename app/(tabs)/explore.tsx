@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +21,7 @@ import { useAppSelector } from "@/store/hooks";
 
 const countryFilters = [
   "All",
+  "Visited",
   "Africa",
   "Antarctica",
   "Asia",
@@ -57,18 +57,23 @@ export default function ExploreScreen() {
     })),
   );
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
-  const countries = useMemo(
-    () =>
-      (countryFilter === "All"
-        ? countryCatalog
+  const countries = useMemo(() => {
+    const visitedCodes = new Set(
+      visits.map((visit) => visit.countryCode.trim().toUpperCase()),
+    );
+    return (countryFilter === "All"
+      ? countryCatalog
+      : countryFilter === "Visited"
+        ? countryCatalog.filter((country) =>
+            visitedCodes.has(country.code.toUpperCase()),
+          )
         : countryCatalog.filter(
             (country) => country.continent === countryFilter,
           )
-      )
+    )
         .slice()
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    [countryCatalog, countryFilter],
-  );
+        .sort((left, right) => left.name.localeCompare(right.name));
+  }, [countryCatalog, countryFilter, visits]);
   const visitedCityCounts = useMemo(() => {
     const counts = new Map<string, Set<string>>();
     visits.forEach((visit) => {
@@ -157,31 +162,10 @@ export default function ExploreScreen() {
                 contentFit="contain"
               />
             </View>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              hitSlop={10}
-              style={s.bell}
-              onPress={() =>
-                Alert.alert(
-                  "Notifications",
-                  "You’re all caught up. New stamps, rewards, and travel activity will appear here.",
-                )
-              }
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={27}
-                color={BrandColors.copper}
-              />
-            </TouchableOpacity>
           </View>
         </View>
 
-        <Section
-          title="Countries"
-          onPress={() => router.push("/country-atlas")}
-        />
+        <Section title="Countries" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -218,21 +202,15 @@ export default function ExploreScreen() {
           ) : (
             <View style={s.empty}>
               <Text style={s.emptyText}>
-                More {countryFilter} stamps are coming soon.
+                {countryFilter === "Visited"
+                  ? "Your visited country stamps will appear here."
+                  : `More ${countryFilter} stamps are coming soon.`}
               </Text>
             </View>
           )}
         </ScrollView>
 
-        <Section
-          title="Collections"
-          onPress={() =>
-            Alert.alert(
-              "Collections",
-              "Track active travel collections and review the ones you have completed.",
-            )
-          }
-        />
+        <Section title="Collections" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -301,13 +279,10 @@ export default function ExploreScreen() {
     </SafeAreaView>
   );
 }
-function Section({ title, onPress }: { title: string; onPress: () => void }) {
+function Section({ title }: { title: string }) {
   return (
     <View style={s.headingRow}>
       <Text style={s.heading}>{title}</Text>
-      <TouchableOpacity onPress={onPress} accessibilityRole="button">
-        <Text style={s.link}>View all ›</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -333,14 +308,6 @@ const s = StyleSheet.create({
     top: -15,
     left: 0,
   },
-  bell: {
-    position: "absolute",
-    right: 0,
-    width: 34,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headingRow: {
     marginTop: 23,
     marginBottom: 11,
@@ -353,11 +320,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: 24,
     color: BrandColors.onDark,
-  },
-  link: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 14,
-    color: BrandColors.copperDark,
   },
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
   countryRow: {

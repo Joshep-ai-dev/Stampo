@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -19,6 +19,18 @@ function Icon({
   return (
     <View style={styles.iconWrap}>
       <Ionicons name={(focused ? on : off) as never} size={25} color={color} />
+    </View>
+  );
+}
+
+function StampIcon({ focused }: { focused: boolean }) {
+  return (
+    <View style={styles.iconWrap}>
+      <MaterialCommunityIcons
+        name="postage-stamp"
+        size={27}
+        color={focused ? "#49B964" : BrandColors.copper}
+      />
     </View>
   );
 }
@@ -90,15 +102,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="message-board"
         options={{
-          title: "Message",
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              focused={focused}
-              color={color}
-              on="chatbubbles"
-              off="chatbubbles-outline"
-            />
-          ),
+          title: "Stamps",
+          tabBarActiveTintColor: "#49B964",
+          tabBarInactiveTintColor: BrandColors.copper,
+          tabBarIcon: ({ focused }) => <StampIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
