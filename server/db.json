@@ -265,6 +265,12 @@
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
       "sightId": "louvre",
       "completedAt": "2026-08-12T12:22:37.341Z"
+    },
+    {
+      "id": "822815fe-0dd1-4a2d-866d-60c45e50b1d9",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
+      "sightId": "collection-wonders-christ-redeemer",
+      "completedAt": "2026-08-18T20:40:08.554Z"
     }
   ],
   "wishlists": [],

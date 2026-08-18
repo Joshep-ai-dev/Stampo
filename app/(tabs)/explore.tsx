@@ -2,7 +2,6 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -100,53 +99,6 @@ export default function ExploreScreen() {
           ),
     [collectionCatalog, collectionFilter],
   );
-  const setCollectionProgress = async (
-    collection: CollectionProgress,
-    progress: number,
-  ) => {
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Sign in from Passport to save collection progress.",
-      );
-      return;
-    }
-    const optimistic = {
-      ...collection,
-      progress,
-      status: progress >= 100 ? ("completed" as const) : ("active" as const),
-    };
-    setCollectionCatalog((current) =>
-      current.map((item) => (item.id === collection.id ? optimistic : item)),
-    );
-    try {
-      const saved = await api.setCollectionProgress(collection.id, progress);
-      setCollectionCatalog((current) =>
-        current.map((item) => (item.id === saved.id ? saved : item)),
-      );
-    } catch {
-      setCollectionCatalog((current) =>
-        current.map((item) => (item.id === collection.id ? collection : item)),
-      );
-      Alert.alert("Not saved", "Collection progress could not be updated.");
-    }
-  };
-  const showCollection = (collection: CollectionProgress) =>
-    Alert.alert(collection.title, collection.detail, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Keep Active",
-        onPress: () =>
-          void setCollectionProgress(
-            collection,
-            Math.max(1, Math.min(collection.progress, 99)),
-          ),
-      },
-      {
-        text: "Mark Completed",
-        onPress: () => void setCollectionProgress(collection, 100),
-      },
-    ]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -236,7 +188,9 @@ export default function ExploreScreen() {
                 key={collection.id}
                 style={s.challenge}
                 activeOpacity={0.82}
-                onPress={() => showCollection(collection)}
+                onPress={() =>
+                  router.push(`/collection/${collection.id}` as never)
+                }
               >
                 <View style={s.collectionHeader}>
                   <Text style={s.challengeTitle} numberOfLines={1}>
