@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
@@ -14,13 +15,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import {
   collectionDefinitions,
   type CollectionPlace,
 } from "@/data/collections";
 import { api } from "@/services/api";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { subscriptionUpdated } from "@/store/subscription-slice";
 
 const collectionImages: Record<string, number> = {
   wonders: require("@/assets/images/seven wonders/seven wornders.png"),
@@ -85,10 +88,15 @@ function PlaceImage({
 export default function CollectionScreen() {
   const { id = "wonders" } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const subscription = useAppSelector((state) => state.subscription);
   const collection = collectionDefinitions[id];
   const [completed, setCompleted] = useState<Set<string>>(new Set());
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
+    null,
+  );
+  const [placeDescription, setPlaceDescription] = useState<string>("");
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -96,7 +104,6 @@ export default function CollectionScreen() {
       .travelState()
       .then((state) => {
         setCompleted(new Set(state.completedSightIds));
-        setWishlist(new Set(state.wishlistIds));
       })
       .catch(() => undefined);
   }, [isSignedIn]);
@@ -142,37 +149,16 @@ export default function CollectionScreen() {
     }
   };
 
-  const toggleWishlist = async (place: CollectionPlace) => {
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Sign in from Passport to use your wishlist.",
-      );
-      return;
-    }
-    const targetId = `collection-${collection.id}-${place.id}`;
-    const next = !wishlist.has(targetId);
-    setWishlist((current) => {
-      const updated = new Set(current);
-      if (next) updated.add(targetId);
-      else updated.delete(targetId);
-      return updated;
-    });
-    try {
-      await api.setWishlist(targetId, next);
-    } catch {
-      setWishlist((current) => {
-        const updated = new Set(current);
-        if (next) updated.delete(targetId);
-        else updated.add(targetId);
-        return updated;
-      });
-    }
-  };
-
   const completedCount = collection.places.filter((place) =>
     completed.has(`collection-${collection.id}-${place.id}`),
   ).length;
+
+  const handlePlaceTap = async (place: CollectionPlace) => {
+    setSelectedPlace(place);
+    // Generate a description based on the place info
+    const description = `${place.name} is located in ${place.city}, ${place.country}. This is a wonderful destination to explore and add to your travel collection.`;
+    setPlaceDescription(description);
+  };
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -216,7 +202,12 @@ export default function CollectionScreen() {
           </Text>
         </View>
 
-        <Text style={s.sectionTitle}>Top Sights to Collection</Text>
+        <View style={s.progressHeader}>
+          <Text style={s.sectionTitle}>Collection Progress</Text>
+          <Text style={s.progressText}>
+            {completedCount}/{collection.places.length}
+          </Text>
+        </View>
         <ScrollView
           style={s.placeList}
           nestedScrollEnabled
@@ -225,9 +216,12 @@ export default function CollectionScreen() {
           {collection.places.map((place) => {
             const targetId = `collection-${collection.id}-${place.id}`;
             const checked = completed.has(targetId);
-            const saved = wishlist.has(targetId);
             return (
-              <View key={place.id} style={s.placeRow}>
+              <TouchableOpacity
+                key={place.id}
+                style={s.placeRow}
+                onPress={() => void handlePlaceTap(place)}
+              >
                 <PlaceImage
                   place={place}
                   localSource={
@@ -244,50 +238,80 @@ export default function CollectionScreen() {
                     {place.city}, {place.country}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => void toggleCompleted(place)}>
+                <TouchableOpacity
+                  onPress={() => void toggleCompleted(place)}
+                  style={s.checkIcon}
+                >
                   <Ionicons
                     name={checked ? "checkmark-circle" : "ellipse-outline"}
                     size={25}
-                    color={
-                      checked ? BrandColors.progressGreen : BrandColors.copper
-                    }
+                    color={"#57D5A0"}
                   />
                 </TouchableOpacity>
-              </View>
-            );
-          })}
-        </ScrollView>
-
-        <View style={s.progressHeader}>
-          <Text style={s.sectionTitle}>Collection Progress</Text>
-          <Text style={s.progressText}>
-            {completedCount}/{collection.places.length}
-          </Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.stampProgress}
-        >
-          {collection.places.map((place) => {
-            const checked = completed.has(
-              `collection-${collection.id}-${place.id}`,
-            );
-            const localSource =
-              collection.id === "wonders"
-                ? wonderPlaceImages[place.id]
-                : undefined;
-            return (
-              <View
-                key={place.id}
-                style={[s.miniStamp, checked && s.miniStampDone]}
-              >
-                <PlaceImage place={place} localSource={localSource} />
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
       </ScrollView>
+
+      {collection.places.length > 0 ? (
+        <UpgradeBanner
+          active={subscription.isKrooPlus}
+          configured={subscription.configured}
+          text="Unlock collections with Kroo+"
+          onPreviewToggle={() =>
+            dispatch(
+              subscriptionUpdated({
+                configured: false,
+                isKrooPlus: !subscription.isKrooPlus,
+              }),
+            )
+          }
+          onCustomerInfo={() => undefined}
+        />
+      ) : null}
+
+      <Modal
+        visible={selectedPlace !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPlace(null)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            {selectedPlace && (
+              <>
+                <View style={s.modalImageContainer}>
+                  {selectedPlace &&
+                    (collection.id === "wonders" &&
+                    wonderPlaceImages[selectedPlace.id] ? (
+                      <Image
+                        source={wonderPlaceImages[selectedPlace.id]}
+                        style={s.modalPlaceImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <ProgressivePlaceImage
+                        uri=""
+                        style={s.modalPlaceImage}
+                        contentFit="cover"
+                      />
+                    ))}
+                </View>
+                <Text style={s.modalTitle}>{selectedPlace?.name}</Text>
+                <Text style={s.modalSubtitle}>{selectedPlace?.city}</Text>
+                <Text style={s.modalDescription}>{placeDescription}</Text>
+                <TouchableOpacity
+                  style={s.modalCloseButton}
+                  onPress={() => setSelectedPlace(null)}
+                >
+                  <Ionicons name="close" size={24} color={BrandColors.copper} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -412,4 +436,64 @@ const s = StyleSheet.create({
   miniStampDone: { backgroundColor: BrandColors.copper },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   link: { fontFamily: "Lora_600SemiBold", color: BrandColors.copper },
+  checkIcon: { marginLeft: 8 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: BrandColors.green,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    padding: 16,
+    alignItems: "center",
+    gap: 12,
+  },
+  modalImageContainer: {
+    width: "100%",
+    height: 240,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: BrandColors.greenPanel,
+  },
+  modalPlaceImage: {
+    width: "100%",
+    height: "100%",
+  },
+  modalTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: 24,
+    color: BrandColors.copper,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 14,
+    color: BrandColors.copper,
+    textAlign: "center",
+  },
+  modalDescription: {
+    fontFamily: "Lora_400Regular",
+    fontSize: 13,
+    color: BrandColors.onDark,
+    textAlign: "center",
+    lineHeight: 18,
+    marginVertical: 8,
+  },
+  modalCloseButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
 });

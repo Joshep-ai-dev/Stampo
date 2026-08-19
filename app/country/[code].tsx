@@ -20,16 +20,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
+import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import {
-  isKrooPlus as customerHasKrooPlus,
-  manageKrooPlus,
-  presentKrooPlusPaywall,
-  restoreKrooPlus,
-} from "@/services/subscriptions";
+import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
@@ -94,7 +90,9 @@ export default function CountryScreen() {
     } catch (error) {
       Alert.alert(
         "GPS arrivals",
-        error instanceof Error ? error.message : "Could not enable GPS arrivals.",
+        error instanceof Error
+          ? error.message
+          : "Could not enable GPS arrivals.",
       );
     }
   };
@@ -318,29 +316,29 @@ export default function CountryScreen() {
                 (visit) => visit.cityId === city.id,
               );
               return (
-              <TouchableOpacity
-                key={city.id}
-                style={s.cityRow}
-                onPress={() => router.push(`/city/${city.id}` as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${city.name}`}
-              >
-                <CityThumbnail
-                  cityId={city.id}
-                  cityName={city.name}
-                  countryName={name}
-                  regionName={recordedVisit?.subcountry}
-                  initialUri={cityDetail?.image}
-                  latitude={cityDetail?.latitude}
-                  longitude={cityDetail?.longitude}
-                />
-                <Text style={s.cityName}>{city.name}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={19}
-                  color={BrandColors.onDarkMuted}
-                />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  key={city.id}
+                  style={s.cityRow}
+                  onPress={() => router.push(`/city/${city.id}` as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${city.name}`}
+                >
+                  <CityThumbnail
+                    cityId={city.id}
+                    cityName={city.name}
+                    countryName={name}
+                    regionName={recordedVisit?.subcountry}
+                    initialUri={cityDetail?.image}
+                    latitude={cityDetail?.latitude}
+                    longitude={cityDetail?.longitude}
+                  />
+                  <Text style={s.cityName}>{city.name}</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={19}
+                    color={BrandColors.onDarkMuted}
+                  />
+                </TouchableOpacity>
               );
             })
           ) : (
@@ -462,15 +460,19 @@ function CityThumbnail({
     return () => {
       active = false;
     };
-  }, [cityId, cityName, countryName, initialUri, latitude, longitude, regionName]);
+  }, [
+    cityId,
+    cityName,
+    countryName,
+    initialUri,
+    latitude,
+    longitude,
+    regionName,
+  ]);
 
   return (
     <View style={s.cityImageFrame}>
-      <ProgressivePlaceImage
-        uri={uri}
-        style={s.cityImage}
-        contentFit="cover"
-      />
+      <ProgressivePlaceImage uri={uri} style={s.cityImage} contentFit="cover" />
     </View>
   );
 }
@@ -520,88 +522,6 @@ function ResolvedPlaceImage({
       contentFit={contentFit}
       blurRadius={blurRadius}
     />
-  );
-}
-
-function UpgradeBanner({
-  count,
-  active,
-  configured,
-  onPreviewToggle,
-  onCustomerInfo,
-}: {
-  count: number;
-  active: boolean;
-  configured: boolean;
-  onPreviewToggle: () => void;
-  onCustomerInfo: (
-    customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
-  ) => void;
-}) {
-  const showError = (error: unknown) =>
-    Alert.alert(
-      "Kroo+",
-      error instanceof Error ? error.message : "Please try again.",
-    );
-  const openPurchaseOptions = () => {
-    if (!configured) {
-      if (__DEV__) {
-        onPreviewToggle();
-        return;
-      }
-      Alert.alert(
-        "Kroo+ setup required",
-        "Add the RevenueCat iOS and Android public SDK keys, then rebuild the app.",
-      );
-      return;
-    }
-    if (active) {
-      void manageKrooPlus().then(onCustomerInfo).catch(showError);
-      return;
-    }
-    Alert.alert("Unlock Kroo+", `Unlock ${count} more top sights.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Restore Purchases",
-        onPress: () =>
-          void restoreKrooPlus().then(onCustomerInfo).catch(showError),
-      },
-      {
-        text: "Continue",
-        onPress: () =>
-          void presentKrooPlusPaywall().then(onCustomerInfo).catch(showError),
-      },
-    ]);
-  };
-  return (
-    <TouchableOpacity
-      style={s.upgradeCard}
-      onPress={openPurchaseOptions}
-      accessibilityRole="button"
-      accessibilityLabel={
-        active
-          ? configured
-            ? "Manage Kroo+"
-            : "Switch to Kroo Free preview"
-          : "Switch to Kroo+ preview"
-      }
-    >
-      <View style={s.upgradeCopy}>
-        <Ionicons
-          name={active ? "checkmark-circle" : "lock-closed"}
-          size={20}
-          color={BrandColors.white}
-        />
-        <Text style={s.upgradeText}>
-          {active ? "Kroo+ is active" : "Unlock all top sights with Kroo+"}
-        </Text>
-      </View>
-      <View style={s.upgradeButton}>
-        <Text style={s.upgradeButtonText}>
-          {active ? (configured ? "Manage" : "Kroo Free") : configured ? "Upgrade" : "Kroo+"}
-        </Text>
-      </View>
-    </TouchableOpacity>
   );
 }
 
