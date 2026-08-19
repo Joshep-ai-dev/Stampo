@@ -208,11 +208,7 @@ export default function CollectionScreen() {
             {completedCount}/{collection.places.length}
           </Text>
         </View>
-        <ScrollView
-          style={s.placeList}
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={collection.places.length > 6}
-        >
+        <View style={s.placeList}>
           {collection.places.map((place) => {
             const targetId = `collection-${collection.id}-${place.id}`;
             const checked = completed.has(targetId);
@@ -251,7 +247,7 @@ export default function CollectionScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </ScrollView>
 
       {collection.places.length > 0 ? (
