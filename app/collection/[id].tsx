@@ -46,9 +46,11 @@ const wonderPlaceImages: Record<string, number> = {
 function PlaceImage({
   place,
   localSource,
+  blurRadius,
 }: {
   place: CollectionPlace;
   localSource?: number;
+  blurRadius?: number;
 }) {
   const [uri, setUri] = useState("");
   useEffect(() => {
@@ -75,13 +77,19 @@ function PlaceImage({
         source={localSource}
         style={s.placeImage}
         contentFit="cover"
+        blurRadius={blurRadius}
         transition={220}
       />
     );
   }
 
   return (
-    <ProgressivePlaceImage uri={uri} style={s.placeImage} contentFit="cover" />
+    <ProgressivePlaceImage
+      uri={uri}
+      style={s.placeImage}
+      contentFit="cover"
+      blurRadius={blurRadius}
+    />
   );
 }
 
@@ -152,6 +160,12 @@ export default function CollectionScreen() {
   const completedCount = collection.places.filter((place) =>
     completed.has(`collection-${collection.id}-${place.id}`),
   ).length;
+  const freePlaces = subscription.isKrooPlus
+    ? collection.places
+    : collection.places.slice(0, 3);
+  const premiumPlaces = subscription.isKrooPlus
+    ? []
+    : collection.places.slice(3);
 
   const handlePlaceTap = async (place: CollectionPlace) => {
     setSelectedPlace(place);
@@ -194,22 +208,14 @@ export default function CollectionScreen() {
           />
         </View>
 
-        <View style={s.descriptionSection}>
-          <Text style={s.descriptionText}>{collection.subtitle}</Text>
-          <Text style={s.instructionText}>
-            Check off each sight as you visit them and add your favorites to
-            your wishlist.
-          </Text>
-        </View>
-
         <View style={s.progressHeader}>
-          <Text style={s.sectionTitle}>Collection Progress</Text>
+          <Text style={s.sectionTitle}>Collection Checklist</Text>
           <Text style={s.progressText}>
             {completedCount}/{collection.places.length}
           </Text>
         </View>
         <View style={s.placeList}>
-          {collection.places.map((place) => {
+          {freePlaces.map((place) => {
             const targetId = `collection-${collection.id}-${place.id}`;
             const checked = completed.has(targetId);
             return (
@@ -248,24 +254,63 @@ export default function CollectionScreen() {
             );
           })}
         </View>
-      </ScrollView>
 
-      {collection.places.length > 0 ? (
-        <UpgradeBanner
-          active={subscription.isKrooPlus}
-          configured={subscription.configured}
-          text="Unlock collections with Kroo+"
-          onPreviewToggle={() =>
-            dispatch(
-              subscriptionUpdated({
-                configured: false,
-                isKrooPlus: !subscription.isKrooPlus,
-              }),
-            )
-          }
-          onCustomerInfo={() => undefined}
-        />
-      ) : null}
+        {premiumPlaces.length > 0 ? (
+          <>
+            <UpgradeBanner
+              active={subscription.isKrooPlus}
+              configured={subscription.configured}
+              text="Unlock collections with Kroo+"
+              onPreviewToggle={() =>
+                dispatch(
+                  subscriptionUpdated({
+                    configured: false,
+                    isKrooPlus: !subscription.isKrooPlus,
+                  }),
+                )
+              }
+              onCustomerInfo={() => undefined}
+            />
+            <View style={s.lockedList}>
+              {premiumPlaces.map((place) => {
+                const targetId = `collection-${collection.id}-${place.id}`;
+                const checked = completed.has(targetId);
+                return (
+                  <View key={place.id} style={[s.placeRow, s.lockedPlaceRow]}>
+                    <PlaceImage
+                      place={place}
+                      localSource={
+                        collection.id === "wonders"
+                          ? wonderPlaceImages[place.id]
+                          : undefined
+                      }
+                      blurRadius={32}
+                    />
+                    <View style={s.placeCopy}>
+                      <Text
+                        style={[s.placeName, s.lockedPlaceName]}
+                        numberOfLines={1}
+                      >
+                        {place.name}
+                      </Text>
+                      <Text style={s.placeLocation} numberOfLines={1}>
+                        {place.city}, {place.country}
+                      </Text>
+                    </View>
+                    <View style={s.lockedCheckIcon}>
+                      <Ionicons
+                        name={checked ? "checkmark-circle" : "ellipse-outline"}
+                        size={25}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
 
       <Modal
         visible={selectedPlace !== null}
@@ -379,7 +424,13 @@ const s = StyleSheet.create({
     fontSize: 21,
     color: BrandColors.onDark,
   },
-  placeList: { maxHeight: 396, marginHorizontal: 14 },
+  placeList: { marginHorizontal: 14 },
+  lockedList: { marginHorizontal: 14, overflow: "hidden" },
+  lockedPlaceRow: {
+    position: "relative",
+    overflow: "hidden",
+    opacity: 0.5,
+  },
   placeRow: {
     minHeight: 66,
     flexDirection: "row",
@@ -399,6 +450,12 @@ const s = StyleSheet.create({
     fontFamily: "Lora_600SemiBold",
     fontSize: 14,
     color: BrandColors.onDark,
+  },
+  lockedPlaceName: {
+    color: "rgba(248,234,212,.4)",
+    textShadowColor: BrandColors.onDark,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 24,
   },
   placeLocation: {
     marginTop: 2,
@@ -433,6 +490,7 @@ const s = StyleSheet.create({
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   link: { fontFamily: "Lora_600SemiBold", color: BrandColors.copper },
   checkIcon: { marginLeft: 8 },
+  lockedCheckIcon: { marginLeft: 8, opacity: 0.28 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
