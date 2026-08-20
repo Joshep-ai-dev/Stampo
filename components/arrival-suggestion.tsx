@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { NotificationResponse } from "expo-notifications";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 import { getCities, type CityRecord } from "@/data/cities";
@@ -30,6 +30,7 @@ export function ArrivalSuggestionPrompt() {
 
   useEffect(() => {
     if (
+      Platform.OS === "web" ||
       Constants.executionEnvironment === ExecutionEnvironment.StoreClient
     ) {
       return;

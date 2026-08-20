@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -24,6 +25,7 @@ import {
 import { api } from "@/services/api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
+import { wishlistToggled } from "@/store/travel-slice";
 
 const collectionImages: Record<string, number> = {
   wonders: require("@/assets/images/seven wonders/seven wornders.png"),
@@ -98,6 +100,7 @@ export default function CollectionScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const subscription = useAppSelector((state) => state.subscription);
   const collection = collectionDefinitions[id];
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -105,6 +108,7 @@ export default function CollectionScreen() {
     null,
   );
   const [placeDescription, setPlaceDescription] = useState<string>("");
+  const [wishlistPending, setWishlistPending] = useState(false);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -174,6 +178,48 @@ export default function CollectionScreen() {
     setPlaceDescription(description);
   };
 
+  const wishlistId = `collection:${collection.id}`;
+  const isWishlisted = wishlistIds.includes(wishlistId);
+
+  const toggleWishlist = async () => {
+    if (wishlistPending) return;
+    if (!isSignedIn) {
+      Alert.alert(
+        "Sign in required",
+        "Sign in from Passport to add this collection to your wishlist.",
+      );
+      return;
+    }
+
+    const next = !isWishlisted;
+    setWishlistPending(true);
+    dispatch(wishlistToggled(wishlistId));
+    try {
+      await api.setWishlist(wishlistId, next);
+    } catch {
+      dispatch(wishlistToggled(wishlistId));
+      Alert.alert(
+        "Could not update wishlist",
+        "Please check your connection and try again.",
+      );
+    } finally {
+      setWishlistPending(false);
+    }
+  };
+
+  const shareCollection = async () => {
+    const url = Linking.createURL(`/collection/${collection.id}`);
+    try {
+      await Share.share({
+        title: collection.title,
+        message: `Take a look at ${collection.title} on Stampo:\n${url}`,
+        url,
+      });
+    } catch {
+      Alert.alert("Could not share collection", "Please try again.");
+    }
+  };
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content} nestedScrollEnabled>
@@ -188,16 +234,41 @@ export default function CollectionScreen() {
           <Text style={s.title} numberOfLines={2}>
             {collection.title}
           </Text>
-          <TouchableOpacity
-            style={s.iconButton}
-            onPress={() => void Share.share({ message: collection.title })}
-          >
-            <Ionicons
-              name="share-outline"
-              size={22}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
+          <View style={s.headerActions}>
+            <TouchableOpacity
+              accessibilityLabel={
+                isWishlisted
+                  ? `Remove ${collection.title} from wishlist`
+                  : `Add ${collection.title} to wishlist`
+              }
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: wishlistPending,
+                selected: isWishlisted,
+              }}
+              disabled={wishlistPending}
+              style={[s.iconButton, wishlistPending && s.iconButtonDisabled]}
+              onPress={() => void toggleWishlist()}
+            >
+              <Ionicons
+                name={isWishlisted ? "heart" : "heart-outline"}
+                size={22}
+                color={isWishlisted ? BrandColors.copper : BrandColors.onDark}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityLabel={`Share ${collection.title}`}
+              accessibilityRole="button"
+              style={s.iconButton}
+              onPress={() => void shareCollection()}
+            >
+              <Ionicons
+                name="share-outline"
+                size={22}
+                color={BrandColors.onDark}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={s.hero}>
@@ -375,6 +446,8 @@ const s = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(49,87,73,.56)",
   },
+  headerActions: { flexDirection: "row", gap: 6 },
+  iconButtonDisabled: { opacity: 0.6 },
   title: {
     flex: 1,
     textAlign: "center",

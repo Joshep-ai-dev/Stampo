@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   Alert,
@@ -49,6 +50,14 @@ type ProfileSection = {
 };
 
 const profileSections: readonly ProfileSection[] = [
+  {
+    id: "membership",
+    title: "Membership",
+    rows: [
+      { id: "kroo-plus", label: "Kroo+" },
+      { id: "gift-kroo-plus", label: "Gift a membership" },
+    ],
+  },
   {
     id: "personal-info",
     title: "Personal Info",
@@ -124,6 +133,7 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const profile = useAppSelector((state) => state.profile);
   const [activeRow, setActiveRow] = useState<ProfileRow | null>(null);
@@ -146,6 +156,14 @@ export default function ProfileScreen() {
   );
 
   const openRow = (row: ProfileRow) => {
+    if (row.id === "kroo-plus") {
+      router.push("/kroo-plus" as never);
+      return;
+    }
+    if (row.id === "gift-kroo-plus") {
+      router.push("/gift-kroo-plus" as never);
+      return;
+    }
     setActiveRow(row);
     setDraft(row.value ?? "");
     setEmail("");

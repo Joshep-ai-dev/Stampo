@@ -22,6 +22,7 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
+import { collectionDefinitions } from "@/data/collections";
 import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
@@ -29,6 +30,14 @@ import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
+
+const collectionImages: Record<string, number> = {
+  wonders: require("@/assets/images/collection/Seven Wonders.png"),
+  seas: require("@/assets/images/collection/Seven Seas.png"),
+  unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
+  parks: require("@/assets/images/collection/National Parks Collector.png"),
+  usa: require("@/assets/images/collection/United States Explorer.png"),
+};
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -72,6 +81,14 @@ export default function CountryScreen() {
   const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
+  const countryCollections = Object.values(collectionDefinitions)
+    .filter((collection) =>
+      collection.places.some(
+        (place) =>
+          place.country.toLocaleLowerCase() === name.toLocaleLowerCase(),
+      ),
+    )
+    .sort((left, right) => left.title.localeCompare(right.title));
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!subscription.isKrooPlus) {
@@ -298,6 +315,53 @@ export default function CountryScreen() {
         ) : (
           <Text style={[s.empty, s.sightsEmpty]}>
             Top sights will appear here.
+          </Text>
+        )}
+
+        <SectionTitle>{`Collections in ${name}`}</SectionTitle>
+        {countryCollections.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.collectionRow}
+          >
+            {countryCollections.map((collection) => {
+              const locationCount = collection.places.filter(
+                (place) =>
+                  place.country.toLocaleLowerCase() ===
+                  name.toLocaleLowerCase(),
+              ).length;
+              return (
+                <TouchableOpacity
+                  key={collection.id}
+                  style={s.collectionCard}
+                  activeOpacity={0.82}
+                  onPress={() =>
+                    router.push(`/collection/${collection.id}` as never)
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${collection.title}`}
+                >
+                  <View style={s.collectionImageFrame}>
+                    <Image
+                      source={collectionImages[collection.id]}
+                      style={s.collectionImage}
+                      contentFit="contain"
+                    />
+                  </View>
+                  <Text style={s.collectionTitle} numberOfLines={2}>
+                    {collection.title}
+                  </Text>
+                  <Text style={s.collectionDetail}>
+                    {locationCount} {locationCount === 1 ? "location" : "locations"} in {name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <Text style={[s.empty, s.collectionEmpty]}>
+            No collections feature locations in {name} yet.
           </Text>
         )}
 
@@ -627,6 +691,41 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   lockedSightCheck: { opacity: 0.28 },
+  collectionRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 2,
+    gap: 12,
+  },
+  collectionCard: {
+    width: 174,
+    minHeight: 190,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  collectionImageFrame: {
+    width: "100%",
+    height: 108,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collectionImage: { width: "100%", height: "100%" },
+  collectionTitle: {
+    marginTop: 8,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 14,
+    lineHeight: 18,
+    color: BrandColors.onDark,
+  },
+  collectionDetail: {
+    marginTop: 4,
+    fontFamily: "Lora_400Regular",
+    fontSize: 11,
+    color: BrandColors.onDarkMuted,
+  },
+  collectionEmpty: { marginHorizontal: 16 },
   upgradeCard: {
     zIndex: 2,
     marginHorizontal: -2,

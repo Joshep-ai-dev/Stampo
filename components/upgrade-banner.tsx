@@ -1,10 +1,10 @@
 import { BrandColors } from "@/constants/theme";
 import {
-    manageKrooPlus,
-    presentKrooPlusPaywall,
-    restoreKrooPlus,
+  manageKrooPlus,
+  restoreKrooPlus,
 } from "@/services/subscriptions";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type UpgradeBannerProps = {
@@ -24,8 +24,8 @@ export function UpgradeBanner({
   onPreviewToggle,
   onCustomerInfo,
   text = "Unlock all top sights with Kroo+",
-  count,
 }: UpgradeBannerProps) {
+  const router = useRouter();
   const showError = (error: unknown) =>
     Alert.alert(
       "Kroo+",
@@ -33,6 +33,10 @@ export function UpgradeBanner({
     );
 
   const openPurchaseOptions = () => {
+    if (!active) {
+      router.push("/kroo-plus" as never);
+      return;
+    }
     if (!configured) {
       if (__DEV__) {
         onPreviewToggle();
@@ -44,26 +48,7 @@ export function UpgradeBanner({
       );
       return;
     }
-    if (active) {
-      void manageKrooPlus().then(onCustomerInfo).catch(showError);
-      return;
-    }
-    const message = count
-      ? `Unlock ${count} more top sights.`
-      : "Unlock exclusive content with Kroo+.";
-    Alert.alert("Unlock Kroo+", message, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Restore Purchases",
-        onPress: () =>
-          void restoreKrooPlus().then(onCustomerInfo).catch(showError),
-      },
-      {
-        text: "Continue",
-        onPress: () =>
-          void presentKrooPlusPaywall().then(onCustomerInfo).catch(showError),
-      },
-    ]);
+    void manageKrooPlus().then(onCustomerInfo).catch(showError);
   };
 
   return (
@@ -76,7 +61,7 @@ export function UpgradeBanner({
           ? configured
             ? "Manage Kroo+"
             : "Switch to Kroo Free preview"
-          : "Switch to Kroo+ preview"
+          : "View Kroo+ plans"
       }
     >
       <View style={s.upgradeCopy}>

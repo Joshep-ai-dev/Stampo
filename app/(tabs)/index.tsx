@@ -13,7 +13,6 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -37,6 +36,7 @@ import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
+import { InfoModal } from "@/components/info-modal";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
@@ -843,6 +843,11 @@ export default function HomeScreen() {
   const dashboard = useAppSelector((x) => x.dashboard);
   const [currentLocation, setCurrentLocation] =
     useState<CurrentMapLocation | null>(null);
+  const [infoModal, setInfoModal] = useState<{
+    title: string;
+    body: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  } | null>(null);
   const locateUser = useCallback(async () => {
     if (!isKrooPlus) return;
     try {
@@ -1018,10 +1023,11 @@ export default function HomeScreen() {
                 <InfoButton
                   label="About Kroo Score"
                   onPress={() =>
-                    Alert.alert(
-                      "Kroo Score",
-                      "Your Kroo Score is out of 100: continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
-                    )
+                    setInfoModal({
+                      title: "Kroo Score",
+                      body: "Your Kroo Score is out of 100. Continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
+                      icon: "compass-outline",
+                    })
                   }
                 />
               </View>
@@ -1048,10 +1054,11 @@ export default function HomeScreen() {
                   total: 195,
                   label: "COUNTRIES",
                   onInfo: () =>
-                    Alert.alert(
-                      "Countries",
-                      "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
-                    ),
+                    setInfoModal({
+                      title: "Countries",
+                      body: "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
+                      icon: "globe-outline",
+                    }),
                 },
                 {
                   icon: "flag-outline",
@@ -1103,6 +1110,13 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+      <InfoModal
+        visible={infoModal !== null}
+        title={infoModal?.title ?? ""}
+        body={infoModal?.body ?? ""}
+        icon={infoModal?.icon}
+        onClose={() => setInfoModal(null)}
+      />
     </SafeAreaView>
   );
 }
