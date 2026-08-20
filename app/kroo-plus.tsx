@@ -115,7 +115,7 @@ export default function KrooPlusScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Image
-          source={require("@/assets/images/kroo-plus-wordmark.png")}
+          source={require("@/assets/images/kroo_logo_text.png")}
           style={styles.wordmark}
           contentFit="contain"
           accessibilityLabel="Kroo, Collect the world"
