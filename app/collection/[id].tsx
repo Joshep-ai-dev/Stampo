@@ -29,7 +29,7 @@ import { wishlistToggled } from "@/store/travel-slice";
 
 const collectionImages: Record<string, number> = {
   wonders: require("@/assets/images/seven wonders/seven wornders.png"),
-  seas: require("@/assets/images/collection/Seven Seas.png"),
+  seas: require("@/assets/images/seven seas/seven seas.png"),
   unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
   parks: require("@/assets/images/collection/National Parks Collector.png"),
   usa: require("@/assets/images/collection/United States Explorer.png"),
@@ -44,6 +44,22 @@ const wonderPlaceImages: Record<string, number> = {
   "taj-mahal": require("@/assets/images/seven wonders/Taj Mahal.png"),
   "christ-redeemer": require("@/assets/images/seven wonders/Christ the Redeemer.png"),
 };
+
+const seaPlaceImages: Record<string, number> = {
+  "arctic-ocean": require("@/assets/images/seven seas/Arctic Ocean.jpg"),
+  "north-atlantic": require("@/assets/images/seven seas/North Atlantic Ocean.jpg"),
+  "south-atlantic": require("@/assets/images/seven seas/South Atlantic Ocean.jpg"),
+  "north-pacific": require("@/assets/images/seven seas/North Pacific Ocean.jpg"),
+  "south-pacific": require("@/assets/images/seven seas/South Pacific Ocean.jpg"),
+  "indian-ocean": require("@/assets/images/seven seas/Indian Ocean.jpg"),
+  "southern-ocean": require("@/assets/images/seven seas/Southern Ocean.jpg"),
+};
+
+function getLocalPlaceImage(collectionId: string, placeId: string) {
+  if (collectionId === "wonders") return wonderPlaceImages[placeId];
+  if (collectionId === "seas") return seaPlaceImages[placeId];
+  return undefined;
+}
 
 function PlaceImage({
   place,
@@ -274,8 +290,11 @@ export default function CollectionScreen() {
         <View style={s.hero}>
           <Image
             source={collectionImages[collection.id]}
-            style={s.heroImage}
-            contentFit="cover"
+            style={[
+              s.heroImage,
+              collection.id === "seas" && s.seasHeroImage,
+            ]}
+            contentFit={collection.id === "seas" ? "contain" : "cover"}
           />
         </View>
 
@@ -297,11 +316,7 @@ export default function CollectionScreen() {
               >
                 <PlaceImage
                   place={place}
-                  localSource={
-                    collection.id === "wonders"
-                      ? wonderPlaceImages[place.id]
-                      : undefined
-                  }
+                  localSource={getLocalPlaceImage(collection.id, place.id)}
                 />
                 <View style={s.placeCopy}>
                   <Text style={s.placeName} numberOfLines={1}>
@@ -350,11 +365,10 @@ export default function CollectionScreen() {
                   <View key={place.id} style={[s.placeRow, s.lockedPlaceRow]}>
                     <PlaceImage
                       place={place}
-                      localSource={
-                        collection.id === "wonders"
-                          ? wonderPlaceImages[place.id]
-                          : undefined
-                      }
+                      localSource={getLocalPlaceImage(
+                        collection.id,
+                        place.id,
+                      )}
                       blurRadius={32}
                     />
                     <View style={s.placeCopy}>
@@ -395,10 +409,15 @@ export default function CollectionScreen() {
               <>
                 <View style={s.modalImageContainer}>
                   {selectedPlace &&
-                    (collection.id === "wonders" &&
-                    wonderPlaceImages[selectedPlace.id] ? (
+                    (getLocalPlaceImage(
+                      collection.id,
+                      selectedPlace.id,
+                    ) ? (
                       <Image
-                        source={wonderPlaceImages[selectedPlace.id]}
+                        source={getLocalPlaceImage(
+                          collection.id,
+                          selectedPlace.id,
+                        )}
                         style={s.modalPlaceImage}
                         contentFit="cover"
                       />
@@ -465,6 +484,7 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.surface,
   },
   heroImage: { width: "100%", height: 180, borderRadius: 16 },
+  seasHeroImage: { height: undefined, aspectRatio: 1.5 },
   subtitle: {
     marginTop: 5,
     textAlign: "center",
