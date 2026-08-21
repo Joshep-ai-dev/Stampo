@@ -7,7 +7,20 @@ import {
   Lora_700Bold,
   useFonts,
 } from "@expo-google-fonts/lora";
+import {
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+  Fraunces_800ExtraBold,
+} from "@expo-google-fonts/fraunces";
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+} from "@expo-google-fonts/inter";
 import { Roboto_900Black } from "@expo-google-fonts/roboto";
+import {
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from "@expo-google-fonts/space-mono";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -30,7 +43,14 @@ export default function RootLayout() {
     Lora_500Medium,
     Lora_600SemiBold,
     Lora_700Bold,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
+    Fraunces_800ExtraBold,
+    Inter_400Regular,
+    Inter_600SemiBold,
     Roboto_900Black,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
   });
 
   useEffect(() => {

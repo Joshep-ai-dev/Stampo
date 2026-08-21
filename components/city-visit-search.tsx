@@ -22,7 +22,11 @@ import { CityRecord, getCities, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { NewVisit, visitReceived } from "@/store/travel-slice";
+import {
+  NewVisit,
+  visitReceived,
+  wishlistToggled,
+} from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -59,13 +63,19 @@ export function CityVisitSearch({
 } = {}) {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CityRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCity, setSelectedCity] = useState<CityRecord | null>(null);
   const [visitDate, setVisitDate] = useState(today);
   const [note, setNote] = useState("");
+  const [wishlistPending, setWishlistPending] = useState(false);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
+  const selectedWishlistId = selectedCity ? `city:${selectedCity.id}` : null;
+  const isWishlisted = selectedWishlistId
+    ? wishlistIds.includes(selectedWishlistId)
+    : false;
 
   useEffect(() => {
     let active = true;
@@ -144,6 +154,31 @@ export function CityVisitSearch({
     closeModal();
     setQuery("");
     setResults([]);
+  };
+
+  const saveToWishlist = async () => {
+    if (!selectedWishlistId || isWishlisted || wishlistPending) return;
+    if (!isSignedIn) {
+      Alert.alert(
+        "Sign in required",
+        "Create an account or sign in from your passport before saving to your wishlist.",
+      );
+      return;
+    }
+
+    setWishlistPending(true);
+    dispatch(wishlistToggled(selectedWishlistId));
+    try {
+      await api.setWishlist(selectedWishlistId, true);
+    } catch {
+      dispatch(wishlistToggled(selectedWishlistId));
+      Alert.alert(
+        "Wishlist not updated",
+        "The server could not save this city. Please try again.",
+      );
+    } finally {
+      setWishlistPending(false);
+    }
   };
 
   return (
@@ -294,6 +329,33 @@ export function CityVisitSearch({
                   activeOpacity={0.8}
                 >
                   <Text style={styles.saveText}>SAVE VISIT</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.wishlistButton,
+                    isWishlisted && styles.wishlistButtonSaved,
+                  ]}
+                  onPress={() => void saveToWishlist()}
+                  activeOpacity={0.8}
+                  disabled={wishlistPending || isWishlisted}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isWishlisted ? "Saved to wishlist" : "Save to wishlist"
+                  }
+                >
+                  {wishlistPending ? (
+                    <ActivityIndicator color={colors.brown} />
+                  ) : (
+                    <Ionicons
+                      name={isWishlisted ? "heart" : "heart-outline"}
+                      size={21}
+                      color={colors.brown}
+                    />
+                  )}
+                  <Text style={styles.wishlistText}>
+                    {isWishlisted ? "SAVED TO WISHLIST" : "SAVE TO WISHLIST"}
+                  </Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -495,5 +557,26 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#fffaf1",
     letterSpacing: 1.4,
+  },
+  wishlistButton: {
+    height: 56,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    marginTop: 12,
+    backgroundColor: colors.card,
+  },
+  wishlistButtonSaved: {
+    backgroundColor: colors.panel,
+  },
+  wishlistText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 16,
+    color: colors.brown,
+    letterSpacing: 1,
   },
 });

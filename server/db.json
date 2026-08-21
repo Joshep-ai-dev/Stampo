@@ -247,10 +247,35 @@
       "email": "darkhorse9372@gmail.com",
       "password": "kc9372KC!123",
       "language": "English",
-      "nationality": "China",
-      "dateOfBirth": "1993-07-02",
+      "nationality": "",
+      "dateOfBirth": "",
+      "photoUri": "file:///data/user/0/com.darkhorse9372.Stampo/cache/ImagePicker/441ce091-0528-4b26-953b-7bee579b1390.png",
+      "plan": "pro",
+      "friendCode": "sXlr13IOQty1jQ8cG3QVEPL4"
+    },
+    {
+      "id": "2fbe9dd7-c46d-4c8e-8922-847d9aeb3998",
+      "name": "Jacobux",
+      "email": "jacobux30@gmail.com",
+      "password": "ddc903d3c1f8c699379ef63033293f0e:8b419f2dafc0e73dd8213c7b5dee4d726682312435cfad2291cba4aad34fe9f8e81bbdaabc4b63f3bfb7b2129d97cdb432c8a4c25c06ed5830cac6807a89b1e6",
+      "language": "English",
+      "plan": "free",
+      "nationality": "",
+      "dateOfBirth": "",
       "photoUri": null,
-      "plan": "pro"
+      "friendCode": "vcgARWITV7L9oHcmlL7QVUZ2"
+    },
+    {
+      "id": "c8faf308-d328-4e5f-a9b5-239f10e01eed",
+      "name": "Fastleopard9372",
+      "email": "fastleopard9372@gmail.com",
+      "password": "9ad620d7698cf44a3000c9194971232b:5e2291cbe8fd074aed02b391f2b6b810c07f88cc8881c9f0c4808273c71aeda6fd42c6f6c292a89714f2355a2f8948ccb5c216bc5fc01fb4dbcc488008d6a9fd",
+      "language": "English",
+      "plan": "free",
+      "nationality": "",
+      "dateOfBirth": "",
+      "photoUri": null,
+      "friendCode": "lzsXFh-h1kzkkBwBfb62WZW3"
     }
   ],
   "completions": [
@@ -301,5 +326,19 @@
   "countries": [],
   "imageCredits": [],
   "collections": [],
-  "countryCollections": []
+  "countryCollections": [],
+  "friends": [
+    {
+      "id": "db7144a2-d32c-49ed-95a5-6f19b6b8b253",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
+      "friendId": "2fbe9dd7-c46d-4c8e-8922-847d9aeb3998",
+      "createdAt": "2026-08-21T19:09:31.478Z"
+    },
+    {
+      "id": "df9650fb-a27a-4714-a5dc-c802eb7e06f0",
+      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
+      "friendId": "c8faf308-d328-4e5f-a9b5-239f10e01eed",
+      "createdAt": "2026-08-21T19:20:22.137Z"
+    }
+  ]
 }

@@ -123,6 +123,20 @@ export type CollectionProgress = {
   updatedAt?: string;
 };
 
+export type CommunityProfile = {
+  id: string;
+  name: string;
+  photoUri: string | null;
+  score: number;
+  level: string;
+  stats: {
+    countries: number;
+    continents: number;
+    cities: number;
+    collections: number;
+  };
+};
+
 export type CountryDetailResponse = {
   isEnriching: boolean;
   country: {
@@ -264,6 +278,16 @@ export const api = {
   sightDetail: (id: string) =>
     request<SightDetail>(`/api/sights/${encodeURIComponent(id)}`),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
+  communityLeaderboard: (scope: "global" | "friends") =>
+    request<CommunityProfile[]>(
+      `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
+    ),
+  friendCode: () => request<{ code: string }>("/me/friend-code"),
+  addFriendByCode: (code: string) =>
+    request<CommunityProfile>("/me/friends/scan", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(

@@ -41,6 +41,7 @@ const db = new Low(new JSONFile(file), {
   wishlists: [],
   rewards: [],
   collectionProgress: [],
+  friends: [],
 });
 await db.read();
 db.data.users ??= [];
@@ -48,6 +49,7 @@ db.data.completions ??= [];
 db.data.wishlists ??= [];
 db.data.rewards ??= [];
 db.data.collectionProgress ??= [];
+db.data.friends ??= [];
 ensureCatalog(db);
 const scrypt = promisify(scryptCallback);
 const automaticImports = new Map();
@@ -282,6 +284,30 @@ function requireUser(req, res) {
   const user = authenticatedUser(req);
   if (!user) res.status(401).json({ message: "Unauthenticated." });
   return user;
+}
+
+function friendCodeFor(user) {
+  user.friendCode ??= randomBytes(18).toString("base64url");
+  return `stampo://friend/${user.friendCode}`;
+}
+
+function communityProfile(user) {
+  const dashboard = homeDashboardFor(user);
+  return {
+    id: user.id,
+    name: user.name,
+    photoUri: user.photoUri ?? null,
+    score: dashboard.score,
+    level: dashboard.level,
+    stats: {
+      countries: dashboard.counts.countries,
+      continents: dashboard.counts.continents,
+      cities: dashboard.counts.cities,
+      collections: collectionsFor(user.id).filter(
+        (collection) => collection.status === "completed",
+      ).length,
+    },
+  };
 }
 
 const HOME_CONTINENT_TOTALS = {
@@ -710,6 +736,73 @@ app.get("/me/home", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   return res.json(homeDashboardFor(user));
+});
+
+app.get("/community/leaderboard", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const scope = req.query?.scope === "friends" ? "friends" : "global";
+  const friendIds = new Set(
+    db.data.friends
+      .filter(
+        (friendship) =>
+          friendship.userId === user.id || friendship.friendId === user.id,
+      )
+      .map((friendship) =>
+        friendship.userId === user.id
+          ? friendship.friendId
+          : friendship.userId,
+      ),
+  );
+  const visibleUsers =
+    scope === "friends"
+      ? db.data.users.filter(
+          (candidate) => candidate.id === user.id || friendIds.has(candidate.id),
+        )
+      : db.data.users;
+  return res.json(
+    visibleUsers
+      .map(communityProfile)
+      .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))
+      .slice(0, 10),
+  );
+});
+
+app.get("/me/friend-code", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const code = friendCodeFor(user);
+  await db.write();
+  return res.json({ code });
+});
+
+app.post("/me/friends/scan", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const scannedCode = String(req.body?.code ?? "").trim();
+  const token = scannedCode.match(/^stampo:\/\/friend\/([^/?#]+)$/)?.[1];
+  const friend = token
+    ? db.data.users.find((candidate) => candidate.friendCode === token)
+    : null;
+  if (!friend)
+    return res.status(422).json({ message: "This is not a valid Stampo friend code." });
+  if (friend.id === user.id)
+    return res.status(422).json({ message: "You cannot add your own friend code." });
+  const exists = db.data.friends.some(
+    (item) =>
+      (item.userId === user.id && item.friendId === friend.id) ||
+      (item.userId === friend.id && item.friendId === user.id),
+  );
+  if (!exists) {
+    db.data.friends.push({
+      id: randomUUID(),
+      userId: user.id,
+      friendId: friend.id,
+      createdAt: new Date().toISOString(),
+    });
+    await db.write();
+  }
+  return res.json(communityProfile(friend));
 });
 
 function catalogForCountry(code) {

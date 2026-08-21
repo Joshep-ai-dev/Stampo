@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kroo — Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;0,9..144,900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0E3B2C; --bg-surface:#123F30; --bg-surface-2:#164A39;
+    --accent-mint:#3ECF8E; --accent-copper:#C97C54;
+    --cream:#F6F1E4; --text-muted:rgba(246,241,228,0.58); --line:rgba(246,241,228,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:#dcdcd6; font-family:'Inter',sans-serif; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; gap:14px;
+  }
+  .device{
+    width:393px; max-width:100%; height:852px; background:var(--bg-deep);
+    border-radius:44px; box-shadow:0 40px 80px rgba(0,0,0,0.35), 0 0 0 10px #17171a, 0 0 0 11px #3a3a3f;
+    overflow:hidden; position:relative; display:flex; flex-direction:column; color:var(--cream);
+  }
+  .device::before{
+    content:""; position:absolute; inset:0;
+    background-image:radial-gradient(rgba(246,241,228,0.045) 1px, transparent 1px);
+    background-size:18px 18px; opacity:0.5; pointer-events:none;
+  }
+  .statusbar{ height:52px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 8px; font-size:13px; font-weight:600; position:relative; z-index:2; }
+  .content{ flex:1; overflow-y:auto; position:relative; z-index:2; padding-bottom:20px; }
+  .content::-webkit-scrollbar{display:none;}
+
+  .header{ padding:8px 22px 4px; }
+  .header .eyebrow{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent-mint); margin-bottom:4px; }
+  .header h1{ font-family:'Fraunces',serif; font-weight:700; font-size:22px; }
+
+  .segrow{ display:flex; gap:8px; padding:16px 22px 4px; }
+  .segbtn{
+    flex:1; text-align:center; padding:9px 6px; border-radius:12px; border:1px solid var(--line);
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);
+  }
+  .segbtn.active{ background:var(--accent-copper); color:var(--bg-deep); border-color:var(--accent-copper); font-weight:700; }
+
+  .lblist{ margin:14px 22px 0; }
+  .lbrow{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .lbrow:last-child{ border-bottom:none; }
+  .rank{ width:24px; text-align:center; font-family:'Fraunces',serif; font-weight:800; font-size:14px; color:var(--text-muted); }
+  .rank.top1{ color:#E7C15A; }
+  .rank.top2{ color:#C9CFCB; }
+  .rank.top3{ color:var(--accent-copper); }
+  .avatar{
+    width:36px; height:36px; border-radius:50%; background:var(--bg-surface-2); border:1.5px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; flex-shrink:0;
+  }
+  .lbname{ flex:1; }
+  .lbname .n{ font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; }
+  .lbname .t{ font-family:'Space Mono',monospace; font-size:8.5px; color:var(--text-muted); text-transform:uppercase; }
+  .lbscore{ font-family:'Fraunces',serif; font-weight:700; font-size:14px; color:var(--accent-mint); }
+  .lbrow.me{ background:rgba(201,124,84,0.1); margin:0 -14px; padding:11px 14px; border-radius:12px; border-bottom:none; }
+
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; padding:22px 22px 12px; }
+  .section-head h2{ font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; }
+  .section-head a{ font-family:'Space Mono',monospace; font-size:10px; color:var(--accent-mint); }
+
+  .comparecard{ margin:0 22px; background:var(--bg-surface); border:1px solid var(--line); border-radius:18px; padding:18px; }
+  .comparerow{ display:flex; align-items:center; justify-content:space-between; }
+  .compareside{ text-align:center; flex:1; }
+  .compareside .av{ width:52px; height:52px; border-radius:50%; margin:0 auto 8px; background:var(--bg-surface-2); border:2px solid var(--accent-mint); display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; }
+  .compareside.friend .av{ border-color:var(--accent-copper); }
+  .compareside .nm{ font-family:'Fraunces',serif; font-weight:600; font-size:12.5px; }
+  .compareside .sc{ font-family:'Fraunces',serif; font-weight:800; font-size:22px; margin-top:4px; }
+  .vs{ font-family:'Space Mono',monospace; font-size:11px; color:var(--text-muted); padding:0 10px; }
+  .comparestats{ margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .cstat{ display:grid; grid-template-columns:1fr 90px 1fr; align-items:center; font-family:'Space Mono',monospace; font-size:11px; }
+  .cstat .l{ text-align:right; }
+  .cstat .r{ text-align:left; }
+  .cstat .lbl{ text-align:center; font-size:9px; color:var(--text-muted); text-transform:uppercase; }
+  .cstat .win{ color:var(--accent-mint); font-weight:700; }
+
+  .friendrow{ display:flex; align-items:center; gap:12px; margin:0 22px 10px; padding:12px; background:var(--bg-surface); border:1px solid var(--line); border-radius:14px; }
+  .friendrow .avatar{ width:38px; height:38px; }
+  .friendinfo{ flex:1; }
+  .friendinfo .fn{ font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; }
+  .friendinfo .fs{ font-family:'Space Mono',monospace; font-size:9px; color:var(--text-muted); }
+  .comparebtn{ font-family:'Space Mono',monospace; font-size:8.5px; color:var(--accent-copper); border:1px solid var(--accent-copper); padding:6px 10px; border-radius:10px; text-transform:uppercase; }
+
+  .bottomnav{
+    position:relative; z-index:3; display:flex; align-items:center; justify-content:space-around;
+    padding:10px 8px 24px; background:rgba(14,59,44,0.92); backdrop-filter:blur(14px); border-top:1px solid var(--line);
+  }
+  .navitem{ display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; color:var(--text-muted); font-family:'Space Mono',monospace; font-size:9.5px; text-transform:uppercase; }
+  .navitem svg{ width:22px; height:22px; }
+  .navitem.active{ color:var(--accent-mint); }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="statusbar"><span>9:41</span><span>•••</span></div>
+
+  <div class="content">
+    <div class="header">
+      <div class="eyebrow">Community</div>
+      <h1>Leaderboard</h1>
+    </div>
+
+    <div class="segrow">
+      <div class="segbtn active">Global Top 10</div>
+      <div class="segbtn">Friends</div>
+    </div>
+
+    <div class="lblist">
+      <div class="lbrow"><div class="rank top1">1</div><div class="avatar">🥇</div><div class="lbname"><div class="n">Mara T.</div><div class="t">Master Traveller</div></div><div class="lbscore">94.2</div></div>
+      <div class="lbrow"><div class="rank top2">2</div><div class="avatar">🥈</div><div class="lbname"><div class="n">Diego R.</div><div class="t">Master Traveller</div></div><div class="lbscore">91.8</div></div>
+      <div class="lbrow"><div class="rank top3">3</div><div class="avatar">🥉</div><div class="lbname"><div class="n">Aiko S.</div><div class="t">Master Traveller</div></div><div class="lbscore">89.5</div></div>
+      <div class="lbrow"><div class="rank">4</div><div class="avatar">LK</div><div class="lbname"><div class="n">Lena K.</div><div class="t">Master Traveller</div></div><div class="lbscore">85.1</div></div>
+      <div class="lbrow"><div class="rank">5</div><div class="avatar">TO</div><div class="lbname"><div class="n">Tomas O.</div><div class="t">Master Traveller</div></div><div class="lbscore">82.7</div></div>
+      <div class="lbrow"><div class="rank">6</div><div class="avatar">PN</div><div class="lbname"><div class="n">Priya N.</div><div class="t">Wayfarer</div></div><div class="lbscore">79.4</div></div>
+      <div class="lbrow"><div class="rank">7</div><div class="avatar">SJ</div><div class="lbname"><div class="n">Sam J.</div><div class="t">Wayfarer</div></div><div class="lbscore">76.9</div></div>
+      <div class="lbrow"><div class="rank">8</div><div class="avatar">CW</div><div class="lbname"><div class="n">Chidi W.</div><div class="t">Wayfarer</div></div><div class="lbscore">74.2</div></div>
+      <div class="lbrow"><div class="rank">9</div><div class="avatar">FM</div><div class="lbname"><div class="n">Freya M.</div><div class="t">Wayfarer</div></div><div class="lbscore">71.8</div></div>
+      <div class="lbrow"><div class="rank">10</div><div class="avatar">HB</div><div class="lbname"><div class="n">Hugo B.</div><div class="t">Wayfarer</div></div><div class="lbscore">69.5</div></div>
+      <div class="lbrow me"><div class="rank">247</div><div class="avatar">JT</div><div class="lbname"><div class="n">You</div><div class="t">Voyager</div></div><div class="lbscore">34.2</div></div>
+    </div>
+
+    <div class="section-head"><h2>Compare with a friend</h2></div>
+    <div class="comparecard">
+      <div class="comparerow">
+        <div class="compareside">
+          <div class="av">JT</div>
+          <div class="nm">You</div>
+          <div class="sc" style="color:var(--accent-mint)">34.2</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="compareside friend">
+          <div class="av">MT</div>
+          <div class="nm">Maya T.</div>
+          <div class="sc" style="color:var(--accent-copper)">28.6</div>
+        </div>
+      </div>
+      <div class="comparestats">
+        <div class="cstat"><span class="l win">24</span><span class="lbl">Countries</span><span class="r">19</span></div>
+        <div class="cstat"><span class="l win">6</span><span class="lbl">Continents</span><span class="r">5</span></div>
+        <div class="cstat"><span class="l">31</span><span class="lbl">Cities</span><span class="r win">38</span></div>
+        <div class="cstat"><span class="l win">2</span><span class="lbl">Lists done</span><span class="r">1</span></div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Friends (12)</h2><a href="#">+ Add friend</a></div>
+
+    <div class="friendrow">
+      <div class="avatar">MT</div>
+      <div class="friendinfo"><div class="fn">Maya T.</div><div class="fs">28.6 · Voyager</div></div>
+      <div class="comparebtn">Compare</div>
+    </div>
+    <div class="friendrow">
+      <div class="avatar">RK</div>
+      <div class="friendinfo"><div class="fn">Ravi K.</div><div class="fs">41.3 · Wayfarer</div></div>
+      <div class="comparebtn">Compare</div>
+    </div>
+    <div class="friendrow">
+      <div class="avatar">EL</div>
+      <div class="friendinfo"><div class="fn">Elena L.</div><div class="fs">15.9 · Explorer</div></div>
+      <div class="comparebtn">Compare</div>
+    </div>
+
+    <div style="height:16px;"></div>
+  </div>
+
+  <div class="bottomnav">
+    <button class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>Home</button>
+    <button class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/></svg>Explore</button>
+    <button class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z"/></svg>Passport</button>
+    <button class="navitem active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M16 11c2.2 0 4 1.6 4 3.5"/><circle cx="17" cy="6" r="2.3"/></svg>Feed</button>
+    <button class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Profile</button>
+  </div>
+</div>
+
+</body>
+</html>

@@ -123,6 +123,7 @@ export default function CollectionScreen() {
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
+  const [selectedPlaceImage, setSelectedPlaceImage] = useState("");
   const [placeDescription, setPlaceDescription] = useState<string>("");
   const [wishlistPending, setWishlistPending] = useState(false);
 
@@ -135,6 +136,31 @@ export default function CollectionScreen() {
       })
       .catch(() => undefined);
   }, [isSignedIn]);
+
+  useEffect(() => {
+    setSelectedPlaceImage("");
+    if (
+      !selectedPlace ||
+      getLocalPlaceImage(id, selectedPlace.id)
+    )
+      return;
+
+    let active = true;
+    void api
+      .resolvePlaceImage({
+        name: selectedPlace.name,
+        city: selectedPlace.city,
+        country: selectedPlace.country,
+      })
+      .then((result) => {
+        if (active) setSelectedPlaceImage(result.image);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [id, selectedPlace]);
 
   if (!collection) {
     return (
@@ -187,9 +213,8 @@ export default function CollectionScreen() {
     ? []
     : collection.places.slice(3);
 
-  const handlePlaceTap = async (place: CollectionPlace) => {
+  const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
-    // Generate a description based on the place info
     const description = `${place.name} is located in ${place.city}, ${place.country}. This is a wonderful destination to explore and add to your travel collection.`;
     setPlaceDescription(description);
   };
@@ -423,7 +448,7 @@ export default function CollectionScreen() {
                       />
                     ) : (
                       <ProgressivePlaceImage
-                        uri=""
+                        uri={selectedPlaceImage}
                         style={s.modalPlaceImage}
                         contentFit="cover"
                       />
