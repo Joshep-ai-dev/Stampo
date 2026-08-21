@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -14,7 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
 import {
+  getKrooPlusPlanPrices,
   isKrooPlus as customerHasKrooPlus,
+  purchaseKrooPlus,
   restoreKrooPlus,
 } from "@/services/subscriptions";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -56,6 +58,29 @@ export default function KrooPlusScreen() {
   const subscription = useAppSelector((state) => state.subscription);
   const [plan, setPlan] = useState<Plan>("annual");
   const [busy, setBusy] = useState(false);
+  const [prices, setPrices] = useState({
+    monthly: "$5.99",
+    annual: "$59.99",
+  });
+
+  useEffect(() => {
+    if (!subscription.configured) return;
+    let active = true;
+    void getKrooPlusPlanPrices()
+      .then((storePrices) => {
+        if (!active || !storePrices) return;
+        setPrices((current) => ({
+          monthly: storePrices.monthly ?? current.monthly,
+          annual: storePrices.annual ?? current.annual,
+        }));
+      })
+      .catch(() => {
+        // The purchase action will surface offering errors when the user taps it.
+      });
+    return () => {
+      active = false;
+    };
+  }, [subscription.configured]);
 
   const updateCustomerInfo = (
     customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
@@ -93,6 +118,48 @@ export default function KrooPlusScreen() {
           : "No active Kroo+ purchase was found for this store account.",
       );
     } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const purchase = async () => {
+    if (busy) return;
+    if (!subscription.configured) {
+      Alert.alert(
+        "Google Play purchase unavailable",
+        "Real Kroo+ purchases require an Android development or production build. They do not run in Expo Go.",
+      );
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const customerInfo = await purchaseKrooPlus(plan);
+      updateCustomerInfo(customerInfo);
+      if (customerHasKrooPlus(customerInfo)) {
+        Alert.alert(
+          "Welcome to Kroo+",
+          "Your membership is active.",
+          [{ text: "Continue", onPress: () => router.back() }],
+        );
+      } else {
+        Alert.alert(
+          "Purchase pending",
+          "Google Play is still processing your purchase. Kroo+ will activate automatically when it completes.",
+        );
+      }
+    } catch (error) {
+      const purchaseError = error as {
+        code?: string;
+        userCancelled?: boolean | null;
+      };
+      if (
+        purchaseError.userCancelled ||
+        purchaseError.code === "1"
+      )
+        return;
       showError(error);
     } finally {
       setBusy(false);
@@ -155,7 +222,8 @@ export default function KrooPlusScreen() {
           >
             <Text style={styles.planLabel}>MONTHLY</Text>
             <Text style={styles.price}>
-              $5<Text style={styles.priceCents}>.99/mo</Text>
+              {prices.monthly}
+              <Text style={styles.priceCents}>/mo</Text>
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -168,25 +236,24 @@ export default function KrooPlusScreen() {
             </View>
             <Text style={styles.planLabel}>ANNUAL</Text>
             <Text style={styles.price}>
-              $59<Text style={styles.priceCents}>.99/yr</Text>
+              {prices.annual}
+              <Text style={styles.priceCents}>/yr</Text>
             </Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={styles.cta}
-          onPress={() =>
-            router.push({
-              pathname: "/gift-kroo-plus",
-              params: { plan },
-            } as never)
-          }
+          style={[styles.cta, busy && styles.disabled]}
+          onPress={() => void purchase()}
+          disabled={busy}
         >
-          <Text style={styles.ctaText}>START 7-DAY FREE TRIAL</Text>
+          <Text style={styles.ctaText}>
+            {busy ? "CONNECTING TO GOOGLE PLAY..." : "START 7-DAY FREE TRIAL"}
+          </Text>
         </TouchableOpacity>
         <Text style={styles.terms}>
-          {plan === "annual" ? "Then $59.99/year." : "Then $5.99/month."} Cancel
-          anytime before trial ends.
+          Then {plan === "annual" ? `${prices.annual}/year` : `${prices.monthly}/month`}.
+          {" "}Cancel anytime before trial ends.
         </Text>
         <TouchableOpacity onPress={() => void restore()} disabled={busy}>
           <Text style={styles.link}>Restore purchase</Text>

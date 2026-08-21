@@ -7,6 +7,7 @@ import Purchases, {
 import RevenueCatUI from "react-native-purchases-ui";
 
 export const KROO_PLUS_ENTITLEMENT = "kroo_plus";
+export type KrooPlusPlan = "monthly" | "annual";
 
 const platformApiKey = Platform.select({
   ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
@@ -58,6 +59,39 @@ export async function presentKrooPlusPaywall() {
     displayCloseButton: true,
   });
   return Purchases.getCustomerInfo();
+}
+
+export async function purchaseKrooPlus(plan: KrooPlusPlan) {
+  if (!configured) throw new Error("Kroo+ payments are not configured yet.");
+
+  const offerings = await Purchases.getOfferings();
+  const offering = offerings.current;
+  if (!offering) {
+    throw new Error(
+      "Kroo+ plans are not available. Check the RevenueCat offering configuration.",
+    );
+  }
+
+  const selectedPackage =
+    plan === "annual" ? offering.annual : offering.monthly;
+  if (!selectedPackage) {
+    throw new Error(
+      `The Kroo+ ${plan} plan is not available in the current offering.`,
+    );
+  }
+
+  const { customerInfo } = await Purchases.purchasePackage(selectedPackage);
+  return customerInfo;
+}
+
+export async function getKrooPlusPlanPrices() {
+  if (!configured) return null;
+  const offering = (await Purchases.getOfferings()).current;
+  if (!offering) return null;
+  return {
+    monthly: offering.monthly?.product.priceString ?? null,
+    annual: offering.annual?.product.priceString ?? null,
+  };
 }
 
 export async function restoreKrooPlus() {
