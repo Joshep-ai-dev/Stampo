@@ -295,6 +295,7 @@ export default function PlusTabScreen() {
             <Text style={s.offerHeading}>Go further with Kroo+</Text>
             <KrooPlusOffer
               onPurchase={() => router.push("/gift-kroo-plus" as never)}
+              onRestore={() => router.push("/kroo-plus" as never)}
             />
           </View>
         )}

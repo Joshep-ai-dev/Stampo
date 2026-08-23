@@ -107,7 +107,7 @@ function Value({ value, plus }: { value: string; plus?: boolean }) {
     return (
       <View style={s.value}>
         <Ionicons
-        name={value === "check" ? "checkmark" : "close"}
+          name={value === "check" ? "checkmark" : "close"}
           size={21}
           color={value === "check" ? colors.mint : colors.dim}
         />

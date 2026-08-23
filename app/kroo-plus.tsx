@@ -17,19 +17,15 @@ import { KrooPlusOffer } from "@/components/kroo-plus-offer";
 import {
   getKrooPlusPlanPrices,
   isKrooPlus as customerHasKrooPlus,
-  purchaseKrooPlus,
   restoreKrooPlus,
 } from "@/services/subscriptions";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
 
-type Plan = "monthly" | "annual";
-
 export default function KrooPlusScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const subscription = useAppSelector((state) => state.subscription);
-  const [plan, setPlan] = useState<Plan>("annual");
   const [busy, setBusy] = useState(false);
   const [prices, setPrices] = useState({
     monthly: "$5.99",
@@ -97,42 +93,6 @@ export default function KrooPlusScreen() {
     }
   };
 
-  const purchase = async () => {
-    if (busy) return;
-    if (!subscription.configured) {
-      Alert.alert(
-        "Google Play purchase unavailable",
-        "Real Kroo+ purchases require an Android development or production build. They do not run in Expo Go.",
-      );
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const customerInfo = await purchaseKrooPlus(plan);
-      updateCustomerInfo(customerInfo);
-      if (customerHasKrooPlus(customerInfo)) {
-        Alert.alert("Welcome to Kroo+", "Your membership is active.", [
-          { text: "Continue", onPress: () => router.back() },
-        ]);
-      } else {
-        Alert.alert(
-          "Purchase pending",
-          "Google Play is still processing your purchase. Kroo+ will activate automatically when it completes.",
-        );
-      }
-    } catch (error) {
-      const purchaseError = error as {
-        code?: string;
-        userCancelled?: boolean | null;
-      };
-      if (purchaseError.userCancelled || purchaseError.code === "1") return;
-      showError(error);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
@@ -165,8 +125,7 @@ export default function KrooPlusScreen() {
             monthlyPrice={prices.monthly}
             annualPrice={prices.annual}
             busy={busy}
-            onPlanChange={setPlan}
-            onPurchase={() => void purchase()}
+            onPurchase={() => router.push("/gift-kroo-plus" as never)}
             onRestore={() => void restore()}
           />
         </View>
