@@ -27,7 +27,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   type SharedValue,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -134,8 +133,6 @@ const MAP_GEO_LEFT = -169.110266;
 const MAP_GEO_TOP = 83.600842;
 const MAP_GEO_RIGHT = 190.486279;
 const MAP_GEO_BOTTOM = -58.508473;
-const AnimatedGroup = Animated.createAnimatedComponent(G);
-const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
 
 function projectToWorldMap(latitude: number, longitude: number) {
   const clampedLatitude = Math.max(
@@ -217,38 +214,31 @@ function CurrentPositionPin({
 
 function CountryMapLabel({
   country,
-  scale,
+  zoomLevel,
   onPress,
 }: {
   country: MapCountry;
-  scale: SharedValue<number>;
+  zoomLevel: number;
   onPress: () => void;
 }) {
-  const animatedProps = useAnimatedProps(() => {
-    const minimumZoom = country.width >= 12 && country.height >= 7 ? 2 : 4;
-    const visible =
-      scale.value >= minimumZoom && country.width >= 4 && country.height >= 3;
-
-    return {
-      opacity: visible ? 1 : 0,
-      strokeWidth: 0.15 / scale.value,
-      fontSize: 35 / scale.value,
-      x: country.centerX - (country.name.length * 9.4) / scale.value,
-    };
-  });
+  const minimumZoom = country.width >= 12 && country.height >= 7 ? 2 : 4;
+  if (zoomLevel < minimumZoom || country.width < 4 || country.height < 3)
+    return null;
 
   return (
     <G onPress={onPress}>
-      <AnimatedSvgText
-        animatedProps={animatedProps}
+      <SvgText
+        x={country.centerX - (country.name.length * 9.4) / zoomLevel}
         y={country.centerY}
         fill="#FFFFFF"
         stroke="#000000"
+        strokeWidth={0.15 / zoomLevel}
+        fontSize={35 / zoomLevel}
         fontFamily="Roboto_900Black"
         textAnchor="start"
       >
         {country.name}
-      </AnimatedSvgText>
+      </SvgText>
     </G>
   );
 }
@@ -394,6 +384,7 @@ function WorldMap({
   const [xml, setXml] = useState<string>();
   const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [committedOffset, setCommittedOffset] = useState({ x: 0, y: 0 });
   const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState<MapCountry | null>(
     null,
@@ -408,6 +399,13 @@ function WorldMap({
   const pinchStartTranslateY = useSharedValue(0);
   const pinchStartFocalX = useSharedValue(0);
   const pinchStartFocalY = useSharedValue(0);
+  const commitMapTransform = useCallback(
+    (nextScale: number, x: number, y: number) => {
+      setZoomLevel(nextScale);
+      setCommittedOffset({ x, y });
+    },
+    [],
+  );
 
   const pinchGesture = Gesture.Pinch()
     .onStart((event) => {
@@ -423,22 +421,33 @@ function WorldMap({
       );
       const scaleChange = nextScale / savedScale.value;
       scale.value = nextScale;
-      translateX.value =
+      const nextTranslateX =
         pinchStartTranslateX.value +
         (pinchStartFocalX.value -
           mapCanvasWidth / 2 -
           pinchStartTranslateX.value) *
           (1 - scaleChange);
-      translateY.value =
+      const nextTranslateY =
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
           (1 - scaleChange);
+      const maxX = Math.max(
+        0,
+        (mapCanvasWidth * (nextScale - 1)) / 2 - mapCanvasWidth * 0.15,
+      );
+      const maxY = Math.max(0, (250 * (nextScale - 1)) / 2 - 250 * 0.12);
+      translateX.value = Math.max(-maxX, Math.min(maxX, nextTranslateX));
+      translateY.value = Math.max(-maxY, Math.min(maxY, nextTranslateY));
     })
     .onEnd(() => {
       savedScale.value = scale.value;
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
-      runOnJS(setZoomLevel)(scale.value);
+      runOnJS(commitMapTransform)(
+        scale.value,
+        translateX.value,
+        translateY.value,
+      );
       if (scale.value === 1) {
         translateX.value = withTiming(0);
         translateY.value = withTiming(0);
@@ -451,8 +460,11 @@ function WorldMap({
     .maxPointers(1)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
-      const maxX = (mapCanvasWidth * (scale.value - 1)) / 2;
-      const maxY = (250 * (scale.value - 1)) / 2;
+      const maxX = Math.max(
+        0,
+        (mapCanvasWidth * (scale.value - 1)) / 2 - mapCanvasWidth * 0.15,
+      );
+      const maxY = Math.max(0, (250 * (scale.value - 1)) / 2 - 250 * 0.12);
       translateX.value = Math.max(
         -maxX,
         Math.min(maxX, savedTranslateX.value + event.translationX),
@@ -465,12 +477,18 @@ function WorldMap({
     .onEnd(() => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+      runOnJS(commitMapTransform)(
+        scale.value,
+        translateX.value,
+        translateY.value,
+      );
     });
   const resetGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      runOnJS(setZoomLevel)(1);
-      scale.value = withTiming(1);
+      scale.value = withTiming(1, {}, (finished) => {
+        if (finished) runOnJS(commitMapTransform)(1, 0, 0);
+      });
       savedScale.value = 1;
       translateX.value = withTiming(0);
       translateY.value = withTiming(0);
@@ -481,27 +499,35 @@ function WorldMap({
     resetGesture,
     Gesture.Simultaneous(pinchGesture, panGesture),
   );
-  const animatedGroupProps = useAnimatedProps(() => {
+  const animatedTranslationStyle = useAnimatedStyle(() => {
+    const relativeScale = scale.value / zoomLevel;
+    return {
+      transform: [
+        {
+          translateX: translateX.value - committedOffset.x * relativeScale,
+        },
+        {
+          translateY: translateY.value - committedOffset.y * relativeScale,
+        },
+      ],
+    };
+  });
+  const animatedScaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value / zoomLevel }],
+  }));
+  const committedGroupTransform = useMemo(() => {
+    if (zoomLevel === 1 && committedOffset.x === 0 && committedOffset.y === 0)
+      return undefined;
     const fittedMapScale = Math.min(
       mapCanvasWidth / MAP_WIDTH,
       250 / MAP_HEIGHT,
     );
-    const unitsPerPixel = 1 / fittedMapScale;
-    const svgTranslateX = translateX.value * unitsPerPixel;
-    const svgTranslateY = translateY.value * unitsPerPixel;
-
-    return {
-      transform: [
-        { translateX: svgTranslateX },
-        { translateY: svgTranslateY },
-        { translateX: MAP_WIDTH / 2 },
-        { translateY: MAP_HEIGHT / 2 },
-        { scale: scale.value },
-        { translateX: -MAP_WIDTH / 2 },
-        { translateY: -MAP_HEIGHT / 2 },
-      ],
-    };
-  });
+    const translateX =
+      MAP_WIDTH * 0.5 * (1 - zoomLevel) + committedOffset.x / fittedMapScale;
+    const translateY =
+      MAP_HEIGHT * 0.5 * (1 - zoomLevel) + committedOffset.y / fittedMapScale;
+    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${translateX} ${translateY})`;
+  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -725,11 +751,11 @@ function WorldMap({
         <CountryMapLabel
           key={`label-${country.code}`}
           country={country}
-          scale={scale}
+          zoomLevel={zoomLevel}
           onPress={() => setSelectedCountry(country)}
         />
       )),
-    [countriesOnMap, scale],
+    [countriesOnMap, zoomLevel],
   );
   return (
     <View
@@ -740,17 +766,23 @@ function WorldMap({
       {xml ? (
         <GestureDetector gesture={mapGesture}>
           <View style={styles.zoomableMap} collapsable={false}>
-            <Svg
-              width="100%"
-              height="100%"
-              viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-              preserveAspectRatio="xMidYMid meet"
+            <Animated.View
+              style={[styles.zoomableMap, animatedTranslationStyle]}
             >
-              <AnimatedGroup animatedProps={animatedGroupProps}>
-                {countryPaths}
-                {countryLabels}
-              </AnimatedGroup>
-            </Svg>
+              <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <G transform={committedGroupTransform}>
+                    {countryPaths}
+                    {countryLabels}
+                  </G>
+                </Svg>
+              </Animated.View>
+            </Animated.View>
           </View>
         </GestureDetector>
       ) : (
