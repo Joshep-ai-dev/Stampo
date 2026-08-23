@@ -241,7 +241,7 @@ function Section({ title }: { title: string }) {
   );
 }
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BrandColors.green },
+  safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 30 },
   headerPad: { paddingHorizontal: 18 },
   exploreHeader: {

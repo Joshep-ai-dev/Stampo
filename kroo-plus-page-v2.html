@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kroo+ </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;0,9..144,900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0E3B2C; --bg-surface:#123F30; --bg-surface-2:#164A39;
+    --accent-mint:#3ECF8E; --accent-copper:#C97C54;
+    --cream:#F6F1E4; --text-muted:rgba(246,241,228,0.58); --line:rgba(246,241,228,0.14);
+    --err:#D9694F;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:#dcdcd6; font-family:'Inter',sans-serif; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:40px 20px;
+  }
+  .device{
+    width:393px; max-width:100%; height:852px; background:var(--bg-deep);
+    border-radius:44px; box-shadow:0 40px 80px rgba(0,0,0,0.35), 0 0 0 10px #17171a, 0 0 0 11px #3a3a3f;
+    overflow:hidden; position:relative; display:flex; flex-direction:column; color:var(--cream);
+  }
+  .device::before{
+    content:""; position:absolute; inset:0;
+    background-image:radial-gradient(rgba(246,241,228,0.045) 1px, transparent 1px);
+    background-size:18px 18px; opacity:0.5; pointer-events:none;
+  }
+  .statusbar{ height:52px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 8px; font-size:13px; font-weight:600; position:relative; z-index:3; }
+  .content{ flex:1; overflow-y:auto; position:relative; z-index:2; padding-bottom:20px; }
+  .content::-webkit-scrollbar{display:none;}
+
+  /* logo + page title, homepage-consistent */
+  .logorow{ display:flex; justify-content:center; padding:6px 0 2px; }
+  .logorow svg{ width:26px; height:26px; }
+
+  .pagetitle{ text-align:center; padding:6px 22px 4px; }
+  .pagetitle h1{ font-family:'Fraunces',serif; font-weight:800; font-size:30px; color:var(--cream); letter-spacing:0.01em; }
+
+  /* Daily Destination header, mirrors homepage score treatment */
+  .dailyheader{ display:flex; align-items:flex-end; justify-content:space-between; padding:20px 22px 0; }
+  .dailyheader .dtitle{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; }
+  .dailyheader .dsub{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent-mint); margin-top:3px; }
+  .iqscoreblock{ text-align:right; }
+  .iqscoreblock .iv{ font-family:'Fraunces',serif; font-weight:800; font-size:32px; color:var(--cream); line-height:1; }
+  .iqscoreblock .il{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-top:2px; }
+
+  .dailywrap{ margin:14px 22px 0; background:var(--bg-surface); border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+  .dailyhead{ display:flex; align-items:center; justify-content:flex-end; padding:12px 16px 0; }
+  .progdots{ display:flex; gap:5px; }
+  .progdot{ width:16px; height:4px; border-radius:3px; background:rgba(246,241,228,0.15); }
+  .progdot.done{ background:var(--accent-mint); }
+  .progdot.current{ background:var(--accent-copper); }
+
+  .stagearea{ position:relative; min-height:270px; padding:10px 16px 18px; }
+
+  .infoslide .country{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; margin-bottom:2px; }
+  .infoslide .city{ font-family:'Space Mono',monospace; font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px; }
+  .infoimg{
+    height:90px; border-radius:12px; margin-bottom:12px; display:flex; align-items:center; justify-content:center;
+    font-size:30px; background:linear-gradient(135deg, rgba(201,124,84,0.2), rgba(62,207,142,0.06));
+    border:1px solid var(--line);
+  }
+  .infoslide p{ font-family:'Inter',sans-serif; font-size:13px; line-height:1.55; color:var(--cream); }
+  .nextbtn{
+    display:block; width:100%; margin-top:16px; padding:13px; text-align:center; background:var(--accent-copper);
+    color:var(--bg-deep); font-family:'Space Mono',monospace; font-weight:700; font-size:11.5px;
+    letter-spacing:0.04em; text-transform:uppercase; border-radius:12px; border:none;
+  }
+
+  .qslide .qtag{ font-family:'Space Mono',monospace; font-size:8.5px; color:var(--accent-mint); text-transform:uppercase; margin-bottom:8px; }
+  .qslide .qtext{ font-family:'Fraunces',serif; font-weight:600; font-size:15px; line-height:1.4; margin-bottom:14px; }
+  .qopt{
+    display:block; width:100%; text-align:left; padding:11px 14px; margin-bottom:8px;
+    background:var(--bg-surface-2); border:1.5px solid var(--line); border-radius:10px;
+    font-family:'Inter',sans-serif; font-size:12px; color:var(--cream); cursor:pointer;
+  }
+  .qopt.correct{ border-color:var(--accent-mint); background:rgba(62,207,142,0.14); }
+  .qopt.wrong{ border-color:var(--err); background:rgba(217,105,79,0.14); }
+  .qfeedback{ margin-top:8px; font-family:'Space Mono',monospace; font-size:10.5px; }
+  .qfeedback.right{ color:var(--accent-mint); }
+  .qfeedback.miss{ color:var(--err); }
+
+  .resultslide{ text-align:center; padding-top:20px; }
+  .resultslide .rscore{ font-family:'Fraunces',serif; font-weight:800; font-size:44px; color:var(--accent-copper); }
+  .resultslide .rlbl{ font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-top:4px; }
+  .resultslide .radd{ font-family:'Inter',sans-serif; font-size:12px; color:var(--accent-mint); margin-top:14px; }
+
+  .section-head{ padding:26px 22px 10px; }
+  .section-head h2{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+
+  .challengeintro{ margin:0 22px 14px; font-family:'Inter',sans-serif; font-size:12.5px; color:var(--text-muted); line-height:1.55; }
+  .challengeintro b{ color:var(--cream); }
+
+  .pkgrow{ display:flex; gap:12px; padding:0 22px 4px; overflow-x:auto; }
+  .pkgrow::-webkit-scrollbar{ display:none; }
+  .pkgcard{ flex:0 0 auto; width:128px; background:var(--bg-surface); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; }
+  .pkgimg{ height:70px; display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .pkgbody{ padding:9px 10px 11px; }
+  .pkgbody .pn{ font-family:'Fraunces',serif; font-weight:700; font-size:11.5px; margin-bottom:5px; line-height:1.2; }
+  .pkgbody .pc{ font-family:'Space Mono',monospace; font-size:9.5px; color:var(--accent-mint); }
+
+  /* Go further with Kroo+ */
+  .pricetable{ margin:0 22px; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .prow{ display:grid; grid-template-columns:1fr 55px 55px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--line); font-size:12px; }
+  .prow:last-child{ border-bottom:none; }
+  .prow.head{ background:var(--bg-surface); font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); }
+  .prow.head .ph{ text-align:center; }
+  .prow.head .ph.plus{ color:var(--accent-copper); font-weight:700; }
+  .prow .pc2{ text-align:center; }
+  .check{ color:var(--accent-mint); }
+  .dash{ color:rgba(246,241,228,0.25); }
+
+  .upgradebtn{
+    display:block; width:calc(100% - 44px); margin:16px 22px 0; padding:15px; text-align:center;
+    background:var(--accent-copper); color:var(--bg-deep); font-family:'Space Mono',monospace; font-weight:700;
+    font-size:12px; letter-spacing:0.05em; text-transform:uppercase; border-radius:14px; border:none;
+  }
+  .subnote{ margin:8px 22px 0; font-family:'Space Mono',monospace; font-size:9px; color:var(--text-muted); text-align:center; }
+
+  /* destination popup modal */
+  .modalbg{
+    position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:10; opacity:0; pointer-events:none;
+    transition:opacity 0.25s; display:flex; align-items:flex-end;
+  }
+  .modalbg.show{ opacity:1; pointer-events:auto; }
+  .modalsheet{
+    width:100%; background:var(--bg-surface); border-radius:24px 24px 0 0; padding:8px 22px 26px;
+    transform:translateY(100%); transition:transform 0.3s cubic-bezier(.32,.72,0,1); border-top:1px solid var(--line);
+  }
+  .modalbg.show .modalsheet{ transform:translateY(0); }
+  .modalhandle{ width:40px; height:4px; background:var(--line); border-radius:4px; margin:10px auto 16px; }
+  .modalimg{
+    height:130px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:44px;
+    margin-bottom:16px;
+  }
+  .modaltitle{ font-family:'Fraunces',serif; font-weight:800; font-size:22px; margin-bottom:4px; }
+  .modalplace{ font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:14px; }
+  .modaldesc{ font-family:'Inter',sans-serif; font-size:13px; color:var(--cream); line-height:1.6; margin-bottom:16px; }
+  .modalstats{ display:flex; gap:10px; margin-bottom:18px; }
+  .mstat{ flex:1; text-align:center; background:var(--bg-surface-2); border:1px solid var(--line); border-radius:12px; padding:10px 4px; }
+  .mstat .mv{ font-family:'Fraunces',serif; font-weight:700; font-size:14px; }
+  .mstat .ml{ font-family:'Space Mono',monospace; font-size:7.5px; text-transform:uppercase; color:var(--text-muted); margin-top:2px; }
+  .modalselect{
+    display:block; width:100%; padding:15px; text-align:center; background:var(--accent-copper); color:var(--bg-deep);
+    font-family:'Space Mono',monospace; font-weight:700; font-size:12px; letter-spacing:0.05em; text-transform:uppercase;
+    border-radius:14px; border:none;
+  }
+  .modalclose{
+    position:absolute; top:14px; right:22px; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modalclose svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="statusbar"><span>9:41</span><span>•••</span></div>
+
+  <div class="content">
+
+    <div class="logorow">
+      <svg viewBox="0 0 100 100" fill="#C97C54"><path d="M20 78 C20 78 26 62 34 55 C40 50 44 44 46 38 C47 34 47 30 45 28 C48 26 52 27 54 30 C58 27 63 27 66 31 C70 30 74 32 75 36 C77 40 76 45 73 48 L68 53 C66 58 64 62 60 65 L57 70 C55 74 52 77 48 78 Z"/></svg>
+    </div>
+    <div class="pagetitle"><h1>Kroo+</h1></div>
+
+    <div class="dailyheader">
+      <div>
+        <div class="dtitle">Daily Destination</div>
+        <div class="dsub">Today's Lesson</div>
+      </div>
+      <div class="iqscoreblock">
+        <div class="iv" id="iqTopVal">47.3</div>
+        <div class="il">Kroo IQ</div>
+      </div>
+    </div>
+
+    <div class="dailywrap">
+      <div class="dailyhead">
+        <div class="progdots" id="progdots"></div>
+      </div>
+      <div class="stagearea" id="stage"></div>
+    </div>
+
+    <div class="section-head"><h2>Dream Vacation Challenge</h2></div>
+    <div class="challengeintro">Complete 3 requirements as a <b>Kroo+ member</b> and we'll send you on the dream vacation you choose below.</div>
+
+    <div class="pkgrow" id="pkgRow"></div>
+
+    <div class="section-head"><h2>Go further with Kroo+</h2></div>
+    <div class="pricetable">
+      <div class="prow head"><div>Feature</div><div class="ph">Free</div><div class="ph plus">Kroo+</div></div>
+      <div class="prow"><div>Country &amp; landmark stamps</div><div class="pc2 check">✓</div><div class="pc2 check">✓</div></div>
+      <div class="prow"><div>Daily Destination &amp; Kroo IQ</div><div class="pc2 check">✓</div><div class="pc2 check">✓</div></div>
+      <div class="prow"><div>Dream Vacation Challenge</div><div class="pc2 dash">—</div><div class="pc2 check">✓</div></div>
+      <div class="prow"><div>Collections</div><div class="pc2">3</div><div class="pc2 check">All</div></div>
+      <div class="prow"><div>Photo verifications / mo</div><div class="pc2">5</div><div class="pc2 check">∞</div></div>
+      <div class="prow"><div>Streak freeze</div><div class="pc2 dash">—</div><div class="pc2 check">✓</div></div>
+    </div>
+    <button class="upgradebtn">Try Kroo+ Free for 7 Days</button>
+    <div class="subnote">Then $59.99/year. Cancel anytime during your trial.</div>
+
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- destination detail popup -->
+  <div class="modalbg" id="modalBg" onclick="closeModal(event)">
+    <div class="modalsheet" onclick="event.stopPropagation()">
+      <div class="modalclose" onclick="closeModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+      <div class="modalhandle"></div>
+      <div class="modalimg" id="modalImg"></div>
+      <div class="modaltitle" id="modalTitle"></div>
+      <div class="modalplace" id="modalPlace"></div>
+      <div class="modaldesc" id="modalDesc"></div>
+      <div class="modalstats">
+        <div class="mstat"><div class="mv" id="modalNights"></div><div class="ml">Nights</div></div>
+        <div class="mstat"><div class="mv" id="modalCost"></div><div class="ml">Est. Value</div></div>
+      </div>
+      <button class="modalselect">Select This Destination</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---- Dream Vacation destinations ---- */
+const destinations = [
+  { name:"Bali Bliss Escape", place:"Bali, Indonesia", nights:6, cost:"$3,800", icon:"🌋", bg:"linear-gradient(135deg,#2d5a3d,#1a3d2a)",
+    desc:"A private rice-terrace villa and a sunrise trek up an active volcano — six nights split between total stillness and one unforgettable sunrise." },
+  { name:"Caldera Dreams", place:"Santorini, Greece", nights:5, cost:"$5,200", icon:"🏛️", bg:"linear-gradient(135deg,#3a5a7a,#1e3a52)",
+    desc:"Wake up to caldera views from a cliffside suite, and spend one evening sailing the Aegean on a private sunset catamaran." },
+  { name:"Endless Blue Escape", place:"Riviera Maya, Mexico", nights:5, cost:"$2,800", icon:"🏖️", bg:"linear-gradient(135deg,#2a7a6a,#154a3f)",
+    desc:"Beachfront, all-inclusive, and built for doing absolutely nothing — with a day trip to snorkel a hidden cenote if you feel like moving." },
+  { name:"Pura Vida Adventure", place:"Costa Rica", nights:6, cost:"$2,900", icon:"🌿", bg:"linear-gradient(135deg,#3a6a3a,#1c3d1c)",
+    desc:"Sleep in a rainforest canopy lodge, zip-line through the treetops, and soak in volcanic hot springs at the end of the day." },
+  { name:"Land of the Rising Sun", place:"Kyoto, Japan", nights:6, cost:"$4,600", icon:"⛩️", bg:"linear-gradient(135deg,#7a3a4a,#4a1e28)",
+    desc:"A traditional ryokan stay, quiet temple mornings, and a private tea ceremony held in a bamboo grove outside the city." },
+  { name:"City of Light Getaway", place:"Paris, France", nights:5, cost:"$3,800", icon:"🗼", bg:"linear-gradient(135deg,#4a4a6a,#26263d)",
+    desc:"A boutique hotel on the Left Bank, and a private after-hours tour through the Louvre once the crowds are gone." },
+  { name:"Escape to Paradise", place:"Maldives", nights:4, cost:"$7,000", icon:"🏝️", bg:"linear-gradient(135deg,#2a6a8a,#153a4d)",
+    desc:"An overwater bungalow reached by private seaplane — four nights of the most requested \"dream vacation\" on Earth." },
+  { name:"Arabian Nights Escape", place:"Dubai &amp; Abu Dhabi, UAE", nights:5, cost:"$4,200", icon:"🐪", bg:"linear-gradient(135deg,#9a7a3a,#5a481f)",
+    desc:"A five-star skyline hotel by day, an overnight luxury desert camp under the stars by night." },
+  { name:"The Fairytale Road", place:"Bavaria, Germany", nights:5, cost:"$3,200", icon:"🏰", bg:"linear-gradient(135deg,#6a4a3a,#3a281e)",
+    desc:"A historic inn along the Romantic Road, with a private guided tour of Neuschwanstein — the castle that inspired the fairy tales." },
+  { name:"Adrenaline Escape", place:"Queenstown, New Zealand", nights:6, cost:"$5,000", icon:"🪂", bg:"linear-gradient(135deg,#3a5a6a,#1e2e38)",
+    desc:"A boutique lodge as your base for bungee jumping, jet boating, and a cruise through the fjords — built for the adrenaline chaser." }
+];
+
+const pkgRow = document.getElementById('pkgRow');
+pkgRow.innerHTML = destinations.map((d,i) => `
+  <div class="pkgcard" onclick="openModal(${i})">
+    <div class="pkgimg" style="background:${d.bg}">${d.icon}</div>
+    <div class="pkgbody">
+      <div class="pn">${d.name}</div>
+      <div class="pc">${d.cost}</div>
+    </div>
+  </div>
+`).join('');
+
+function openModal(i){
+  const d = destinations[i];
+  document.getElementById('modalImg').style.background = d.bg;
+  document.getElementById('modalImg').textContent = d.icon;
+  document.getElementById('modalTitle').textContent = d.name;
+  document.getElementById('modalPlace').innerHTML = d.place;
+  document.getElementById('modalDesc').textContent = d.desc;
+  document.getElementById('modalNights').textContent = d.nights;
+  document.getElementById('modalCost').textContent = d.cost;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(e){
+  document.getElementById('modalBg').classList.remove('show');
+}
+
+/* ---- Daily Destination quiz (unchanged functionality) ---- */
+const rounds = [
+  { country:"France", city:"Paris", icon:"🖼️",
+    info:"The Louvre in Paris isn't just France's most famous museum — it's the single most visited art museum on Earth, drawing millions of visitors every year to see works like the Mona Lisa.",
+    q:"Which museum in Paris is the most visited art museum in the world?",
+    opts:["The Louvre","The Uffizi","The British Museum","The Prado"], correct:0 },
+  { country:"France", city:"Paris", icon:"🗼",
+    info:"The Eiffel Tower was built as a temporary entrance arch for the 1889 World's Fair. It was almost torn down twenty years later — it only survived because it proved useful as a radio transmission tower.",
+    q:"In what year was the Eiffel Tower completed?",
+    opts:["1875","1889","1901","1920"], correct:1 },
+  { country:"France", city:"Nationwide", icon:"🌍",
+    info:"France is the single most visited country in the world by international tourist arrivals — more than any other nation, year after year.",
+    q:"France holds the title of the world's ___ most visited country.",
+    opts:["1st","3rd","5th","10th"], correct:0 },
+  { country:"France", city:"Nationwide", icon:"🍷",
+    info:"French cuisine carries so much cultural weight that in 2010, UNESCO officially added \"the gastronomic meal of the French\" to its list of Intangible Cultural Heritage.",
+    q:"Which organization recognized the French gastronomic meal as cultural heritage?",
+    opts:["UNESCO","WHO","UNICEF","WTO"], correct:0 },
+  { country:"France", city:"Nationwide", icon:"🗺️",
+    info:"Mainland France shares land borders with more neighbors than most Western European countries — including Spain, Italy, Germany, Switzerland, Belgium, and several smaller nations.",
+    q:"Roughly how many countries does mainland France share a land border with?",
+    opts:["2","4","8","12"], correct:2 }
+];
+
+let idx = 0, phase = "info", score = 0;
+
+function renderDots(){
+  document.getElementById('progdots').innerHTML = rounds.map((_,i)=>{
+    let cls = i < idx ? "done" : (i === idx ? "current" : "");
+    return `<div class="progdot ${cls}"></div>`;
+  }).join('');
+}
+
+function renderStage(){
+  renderDots();
+  const stage = document.getElementById('stage');
+  if(phase === "result"){
+    stage.innerHTML = `
+      <div class="resultslide">
+        <div class="rscore">${score}/5</div>
+        <div class="rlbl">Today's Score</div>
+        <div class="radd">+${(score*0.05).toFixed(2)} added to your Kroo IQ</div>
+        <button class="nextbtn" onclick="restart()">Done for Today</button>
+      </div>`;
+    document.getElementById('iqTopVal').textContent = (47.3 + score*0.05).toFixed(1);
+    return;
+  }
+  const r = rounds[idx];
+  if(phase === "info"){
+    stage.innerHTML = `
+      <div class="infoslide">
+        <div class="country">${r.country}</div>
+        <div class="city">${r.city}</div>
+        <div class="infoimg">${r.icon}</div>
+        <p>${r.info}</p>
+        <button class="nextbtn" onclick="goQuestion()">Continue</button>
+      </div>`;
+  } else if(phase === "question"){
+    stage.innerHTML = `
+      <div class="qslide">
+        <div class="qtag">Question ${idx+1} of 5</div>
+        <div class="qtext">${r.q}</div>
+        <div id="optsWrap">${r.opts.map((o,i)=>`<button class="qopt" onclick="answer(${i})">${o}</button>`).join('')}</div>
+      </div>`;
+  }
+}
+function goQuestion(){ phase = "question"; renderStage(); }
+function answer(choice){
+  const r = rounds[idx];
+  document.querySelectorAll('.qopt').forEach((el,i)=>{
+    el.onclick = null;
+    if(i === r.correct) el.classList.add('correct');
+    else if(i === choice) el.classList.add('wrong');
+  });
+  const correct = choice === r.correct;
+  if(correct) score++;
+  const fb = document.createElement('div');
+  fb.className = 'qfeedback ' + (correct ? 'right' : 'miss');
+  fb.textContent = correct ? "Correct! Nice work." : `Not quite — the correct answer was "${r.opts[r.correct]}."`;
+  document.querySelector('.qslide').appendChild(fb);
+  const btn = document.createElement('button');
+  btn.className = 'nextbtn';
+  btn.textContent = idx < rounds.length - 1 ? "Next" : "See Your Score";
+  btn.onclick = nextRound;
+  document.querySelector('.qslide').appendChild(btn);
+}
+function nextRound(){
+  idx++;
+  phase = idx >= rounds.length ? "result" : "info";
+  renderStage();
+}
+function restart(){ idx = 0; phase = "info"; score = 0; renderStage(); }
+renderStage();
+</script>
+
+</body>
+</html>

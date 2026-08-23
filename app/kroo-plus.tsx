@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
+import { KrooPlusOffer } from "@/components/kroo-plus-offer";
 import {
   getKrooPlusPlanPrices,
   isKrooPlus as customerHasKrooPlus,
@@ -22,35 +23,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
 
-const FEATURES = [
-  ["Country & landmark stamps", "checkmark", "checkmark"],
-  ["Photo verifications / month", "5", "infinite"],
-  ["Special Lists access", "3", "All"],
-  ["Ads", "close", "checkmark"],
-  ["Daily Destination streak freeze", "dash", "checkmark"],
-  ["Advanced score breakdown", "dash", "checkmark"],
-  ["Custom passport cover designs", "dash", "checkmark"],
-  ["Early access to new countries", "dash", "checkmark"],
-] as const;
-
 type Plan = "monthly" | "annual";
-
-function Value({ value, plus }: { value: string; plus?: boolean }) {
-  if (value === "checkmark" || value === "close")
-    return (
-      <Ionicons
-        name={value}
-        size={23}
-        color={value === "checkmark" ? "#58D7A0" : BrandColors.paleGreen}
-      />
-    );
-  if (value === "infinite")
-    return <Text style={[styles.value, plus && styles.plusValue]}>∞</Text>;
-  if (value === "dash") return <Text style={styles.freeValue}>—</Text>;
-  return (
-    <Text style={plus ? styles.plusValue : styles.freeValue}>{value}</Text>
-  );
-}
 
 export default function KrooPlusScreen() {
   const router = useRouter();
@@ -139,11 +112,9 @@ export default function KrooPlusScreen() {
       const customerInfo = await purchaseKrooPlus(plan);
       updateCustomerInfo(customerInfo);
       if (customerHasKrooPlus(customerInfo)) {
-        Alert.alert(
-          "Welcome to Kroo+",
-          "Your membership is active.",
-          [{ text: "Continue", onPress: () => router.back() }],
-        );
+        Alert.alert("Welcome to Kroo+", "Your membership is active.", [
+          { text: "Continue", onPress: () => router.back() },
+        ]);
       } else {
         Alert.alert(
           "Purchase pending",
@@ -155,11 +126,7 @@ export default function KrooPlusScreen() {
         code?: string;
         userCancelled?: boolean | null;
       };
-      if (
-        purchaseError.userCancelled ||
-        purchaseError.code === "1"
-      )
-        return;
+      if (purchaseError.userCancelled || purchaseError.code === "1") return;
       showError(error);
     } finally {
       setBusy(false);
@@ -193,71 +160,16 @@ export default function KrooPlusScreen() {
           for travelers who want the full passport experience.
         </Text>
 
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerText, styles.featureColumn]}>
-              FEATURE
-            </Text>
-            <Text style={styles.headerText}>FREE</Text>
-            <Text style={[styles.headerText, styles.plusHeader]}>KROO+</Text>
-          </View>
-          {FEATURES.map(([feature, free, plus]) => (
-            <View key={feature} style={styles.featureRow}>
-              <Text style={styles.featureName}>{feature}</Text>
-              <View style={styles.valueColumn}>
-                <Value value={free} />
-              </View>
-              <View style={styles.valueColumn}>
-                <Value value={plus} plus />
-              </View>
-            </View>
-          ))}
+        <View style={{ width: "100%", marginTop: 28 }}>
+          <KrooPlusOffer
+            monthlyPrice={prices.monthly}
+            annualPrice={prices.annual}
+            busy={busy}
+            onPlanChange={setPlan}
+            onPurchase={() => void purchase()}
+            onRestore={() => void restore()}
+          />
         </View>
-
-        <View style={styles.plans}>
-          <TouchableOpacity
-            style={[styles.plan, plan === "monthly" && styles.planSelected]}
-            onPress={() => setPlan("monthly")}
-            accessibilityState={{ selected: plan === "monthly" }}
-          >
-            <Text style={styles.planLabel}>MONTHLY</Text>
-            <Text style={styles.price}>
-              {prices.monthly}
-              <Text style={styles.priceCents}>/mo</Text>
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.plan, plan === "annual" && styles.planSelected]}
-            onPress={() => setPlan("annual")}
-            accessibilityState={{ selected: plan === "annual" }}
-          >
-            <View style={styles.saveBadge}>
-              <Text style={styles.saveText}>SAVE 17%</Text>
-            </View>
-            <Text style={styles.planLabel}>ANNUAL</Text>
-            <Text style={styles.price}>
-              {prices.annual}
-              <Text style={styles.priceCents}>/yr</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.cta, busy && styles.disabled]}
-          onPress={() => void purchase()}
-          disabled={busy}
-        >
-          <Text style={styles.ctaText}>
-            {busy ? "CONNECTING TO GOOGLE PLAY..." : "START 7-DAY FREE TRIAL"}
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.terms}>
-          Then {plan === "annual" ? `${prices.annual}/year` : `${prices.monthly}/month`}.
-          {" "}Cancel anytime before trial ends.
-        </Text>
-        <TouchableOpacity onPress={() => void restore()} disabled={busy}>
-          <Text style={styles.link}>Restore purchase</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

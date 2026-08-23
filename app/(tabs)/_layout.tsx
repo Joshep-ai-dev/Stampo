@@ -88,7 +88,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="message-board"
+        name="community"
         options={{
           title: "Community",
           tabBarActiveTintColor: "#49B964",
