@@ -14,6 +14,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -124,6 +125,8 @@ type CurrentMapLocation = {
   latitude: number;
   longitude: number;
 };
+
+let cachedMapCountries: MapCountry[] | null = null;
 
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
@@ -552,125 +555,182 @@ function WorldMap({
   ).size;
   useEffect(() => {
     let active = true;
-    (async () => {
-      const asset = Asset.fromModule(require("@/assets/images/world-map.svg"));
-      await asset.downloadAsync();
-      let svg = "";
-      try {
-        svg = await (await fetch(asset.localUri ?? asset.uri)).text();
-      } catch {
-        if (asset.localUri) svg = await new File(asset.localUri).text();
-      }
-      if (active) setCountriesOnMap(extractMapCountries(svg));
-      // The project map may be an Illustrator export with a single branded
-      // land style rather than per-country ISO groups. Preserve its geometry.
-      if (
-        !svg.includes('class="country"') &&
-        (svg.includes(".st0{") || svg.includes("mapsvg:geoViewBox"))
-      ) {
-        const countryList = getCountryDataList();
-        const visitedIso2 = new Set(
-          [...visited]
-            .map((rawCode) => {
-              const code = rawCode.toUpperCase();
-              if (code.length === 2) return code;
-              return (
-                countryList.find((country) => country.iso3 === code)?.iso2 ?? ""
-              );
-            })
-            .filter(Boolean),
+    if (cachedMapCountries) {
+      setCountriesOnMap(cachedMapCountries);
+      setXml("ready");
+      return () => {
+        active = false;
+      };
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      void (async () => {
+        const asset = Asset.fromModule(
+          require("@/assets/images/world-map.svg"),
         );
-        const visitedIso3 = new Set([...visited].map(iso3For).filter(Boolean));
-        // Illustrator's embedded JavaScript is intentionally not run by
-        // react-native-svg. Turn the path list already authored in the asset
-        // into ordinary SVG classes so those countries remain visible.
-        let brandedMap = svg
-          .replace(
-            /\.st0\{[^}]+\}/,
-            `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.mapVisited};}`,
-          )
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(
-            /<(path|polygon|polyline|circle)\b([^>]*?)>/g,
-            (_shape, element: string, attributes: string) => {
-              const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
-              const iso2 = (
-                attributes.match(/\bdata-iso2="([A-Za-z]{2})"/)?.[1] ??
-                (id.startsWith("UM-")
-                  ? "UM"
-                  : id === "GO" || id === "JU"
-                    ? "TF"
-                    : id.match(/^[A-Za-z]{2}$/)
-                      ? id
-                      : "")
-              ).toUpperCase();
-              const iso3 = (
-                attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
-                (id.match(/^[A-Za-z]{3}$/) ? id : "")
-              ).toUpperCase();
-              const selected = visitedIso2.has(iso2) || visitedIso3.has(iso3);
-              const pathAttributes = attributes
-                .replace(/\sfill="[^"]*"/g, "")
-                .replace(/\sstroke="[^"]*"/g, "")
-                .replace(/\sstroke-width="[^"]*"/g, "")
-                .replace(/\sclass="[^"]*"/g, "")
-                .replace(/\s*\/\s*$/, "");
-              // Inline presentation attributes are supported consistently by
-              // react-native-svg; Illustrator CSS classes are not.
-              return `<${element}${pathAttributes} fill="${
-                selected ? BrandColors.mapVisited : BrandColors.mapGreen
-              }" stroke="${BrandColors.green}" stroke-width=".3" />`;
-            },
-          );
-        // Keep the supplied artwork in charge of geometry. ISO2 ids such as
-        // FR and JP, plus optional ISO3 metadata, respond to saved visits.
-        if (active) setXml(brandedMap);
-        return;
-      }
-      const visitedClasses = [...visited].map(iso3For).filter(Boolean);
-      svg = svg
-        .replace(/<style[\s\S]*?<\/style>/, "")
-        .replace(
-          '<g class="country">',
-          `<g class="country" fill="${BrandColors.mapGreen}" stroke="${BrandColors.green}" stroke-width=".18">`,
-        )
-        .replaceAll('class="water"', 'fill="transparent" stroke="none"')
-        .replaceAll("<circle ", '<circle display="none" ');
-      HIDDEN_MAP_ISO3.forEach((code) => {
-        svg = svg.replace(
-          new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
-          '<g display="none" class="$1"',
-        );
-      });
-      visitedClasses.forEach((code) => {
-        if (HIDDEN_MAP_ISO3.has(code)) return;
-        const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
-        svg = svg.replace(
-          new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
-          `<g class="$1" fill="${BrandColors.mapVisited}"`,
-        );
-        svg = svg.replace(
-          `display="none" id="${code}-circle"`,
-          `display="inline" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" id="${code}-circle"`,
-        );
-        svg = svg.replace(
-          new RegExp(`(id="${code}-circle"[^>]*?)r="[^"]+"`),
-          '$1r="1.35"',
-        );
-        if (!hasCountryShape && FALLBACK_MAP_POINTS[code]) {
-          const [cx, cy] = FALLBACK_MAP_POINTS[code];
-          svg = svg.replace(
-            "</svg>",
-            `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" /></svg>`,
-          );
+        await asset.downloadAsync();
+        let svg = "";
+        try {
+          svg = await (await fetch(asset.localUri ?? asset.uri)).text();
+        } catch {
+          if (asset.localUri) svg = await new File(asset.localUri).text();
         }
-      });
-      if (active) setXml(svg);
-    })();
+        const parsedCountries = extractMapCountries(svg);
+        cachedMapCountries = parsedCountries;
+        if (active) {
+          setCountriesOnMap(parsedCountries);
+          setXml("ready");
+        }
+        // The map renders these paths directly. Skip retaining and rewriting a
+        // second 1.2 MB SVG string when the interactive geometry parsed cleanly.
+        if (parsedCountries.length) return;
+        // The project map may be an Illustrator export with a single branded
+        // land style rather than per-country ISO groups. Preserve its geometry.
+        if (
+          !svg.includes('class="country"') &&
+          (svg.includes(".st0{") || svg.includes("mapsvg:geoViewBox"))
+        ) {
+          const countryList = getCountryDataList();
+          const visitedIso2 = new Set(
+            [...visited]
+              .map((rawCode) => {
+                const code = rawCode.toUpperCase();
+                if (code.length === 2) return code;
+                return (
+                  countryList.find((country) => country.iso3 === code)?.iso2 ??
+                  ""
+                );
+              })
+              .filter(Boolean),
+          );
+          const visitedIso3 = new Set(
+            [...visited].map(iso3For).filter(Boolean),
+          );
+          // Illustrator's embedded JavaScript is intentionally not run by
+          // react-native-svg. Turn the path list already authored in the asset
+          // into ordinary SVG classes so those countries remain visible.
+          let brandedMap = svg
+            .replace(
+              /\.st0\{[^}]+\}/,
+              `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.mapVisited};}`,
+            )
+            .replace(/<script[\s\S]*?<\/script>/gi, "")
+            .replace(
+              /<(path|polygon|polyline|circle)\b([^>]*?)>/g,
+              (_shape, element: string, attributes: string) => {
+                const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
+                const iso2 = (
+                  attributes.match(/\bdata-iso2="([A-Za-z]{2})"/)?.[1] ??
+                  (id.startsWith("UM-")
+                    ? "UM"
+                    : id === "GO" || id === "JU"
+                      ? "TF"
+                      : id.match(/^[A-Za-z]{2}$/)
+                        ? id
+                        : "")
+                ).toUpperCase();
+                const iso3 = (
+                  attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
+                  (id.match(/^[A-Za-z]{3}$/) ? id : "")
+                ).toUpperCase();
+                const selected = visitedIso2.has(iso2) || visitedIso3.has(iso3);
+                const pathAttributes = attributes
+                  .replace(/\sfill="[^"]*"/g, "")
+                  .replace(/\sstroke="[^"]*"/g, "")
+                  .replace(/\sstroke-width="[^"]*"/g, "")
+                  .replace(/\sclass="[^"]*"/g, "")
+                  .replace(/\s*\/\s*$/, "");
+                // Inline presentation attributes are supported consistently by
+                // react-native-svg; Illustrator CSS classes are not.
+                return `<${element}${pathAttributes} fill="${
+                  selected ? BrandColors.mapVisited : BrandColors.mapGreen
+                }" stroke="${BrandColors.green}" stroke-width=".3" />`;
+              },
+            );
+          // Keep the supplied artwork in charge of geometry. ISO2 ids such as
+          // FR and JP, plus optional ISO3 metadata, respond to saved visits.
+          if (active) setXml(brandedMap);
+          return;
+        }
+        const visitedClasses = [...visited].map(iso3For).filter(Boolean);
+        svg = svg
+          .replace(/<style[\s\S]*?<\/style>/, "")
+          .replace(
+            '<g class="country">',
+            `<g class="country" fill="${BrandColors.mapGreen}" stroke="${BrandColors.green}" stroke-width=".18">`,
+          )
+          .replaceAll('class="water"', 'fill="transparent" stroke="none"')
+          .replaceAll("<circle ", '<circle display="none" ');
+        HIDDEN_MAP_ISO3.forEach((code) => {
+          svg = svg.replace(
+            new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
+            '<g display="none" class="$1"',
+          );
+        });
+        visitedClasses.forEach((code) => {
+          if (HIDDEN_MAP_ISO3.has(code)) return;
+          const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
+          svg = svg.replace(
+            new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
+            `<g class="$1" fill="${BrandColors.mapVisited}"`,
+          );
+          svg = svg.replace(
+            `display="none" id="${code}-circle"`,
+            `display="inline" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" id="${code}-circle"`,
+          );
+          svg = svg.replace(
+            new RegExp(`(id="${code}-circle"[^>]*?)r="[^"]+"`),
+            '$1r="1.35"',
+          );
+          if (!hasCountryShape && FALLBACK_MAP_POINTS[code]) {
+            const [cx, cy] = FALLBACK_MAP_POINTS[code];
+            svg = svg.replace(
+              "</svg>",
+              `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" /></svg>`,
+            );
+          }
+        });
+        if (active) setXml(svg);
+      })();
+    });
     return () => {
       active = false;
+      task.cancel();
     };
   }, [visited]);
+  const countryPaths = useMemo(
+    () =>
+      countriesOnMap.map((country) => (
+        <Path
+          key={country.code}
+          d={country.path}
+          fill={
+            verifiedIso2.has(country.code)
+              ? BrandColors.copper
+              : visitedIso2.has(country.code)
+                ? BrandColors.mapVisited
+                : BrandColors.mapGreen
+          }
+          stroke={BrandColors.green}
+          strokeWidth={0.7 / zoomLevel}
+          strokeLinejoin="round"
+          onPress={() => setSelectedCountry(country)}
+          accessibilityLabel={`Preview ${country.name}`}
+        />
+      )),
+    [countriesOnMap, verifiedIso2, visitedIso2, zoomLevel],
+  );
+  const countryLabels = useMemo(
+    () =>
+      countriesOnMap.map((country) => (
+        <CountryMapLabel
+          key={`label-${country.code}`}
+          country={country}
+          scale={scale}
+          onPress={() => setSelectedCountry(country)}
+        />
+      )),
+    [countriesOnMap, scale],
+  );
   return (
     <View
       style={styles.mapWrap}
@@ -687,32 +747,8 @@ function WorldMap({
               preserveAspectRatio="xMidYMid meet"
             >
               <AnimatedGroup animatedProps={animatedGroupProps}>
-                {countriesOnMap.map((country) => (
-                  <Path
-                    key={country.code}
-                    d={country.path}
-                    fill={
-                      verifiedIso2.has(country.code)
-                        ? BrandColors.copper
-                        : visitedIso2.has(country.code)
-                          ? BrandColors.mapVisited
-                          : BrandColors.mapGreen
-                    }
-                    stroke={BrandColors.green}
-                    strokeWidth={0.7 / zoomLevel}
-                    strokeLinejoin="round"
-                    onPress={() => setSelectedCountry(country)}
-                    accessibilityLabel={`Preview ${country.name}`}
-                  />
-                ))}
-                {countriesOnMap.map((country) => (
-                  <CountryMapLabel
-                    key={`label-${country.code}`}
-                    country={country}
-                    scale={scale}
-                    onPress={() => setSelectedCountry(country)}
-                  />
-                ))}
+                {countryPaths}
+                {countryLabels}
               </AnimatedGroup>
             </Svg>
           </View>
@@ -883,8 +919,8 @@ export default function HomeScreen() {
       subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          distanceInterval: 5,
-          timeInterval: 3_000,
+          distanceInterval: 25,
+          timeInterval: 30_000,
         },
         (position) => {
           if (!active) return;
