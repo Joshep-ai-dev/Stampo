@@ -10,7 +10,6 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 type UpgradeBannerProps = {
   active: boolean;
   configured: boolean;
-  onPreviewToggle: () => void;
   onCustomerInfo: (
     customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
   ) => void;
@@ -21,7 +20,6 @@ type UpgradeBannerProps = {
 export function UpgradeBanner({
   active,
   configured,
-  onPreviewToggle,
   onCustomerInfo,
   text = "Unlock all top sights with Kroo+",
 }: UpgradeBannerProps) {
@@ -38,10 +36,6 @@ export function UpgradeBanner({
       return;
     }
     if (!configured) {
-      if (__DEV__) {
-        onPreviewToggle();
-        return;
-      }
       Alert.alert(
         "Kroo+ setup required",
         "Add the RevenueCat iOS and Android public SDK keys, then rebuild the app.",
@@ -60,7 +54,7 @@ export function UpgradeBanner({
         active
           ? configured
             ? "Manage Kroo+"
-            : "Switch to Kroo Free preview"
+            : "Kroo+ setup required"
           : "View Kroo+ plans"
       }
     >

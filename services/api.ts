@@ -8,6 +8,13 @@ import {
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
+
+function backendImageUrl(value?: string) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
+}
 
 let authToken: string | null = null;
 
@@ -282,7 +289,7 @@ function normalizeSight(item: BackendSight): SightDetail {
     category: item.category ?? "attraction",
     latitude: Number(item.latitude ?? 0),
     longitude: Number(item.longitude ?? 0),
-    image: item.image ?? item.imageUrl ?? "",
+    image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     completed: item.completed,
     isPremium: item.isPremium === true,
@@ -302,7 +309,7 @@ function normalizeCity(item: BackendCity): CityDetail {
     population: Number(item.population ?? 0),
     latitude: Number(item.latitude ?? 0),
     longitude: Number(item.longitude ?? 0),
-    image: item.image ?? "",
+    image: backendImageUrl(item.image),
     imageCredit: item.imageCredit ?? null,
     sights: item.sights?.map(normalizeSight),
   };
@@ -312,9 +319,25 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
   return {
     ...item,
     description: item.description ?? item.detail ?? "",
-    imageUrl: item.imageUrl ?? "",
+    imageUrl: backendImageUrl(item.imageUrl),
     isPremium: item.isPremium === true,
-    places: item.places ?? [],
+    places: (item.places ?? []).map((place) => ({
+      ...place,
+      imageUrl: backendImageUrl(place.imageUrl),
+    })),
+  };
+}
+
+function normalizeCollectionProgress(
+  item: CollectionProgress,
+): CollectionProgress {
+  return {
+    ...item,
+    imageUrl: backendImageUrl(item.imageUrl),
+    places: item.places?.map((place) => ({
+      ...place,
+      imageUrl: backendImageUrl(place.imageUrl),
+    })),
   };
 }
 
@@ -422,7 +445,7 @@ export const api = {
   listCollections: (status: "all" | "active" | "completed" = "all") =>
     request<CollectionProgress[]>(
       `/collections?status=${encodeURIComponent(status)}`,
-    ),
+    ).then((items) => items.map(normalizeCollectionProgress)),
   collectionDetail: (id: string) =>
     request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
       normalizeCollection,

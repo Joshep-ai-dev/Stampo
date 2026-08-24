@@ -26,18 +26,11 @@ import { stampAssets } from "@/data/stamps";
 import { api, type ManagedCollection, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
-import { sightCompletionSet } from "@/store/travel-slice";
-
-const collectionImages: Record<string, number> = {
-  wonders: require("@/assets/images/collection/Seven Wonders.png"),
-  seas: require("@/assets/images/collection/Seven Seas.png"),
-  unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
-  parks: require("@/assets/images/collection/National Parks Collector.png"),
-  usa: require("@/assets/images/collection/United States Explorer.png"),
-};
+import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -129,6 +122,12 @@ export default function CountryScreen() {
     dispatch(sightCompletionSet({ id: sightId, completed: next }));
     try {
       await api.setSightCompleted(sightId, next);
+      void api
+        .listVisits()
+        .then((visits) => dispatch(visitsHydrated(visits)))
+        .catch(() => undefined);
+      void dispatch(fetchHomeDashboard());
+      void dispatch(fetchCountryDetail(code));
     } catch {
       dispatch(sightCompletionSet({ id: sightId, completed }));
       Alert.alert("Could not update sight", "Please try again.");
@@ -163,6 +162,14 @@ export default function CountryScreen() {
     });
     if (failed) {
       Alert.alert("Could not update collection", "Please try again.");
+    }
+    if (results.some((result) => result.status === "fulfilled")) {
+      void api
+        .listVisits()
+        .then((visits) => dispatch(visitsHydrated(visits)))
+        .catch(() => undefined);
+      void dispatch(fetchHomeDashboard());
+      void dispatch(fetchCountryDetail(code));
     }
   };
 
@@ -313,14 +320,6 @@ export default function CountryScreen() {
                 count={premiumSights.length}
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
-                onPreviewToggle={() =>
-                  dispatch(
-                    subscriptionUpdated({
-                      configured: false,
-                      isKrooPlus: !subscription.isKrooPlus,
-                    }),
-                  )
-                }
                 onCustomerInfo={(customerInfo) =>
                   dispatch(
                     subscriptionUpdated({
@@ -403,13 +402,8 @@ export default function CountryScreen() {
                   accessibilityLabel={`Open ${collection.title}`}
                 >
                   <View style={s.collectionImageFrame}>
-                    <Image
-                      source={
-                        collection.imageUrl
-                          ? { uri: collection.imageUrl }
-                          : (collectionImages[collection.id] ??
-                            require("@/assets/images/other/globe-airplane.png"))
-                      }
+                    <ProgressivePlaceImage
+                      uri={collection.imageUrl}
                       style={s.collectionImage}
                       contentFit="contain"
                     />
@@ -579,13 +573,8 @@ export default function CountryScreen() {
           />
           {selectedCollection ? (
             <View style={s.sightModal} accessibilityViewIsModal>
-              <Image
-                source={
-                  selectedCollection.imageUrl
-                    ? { uri: selectedCollection.imageUrl }
-                    : (collectionImages[selectedCollection.id] ??
-                      require("@/assets/images/other/globe-airplane.png"))
-                }
+              <ProgressivePlaceImage
+                uri={selectedCollection.imageUrl}
                 style={s.modalImage}
                 contentFit="contain"
               />

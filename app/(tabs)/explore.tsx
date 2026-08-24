@@ -50,18 +50,19 @@ export default function ExploreScreen() {
     const visitedCodes = new Set(
       visits.map((visit) => visit.countryCode.trim().toUpperCase()),
     );
-    return (countryFilter === "All"
-      ? countryCatalog
-      : countryFilter === "Visited"
-        ? countryCatalog.filter((country) =>
-            visitedCodes.has(country.code.toUpperCase()),
-          )
-        : countryCatalog.filter(
-            (country) => country.continent === countryFilter,
-          )
+    return (
+      countryFilter === "All"
+        ? countryCatalog
+        : countryFilter === "Visited"
+          ? countryCatalog.filter((country) =>
+              visitedCodes.has(country.code.toUpperCase()),
+            )
+          : countryCatalog.filter(
+              (country) => country.continent === countryFilter,
+            )
     )
-        .slice()
-        .sort((left, right) => left.name.localeCompare(right.name));
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name));
   }, [countryCatalog, countryFilter, visits]);
   const visitedCityCounts = useMemo(() => {
     const counts = new Map<string, Set<string>>();
@@ -86,21 +87,15 @@ export default function ExploreScreen() {
       };
     }, []),
   );
-  const visibleCollections = useMemo(
-    () => {
-      if (collectionFilter === "All") return collectionCatalog;
-      if (collectionFilter === "Active") {
-        return collectionCatalog.filter(
-          (collection) =>
-            collection.progress > 0 && collection.progress < 100,
-        );
-      }
+  const visibleCollections = useMemo(() => {
+    if (collectionFilter === "All") return collectionCatalog;
+    if (collectionFilter === "Active") {
       return collectionCatalog.filter(
-        (collection) => collection.progress >= 100,
+        (collection) => collection.progress > 0 && collection.progress < 100,
       );
-    },
-    [collectionCatalog, collectionFilter],
-  );
+    }
+    return collectionCatalog.filter((collection) => collection.progress >= 100);
+  }, [collectionCatalog, collectionFilter]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -202,10 +197,10 @@ export default function ExploreScreen() {
                 <View style={s.challengeSeal}>
                   <Image
                     source={
-                      collection.imageUrl
+                      collectionImages[collection.id] ??
+                      (collection.imageUrl
                         ? { uri: collection.imageUrl }
-                        : collectionImages[collection.id] ??
-                          require("@/assets/images/other/globe-airplane.png")
+                        : require("@/assets/images/other/globe-airplane.png"))
                     }
                     style={s.collectionImage}
                     contentFit="contain"

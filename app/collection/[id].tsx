@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -23,88 +22,20 @@ import {
   type CollectionPlace,
 } from "@/data/collections";
 import { api } from "@/services/api";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { subscriptionUpdated } from "@/store/subscription-slice";
-import { wishlistToggled } from "@/store/travel-slice";
-
-const collectionImages: Record<string, number> = {
-  wonders: require("@/assets/images/seven wonders/seven wornders.png"),
-  seas: require("@/assets/images/seven seas/seven seas.png"),
-  unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
-  parks: require("@/assets/images/collection/National Parks Collector.png"),
-  usa: require("@/assets/images/collection/United States Explorer.png"),
-};
-
-const wonderPlaceImages: Record<string, number> = {
-  "great-wall": require("@/assets/images/seven wonders/Great Wall of China.png"),
-  petra: require("@/assets/images/seven wonders/Petra.png"),
-  colosseum: require("@/assets/images/seven wonders/Colosseum.png"),
-  "chichen-itza": require("@/assets/images/seven wonders/Chichén Itzá.png"),
-  "machu-picchu": require("@/assets/images/seven wonders/Machu Picchu.png"),
-  "taj-mahal": require("@/assets/images/seven wonders/Taj Mahal.png"),
-  "christ-redeemer": require("@/assets/images/seven wonders/Christ the Redeemer.png"),
-};
-
-const seaPlaceImages: Record<string, number> = {
-  "arctic-ocean": require("@/assets/images/seven seas/Arctic Ocean.jpg"),
-  "north-atlantic": require("@/assets/images/seven seas/North Atlantic Ocean.jpg"),
-  "south-atlantic": require("@/assets/images/seven seas/South Atlantic Ocean.jpg"),
-  "north-pacific": require("@/assets/images/seven seas/North Pacific Ocean.jpg"),
-  "south-pacific": require("@/assets/images/seven seas/South Pacific Ocean.jpg"),
-  "indian-ocean": require("@/assets/images/seven seas/Indian Ocean.jpg"),
-  "southern-ocean": require("@/assets/images/seven seas/Southern Ocean.jpg"),
-};
-
-function getLocalPlaceImage(collectionId: string, placeId: string) {
-  if (collectionId === "wonders") return wonderPlaceImages[placeId];
-  if (collectionId === "seas") return seaPlaceImages[placeId];
-  return undefined;
-}
+import { visitsHydrated, wishlistToggled } from "@/store/travel-slice";
 
 function PlaceImage({
   place,
-  localSource,
   blurRadius,
 }: {
   place: CollectionPlace;
-  localSource?: number;
   blurRadius?: number;
 }) {
-  const [uri, setUri] = useState(place.imageUrl ?? "");
-  useEffect(() => {
-    setUri(place.imageUrl ?? "");
-    if (localSource || place.imageUrl) return;
-    let active = true;
-    void api
-      .resolvePlaceImage({
-        name: place.name,
-        city: place.city,
-        country: place.country,
-      })
-      .then((result) => {
-        if (active) setUri(result.image);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [localSource, place.city, place.country, place.imageUrl, place.name]);
-
-  if (localSource) {
-    return (
-      <Image
-        source={localSource}
-        style={s.placeImage}
-        contentFit="cover"
-        blurRadius={blurRadius}
-        transition={220}
-      />
-    );
-  }
-
   return (
     <ProgressivePlaceImage
-      uri={uri}
+      uri={place.imageUrl}
       style={s.placeImage}
       contentFit="cover"
       blurRadius={blurRadius}
@@ -119,13 +50,14 @@ export default function CollectionScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const subscription = useAppSelector((state) => state.subscription);
-  const [collection, setCollection] = useState<CollectionDefinition | null>(null);
+  const [collection, setCollection] = useState<CollectionDefinition | null>(
+    null,
+  );
   const [collectionLoading, setCollectionLoading] = useState(true);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
-  const [selectedPlaceImage, setSelectedPlaceImage] = useState("");
   const [placeDescription, setPlaceDescription] = useState<string>("");
   const [wishlistPending, setWishlistPending] = useState(false);
 
@@ -165,31 +97,6 @@ export default function CollectionScreen() {
     };
   }, [id]);
 
-  useEffect(() => {
-    setSelectedPlaceImage("");
-    if (
-      !selectedPlace ||
-      getLocalPlaceImage(id, selectedPlace.id)
-    )
-      return;
-
-    let active = true;
-    void api
-      .resolvePlaceImage({
-        name: selectedPlace.name,
-        city: selectedPlace.city,
-        country: selectedPlace.country,
-      })
-      .then((result) => {
-        if (active) setSelectedPlaceImage(result.image);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, [id, selectedPlace]);
-
   if (!collection) {
     return (
       <SafeAreaView style={s.safe}>
@@ -223,6 +130,11 @@ export default function CollectionScreen() {
     });
     try {
       await api.setSightCompleted(targetId, next);
+      void api
+        .listVisits()
+        .then((visits) => dispatch(visitsHydrated(visits)))
+        .catch(() => undefined);
+      void dispatch(fetchHomeDashboard());
     } catch {
       setCompleted((current) => {
         const updated = new Set(current);
@@ -236,17 +148,18 @@ export default function CollectionScreen() {
   const completedCount = collection.places.filter((place) =>
     completed.has(`collection-${collection.id}-${place.id}`),
   ).length;
+  const requiresKrooPlus = (place: CollectionPlace) =>
+    collection.isPremium === true || place.isPremium === true;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
-    : collection.places.slice(0, 3);
+    : collection.places.filter((place) => !requiresKrooPlus(place));
   const premiumPlaces = subscription.isKrooPlus
     ? []
-    : collection.places.slice(3);
+    : collection.places.filter(requiresKrooPlus);
 
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
-    const description = `${place.name} is located in ${place.city}, ${place.country}. This is a wonderful destination to explore and add to your travel collection.`;
-    setPlaceDescription(description);
+    setPlaceDescription(place.content ?? "");
   };
 
   const wishlistId = `collection:${collection.id}`;
@@ -343,18 +256,10 @@ export default function CollectionScreen() {
         </View>
 
         <View style={s.hero}>
-          <Image
-            source={
-              collection.imageUrl
-                ? { uri: collection.imageUrl }
-                : collectionImages[collection.id] ??
-                  require("@/assets/images/other/globe-airplane.png")
-            }
-            style={[
-              s.heroImage,
-              collection.id === "seas" && s.seasHeroImage,
-            ]}
-            contentFit={collection.id === "seas" ? "contain" : "cover"}
+          <ProgressivePlaceImage
+            uri={collection.imageUrl}
+            style={s.heroImage}
+            contentFit={"cover"}
           />
         </View>
 
@@ -374,10 +279,7 @@ export default function CollectionScreen() {
                 style={s.placeRow}
                 onPress={() => void handlePlaceTap(place)}
               >
-                <PlaceImage
-                  place={place}
-                  localSource={getLocalPlaceImage(collection.id, place.id)}
-                />
+                <PlaceImage place={place} />
                 <View style={s.placeCopy}>
                   <Text style={s.placeName} numberOfLines={1}>
                     {place.name}
@@ -407,14 +309,6 @@ export default function CollectionScreen() {
               active={subscription.isKrooPlus}
               configured={subscription.configured}
               text="Unlock collections with Kroo+"
-              onPreviewToggle={() =>
-                dispatch(
-                  subscriptionUpdated({
-                    configured: false,
-                    isKrooPlus: !subscription.isKrooPlus,
-                  }),
-                )
-              }
               onCustomerInfo={() => undefined}
             />
             <View style={s.lockedList}>
@@ -423,14 +317,7 @@ export default function CollectionScreen() {
                 const checked = completed.has(targetId);
                 return (
                   <View key={place.id} style={[s.placeRow, s.lockedPlaceRow]}>
-                    <PlaceImage
-                      place={place}
-                      localSource={getLocalPlaceImage(
-                        collection.id,
-                        place.id,
-                      )}
-                      blurRadius={32}
-                    />
+                    <PlaceImage place={place} blurRadius={32} />
                     <View style={s.placeCopy}>
                       <Text
                         style={[s.placeName, s.lockedPlaceName]}
@@ -468,26 +355,11 @@ export default function CollectionScreen() {
             {selectedPlace && (
               <>
                 <View style={s.modalImageContainer}>
-                  {selectedPlace &&
-                    (getLocalPlaceImage(
-                      collection.id,
-                      selectedPlace.id,
-                    ) ? (
-                      <Image
-                        source={getLocalPlaceImage(
-                          collection.id,
-                          selectedPlace.id,
-                        )}
-                        style={s.modalPlaceImage}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <ProgressivePlaceImage
-                        uri={selectedPlaceImage}
-                        style={s.modalPlaceImage}
-                        contentFit="cover"
-                      />
-                    ))}
+                  <ProgressivePlaceImage
+                    uri={selectedPlace.imageUrl}
+                    style={s.modalPlaceImage}
+                    contentFit="cover"
+                  />
                 </View>
                 <Text style={s.modalTitle}>{selectedPlace?.name}</Text>
                 <Text style={s.modalSubtitle}>{selectedPlace?.city}</Text>
@@ -543,8 +415,12 @@ const s = StyleSheet.create({
     alignItems: "center",
     backgroundColor: BrandColors.surface,
   },
-  heroImage: { width: "100%", height: 180, borderRadius: 16 },
-  seasHeroImage: { height: undefined, aspectRatio: 1.5 },
+  heroImage: {
+    width: "100%",
+    height: undefined,
+    aspectRatio: 1.5,
+    borderRadius: 16,
+  },
   subtitle: {
     marginTop: 5,
     textAlign: "center",
