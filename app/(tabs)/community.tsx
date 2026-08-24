@@ -255,7 +255,9 @@ function LeaderboardRow({
       <Avatar person={person} medal={medal} />
       <View style={s.lbName}>
         <Text style={s.personName}>{mine ? "You" : person.name}</Text>
-        <Text style={s.personLevel}>{person.level.toUpperCase()}</Text>
+        <Text style={s.personLevel}>
+          {(person.level || "Wanderer").toUpperCase()}
+        </Text>
       </View>
       <Text style={s.lbScore}>{person.score.toFixed(1)}</Text>
     </View>

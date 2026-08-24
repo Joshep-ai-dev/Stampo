@@ -318,6 +318,15 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
   };
 }
 
+function levelForScore(score: number) {
+  if (score >= 75) return "Kroo Master";
+  if (score >= 50) return "Voyager";
+  if (score >= 30) return "Wayfarer";
+  if (score >= 15) return "Explorer";
+  if (score >= 5) return "Traveler";
+  return "Wanderer";
+}
+
 async function countryDetail(code: string): Promise<CountryDetailResponse> {
   const path = `/catalog/countries/${encodeURIComponent(code)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
@@ -369,22 +378,25 @@ export const api = {
     ),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   communityLeaderboard: (scope: "global" | "friends") =>
-    request<
-      (Omit<CommunityProfile, "stats"> &
-        Partial<CommunityProfile["stats"]> & {
-          stats?: CommunityProfile["stats"];
-        })[]
-    >(`/community/leaderboard?scope=${encodeURIComponent(scope)}`).then(
-      (items) =>
-        items.map((item) => ({
-          ...item,
+    request<(Partial<CommunityProfile> & Partial<CommunityProfile["stats"]>)[]>(
+      `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
+    ).then((items) =>
+      items.map((item) => {
+        const score = Number(item.score ?? 0);
+        return {
+          id: String(item.id ?? ""),
+          name: item.name ?? "Traveler",
+          photoUri: item.photoUri ?? null,
+          score,
+          level: item.level ?? levelForScore(score),
           stats: item.stats ?? {
             countries: item.countries ?? 0,
             continents: item.continents ?? 0,
             cities: item.cities ?? 0,
             collections: item.collections ?? 0,
           },
-        })),
+        };
+      }),
     ),
   dailyDestinations: (date = new Date().toISOString().slice(0, 10)) =>
     request<DailyDestination[]>(
