@@ -29,7 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   // Remote development databases can need several seconds to wake and connect.
   // Keep the request alive long enough for Laravel to return its real response.
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), 60_000);
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {

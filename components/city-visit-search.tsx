@@ -144,10 +144,12 @@ export function CityVisitSearch({
     try {
       dispatch(visitReceived(await api.createVisit(visit)));
       void dispatch(fetchHomeDashboard());
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Visit not saved",
-        "The server could not save this visit. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "The server could not save this visit. Please try again.",
       );
       return;
     }
@@ -170,11 +172,13 @@ export function CityVisitSearch({
     dispatch(wishlistToggled(selectedWishlistId));
     try {
       await api.setWishlist(selectedWishlistId, true);
-    } catch {
+    } catch (error) {
       dispatch(wishlistToggled(selectedWishlistId));
       Alert.alert(
         "Wishlist not updated",
-        "The server could not save this city. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "The server could not save this city. Please try again.",
       );
     } finally {
       setWishlistPending(false);
