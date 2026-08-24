@@ -22,7 +22,6 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
-import { collectionDefinitions } from "@/data/collections";
 import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
@@ -30,6 +29,7 @@ import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
+import { sightCompletionSet } from "@/store/travel-slice";
 
 const collectionImages: Record<string, number> = {
   wonders: require("@/assets/images/collection/Seven Wonders.png"),
@@ -45,6 +45,9 @@ export default function CountryScreen() {
   const { code = "FR" } = useLocalSearchParams<{ code: string }>();
   const countryState = useAppSelector((state) => state.countryDetail);
   const allVisits = useAppSelector((state) => state.travel.visits);
+  const completedSightIds = useAppSelector(
+    (state) => state.travel.completedSightIds,
+  );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
@@ -88,14 +91,9 @@ export default function CountryScreen() {
   const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
-  const countryCollections = Object.values(collectionDefinitions)
-    .filter((collection) =>
-      collection.places.some(
-        (place) =>
-          place.country.toLocaleLowerCase() === name.toLocaleLowerCase(),
-      ),
-    )
-    .sort((left, right) => left.title.localeCompare(right.title));
+  const countryCollections = [...(detail?.collections ?? [])].sort(
+    (left, right) => left.title.localeCompare(right.title),
+  );
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!subscription.isKrooPlus) {
@@ -118,6 +116,53 @@ export default function CountryScreen() {
           ? error.message
           : "Could not enable GPS arrivals.",
       );
+    }
+  };
+  const toggleSight = async (sightId: string, completed: boolean) => {
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Sign in to save completed sights.");
+      return;
+    }
+    const next = !completed;
+    dispatch(sightCompletionSet({ id: sightId, completed: next }));
+    try {
+      await api.setSightCompleted(sightId, next);
+    } catch {
+      dispatch(sightCompletionSet({ id: sightId, completed }));
+      Alert.alert("Could not update sight", "Please try again.");
+    }
+  };
+
+  const toggleCollectionPlaces = async (
+    collectionId: string,
+    placeIds: string[],
+    completed: boolean,
+  ) => {
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Sign in to save collection progress.");
+      return;
+    }
+    const next = !completed;
+    const targetIds = placeIds.map(
+      (placeId) => `collection-${collectionId}-${placeId}`,
+    );
+    targetIds.forEach((id) =>
+      dispatch(sightCompletionSet({ id, completed: next })),
+    );
+    const results = await Promise.allSettled(
+      targetIds.map((id) => api.setSightCompleted(id, next)),
+    );
+    let failed = false;
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        failed = true;
+        dispatch(
+          sightCompletionSet({ id: targetIds[index], completed }),
+        );
+      }
+    });
+    if (failed) {
+      Alert.alert("Could not update collection", "Please try again.");
     }
   };
 
@@ -226,7 +271,7 @@ export default function CountryScreen() {
               showsVerticalScrollIndicator={visibleSights.length > 6}
             >
               {visibleSights.map((sight) => {
-                const checked = sight.completed;
+                const checked = completedSightIds.includes(sight.id);
                 return (
                   <TouchableOpacity
                     key={sight.id}
@@ -246,11 +291,19 @@ export default function CountryScreen() {
                     <Text numberOfLines={1} style={s.sightName}>
                       {sight.name}
                     </Text>
-                    <Ionicons
-                      name={checked ? "checkmark-circle" : "ellipse-outline"}
-                      size={28}
-                      color="#57D5A0"
-                    />
+                    <TouchableOpacity
+                      onPress={() => void toggleSight(sight.id, checked)}
+                      hitSlop={10}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked }}
+                      accessibilityLabel={`${checked ? "Uncheck" : "Check"} ${sight.name}`}
+                    >
+                      <Ionicons
+                        name={checked ? "checkmark-circle" : "ellipse-outline"}
+                        size={28}
+                        color="#57D5A0"
+                      />
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 );
               })}
@@ -329,11 +382,17 @@ export default function CountryScreen() {
         {countryCollections.length ? (
           <View style={s.collectionList}>
             {countryCollections.map((collection) => {
-              const locationCount = collection.places.filter(
+              const countryPlaces = collection.places.filter(
                 (place) =>
                   place.country.toLocaleLowerCase() ===
                   name.toLocaleLowerCase(),
-              ).length;
+              );
+              const locationCount = countryPlaces.length;
+              const completed = countryPlaces.every((place) =>
+                completedSightIds.includes(
+                  `collection-${collection.id}-${place.id}`,
+                ),
+              );
               return (
                 <TouchableOpacity
                   key={collection.id}
@@ -347,7 +406,12 @@ export default function CountryScreen() {
                 >
                   <View style={s.collectionImageFrame}>
                     <Image
-                      source={collectionImages[collection.id]}
+                      source={
+                        collection.imageUrl
+                          ? { uri: collection.imageUrl }
+                          : collectionImages[collection.id] ??
+                            require("@/assets/images/other/globe-airplane.png")
+                      }
                       style={s.collectionImage}
                       contentFit="contain"
                     />
@@ -361,6 +425,25 @@ export default function CountryScreen() {
                       {locationCount === 1 ? "location" : "locations"} in {name}
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      void toggleCollectionPlaces(
+                        collection.id,
+                        countryPlaces.map((place) => place.id),
+                        completed,
+                      )
+                    }
+                    hitSlop={10}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: completed }}
+                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${collection.title} locations in ${name}`}
+                  >
+                    <Ionicons
+                      name={completed ? "checkmark-circle" : "ellipse-outline"}
+                      size={28}
+                      color="#57D5A0"
+                    />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             })}

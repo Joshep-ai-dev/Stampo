@@ -292,28 +292,10 @@
       "completedAt": "2026-08-12T12:22:37.341Z"
     },
     {
-      "id": "c0f693cc-6ae5-4677-944b-e0aab45ac853",
-      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "sightId": "collection-wonders-petra",
-      "completedAt": "2026-08-19T01:26:20.674Z"
-    },
-    {
-      "id": "c0ee0334-5a1b-4a04-823a-71dbd66a17ac",
-      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "sightId": "collection-wonders-colosseum",
-      "completedAt": "2026-08-19T01:26:21.301Z"
-    },
-    {
       "id": "b6077d20-9a52-4384-a3b2-f4a51822d154",
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
       "sightId": "collection-wonders-chichen-itza",
       "completedAt": "2026-08-19T01:26:21.892Z"
-    },
-    {
-      "id": "9dbe17d5-e254-4cf5-babc-ce9af45cc274",
-      "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
-      "sightId": "collection-wonders-great-wall",
-      "completedAt": "2026-08-21T12:59:27.107Z"
     }
   ],
   "wishlists": [],
@@ -339,6 +321,396 @@
       "userId": "d19f0298-a0be-4b72-8b48-6cf59a232f1c",
       "friendId": "c8faf308-d328-4e5f-a9b5-239f10e01eed",
       "createdAt": "2026-08-21T19:20:22.137Z"
+    }
+  ],
+  "managedCollections": [
+    {
+      "id": "wonders",
+      "title": "Seven Wonders",
+      "detail": "Visit all 7 wonders",
+      "defaultProgress": 12,
+      "imageUrl": "",
+      "description": "Visit all 7 wonders",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 0,
+      "places": [
+        {
+          "id": "great-wall",
+          "name": "Great Wall of China",
+          "city": "Beijing",
+          "country": "China",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "petra",
+          "name": "Petra",
+          "city": "Ma'an",
+          "country": "Jordan",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "colosseum",
+          "name": "Colosseum",
+          "city": "Rome",
+          "country": "Italy",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "chichen-itza",
+          "name": "Chichén Itzá",
+          "city": "Yucatán",
+          "country": "Mexico",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "machu-picchu",
+          "name": "Machu Picchu",
+          "city": "Cusco",
+          "country": "Peru",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "taj-mahal",
+          "name": "Taj Mahal",
+          "city": "Agra",
+          "country": "India",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "christ-redeemer",
+          "name": "Christ the Redeemer",
+          "city": "Rio de Janeiro",
+          "country": "Brazil",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        }
+      ],
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
+    },
+    {
+      "id": "seas",
+      "title": "Seven Seas",
+      "detail": "Sail or visit all 7 seas",
+      "defaultProgress": 8,
+      "imageUrl": "",
+      "description": "Sail or visit all 7 seas",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 1,
+      "places": [
+        {
+          "id": "arctic-ocean",
+          "name": "Arctic Ocean",
+          "city": "Tromsø",
+          "country": "Norway",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "north-atlantic",
+          "name": "North Atlantic Ocean",
+          "city": "Reykjavík",
+          "country": "Iceland",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "south-atlantic",
+          "name": "South Atlantic Ocean",
+          "city": "Cape Town",
+          "country": "South Africa",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "north-pacific",
+          "name": "North Pacific Ocean",
+          "city": "Honolulu",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "south-pacific",
+          "name": "South Pacific Ocean",
+          "city": "Suva",
+          "country": "Fiji",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "indian-ocean",
+          "name": "Indian Ocean",
+          "city": "Malé",
+          "country": "Maldives",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "southern-ocean",
+          "name": "Southern Ocean",
+          "city": "Ushuaia",
+          "country": "Argentina",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        }
+      ],
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
+    },
+    {
+      "id": "unesco",
+      "title": "UNESCO Explorer",
+      "detail": "Visit heritage sites",
+      "defaultProgress": 14,
+      "imageUrl": "",
+      "description": "Visit heritage sites",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 2,
+      "places": [
+        {
+          "id": "angkor-wat",
+          "name": "Angkor Wat",
+          "city": "Siem Reap",
+          "country": "Cambodia",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "acropolis",
+          "name": "Acropolis of Athens",
+          "city": "Athens",
+          "country": "Greece",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "alhambra",
+          "name": "Alhambra",
+          "city": "Granada",
+          "country": "Spain",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "mont-saint-michel",
+          "name": "Mont-Saint-Michel",
+          "city": "Normandy",
+          "country": "France",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "moai",
+          "name": "Rapa Nui National Park",
+          "city": "Easter Island",
+          "country": "Chile",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "serengeti",
+          "name": "Serengeti National Park",
+          "city": "Mara",
+          "country": "Tanzania",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        }
+      ],
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
+    },
+    {
+      "id": "parks",
+      "title": "National Parks",
+      "detail": "Visit national parks",
+      "defaultProgress": 16,
+      "imageUrl": "",
+      "description": "Visit national parks",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 3,
+      "places": [
+        {
+          "id": "yellowstone",
+          "name": "Yellowstone National Park",
+          "city": "Wyoming",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "banff",
+          "name": "Banff National Park",
+          "city": "Alberta",
+          "country": "Canada",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "fiordland",
+          "name": "Fiordland National Park",
+          "city": "Te Anau",
+          "country": "New Zealand",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "torres-del-paine",
+          "name": "Torres del Paine",
+          "city": "Patagonia",
+          "country": "Chile",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "kruger",
+          "name": "Kruger National Park",
+          "city": "Mpumalanga",
+          "country": "South Africa",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "fuji-hakone",
+          "name": "Fuji-Hakone-Izu National Park",
+          "city": "Hakone",
+          "country": "Japan",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        }
+      ],
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
+    },
+    {
+      "id": "usa",
+      "title": "United States Explorer",
+      "detail": "Visit all 50 states",
+      "defaultProgress": 0,
+      "imageUrl": "",
+      "description": "Visit all 50 states",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 4,
+      "places": [
+        {
+          "id": "statue-liberty",
+          "name": "Statue of Liberty",
+          "city": "New York City",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "grand-canyon",
+          "name": "Grand Canyon",
+          "city": "Arizona",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "golden-gate",
+          "name": "Golden Gate Bridge",
+          "city": "San Francisco",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "national-mall",
+          "name": "National Mall",
+          "city": "Washington, D.C.",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "french-quarter",
+          "name": "French Quarter",
+          "city": "New Orleans",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        },
+        {
+          "id": "waikiki",
+          "name": "Waikīkī Beach",
+          "city": "Honolulu",
+          "country": "United States",
+          "imageUrl": "",
+          "content": "",
+          "isPremium": false
+        }
+      ],
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
+    }
+  ],
+  "dailyDestinations": [
+    {
+      "id": "daily-france-louvre",
+      "country": "France",
+      "city": "Paris",
+      "name": "The Louvre",
+      "content": "The Louvre in Paris is the most visited art museum on Earth, drawing millions of visitors every year.",
+      "imageUrl": "",
+      "icon": "🖼️",
+      "question": "Which museum in Paris is the most visited art museum in the world?",
+      "options": [
+        "The Louvre",
+        "The Uffizi",
+        "The British Museum",
+        "The Prado"
+      ],
+      "correctAnswer": 0,
+      "publishDate": "",
+      "isPublished": true,
+      "isPremium": false,
+      "displayOrder": 0,
+      "createdAt": "2026-08-24T11:08:18.130Z",
+      "updatedAt": "2026-08-24T11:08:18.130Z"
     }
   ]
 }

@@ -42,6 +42,8 @@ const db = new Low(new JSONFile(file), {
   rewards: [],
   collectionProgress: [],
   friends: [],
+  managedCollections: [],
+  dailyDestinations: [],
 });
 await db.read();
 db.data.users ??= [];
@@ -50,6 +52,8 @@ db.data.wishlists ??= [];
 db.data.rewards ??= [];
 db.data.collectionProgress ??= [];
 db.data.friends ??= [];
+db.data.managedCollections ??= [];
+db.data.dailyDestinations ??= [];
 ensureCatalog(db);
 const scrypt = promisify(scryptCallback);
 const automaticImports = new Map();
@@ -259,6 +263,24 @@ app.use(cors());
 app.options("*", cors());
 app.use(json());
 
+const adminApiKey = process.env.ADMIN_API_KEY ?? "stampo-local-admin";
+
+function requireAdmin(req, res) {
+  const supplied = bearerToken(req) ?? String(req.headers["x-admin-key"] ?? "");
+  const actual = Buffer.from(supplied);
+  const expected = Buffer.from(adminApiKey);
+  const valid =
+    actual.length === expected.length && timingSafeEqual(actual, expected);
+  if (!valid) res.status(401).json({ message: "Invalid admin API key." });
+  return valid;
+}
+
+function requiredText(value, field, res) {
+  const result = String(value ?? "").trim();
+  if (!result) res.status(422).json({ message: `${field} is required.` });
+  return result;
+}
+
 function publicUser(user) {
   return {
     id: user.id,
@@ -359,6 +381,107 @@ const COLLECTIONS = [
     defaultProgress: 0,
   },
 ];
+const DEFAULT_COLLECTION_PLACES = {
+  wonders: [
+    ["great-wall", "Great Wall of China", "Beijing", "China"],
+    ["petra", "Petra", "Ma'an", "Jordan"],
+    ["colosseum", "Colosseum", "Rome", "Italy"],
+    ["chichen-itza", "Chichén Itzá", "Yucatán", "Mexico"],
+    ["machu-picchu", "Machu Picchu", "Cusco", "Peru"],
+    ["taj-mahal", "Taj Mahal", "Agra", "India"],
+    ["christ-redeemer", "Christ the Redeemer", "Rio de Janeiro", "Brazil"],
+  ],
+  seas: [
+    ["arctic-ocean", "Arctic Ocean", "Tromsø", "Norway"],
+    ["north-atlantic", "North Atlantic Ocean", "Reykjavík", "Iceland"],
+    ["south-atlantic", "South Atlantic Ocean", "Cape Town", "South Africa"],
+    ["north-pacific", "North Pacific Ocean", "Honolulu", "United States"],
+    ["south-pacific", "South Pacific Ocean", "Suva", "Fiji"],
+    ["indian-ocean", "Indian Ocean", "Malé", "Maldives"],
+    ["southern-ocean", "Southern Ocean", "Ushuaia", "Argentina"],
+  ],
+  unesco: [
+    ["angkor-wat", "Angkor Wat", "Siem Reap", "Cambodia"],
+    ["acropolis", "Acropolis of Athens", "Athens", "Greece"],
+    ["alhambra", "Alhambra", "Granada", "Spain"],
+    ["mont-saint-michel", "Mont-Saint-Michel", "Normandy", "France"],
+    ["moai", "Rapa Nui National Park", "Easter Island", "Chile"],
+    ["serengeti", "Serengeti National Park", "Mara", "Tanzania"],
+  ],
+  parks: [
+    ["yellowstone", "Yellowstone National Park", "Wyoming", "United States"],
+    ["banff", "Banff National Park", "Alberta", "Canada"],
+    ["fiordland", "Fiordland National Park", "Te Anau", "New Zealand"],
+    ["torres-del-paine", "Torres del Paine", "Patagonia", "Chile"],
+    ["kruger", "Kruger National Park", "Mpumalanga", "South Africa"],
+    ["fuji-hakone", "Fuji-Hakone-Izu National Park", "Hakone", "Japan"],
+  ],
+  usa: [
+    ["statue-liberty", "Statue of Liberty", "New York City", "United States"],
+    ["grand-canyon", "Grand Canyon", "Arizona", "United States"],
+    ["golden-gate", "Golden Gate Bridge", "San Francisco", "United States"],
+    ["national-mall", "National Mall", "Washington, D.C.", "United States"],
+    ["french-quarter", "French Quarter", "New Orleans", "United States"],
+    ["waikiki", "Waikīkī Beach", "Honolulu", "United States"],
+  ],
+};
+function defaultPlacesFor(collectionId) {
+  return (DEFAULT_COLLECTION_PLACES[collectionId] ?? []).map(
+    ([id, name, city, country]) => ({
+      id,
+      name,
+      city,
+      country,
+      imageUrl: "",
+      content: "",
+      isPremium: false,
+    }),
+  );
+}
+if (db.data.managedCollections.length === 0) {
+  db.data.managedCollections = COLLECTIONS.map((collection, displayOrder) => ({
+    ...collection,
+    imageUrl: "",
+    description: collection.detail,
+    isPublished: true,
+    isPremium: false,
+    displayOrder,
+    places: defaultPlacesFor(collection.id),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+}
+for (const collection of db.data.managedCollections) {
+  if ((collection.places ?? []).length === 0) {
+    collection.places = defaultPlacesFor(collection.id);
+    collection.updatedAt = new Date().toISOString();
+  }
+}
+if (db.data.dailyDestinations.length === 0) {
+  db.data.dailyDestinations = [
+    {
+      id: "daily-france-louvre",
+      country: "France",
+      city: "Paris",
+      name: "The Louvre",
+      content:
+        "The Louvre in Paris is the most visited art museum on Earth, drawing millions of visitors every year.",
+      imageUrl: "",
+      icon: "🖼️",
+      question:
+        "Which museum in Paris is the most visited art museum in the world?",
+      options: ["The Louvre", "The Uffizi", "The British Museum", "The Prado"],
+      correctAnswer: 0,
+      publishDate: "",
+      isPublished: true,
+      isPremium: false,
+      displayOrder: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+}
+await db.write();
 const COUNTRY_CATALOG = {
   FR: {
     name: "France",
@@ -428,25 +551,45 @@ const COUNTRY_CATALOG = {
 };
 
 function collectionsFor(userId) {
-  return COLLECTIONS.map((collection) => {
-    const saved = db.data.collectionProgress.find(
-      (item) =>
-        String(item.userId) === String(userId) &&
-        item.collectionId === collection.id,
-    );
-    const progress = Math.min(
-      100,
-      Math.max(0, Number(saved?.progress ?? collection.defaultProgress)),
-    );
-    return {
-      id: collection.id,
-      title: collection.title,
-      detail: collection.detail,
-      progress,
-      status: progress >= 100 ? "completed" : "active",
-      updatedAt: saved?.updatedAt,
-    };
-  });
+  const completed = new Set(
+    db.data.completions
+      .filter((item) => String(item.userId) === String(userId))
+      .map((item) => String(item.sightId)),
+  );
+  return db.data.managedCollections
+    .filter((collection) => collection.isPublished !== false)
+    .sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0))
+    .map((collection) => {
+      const saved = db.data.collectionProgress.find(
+        (item) =>
+          String(item.userId) === String(userId) &&
+          item.collectionId === collection.id,
+      );
+      const places = collection.places ?? [];
+      const completedCount = places.filter((place) =>
+        completed.has(`collection-${collection.id}-${place.id}`),
+      ).length;
+      const derivedProgress = places.length
+        ? Math.round((completedCount / places.length) * 100)
+        : Number(collection.defaultProgress ?? 0);
+      const progress = Math.min(
+        100,
+        Math.max(0, Number(saved?.progress ?? derivedProgress)),
+      );
+      return {
+        id: collection.id,
+        title: collection.title,
+        detail: collection.detail,
+        description: collection.description ?? collection.detail,
+        imageUrl: collection.imageUrl ?? "",
+        isPremium: collection.isPremium === true,
+        places,
+        progress,
+        status:
+          progress >= 100 ? "completed" : progress > 0 ? "active" : "inactive",
+        updatedAt: saved?.updatedAt,
+      };
+    });
 }
 
 function cappedPoints(count, each, maximum) {
@@ -917,6 +1060,17 @@ function catalogCountryPayload(code, req) {
         .map((place) => place.id || place.name),
     ),
   ]);
+  const managedCollections = db.data.managedCollections
+    .filter(
+      (collection) =>
+        collection.isPublished !== false &&
+        (collection.places ?? []).some(
+          (place) =>
+            String(place.country).toLocaleLowerCase() ===
+            String(country.name).toLocaleLowerCase(),
+        ),
+    )
+    .sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0));
   return {
     isEnriching: automaticImports.has(code),
     country: {
@@ -941,6 +1095,7 @@ function catalogCountryPayload(code, req) {
       ...publicSight(sight, catalog),
       completed: completed.has(sight.id),
     })),
+    collections: managedCollections,
     stats: {
       cities: new Set(visits.map((x) => x.cityId)).size,
       totalCities: cities.length,
@@ -1160,6 +1315,276 @@ app.get("/api/sights/:id", (req, res) => {
     : res.status(404).json({ message: "Sight not found." });
 });
 
+app.get("/daily-destinations", (req, res) => {
+  const requestedDate = String(req.query?.date ?? "").trim();
+  const items = db.data.dailyDestinations
+    .filter(
+      (item) =>
+        item.isPublished !== false &&
+        (!requestedDate || !item.publishDate || item.publishDate === requestedDate),
+    )
+    .sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0));
+  return res.json(items);
+});
+
+app.get("/api/collections/:id", (req, res) => {
+  const item = db.data.managedCollections.find(
+    (collection) =>
+      collection.id === req.params.id && collection.isPublished !== false,
+  );
+  return item
+    ? res.json(item)
+    : res.status(404).json({ message: "Collection not found." });
+});
+
+app.get("/admin", async (_req, res) => {
+  const html = await readFile(resolve(process.cwd(), "server/admin.html"), "utf8");
+  return res.status(200).set("Content-Type", "text/html; charset=utf-8").send(html);
+});
+
+app.get("/admin/api/meta", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  return res.json({
+    countries: db.data.countries.map((item) => ({
+      id: item.id,
+      code: item.iso2,
+      name: item.name,
+    })),
+    cities: db.data.cities.map((item) => ({
+      id: item.id,
+      countryId: item.countryId,
+      name: item.name,
+    })),
+  });
+});
+
+function adminSight(sight) {
+  const country = db.data.countries.find((item) => item.id === sight.countryId);
+  const city = db.data.cities.find((item) => item.id === sight.cityId);
+  return {
+    ...sight,
+    image: sight.imageUrl ?? "",
+    content: sight.description ?? "",
+    country: country?.name ?? "",
+    countryCode: country?.iso2 ?? "",
+    city: city?.name ?? "",
+    unlocked: sight.isPremium !== true,
+  };
+}
+
+app.get("/admin/api/sights", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  return res.json(
+    rankEntities(db.data.sights, db.data.sights.length).map(adminSight),
+  );
+});
+
+app.post("/admin/api/sights", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const name = requiredText(req.body?.name, "Name", res);
+  if (!name) return;
+  const countryId = requiredText(req.body?.countryId, "Country", res);
+  if (!countryId) return;
+  const cityId = requiredText(req.body?.cityId, "City", res);
+  if (!cityId) return;
+  const country = db.data.countries.find((item) => item.id === countryId);
+  const city = db.data.cities.find(
+    (item) => item.id === cityId && item.countryId === countryId,
+  );
+  if (!country || !city)
+    return res.status(422).json({ message: "Country or city is invalid." });
+  const sight = {
+    id: String(req.body?.id ?? "").trim() || randomUUID(),
+    countryId,
+    cityId,
+    name,
+    slug: slugify(req.body?.slug || name),
+    description: String(req.body?.content ?? req.body?.description ?? "").trim(),
+    category: String(req.body?.category ?? "attraction").trim() || "attraction",
+    imageUrl: String(req.body?.image ?? req.body?.imageUrl ?? "").trim(),
+    latitude: Number(req.body?.latitude ?? city.latitude ?? 0),
+    longitude: Number(req.body?.longitude ?? city.longitude ?? 0),
+    isFeatured: req.body?.isFeatured !== false,
+    isPremium: req.body?.unlocked === false || req.body?.isPremium === true,
+    displayOrder: Number(req.body?.displayOrder ?? db.data.sights.length),
+    manualFields: ["name", "description", "category", "imageUrl", "isPremium"],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  if (db.data.sights.some((item) => item.id === sight.id))
+    return res.status(409).json({ message: "Sight ID already exists." });
+  db.data.sights.push(sight);
+  await db.write();
+  return res.status(201).json(adminSight(sight));
+});
+
+app.put("/admin/api/sights/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const sight = db.data.sights.find((item) => item.id === req.params.id);
+  if (!sight) return res.status(404).json({ message: "Sight not found." });
+  const name = requiredText(req.body?.name, "Name", res);
+  if (!name) return;
+  const countryId = requiredText(req.body?.countryId, "Country", res);
+  if (!countryId) return;
+  const cityId = requiredText(req.body?.cityId, "City", res);
+  if (!cityId) return;
+  if (!db.data.cities.some((item) => item.id === cityId && item.countryId === countryId))
+    return res.status(422).json({ message: "Country or city is invalid." });
+  Object.assign(sight, {
+    countryId,
+    cityId,
+    name,
+    slug: slugify(req.body?.slug || name),
+    description: String(req.body?.content ?? req.body?.description ?? "").trim(),
+    category: String(req.body?.category ?? "attraction").trim() || "attraction",
+    imageUrl: String(req.body?.image ?? req.body?.imageUrl ?? "").trim(),
+    latitude: Number(req.body?.latitude ?? sight.latitude ?? 0),
+    longitude: Number(req.body?.longitude ?? sight.longitude ?? 0),
+    isFeatured: req.body?.isFeatured !== false,
+    isPremium: req.body?.unlocked === false || req.body?.isPremium === true,
+    displayOrder: Number(req.body?.displayOrder ?? sight.displayOrder ?? 0),
+    updatedAt: new Date().toISOString(),
+  });
+  await db.write();
+  return res.json(adminSight(sight));
+});
+
+app.delete("/admin/api/sights/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const index = db.data.sights.findIndex((item) => item.id === req.params.id);
+  if (index < 0) return res.status(404).json({ message: "Sight not found." });
+  db.data.sights.splice(index, 1);
+  db.data.imageCredits = db.data.imageCredits.filter(
+    (item) => !(item.entityType === "sight" && item.entityId === req.params.id),
+  );
+  await db.write();
+  return res.status(204).send();
+});
+
+function collectionPayload(body, existing = {}) {
+  const title = String(body?.title ?? "").trim();
+  return {
+    ...existing,
+    id: existing.id ?? (String(body?.id ?? "").trim() || randomUUID()),
+    title,
+    detail: String(body?.detail ?? body?.description ?? "").trim(),
+    description: String(body?.description ?? body?.detail ?? "").trim(),
+    imageUrl: String(body?.imageUrl ?? body?.image ?? "").trim(),
+    isPublished: body?.isPublished !== false,
+    isPremium: body?.unlocked === false || body?.isPremium === true,
+    displayOrder: Number(body?.displayOrder ?? existing.displayOrder ?? 0),
+    places: Array.isArray(body?.places)
+      ? body.places.map((place) => ({
+          id: String(place.id ?? "").trim() || randomUUID(),
+          name: String(place.name ?? "").trim(),
+          city: String(place.city ?? "").trim(),
+          country: String(place.country ?? "").trim(),
+          imageUrl: String(place.imageUrl ?? place.image ?? "").trim(),
+          content: String(place.content ?? place.description ?? "").trim(),
+          isPremium: place.unlocked === false || place.isPremium === true,
+        }))
+      : existing.places ?? [],
+    createdAt: existing.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+app.get("/admin/api/collections", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  return res.json(db.data.managedCollections);
+});
+app.post("/admin/api/collections", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const item = collectionPayload(req.body);
+  if (!item.title) return res.status(422).json({ message: "Title is required." });
+  if (db.data.managedCollections.some((value) => value.id === item.id))
+    return res.status(409).json({ message: "Collection ID already exists." });
+  db.data.managedCollections.push(item);
+  await db.write();
+  return res.status(201).json(item);
+});
+app.put("/admin/api/collections/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const index = db.data.managedCollections.findIndex((item) => item.id === req.params.id);
+  if (index < 0) return res.status(404).json({ message: "Collection not found." });
+  const item = collectionPayload(req.body, db.data.managedCollections[index]);
+  if (!item.title) return res.status(422).json({ message: "Title is required." });
+  db.data.managedCollections[index] = item;
+  await db.write();
+  return res.json(item);
+});
+app.delete("/admin/api/collections/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const index = db.data.managedCollections.findIndex((item) => item.id === req.params.id);
+  if (index < 0) return res.status(404).json({ message: "Collection not found." });
+  db.data.managedCollections.splice(index, 1);
+  db.data.collectionProgress = db.data.collectionProgress.filter(
+    (item) => item.collectionId !== req.params.id,
+  );
+  await db.write();
+  return res.status(204).send();
+});
+
+function dailyPayload(body, existing = {}) {
+  return {
+    ...existing,
+    id: existing.id ?? (String(body?.id ?? "").trim() || randomUUID()),
+    name: String(body?.name ?? "").trim(),
+    country: String(body?.country ?? "").trim(),
+    city: String(body?.city ?? "").trim(),
+    imageUrl: String(body?.imageUrl ?? body?.image ?? "").trim(),
+    icon: String(body?.icon ?? "🌍").trim() || "🌍",
+    content: String(body?.content ?? "").trim(),
+    question: String(body?.question ?? "").trim(),
+    options: Array.isArray(body?.options)
+      ? body.options.map((item) => String(item).trim()).filter(Boolean)
+      : String(body?.options ?? "").split("\n").map((item) => item.trim()).filter(Boolean),
+    correctAnswer: Number(body?.correctAnswer ?? 0),
+    publishDate: String(body?.publishDate ?? "").trim(),
+    isPublished: body?.isPublished !== false,
+    isPremium: body?.unlocked === false || body?.isPremium === true,
+    displayOrder: Number(body?.displayOrder ?? existing.displayOrder ?? 0),
+    createdAt: existing.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+app.get("/admin/api/daily-destinations", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  return res.json(db.data.dailyDestinations);
+});
+app.post("/admin/api/daily-destinations", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const item = dailyPayload(req.body);
+  if (!item.name || !item.country || !item.content || !item.question || item.options.length < 2)
+    return res.status(422).json({ message: "Name, country, content, question, and at least two options are required." });
+  if (item.correctAnswer < 0 || item.correctAnswer >= item.options.length)
+    return res.status(422).json({ message: "Correct answer index is invalid." });
+  db.data.dailyDestinations.push(item);
+  await db.write();
+  return res.status(201).json(item);
+});
+app.put("/admin/api/daily-destinations/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const index = db.data.dailyDestinations.findIndex((item) => item.id === req.params.id);
+  if (index < 0) return res.status(404).json({ message: "Daily destination not found." });
+  const item = dailyPayload(req.body, db.data.dailyDestinations[index]);
+  if (!item.name || !item.country || !item.content || !item.question || item.options.length < 2)
+    return res.status(422).json({ message: "Name, country, content, question, and at least two options are required." });
+  if (item.correctAnswer < 0 || item.correctAnswer >= item.options.length)
+    return res.status(422).json({ message: "Correct answer index is invalid." });
+  db.data.dailyDestinations[index] = item;
+  await db.write();
+  return res.json(item);
+});
+app.delete("/admin/api/daily-destinations/:id", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const index = db.data.dailyDestinations.findIndex((item) => item.id === req.params.id);
+  if (index < 0) return res.status(404).json({ message: "Daily destination not found." });
+  db.data.dailyDestinations.splice(index, 1);
+  await db.write();
+  return res.status(204).send();
+});
+
 app.get("/countries/:code", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
@@ -1226,15 +1651,14 @@ app.get("/countries/:code", (req, res) => {
 });
 
 app.get("/collections", (req, res) => {
-  const user = requireUser(req, res);
-  if (!user) return;
+  const user = authenticatedUser(req);
   const status = String(req.query?.status ?? "all").toLocaleLowerCase();
   if (!["all", "active", "completed"].includes(status)) {
     return res
       .status(422)
       .json({ message: "Status must be all, active, or completed." });
   }
-  const collections = collectionsFor(user.id);
+  const collections = collectionsFor(user?.id);
   return res.json(
     status === "all"
       ? collections
@@ -1245,7 +1669,7 @@ app.get("/collections", (req, res) => {
 app.put("/me/collections/:collectionId", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
-  const collection = COLLECTIONS.find(
+  const collection = db.data.managedCollections.find(
     (item) => item.id === String(req.params.collectionId),
   );
   if (!collection)

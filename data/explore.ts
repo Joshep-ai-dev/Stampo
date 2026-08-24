@@ -107,44 +107,6 @@ export const featuredCountries = [
   { code: "IT", name: "Italy", flag: "🇮🇹", cities: 5, progress: 22 },
 ];
 
-export const collections = [
-  {
-    id: "wonders",
-    title: "Seven Wonders",
-    detail: "Visit all 7 wonders",
-    icon: "earth-outline",
-    progress: 12,
-  },
-  {
-    id: "seas",
-    title: "Seven Seas",
-    detail: "Sail or visit all 7 seas",
-    icon: "boat-outline",
-    progress: 8,
-  },
-  {
-    id: "unesco",
-    title: "UNESCO Explorer",
-    detail: "Visit heritage sites",
-    icon: "library-outline",
-    progress: 14,
-  },
-  {
-    id: "parks",
-    title: "National Parks",
-    detail: "Visit national parks",
-    icon: "leaf-outline",
-    progress: 16,
-  },
-  {
-    id: "usa",
-    title: "United States Explorer",
-    detail: "Visit all 50 states",
-    icon: "map-outline",
-    progress: 0,
-  },
-];
-
 export const rewards = [
   { score: 10, title: "Trail Starter", reward: "Starter stamp frame" },
   { score: 25, title: "Atlas Whisperer", reward: "Exclusive profile badge" },

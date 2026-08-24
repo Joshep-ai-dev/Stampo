@@ -19,7 +19,7 @@ import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import {
-  collectionDefinitions,
+  type CollectionDefinition,
   type CollectionPlace,
 } from "@/data/collections";
 import { api } from "@/services/api";
@@ -70,9 +70,10 @@ function PlaceImage({
   localSource?: number;
   blurRadius?: number;
 }) {
-  const [uri, setUri] = useState("");
+  const [uri, setUri] = useState(place.imageUrl ?? "");
   useEffect(() => {
-    if (localSource) return;
+    setUri(place.imageUrl ?? "");
+    if (localSource || place.imageUrl) return;
     let active = true;
     void api
       .resolvePlaceImage({
@@ -87,7 +88,7 @@ function PlaceImage({
     return () => {
       active = false;
     };
-  }, [localSource, place.city, place.country, place.name]);
+  }, [localSource, place.city, place.country, place.imageUrl, place.name]);
 
   if (localSource) {
     return (
@@ -118,7 +119,8 @@ export default function CollectionScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const subscription = useAppSelector((state) => state.subscription);
-  const collection = collectionDefinitions[id];
+  const [collection, setCollection] = useState<CollectionDefinition | null>(null);
+  const [collectionLoading, setCollectionLoading] = useState(true);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
@@ -136,6 +138,32 @@ export default function CollectionScreen() {
       })
       .catch(() => undefined);
   }, [isSignedIn]);
+
+  useEffect(() => {
+    let active = true;
+    setCollection(null);
+    setCollectionLoading(true);
+    void api
+      .collectionDetail(id)
+      .then((item) => {
+        if (!active) return;
+        setCollection({
+          id: item.id,
+          title: item.title,
+          subtitle: item.description || item.detail,
+          imageUrl: item.imageUrl,
+          isPremium: item.isPremium,
+          places: item.places,
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setCollectionLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   useEffect(() => {
     setSelectedPlaceImage("");
@@ -166,7 +194,9 @@ export default function CollectionScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.empty}>
-          <Text style={s.title}>Collection not found</Text>
+          <Text style={s.title}>
+            {collectionLoading ? "Loading collection…" : "Collection not found"}
+          </Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={s.link}>Go back</Text>
           </TouchableOpacity>
@@ -314,7 +344,12 @@ export default function CollectionScreen() {
 
         <View style={s.hero}>
           <Image
-            source={collectionImages[collection.id]}
+            source={
+              collection.imageUrl
+                ? { uri: collection.imageUrl }
+                : collectionImages[collection.id] ??
+                  require("@/assets/images/other/globe-airplane.png")
+            }
             style={[
               s.heroImage,
               collection.id === "seas" && s.seasHeroImage,

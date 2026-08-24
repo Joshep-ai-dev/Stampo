@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -17,6 +17,7 @@ import { CityVisitSearch } from "@/components/city-visit-search";
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
+import { api, type DailyDestination } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
 const c = {
@@ -30,9 +31,21 @@ const c = {
   line: "rgba(246,241,228,.14)",
   error: "#D9694F",
 };
-const rounds = [
+type QuizRound = {
+  id?: string;
+  name?: string;
+  country: string;
+  icon: string;
+  city: string;
+  info: string;
+  q: string;
+  options: readonly string[];
+  correct: number;
+};
+const rounds: QuizRound[] = [
   {
     icon: "🖼️",
+    country: "France",
     city: "Paris",
     info: "The Louvre in Paris is the most visited art museum on Earth, drawing millions of visitors every year.",
     q: "Which museum in Paris is the most visited art museum in the world?",
@@ -41,6 +54,7 @@ const rounds = [
   },
   {
     icon: "🗼",
+    country: "France",
     city: "Paris",
     info: "The Eiffel Tower was built as a temporary entrance arch for the 1889 World's Fair.",
     q: "In what year was the Eiffel Tower completed?",
@@ -49,6 +63,7 @@ const rounds = [
   },
   {
     icon: "🌍",
+    country: "France",
     city: "Nationwide",
     info: "France is the world's most visited country by international tourist arrivals.",
     q: "France is the world's ___ most visited country.",
@@ -57,6 +72,7 @@ const rounds = [
   },
   {
     icon: "🍷",
+    country: "France",
     city: "Nationwide",
     info: "The gastronomic meal of the French is recognized as Intangible Cultural Heritage.",
     q: "Which organization granted that recognition?",
@@ -65,13 +81,14 @@ const rounds = [
   },
   {
     icon: "🗺️",
+    country: "France",
     city: "Nationwide",
     info: "Mainland France shares borders with more neighbors than most Western European countries.",
     q: "Roughly how many countries border mainland France?",
     options: ["2", "4", "8", "12"],
     correct: 2,
   },
-] as const;
+];
 const destinations = [
   {
     name: "Bali Bliss Escape",
@@ -125,6 +142,23 @@ export default function PlusTabScreen() {
     [score, setScore] = useState(0),
     [answer, setAnswer] = useState<number | null>(null),
     [selected, setSelected] = useState<Destination | null>(null);
+  const [managedRounds, setManagedRounds] = useState<DailyDestination[]>([]);
+  useEffect(() => {
+    void api.dailyDestinations().then(setManagedRounds).catch(() => undefined);
+  }, []);
+  const quizRounds: QuizRound[] = managedRounds.length
+    ? managedRounds.map((item) => ({
+        id: item.id,
+        name: item.name,
+        country: item.country,
+        city: item.city || "Nationwide",
+        icon: item.icon || "🌍",
+        info: item.content,
+        q: item.question,
+        options: item.options,
+        correct: item.correctAnswer,
+      }))
+    : rounds;
   const krooScore = useMemo(
     () =>
       calculateKrooScoreFromVisits(
@@ -157,9 +191,9 @@ export default function PlusTabScreen() {
         </ScrollView>
       </SafeAreaView>
     );
-  const round = rounds[Math.min(index, 4)];
+  const round = quizRounds[Math.min(index, quizRounds.length - 1)];
   const next = () =>
-    index === 4
+    index === quizRounds.length - 1
       ? setPhase("result")
       : (setIndex(index + 1), setPhase("info"), setAnswer(null));
   return (
@@ -186,9 +220,9 @@ export default function PlusTabScreen() {
         </View>
         <View style={s.dailyCard}>
           <View style={s.dots}>
-            {rounds.map((_, i) => (
+            {quizRounds.map((item, i) => (
               <View
-                key={i}
+                key={item.id ?? i}
                 style={[
                   s.dot,
                   i < index && s.done,
@@ -199,7 +233,7 @@ export default function PlusTabScreen() {
           </View>
           {phase === "result" ? (
             <View style={s.result}>
-              <Text style={s.resultScore}>{score}/5</Text>
+              <Text style={s.resultScore}>{score}/{quizRounds.length}</Text>
               <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
               <Text style={s.correct}>
                 +{(score * 0.05).toFixed(2)} added to your Kroo IQ
@@ -216,7 +250,7 @@ export default function PlusTabScreen() {
             </View>
           ) : phase === "info" ? (
             <View>
-              <Text style={s.lessonTitle}>France</Text>
+              <Text style={s.lessonTitle}>{round.country}</Text>
               <Text style={s.kicker}>{round.city.toUpperCase()}</Text>
               <View style={s.lessonImage}>
                 <Text style={{ fontSize: 34 }}>{round.icon}</Text>
@@ -253,7 +287,7 @@ export default function PlusTabScreen() {
                       : `Not quite — the answer was ${round.options[round.correct]}.`}
                   </Text>
                   <Button
-                    label={index < 4 ? "NEXT" : "SEE YOUR SCORE"}
+                    label={index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"}
                     onPress={next}
                   />
                 </>

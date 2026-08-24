@@ -38,6 +38,7 @@ Server environment variables:
 | `PORT`    | `3001`           | HTTP port       |
 | `HOST`    | `0.0.0.0`        | Bind address    |
 | `DB_FILE` | `server/db.json` | LowDB JSON file |
+| `ADMIN_API_KEY` | `stampo-local-admin` | Admin dashboard/API bearer key; must be replaced outside local development |
 
 ## Conventions
 
@@ -53,7 +54,9 @@ Server environment variables:
 
 ## Authentication
 
-All endpoints except registration and login require a bearer token:
+User-owned endpoints require a user bearer token. Public catalog, image-resolution,
+collection-detail, and Daily Destination endpoints accept anonymous requests. Admin
+endpoints require the separate `ADMIN_API_KEY` bearer token.
 
 ```http
 Authorization: Bearer dev-session-token
@@ -160,16 +163,31 @@ Common statuses:
 | `GET`    | `/me/home`                      | Yes            | Get the calculated homepage dashboard                        |
 | `PUT`    | `/me/completions/:sightId`      | Yes            | Set sight completion state                                   |
 | `PUT`    | `/me/wishlist/:targetId`        | Yes            | Set wishlist state                                           |
-| `PUT`    | `/me/plan`                      | Yes            | Change free/pro plan                                         |
-| `GET`    | `/collections?status=all`       | Yes            | List user collection progress                                |
+| `GET`    | `/collections?status=all`       | Optional       | List backend-managed collections and user progress           |
 | `PUT`    | `/me/collections/:collectionId` | Yes            | Update collection progress                                   |
 | `GET`    | `/api/countries/:code`          | Optional       | Imported country, collections, cities, sights and user stats |
 | `GET`    | `/api/countries/:code/cities`   | Optional       | Featured imported cities                                     |
 | `GET`    | `/api/cities/:id`               | Optional       | City detail with sights                                      |
 | `GET`    | `/api/cities/:id/sights`        | Optional       | Sights in a city                                             |
 | `GET`    | `/api/sights/:id`               | Optional       | Sight detail and image attribution                           |
+| `GET`    | `/api/city-image`               | Optional       | Resolve and cache a city image                               |
+| `GET`    | `/api/place-image`              | Optional       | Resolve and cache a place image                              |
+| `GET`    | `/api/collections/:id`          | Optional       | Managed collection detail and locations                     |
+| `GET`    | `/daily-destinations?date=`     | Optional       | Published Daily Destination quiz lessons                    |
+| `GET`    | `/community/leaderboard`        | Yes            | Global or friends leaderboard                               |
+| `GET`    | `/me/friend-code`               | Yes            | Current user's QR/deep-link friend code                      |
+| `POST`   | `/me/friends/scan`              | Yes            | Add a friend from a scanned code                            |
+| `GET`    | `/admin`                        | No             | Web admin shell; API calls require admin authentication      |
+| `GET`    | `/admin/api/meta`               | Admin          | Country/city choices for editors                             |
+| CRUD     | `/admin/api/sights`             | Admin          | Manage Top Sights                                            |
+| CRUD     | `/admin/api/collections`        | Admin          | Manage collections and their location lists                  |
+| CRUD     | `/admin/api/daily-destinations` | Admin          | Manage lessons shown on the `+` page                         |
 
 Catalog records use normalized `countries`, `cities`, `sights`, `collections`, `countryCollections`, and `imageCredits` arrays. When `GET /api/countries/:code` requests a supported country that is not already curated, the server builds an in-memory catalog and responds with `202 { status: "importing" }`. The app polls until the completed payload is available. Automatically downloaded reference data is not written to the main LowDB file; only explicit user actions persist user data.
+
+The country-detail response also includes published `managedCollections` whose
+location records match the country name. This is the only data source for the
+country page's “Collections in Country” rows.
 
 ## Authentication endpoints
 
@@ -403,7 +421,9 @@ Response:
 
 ## Collections
 
-The Explore page calls this feature Collections. The supported views are `all`, `active`, and `completed`.
+The Explore page calls this feature Collections. Collection definitions and
+location lists always come from the backend. The supported filters are `all`,
+`active`, and `completed`.
 
 ### List collections
 
@@ -411,7 +431,11 @@ The Explore page calls this feature Collections. The supported views are `all`, 
 GET /collections?status=all
 ```
 
-`status` is optional and defaults to `all`. Accepted values are `all`, `active`, and `completed`.
+`status` is optional and defaults to `all`. Accepted query values are `all`,
+`active`, and `completed`. Authentication is optional: signed-in responses
+include that user's derived progress; anonymous responses use `0`. Returned
+records can have status `inactive` (`0%`), `active` (`1–99%`), or `completed`
+(`100%`).
 
 Response:
 
@@ -449,7 +473,9 @@ Request:
 }
 ```
 
-Progress must be from `0` through `100`. Status is derived by the server: `100` is completed; any lower value is active. The endpoint creates or updates the authenticated user's progress and returns the updated collection.
+Progress must be from `0` through `100`. Status is derived by the server: `0`
+is inactive, `1–99` is active, and `100` is completed. The endpoint creates or
+updates the authenticated user's progress and returns the updated collection.
 
 ### Set sight completion
 
@@ -498,28 +524,6 @@ Response:
 {
   "targetId": "city-paris",
   "saved": true
-}
-```
-
-### Set plan
-
-```http
-PUT /me/plan
-```
-
-Request:
-
-```json
-{
-  "plan": "pro"
-}
-```
-
-Only `free` and `pro` are accepted. Response:
-
-```json
-{
-  "plan": "pro"
 }
 ```
 
@@ -589,6 +593,158 @@ The server caps every category and the final total. The score is rounded to thre
 
 `worldProgress` is the rounded percentage of 195 recognized countries visited.
 
+## Community and friends
+
+### Leaderboard
+
+```http
+GET /community/leaderboard?scope=global
+```
+
+`scope` is `global` or `friends`. The friends response includes the current user
+and users connected through a friend record. Results are ordered by descending
+Kroo Score and then name. Each item contains `id`, `name`, `photoUri`, `score`,
+`level`, and counts for countries, continents, cities, and completed collections.
+
+### Friend code
+
+```http
+GET /me/friend-code
+```
+
+Returns `{ "code": "stampo://friend/opaque-token" }`. The token is generated
+once per user and stored with the account.
+
+### Add friend
+
+```http
+POST /me/friends/scan
+```
+
+Request: `{ "code": "stampo://friend/opaque-token" }`. Self-adds and invalid
+codes return `422`. Repeating a valid request is idempotent. The response is the
+new friend's Community Profile.
+
+## Daily Destination (`+` page)
+
+```http
+GET /daily-destinations?date=2026-08-24
+```
+
+Returns published lessons whose `publishDate` is blank (evergreen) or matches
+the requested date, ordered by `displayOrder`. The mobile client falls back to
+its bundled lesson set if this request is unavailable.
+
+```json
+{
+  "id": "daily-france-louvre",
+  "name": "The Louvre",
+  "country": "France",
+  "city": "Paris",
+  "imageUrl": "https://cdn.example.com/louvre.jpg",
+  "icon": "🖼️",
+  "content": "The lesson text.",
+  "question": "Which museum... ?",
+  "options": ["The Louvre", "The Prado"],
+  "correctAnswer": 0,
+  "publishDate": "2026-08-24",
+  "isPublished": true,
+  "isPremium": false,
+  "displayOrder": 0
+}
+```
+
+`correctAnswer` is a zero-based index into `options`. At least two non-empty
+options are required.
+
+## Web administration
+
+Open `http://localhost:3001/admin`. The browser keeps the admin key in
+`sessionStorage`, so closing the tab/session removes it. Admin API requests use:
+
+```http
+Authorization: Bearer YOUR_ADMIN_API_KEY
+```
+
+The local default key is only a convenience. Set a long random
+`ADMIN_API_KEY` in every shared or deployed environment. Admin authorization is
+separate from user sessions, compares keys in constant time, and returns `401`
+without revealing which part was incorrect.
+
+Every admin resource supports:
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `GET` | `/admin/api/{resource}` | Full list |
+| `POST` | `/admin/api/{resource}` | Create, `201` |
+| `PUT` | `/admin/api/{resource}/:id` | Replace editable fields |
+| `DELETE` | `/admin/api/{resource}/:id` | Delete, `204` |
+
+Resources are `sights`, `collections`, and `daily-destinations`.
+
+### Top Sight administration
+
+Top Sight input fields are `id` (optional on create), `countryId`, `cityId`,
+`name`, `slug`, `image`/`imageUrl`, `content`/`description`, `category`,
+`latitude`, `longitude`, `displayOrder`, `isFeatured`, and either `unlocked` or
+`isPremium`. The city must belong to the submitted country. Setting
+`unlocked: false` stores `isPremium: true`. Deletion also removes associated
+image-credit records. User completion history is retained as an audit-friendly
+orphan and becomes effective again if the same stable sight ID is restored.
+
+### Collection administration
+
+A collection contains `id`, `title`, `detail`, `description`, `imageUrl`,
+`displayOrder`, `isPublished`, `isPremium`, and `places`. Each place contains:
+
+```json
+{
+  "id": "christ-redeemer",
+  "name": "Christ the Redeemer",
+  "city": "Rio de Janeiro",
+  "country": "Brazil",
+  "imageUrl": "https://cdn.example.com/christ.jpg",
+  "content": "Location description.",
+  "isPremium": false
+}
+```
+
+Stable place IDs are important: completion keys are stored as
+`collection-{collectionId}-{placeId}`. Deleting a collection removes its saved
+percentage records. The mobile API derives progress from completed place IDs
+when no explicit legacy percentage exists.
+
+### Daily Destination administration
+
+Daily Destination CRUD uses the model documented in the preceding section.
+`isPublished: false` immediately removes a lesson from public responses.
+`publishDate` can schedule a lesson for one date; blank dates are evergreen.
+
+### Admin metadata
+
+```http
+GET /admin/api/meta
+```
+
+Returns normalized countries and cities used by the Top Sight editor. Import a
+country through the catalog importer before assigning a sight to it.
+
+## Kroo+ billing and GPS boundaries
+
+Kroo+ purchases are not processed by this development API. The mobile client
+uses RevenueCat's native SDK, platform-specific public SDK keys, the
+`kroo_plus` entitlement, and the current monthly/annual Offering. CustomerInfo
+is the subscription authority. Do not add card data, store receipts, or secret
+RevenueCat keys to these endpoints. A production service may validate
+RevenueCat webhooks and mirror entitlement state, but the webhook must verify
+RevenueCat's authorization header and remain separate from the public mobile
+contract.
+
+GPS arrival detection and accuracy checks run through Expo Location on-device.
+An accepted suggestion becomes a normal `POST /visits` request with its
+`verification` object. The server stores that evidence but does not trust a
+client-supplied `plan` field to grant Kroo+ access.
+
 ## Client synchronization
 
 On startup, the client:
@@ -614,6 +770,13 @@ The default file is [`server/db.json`](../server/db.json). Collections:
 | `wishlists`          | Saved target IDs                                   |
 | `rewards`            | Unlocked rewards and challenge score values        |
 | `collectionProgress` | User-specific active/completed collection progress |
+| `friends`            | Symmetric user friendship links                    |
+| `countries`          | Imported normalized countries                      |
+| `cities`             | Imported normalized cities                         |
+| `sights`             | Imported and admin-managed Top Sights              |
+| `managedCollections` | Admin-managed collection definitions and places    |
+| `dailyDestinations`  | Admin-managed `+` page lessons                      |
+| `imageCredits`       | Source/license metadata for catalog images          |
 
 Example completion record:
 

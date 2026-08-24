@@ -119,8 +119,32 @@ export type CollectionProgress = {
   title: string;
   detail: string;
   progress: number;
-  status: "active" | "completed";
+  status: "inactive" | "active" | "completed";
   updatedAt?: string;
+  description?: string;
+  imageUrl?: string;
+  isPremium?: boolean;
+  places?: ManagedCollectionPlace[];
+};
+
+export type ManagedCollectionPlace = {
+  id: string;
+  name: string;
+  city: string;
+  country: string;
+  imageUrl?: string;
+  content?: string;
+  isPremium?: boolean;
+};
+
+export type ManagedCollection = {
+  id: string;
+  title: string;
+  detail: string;
+  description: string;
+  imageUrl: string;
+  isPremium: boolean;
+  places: ManagedCollectionPlace[];
 };
 
 export type CommunityProfile = {
@@ -135,6 +159,22 @@ export type CommunityProfile = {
     cities: number;
     collections: number;
   };
+};
+
+export type DailyDestination = {
+  id: string;
+  name: string;
+  country: string;
+  city: string;
+  imageUrl: string;
+  icon: string;
+  content: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  publishDate: string;
+  isPremium: boolean;
+  displayOrder: number;
 };
 
 export type CountryDetailResponse = {
@@ -158,6 +198,7 @@ export type CountryDetailResponse = {
   featuredIn: { name: string; icon: string; slug: string }[];
   cities: CityDetail[];
   sights: SightDetail[];
+  collections: ManagedCollection[];
   stats: {
     cities: number;
     totalCities: number;
@@ -282,6 +323,10 @@ export const api = {
     request<CommunityProfile[]>(
       `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
     ),
+  dailyDestinations: (date = new Date().toISOString().slice(0, 10)) =>
+    request<DailyDestination[]>(
+      `/daily-destinations?date=${encodeURIComponent(date)}`,
+    ),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
@@ -303,6 +348,8 @@ export const api = {
     request<CollectionProgress[]>(
       `/collections?status=${encodeURIComponent(status)}`,
     ),
+  collectionDetail: (id: string) =>
+    request<ManagedCollection>(`/api/collections/${encodeURIComponent(id)}`),
   setCollectionProgress: (collectionId: string, progress: number) =>
     request<CollectionProgress>(
       `/me/collections/${encodeURIComponent(collectionId)}`,

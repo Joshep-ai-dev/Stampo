@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -14,7 +14,6 @@ import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
-import { collections as defaultCollections } from "@/data/explore";
 import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
@@ -41,20 +40,11 @@ export default function ExploreScreen() {
   const router = useRouter();
   const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
-  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [collectionFilter, setCollectionFilter] =
     useState<(typeof collectionFilters)[number]>("All");
   const [collectionCatalog, setCollectionCatalog] = useState<
     CollectionProgress[]
-  >(() =>
-    defaultCollections.map(({ id, title, detail, progress }) => ({
-      id,
-      title,
-      detail,
-      progress,
-      status: progress >= 100 ? "completed" : "active",
-    })),
-  );
+  >([]);
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
   const countries = useMemo(() => {
     const visitedCodes = new Set(
@@ -82,13 +72,20 @@ export default function ExploreScreen() {
     });
     return counts;
   }, [visits]);
-  useEffect(() => {
-    if (!isSignedIn) return;
-    void api
-      .listCollections()
-      .then(setCollectionCatalog)
-      .catch(() => undefined);
-  }, [isSignedIn]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void api
+        .listCollections()
+        .then((items) => {
+          if (active) setCollectionCatalog(items);
+        })
+        .catch(() => undefined);
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
   const visibleCollections = useMemo(
     () => {
       if (collectionFilter === "All") return collectionCatalog;
@@ -204,7 +201,12 @@ export default function ExploreScreen() {
                 </View>
                 <View style={s.challengeSeal}>
                   <Image
-                    source={collectionImages[collection.id]}
+                    source={
+                      collection.imageUrl
+                        ? { uri: collection.imageUrl }
+                        : collectionImages[collection.id] ??
+                          require("@/assets/images/other/globe-airplane.png")
+                    }
                     style={s.collectionImage}
                     contentFit="contain"
                   />
