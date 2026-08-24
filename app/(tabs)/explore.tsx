@@ -90,13 +90,18 @@ export default function ExploreScreen() {
       .catch(() => undefined);
   }, [isSignedIn]);
   const visibleCollections = useMemo(
-    () =>
-      collectionFilter === "All"
-        ? collectionCatalog
-        : collectionCatalog.filter(
-            (collection) =>
-              collection.status === collectionFilter.toLocaleLowerCase(),
-          ),
+    () => {
+      if (collectionFilter === "All") return collectionCatalog;
+      if (collectionFilter === "Active") {
+        return collectionCatalog.filter(
+          (collection) =>
+            collection.progress > 0 && collection.progress < 100,
+        );
+      }
+      return collectionCatalog.filter(
+        (collection) => collection.progress >= 100,
+      );
+    },
     [collectionCatalog, collectionFilter],
   );
   return (

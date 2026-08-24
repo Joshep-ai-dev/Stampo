@@ -48,6 +48,13 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{
+    id: string;
+    name: string;
+    image?: string;
+    description?: string;
+    regionName?: string;
+  } | null>(null);
   useFocusEffect(
     useCallback(() => {
       if (isSignedIn) void dispatch(fetchCountryDetail(code));
@@ -320,11 +327,7 @@ export default function CountryScreen() {
 
         <SectionTitle>{`Collections in ${name}`}</SectionTitle>
         {countryCollections.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.collectionRow}
-          >
+          <View style={s.collectionList}>
             {countryCollections.map((collection) => {
               const locationCount = collection.places.filter(
                 (place) =>
@@ -334,7 +337,7 @@ export default function CountryScreen() {
               return (
                 <TouchableOpacity
                   key={collection.id}
-                  style={s.collectionCard}
+                  style={s.sightRow}
                   activeOpacity={0.82}
                   onPress={() =>
                     router.push(`/collection/${collection.id}` as never)
@@ -349,16 +352,19 @@ export default function CountryScreen() {
                       contentFit="contain"
                     />
                   </View>
-                  <Text style={s.collectionTitle} numberOfLines={2}>
-                    {collection.title}
-                  </Text>
-                  <Text style={s.collectionDetail}>
-                    {locationCount} {locationCount === 1 ? "location" : "locations"} in {name}
-                  </Text>
+                  <View style={s.collectionText}>
+                    <Text style={s.collectionTitle} numberOfLines={1}>
+                      {collection.title}
+                    </Text>
+                    <Text style={s.collectionDetail}>
+                      {locationCount}{" "}
+                      {locationCount === 1 ? "location" : "locations"} in {name}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
         ) : (
           <Text style={[s.empty, s.collectionEmpty]}>
             No collections feature locations in {name} yet.
@@ -382,10 +388,18 @@ export default function CountryScreen() {
               return (
                 <TouchableOpacity
                   key={city.id}
-                  style={s.cityRow}
-                  onPress={() => router.push(`/city/${city.id}` as never)}
+                  style={s.sightRow}
+                  onPress={() =>
+                    setSelectedCity({
+                      id: city.id,
+                      name: city.name,
+                      image: cityDetail?.image,
+                      description: cityDetail?.description,
+                      regionName: recordedVisit?.subcountry,
+                    })
+                  }
                   accessibilityRole="button"
-                  accessibilityLabel={`Open ${city.name}`}
+                  accessibilityLabel={`Open details for ${city.name}`}
                 >
                   <CityThumbnail
                     cityId={city.id}
@@ -396,12 +410,9 @@ export default function CountryScreen() {
                     latitude={cityDetail?.latitude}
                     longitude={cityDetail?.longitude}
                   />
-                  <Text style={s.cityName}>{city.name}</Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={19}
-                    color={BrandColors.onDarkMuted}
-                  />
+                  <Text numberOfLines={1} style={s.sightName}>
+                    {city.name}
+                  </Text>
                 </TouchableOpacity>
               );
             })
@@ -463,6 +474,49 @@ export default function CountryScreen() {
               <TouchableOpacity
                 style={s.modalClose}
                 onPress={() => setSelectedSight(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={30} color={BrandColors.copper} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
+      <Modal
+        visible={selectedCity !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setSelectedCity(null)}
+      >
+        <View style={s.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedCity(null)}
+            accessibilityLabel="Close city details"
+          />
+          {selectedCity ? (
+            <View style={s.sightModal} accessibilityViewIsModal>
+              <ResolvedPlaceImage
+                initialUri={selectedCity.image}
+                placeName={selectedCity.name}
+                cityName={selectedCity.name}
+                countryName={name}
+                style={s.modalImage}
+                contentFit="cover"
+              />
+              <Text style={s.modalTitle}>{selectedCity.name}</Text>
+              <Text style={s.modalLocation}>
+                {[selectedCity.regionName, name].filter(Boolean).join(", ")}
+              </Text>
+              <Text style={s.modalDescription}>
+                {selectedCity.description ||
+                  `A city you visited in ${name}.`}
+              </Text>
+              <TouchableOpacity
+                style={s.modalClose}
+                onPress={() => setSelectedCity(null)}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
@@ -691,38 +745,27 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   lockedSightCheck: { opacity: 0.28 },
-  collectionRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 2,
-    gap: 12,
-  },
-  collectionCard: {
-    width: 174,
-    minHeight: 190,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    backgroundColor: BrandColors.greenPanel,
-  },
+  collectionList: { marginHorizontal: 16 },
   collectionImageFrame: {
-    width: "100%",
-    height: 108,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: BrandColors.greenPanel,
   },
   collectionImage: { width: "100%", height: "100%" },
+  collectionText: { flex: 1 },
   collectionTitle: {
-    marginTop: 8,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 16,
     color: BrandColors.onDark,
   },
   collectionDetail: {
-    marginTop: 4,
+    marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 11,
+    fontSize: 12,
     color: BrandColors.onDarkMuted,
   },
   collectionEmpty: { marginHorizontal: 16 },
@@ -763,36 +806,19 @@ const s = StyleSheet.create({
     color: BrandColors.copperDark,
   },
   cityList: {
-    maxHeight: 396,
+    maxHeight: 372,
     marginHorizontal: 16,
-    marginVertical: 4,
-  },
-  cityRow: {
-    minHeight: 66,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: BrandColors.paleGreen,
   },
   cityImageFrame: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     overflow: "hidden",
-    borderWidth: 2,
-    borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.greenPanel,
   },
   cityImage: { width: "100%", height: "100%" },
-  cityName: {
-    flex: 1,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
-    color: BrandColors.onDark,
-  },
   gpsCard: {
     marginHorizontal: 16,
     marginTop: 12,
