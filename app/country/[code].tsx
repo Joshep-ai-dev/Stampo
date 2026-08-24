@@ -23,7 +23,7 @@ import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import { api, type SightDetail } from "@/services/api";
+import { api, type ManagedCollection, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
@@ -51,6 +51,8 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
+  const [selectedCollection, setSelectedCollection] =
+    useState<ManagedCollection | null>(null);
   const [selectedCity, setSelectedCity] = useState<{
     id: string;
     name: string;
@@ -156,9 +158,7 @@ export default function CountryScreen() {
     results.forEach((result, index) => {
       if (result.status === "rejected") {
         failed = true;
-        dispatch(
-          sightCompletionSet({ id: targetIds[index], completed }),
-        );
+        dispatch(sightCompletionSet({ id: targetIds[index], completed }));
       }
     });
     if (failed) {
@@ -249,7 +249,7 @@ export default function CountryScreen() {
 
         {countryState.status === "loading" && !detail ? (
           <View style={s.messageCard}>
-            <Text style={s.messageText}>Loading top sights…</Text>
+            <Text style={s.messageText}>Loading…</Text>
           </View>
         ) : null}
         {countryState.status === "failed" && !detail ? (
@@ -262,7 +262,7 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <SectionTitle>{`Top Sights ${name}`}</SectionTitle>
+        <SectionTitle>{`Top Sights in ${name}`}</SectionTitle>
         {sights.length ? (
           <View style={s.sightList}>
             <ScrollView
@@ -398,9 +398,7 @@ export default function CountryScreen() {
                   key={collection.id}
                   style={s.sightRow}
                   activeOpacity={0.82}
-                  onPress={() =>
-                    router.push(`/collection/${collection.id}` as never)
-                  }
+                  onPress={() => setSelectedCollection(collection)}
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${collection.title}`}
                 >
@@ -409,8 +407,8 @@ export default function CountryScreen() {
                       source={
                         collection.imageUrl
                           ? { uri: collection.imageUrl }
-                          : collectionImages[collection.id] ??
-                            require("@/assets/images/other/globe-airplane.png")
+                          : (collectionImages[collection.id] ??
+                            require("@/assets/images/other/globe-airplane.png"))
                       }
                       style={s.collectionImage}
                       contentFit="contain"
@@ -567,6 +565,53 @@ export default function CountryScreen() {
         </View>
       </Modal>
       <Modal
+        visible={selectedCollection !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setSelectedCollection(null)}
+      >
+        <View style={s.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedCollection(null)}
+            accessibilityLabel="Close collection details"
+          />
+          {selectedCollection ? (
+            <View style={s.sightModal} accessibilityViewIsModal>
+              <Image
+                source={
+                  selectedCollection.imageUrl
+                    ? { uri: selectedCollection.imageUrl }
+                    : (collectionImages[selectedCollection.id] ??
+                      require("@/assets/images/other/globe-airplane.png"))
+                }
+                style={s.modalImage}
+                contentFit="contain"
+              />
+              <Text style={s.modalTitle}>{selectedCollection.title}</Text>
+              <Text style={s.modalLocation}>
+                {selectedCollection.places.length}{" "}
+                {selectedCollection.places.length === 1
+                  ? "location"
+                  : "locations"}
+              </Text>
+              <Text style={s.modalDescription}>
+                {selectedCollection.description || selectedCollection.detail}
+              </Text>
+              <TouchableOpacity
+                style={s.modalClose}
+                onPress={() => setSelectedCollection(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={30} color={BrandColors.copper} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
+      <Modal
         visible={selectedCity !== null}
         transparent
         animationType="fade"
@@ -594,8 +639,7 @@ export default function CountryScreen() {
                 {[selectedCity.regionName, name].filter(Boolean).join(", ")}
               </Text>
               <Text style={s.modalDescription}>
-                {selectedCity.description ||
-                  `A city you visited in ${name}.`}
+                {selectedCity.description || `A city you visited in ${name}.`}
               </Text>
               <TouchableOpacity
                 style={s.modalClose}

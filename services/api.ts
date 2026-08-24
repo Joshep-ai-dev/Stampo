@@ -26,33 +26,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const controller = new AbortController();
-  // Remote development databases can need several seconds to wake and connect.
-  // Keep the request alive long enough for Laravel to return its real response.
-  const timeout = setTimeout(() => controller.abort(), 60_000);
-  let response: Response;
-  try {
-    response = await fetch(`${API_URL}${path}`, {
-      ...init,
-      signal: init?.signal ?? controller.signal,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...init?.headers,
-      },
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new ApiError(
-        408,
-        "The server took too long to respond. Please try again.",
-      );
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...init?.headers,
+    },
+  });
 
   if (!response.ok) {
     const body = await response.text();
@@ -387,18 +369,22 @@ export const api = {
     ),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   communityLeaderboard: (scope: "global" | "friends") =>
-    request<(Omit<CommunityProfile, "stats"> & Partial<CommunityProfile["stats"]> & { stats?: CommunityProfile["stats"] })[]>(
-      `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
-    ).then((items) =>
-      items.map((item) => ({
-        ...item,
-        stats: item.stats ?? {
-          countries: item.countries ?? 0,
-          continents: item.continents ?? 0,
-          cities: item.cities ?? 0,
-          collections: item.collections ?? 0,
-        },
-      })),
+    request<
+      (Omit<CommunityProfile, "stats"> &
+        Partial<CommunityProfile["stats"]> & {
+          stats?: CommunityProfile["stats"];
+        })[]
+    >(`/community/leaderboard?scope=${encodeURIComponent(scope)}`).then(
+      (items) =>
+        items.map((item) => ({
+          ...item,
+          stats: item.stats ?? {
+            countries: item.countries ?? 0,
+            continents: item.continents ?? 0,
+            cities: item.cities ?? 0,
+            collections: item.collections ?? 0,
+          },
+        })),
     ),
   dailyDestinations: (date = new Date().toISOString().slice(0, 10)) =>
     request<DailyDestination[]>(
