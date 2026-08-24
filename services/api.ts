@@ -6,7 +6,8 @@ import {
   storeAuthToken,
 } from "./auth-token";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 let authToken: string | null = null;
 
@@ -26,7 +27,9 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
+  // Remote development databases can need several seconds to wake and connect.
+  // Keep the request alive long enough for Laravel to return its real response.
+  const timeout = setTimeout(() => controller.abort(), 30_000);
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -39,6 +42,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         ...init?.headers,
       },
     });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "The server took too long to respond. Please try again.",
+      );
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -47,8 +58,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await response.text();
     let message = body.trim();
     try {
-      const parsed = JSON.parse(body) as { message?: string; error?: string };
-      message = parsed.message ?? parsed.error ?? message;
+      const parsed = JSON.parse(body) as {
+        message?: string;
+        error?: string;
+        errors?: Record<string, string[]>;
+      };
+      const validationMessage = Object.values(parsed.errors ?? {})[0]?.[0];
+      message = validationMessage ?? parsed.message ?? parsed.error ?? message;
     } catch {
       // Preserve plain-text server errors.
     }
@@ -260,8 +276,68 @@ export type CityDetail = {
   sights?: SightDetail[];
 };
 
+type BackendSight = Partial<SightDetail> & { imageUrl?: string };
+type BackendCity = Partial<CityDetail> & {
+  country?: string;
+  countryCode?: string;
+  continentCode?: string;
+  subcountry?: string;
+  sights?: BackendSight[];
+};
+
+function normalizeSight(item: BackendSight): SightDetail {
+  return {
+    id: String(item.id ?? ""),
+    countryId: String(item.countryId ?? ""),
+    cityId: String(item.cityId ?? ""),
+    city: item.city ?? "",
+    opentripmapXid: item.opentripmapXid ?? null,
+    wikidataId: item.wikidataId ?? null,
+    wikipediaTitle: item.wikipediaTitle ?? null,
+    name: item.name ?? "",
+    slug: item.slug ?? "",
+    description: item.description ?? "",
+    category: item.category ?? "attraction",
+    latitude: Number(item.latitude ?? 0),
+    longitude: Number(item.longitude ?? 0),
+    image: item.image ?? item.imageUrl ?? "",
+    imageCredit: item.imageCredit ?? null,
+    completed: item.completed,
+    isPremium: item.isPremium === true,
+  };
+}
+
+function normalizeCity(item: BackendCity): CityDetail {
+  return {
+    id: String(item.id ?? ""),
+    countryId: String(item.countryId ?? item.countryCode ?? ""),
+    geonamesId: item.geonamesId ?? (String(item.id ?? "") || null),
+    wikidataId: item.wikidataId ?? null,
+    wikipediaTitle: item.wikipediaTitle ?? null,
+    name: item.name ?? "",
+    slug: item.slug ?? "",
+    description: item.description ?? "",
+    population: Number(item.population ?? 0),
+    latitude: Number(item.latitude ?? 0),
+    longitude: Number(item.longitude ?? 0),
+    image: item.image ?? "",
+    imageCredit: item.imageCredit ?? null,
+    sights: item.sights?.map(normalizeSight),
+  };
+}
+
+function normalizeCollection(item: ManagedCollection): ManagedCollection {
+  return {
+    ...item,
+    description: item.description ?? item.detail ?? "",
+    imageUrl: item.imageUrl ?? "",
+    isPremium: item.isPremium === true,
+    places: item.places ?? [],
+  };
+}
+
 async function countryDetail(code: string): Promise<CountryDetailResponse> {
-  const path = `/api/countries/${encodeURIComponent(code)}`;
+  const path = `/catalog/countries/${encodeURIComponent(code)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
     const result = await request<
       CountryDetailResponse | CountryImportPendingResponse
@@ -270,7 +346,12 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
       continue;
     }
-    return result;
+    return {
+      ...result,
+      cities: result.cities.map((item) => normalizeCity(item)),
+      sights: result.sights.map((item) => normalizeSight(item)),
+      collections: result.collections.map(normalizeCollection),
+    };
   }
   throw new ApiError(
     408,
@@ -281,47 +362,43 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
 export const api = {
   countryDetail,
   cityDetail: (id: string) =>
-    request<CityDetail>(`/api/cities/${encodeURIComponent(id)}`),
-  resolveCityImage: (input: {
+    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(
+      normalizeCity,
+    ),
+  resolveCityImage: (_input: {
     name: string;
     country: string;
     region?: string;
     latitude?: number;
     longitude?: number;
-  }) =>
-    request<{ image: string }>(
-      `/api/city-image?${new URLSearchParams({
-        name: input.name,
-        country: input.country,
-        ...(input.region ? { region: input.region } : {}),
-        ...(Number.isFinite(input.latitude)
-          ? { latitude: String(input.latitude) }
-          : {}),
-        ...(Number.isFinite(input.longitude)
-          ? { longitude: String(input.longitude) }
-          : {}),
-      }).toString()}`,
-    ),
-  resolvePlaceImage: (input: {
+  }) => Promise.resolve({ image: "" }),
+  resolvePlaceImage: (_input: {
     name: string;
     city?: string;
     country: string;
-  }) =>
-    request<{ image: string }>(
-      `/api/place-image?${new URLSearchParams({
-        name: input.name,
-        country: input.country,
-        ...(input.city ? { city: input.city } : {}),
-      }).toString()}`,
-    ),
+  }) => Promise.resolve({ image: "" }),
   citySights: (id: string) =>
-    request<SightDetail[]>(`/api/cities/${encodeURIComponent(id)}/sights`),
+    request<BackendSight[]>(
+      `/catalog/cities/${encodeURIComponent(id)}/sights`,
+    ).then((items) => items.map(normalizeSight)),
   sightDetail: (id: string) =>
-    request<SightDetail>(`/api/sights/${encodeURIComponent(id)}`),
+    request<BackendSight>(`/sights/${encodeURIComponent(id)}`).then(
+      normalizeSight,
+    ),
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   communityLeaderboard: (scope: "global" | "friends") =>
-    request<CommunityProfile[]>(
+    request<(Omit<CommunityProfile, "stats"> & Partial<CommunityProfile["stats"]> & { stats?: CommunityProfile["stats"] })[]>(
       `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
+    ).then((items) =>
+      items.map((item) => ({
+        ...item,
+        stats: item.stats ?? {
+          countries: item.countries ?? 0,
+          continents: item.continents ?? 0,
+          cities: item.cities ?? 0,
+          collections: item.collections ?? 0,
+        },
+      })),
     ),
   dailyDestinations: (date = new Date().toISOString().slice(0, 10)) =>
     request<DailyDestination[]>(
@@ -349,7 +426,9 @@ export const api = {
       `/collections?status=${encodeURIComponent(status)}`,
     ),
   collectionDetail: (id: string) =>
-    request<ManagedCollection>(`/api/collections/${encodeURIComponent(id)}`),
+    request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
+      normalizeCollection,
+    ),
   setCollectionProgress: (collectionId: string, progress: number) =>
     request<CollectionProgress>(
       `/me/collections/${encodeURIComponent(collectionId)}`,

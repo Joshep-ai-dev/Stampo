@@ -164,10 +164,12 @@ function IdentityPage({
       });
       await finishAuthentication(user);
       setPassword("");
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Sign up failed",
-        "Please check your connection and try again.",
+        error instanceof Error
+          ? error.message
+          : "Please check your connection and try again.",
       );
     } finally {
       setAuthBusy(false);
@@ -186,8 +188,13 @@ function IdentityPage({
       });
       await finishAuthentication(user);
       setPassword("");
-    } catch {
-      Alert.alert("Sign in failed", "The email or password is incorrect.");
+    } catch (error) {
+      Alert.alert(
+        "Sign in failed",
+        error instanceof Error
+          ? error.message
+          : "Please check your connection and try again.",
+      );
     } finally {
       setAuthBusy(false);
     }
