@@ -264,7 +264,7 @@ export function CityVisitSearch({
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />

@@ -868,10 +868,13 @@ export default function HomeScreen() {
           <View style={styles.welcome}>
             <Text style={styles.greeting}>WELCOME</Text>
             <Text
-              style={[styles.name, compact && styles.nameCompact]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.72}
+              style={[
+                styles.name,
+                compact && styles.nameCompact,
+                (name || "Traveler").length > 12 && styles.nameLong,
+              ]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
             >
               {name || "Traveler"}
             </Text>
@@ -1066,6 +1069,11 @@ const styles = StyleSheet.create({
     maxWidth: "64%",
     fontSize: responsiveFontSize(42),
     lineHeight: 48,
+  },
+  nameLong: {
+    maxWidth: "62%",
+    fontSize: responsiveFontSize(35),
+    lineHeight: 38,
   },
   levelRow: {
     marginTop: 3,

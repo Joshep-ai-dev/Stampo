@@ -219,7 +219,6 @@ export type CountryDetailResponse = {
     sights: number;
     totalSights: number;
     airports: number;
-    premiumSights: number;
   };
   visitedCities: { id: string; name: string }[];
 };
@@ -252,7 +251,6 @@ export type SightDetail = {
   image: string;
   imageCredit: ImageCredit;
   completed?: boolean;
-  isPremium: boolean;
 };
 export type CityDetail = {
   id: string;
@@ -295,7 +293,6 @@ function normalizeSight(item: BackendSight): SightDetail {
     image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     completed: item.completed,
-    isPremium: item.isPremium === true,
   };
 }
 

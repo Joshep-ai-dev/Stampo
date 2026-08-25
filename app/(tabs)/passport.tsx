@@ -13,8 +13,8 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   Platform,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -68,11 +68,13 @@ function IdentityPage({
   krooNumber,
   width,
   height,
+  compact,
 }: {
   profile: ProfileState;
   krooNumber: string;
   width: number;
   height: number;
+  compact: boolean;
 }) {
   const dispatch = useAppDispatch();
   const [draft, setDraft] = useState({
@@ -252,9 +254,20 @@ function IdentityPage({
   };
   return (
     <>
-      <View style={[styles.paper, styles.identityPaper, { width, height }]}>
-        <View style={styles.identityHeading}>
-          <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
+      <View
+        style={[
+          styles.paper,
+          styles.identityPaper,
+          { width: width - 15, height: height - 30 },
+        ]}
+      >
+        <View
+          style={[
+            styles.identityHeading,
+            compact && styles.identityHeadingCompact,
+          ]}
+        >
+          <Text style={styles.identityCountry}>STAMPO TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>PASSPORT · P</Text>
         </View>
         {profile.isSignedIn ? (
@@ -336,14 +349,20 @@ function IdentityPage({
         ) : (
           <ScrollView
             style={styles.authPage}
-            contentContainerStyle={styles.authPageContent}
+            contentContainerStyle={[
+              styles.authPageContent,
+              compact && styles.authPageContentCompact,
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.authSeal}>
+            <View style={[styles.authSeal, compact && styles.authSealCompact]}>
               <Image
                 source={require("@/assets/images/favicon.png")}
-                style={styles.authKrooMark}
+                style={[
+                  styles.authKrooMark,
+                  compact && styles.authKrooMarkCompact,
+                ]}
                 contentFit="fill"
               />
             </View>
@@ -493,7 +512,7 @@ function StampPage({
   onStampPress: (stamp: Stamp) => void;
 }) {
   return (
-    <View style={[styles.paper, { width, height }]}>
+    <View style={[styles.paper, { width: width - 15, height: height - 30 }]}>
       <View style={styles.paperInner}>
         {slots.map((stamp, index) => (
           <Pressable
@@ -529,6 +548,7 @@ export default function PassportScreen() {
     (state) => state.travel.completedSightIds,
   );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(0);
   const listRef = useRef<FlatList<PassportPage>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -540,8 +560,12 @@ export default function PassportScreen() {
       });
     }, []),
   );
-  const pageWidth = Math.min(screenWidth - 36, 620);
-  const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
+  const horizontalInset = compactPassport ? 20 : 36;
+  const pageWidth = Math.min(screenWidth - horizontalInset, 620);
+  const pageHeight = Math.min(
+    screenHeight - (compactPassport ? 150 : 190),
+    pageWidth * 1.48,
+  );
   const krooNumber = useMemo(
     () =>
       formatKrooNumber(calculateKrooScoreFromVisits(visits, completedSightIds)),
@@ -589,113 +613,121 @@ export default function PassportScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView
         style={styles.keyboardArea}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.carouselArea}>
           <Animated.FlatList
-          ref={listRef}
-          data={passportPages}
-          horizontal
-          pagingEnabled
-          bounces={false}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(page) => page.id}
-          onMomentumScrollEnd={handleScrollEnd}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}
-          getItemLayout={(_, index) => ({
-            length: screenWidth,
-            offset: screenWidth * index,
-            index,
-          })}
-          renderItem={({ item, index }) => {
-            const inputRange = [
-              (index - 1) * screenWidth,
-              index * screenWidth,
-              (index + 1) * screenWidth,
-            ];
-            const rotateY = scrollX.interpolate({
-              inputRange,
-              outputRange: ["-55deg", "0deg", "55deg"],
-              extrapolate: "clamp",
-            });
-            const scale = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.9, 1, 0.9],
-              extrapolate: "clamp",
-            });
-            return (
-              <View style={[styles.pageFrame, { width: screenWidth }]}>
-                <Animated.View
-                  style={[
-                    styles.turningPage,
-                    {
-                      transform: [
-                        { perspective: 1100 },
-                        { rotateY },
-                        { scale },
-                      ],
-                    },
-                  ]}
-                >
-                  {item.type === "cover" ? (
-                    <Image
-                      source={item.image}
-                      style={{ width: pageHeight, height: pageHeight }}
-                      contentFit="contain"
-                    />
-                  ) : item.type === "identity" ? (
-                    <IdentityPage
-                      profile={profile}
-                      krooNumber={krooNumber}
-                      width={pageWidth}
-                      height={pageHeight}
-                    />
-                  ) : (
-                    <StampPage
-                      slots={item.slots}
-                      width={pageWidth}
-                      height={pageHeight}
-                      onStampPress={(stamp) =>
-                        router.push(`/country/${stamp.code}` as never)
-                      }
-                    />
-                  )}
-                </Animated.View>
-              </View>
-            );
-          }}
+            ref={listRef}
+            data={passportPages}
+            horizontal
+            pagingEnabled
+            bounces={false}
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(page) => page.id}
+            onMomentumScrollEnd={handleScrollEnd}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true },
+            )}
+            scrollEventThrottle={16}
+            getItemLayout={(_, index) => ({
+              length: screenWidth,
+              offset: screenWidth * index,
+              index,
+            })}
+            renderItem={({ item, index }) => {
+              const inputRange = [
+                (index - 1) * screenWidth,
+                index * screenWidth,
+                (index + 1) * screenWidth,
+              ];
+              const rotateY = scrollX.interpolate({
+                inputRange,
+                outputRange: ["-55deg", "0deg", "55deg"],
+                extrapolate: "clamp",
+              });
+              const scale = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.9, 1, 0.9],
+                extrapolate: "clamp",
+              });
+              return (
+                <View style={[styles.pageFrame, { width: screenWidth }]}>
+                  <Animated.View
+                    style={[
+                      styles.turningPage,
+                      {
+                        transform: [
+                          { perspective: 1100 },
+                          { rotateY },
+                          { scale },
+                        ],
+                      },
+                    ]}
+                  >
+                    {item.type === "cover" ? (
+                      <Image
+                        source={item.image}
+                        style={{ width: pageHeight, height: pageHeight - 10 }}
+                        contentFit="contain"
+                      />
+                    ) : item.type === "identity" ? (
+                      <IdentityPage
+                        profile={profile}
+                        krooNumber={krooNumber}
+                        width={pageWidth}
+                        height={pageHeight}
+                        compact={compactPassport}
+                      />
+                    ) : (
+                      <StampPage
+                        slots={item.slots}
+                        width={pageWidth}
+                        height={pageHeight}
+                        onStampPress={(stamp) =>
+                          router.push(`/country/${stamp.code}` as never)
+                        }
+                      />
+                    )}
+                  </Animated.View>
+                </View>
+              );
+            }}
           />
           <TouchableOpacity
-          style={styles.shareButton}
-          onPress={() =>
-            void Share.share({
-              message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
-            })
-          }
-        >
-          <Ionicons name="arrow-redo-sharp" size={36} color={colors.ink} />
+            style={[
+              styles.shareButton,
+              compactPassport && styles.shareButtonCompact,
+            ]}
+            onPress={() =>
+              void Share.share({
+                message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
+              })
+            }
+          >
+            <Ionicons
+              name="arrow-redo-sharp"
+              size={compactPassport ? 24 : 30}
+              color={colors.ink}
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.pagination}>
-        <View style={styles.dots}>
-          {passportPages.map((page, index) => (
-            <TouchableOpacity
-              key={page.id}
-              style={[styles.dot, index === activePage && styles.dotActive]}
-              onPress={() => {
-                listRef.current?.scrollToIndex({ index, animated: true });
-                setActivePage(index);
-              }}
-            />
-          ))}
-        </View>
-        <Text style={styles.pageCount}>
-          {activePage + 1} / {passportPages.length}
-        </Text>
+          <View style={styles.dots}>
+            {passportPages.map((page, index) => (
+              <TouchableOpacity
+                key={page.id}
+                style={[styles.dot, index === activePage && styles.dotActive]}
+                onPress={() => {
+                  listRef.current?.scrollToIndex({ index, animated: true });
+                  setActivePage(index);
+                }}
+              />
+            ))}
+          </View>
+          <Text style={styles.pageCount}>
+            {activePage + 1} / {passportPages.length}
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -733,6 +765,7 @@ const styles = StyleSheet.create({
     borderBottomColor: BrandColors.line,
     paddingBottom: 10,
   },
+  identityHeadingCompact: { paddingBottom: 6 },
   identityCountry: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(19),
@@ -756,18 +789,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  authPageContentCompact: {
+    justifyContent: "flex-start",
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
+  },
   authSeal: {
     width: 140,
     height: 140,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 10,
     overflow: "hidden",
   },
+  authSealCompact: { width: 92, height: 92, marginBottom: 6 },
   authKrooMark: {
     width: 137,
     height: 137,
-    transform: [{ translateX: 9 }],
+  },
+  authKrooMarkCompact: {
+    width: 90,
+    height: 90,
   },
   authTitle: {
     fontFamily: "Lora_700Bold",
@@ -1014,7 +1057,6 @@ const styles = StyleSheet.create({
   },
   paperInner: {
     flex: 1,
-    borderWidth: 1,
     borderColor: BrandColors.line,
     borderRadius: 14,
     padding: 14,
@@ -1025,8 +1067,8 @@ const styles = StyleSheet.create({
     rowGap: 8,
   },
   stampSlot: {
-    width: "49%",
-    height: "47%",
+    width: "47%",
+    height: "45%",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 14,
@@ -1039,7 +1081,7 @@ const styles = StyleSheet.create({
   stampImage: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.35 }],
+    transform: [{ scale: 1.3 }],
   },
   genericStamp: {
     width: "90%",
@@ -1066,14 +1108,21 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 24,
     right: 14,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: BrandColors.greenDeep,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
+  },
+  shareButtonCompact: {
+    top: 17,
+    right: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   pagination: { height: 80, alignItems: "center", paddingTop: 5 },
   dots: {

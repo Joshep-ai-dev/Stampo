@@ -280,7 +280,7 @@ export default function ProfileScreen() {
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />
@@ -572,7 +572,11 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.divider,
   },
-  orText: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: colors.muted },
+  orText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: colors.muted,
+  },
   languageList: {
     borderRadius: 14,
     overflow: "hidden",

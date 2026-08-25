@@ -84,9 +84,11 @@ export default function CountryScreen() {
   const sights = [...(detail?.sights ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
-  const freeSights = sights.filter((sight) => !sight.isPremium);
-  const premiumSights = sights.filter((sight) => sight.isPremium);
-  const premiumSightPreview = premiumSights.slice(0, 1);
+  const freeSightLimit = 3;
+  const freeSights = sights.slice(0, freeSightLimit);
+  const lockedSights = subscription.isKrooPlus
+    ? []
+    : sights.slice(freeSightLimit);
   const visibleSights = subscription.isKrooPlus ? sights : freeSights;
   const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
@@ -330,9 +332,9 @@ export default function CountryScreen() {
                 );
               })}
             </ScrollView>
-            {premiumSights.length ? (
+            {lockedSights.length ? (
               <UpgradeBanner
-                count={premiumSights.length}
+                count={lockedSights.length}
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
                 onCustomerInfo={(customerInfo) =>
@@ -345,9 +347,9 @@ export default function CountryScreen() {
                 }
               />
             ) : null}
-            {!subscription.isKrooPlus ? (
+            {lockedSights.length ? (
               <View style={s.lockedList}>
-                {premiumSightPreview.map((sight) => (
+                {lockedSights.map((sight) => (
                   <View
                     key={sight.id}
                     style={[s.sightRow, s.lockedSightRow]}

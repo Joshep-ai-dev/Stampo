@@ -39,16 +39,54 @@ const collectionImages: Record<string, number> = {
   parks: require("../../assets/images/collection/National Parks Collector.png"),
   usa: require("../../assets/images/collection/United States Explorer.png"),
 };
+const publicCollectionCatalog: CollectionProgress[] = [
+  {
+    id: "wonders",
+    title: "Seven Wonders",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "seas",
+    title: "Seven Seas",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "unesco",
+    title: "UNESCO Explorer",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "parks",
+    title: "National Parks Collector",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "usa",
+    title: "United States Explorer",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+];
 export default function ExploreScreen() {
   const router = useRouter();
   const countryRowRef = useRef<FlatList<CountryRecord>>(null);
   const visits = useAppSelector((state) => state.travel.visits);
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
     useState<(typeof collectionFilters)[number]>("All");
   const [collectionCatalog, setCollectionCatalog] = useState<
     CollectionProgress[]
-  >([]);
+  >(publicCollectionCatalog);
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
   const countries = useMemo(() => {
     const visitedCodes = new Set(
@@ -79,17 +117,26 @@ export default function ExploreScreen() {
   }, [visits]);
   useFocusEffect(
     useCallback(() => {
+      if (!isSignedIn) {
+        setCollectionCatalog(publicCollectionCatalog);
+        return;
+      }
       let active = true;
       void api
         .listCollections()
         .then((items) => {
-          if (active) setCollectionCatalog(items);
+          if (active)
+            setCollectionCatalog(
+              items.length > 0 ? items : publicCollectionCatalog,
+            );
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (active) setCollectionCatalog(publicCollectionCatalog);
+        });
       return () => {
         active = false;
       };
-    }, []),
+    }, [isSignedIn]),
   );
   const visibleCollections = useMemo(() => {
     if (collectionFilter === "All") return collectionCatalog;
