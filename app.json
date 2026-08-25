@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Stampo",
-    "slug": "Stampo",
+    "name": "Kroo",
+    "slug": "Kroo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/favicon.png",
-    "scheme": "stampo",
+    "scheme": "Kroo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -34,22 +34,22 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Stampo to scan a friend's QR code."
+          "cameraPermission": "Allow Kroo to scan a friend's QR code."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Stampo to access your photos so you can choose a profile picture.",
-          "cameraPermission": "Allow Stampo to use your camera so you can take a profile picture.",
+          "photosPermission": "Allow Kroo to access your photos so you can choose a profile picture.",
+          "cameraPermission": "Allow Kroo to use your camera so you can take a profile picture.",
           "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Stampo to show your position and verify visited places.",
-          "locationAlwaysAndWhenInUsePermission": "Allow Stampo to recognize new city and airport arrivals and suggest GPS-verified visits.",
+          "locationWhenInUsePermission": "Allow Kroo to show your position and verify visited places.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Kroo to recognize new city and airport arrivals and suggest GPS-verified visits.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true

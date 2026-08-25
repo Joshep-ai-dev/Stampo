@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -38,6 +38,7 @@ const collectionImages: Record<string, number> = {
 };
 export default function ExploreScreen() {
   const router = useRouter();
+  const countryRowRef = useRef<ScrollView>(null);
   const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
@@ -125,11 +126,15 @@ export default function ExploreScreen() {
               key={x}
               label={x}
               selected={countryFilter === x}
-              onPress={() => setCountryFilter(x)}
+              onPress={() => {
+                setCountryFilter(x);
+                countryRowRef.current?.scrollTo({ x: 0, animated: false });
+              }}
             />
           ))}
         </ScrollView>
         <ScrollView
+          ref={countryRowRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.countryRow}
