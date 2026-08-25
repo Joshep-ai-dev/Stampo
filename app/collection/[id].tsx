@@ -26,7 +26,6 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   sightCompletionSet,
-  travelStateHydrated,
   visitsHydrated,
   wishlistToggled,
 } from "@/store/travel-slice";
@@ -62,28 +61,11 @@ export default function CollectionScreen() {
     null,
   );
   const [collectionLoading, setCollectionLoading] = useState(true);
-  const [completed, setCompleted] = useState<Set<string>>(
-    () => new Set(completedSightIds),
-  );
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
   const [placeDescription, setPlaceDescription] = useState<string>("");
   const [wishlistPending, setWishlistPending] = useState(false);
-
-  useEffect(() => {
-    if (!isSignedIn) return;
-    void api
-      .travelState()
-      .then((state) => {
-        dispatch(travelStateHydrated(state));
-      })
-      .catch(() => undefined);
-  }, [dispatch, isSignedIn]);
-
-  useEffect(() => {
-    setCompleted(new Set(completedSightIds));
-  }, [completedSightIds]);
 
   useEffect(() => {
     let active = true;
@@ -135,14 +117,8 @@ export default function CollectionScreen() {
       return;
     }
     const targetId = `collection-${collection.id}-${place.id}`;
-    const next = !completed.has(targetId);
+    const next = !completedSightIds.includes(targetId);
     dispatch(sightCompletionSet({ id: targetId, completed: next }));
-    setCompleted((current) => {
-      const updated = new Set(current);
-      if (next) updated.add(targetId);
-      else updated.delete(targetId);
-      return updated;
-    });
     try {
       await api.setSightCompleted(targetId, next);
       void api
@@ -150,19 +126,17 @@ export default function CollectionScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-    } catch {
+    } catch (error) {
       dispatch(sightCompletionSet({ id: targetId, completed: !next }));
-      setCompleted((current) => {
-        const updated = new Set(current);
-        if (next) updated.delete(targetId);
-        else updated.add(targetId);
-        return updated;
-      });
+      Alert.alert(
+        "Could not update collection",
+        error instanceof Error ? error.message : "Please try again.",
+      );
     }
   };
 
   const completedCount = collection.places.filter((place) =>
-    completed.has(`collection-${collection.id}-${place.id}`),
+    completedSightIds.includes(`collection-${collection.id}-${place.id}`),
   ).length;
   const requiresKrooPlus = (place: CollectionPlace) =>
     collection.isPremium === true || place.isPremium === true;
@@ -288,7 +262,7 @@ export default function CollectionScreen() {
         <View style={s.placeList}>
           {freePlaces.map((place) => {
             const targetId = `collection-${collection.id}-${place.id}`;
-            const checked = completed.has(targetId);
+            const checked = completedSightIds.includes(targetId);
             return (
               <TouchableOpacity
                 key={place.id}
@@ -330,7 +304,7 @@ export default function CollectionScreen() {
             <View style={s.lockedList}>
               {premiumPlaces.map((place) => {
                 const targetId = `collection-${collection.id}-${place.id}`;
-                const checked = completed.has(targetId);
+                const checked = completedSightIds.includes(targetId);
                 return (
                   <View key={place.id} style={[s.placeRow, s.lockedPlaceRow]}>
                     <PlaceImage place={place} blurRadius={32} />

@@ -164,14 +164,16 @@ export default function CountryScreen() {
       targetIds.map((id) => api.setSightCompleted(id, next)),
     );
     let failed = false;
+    let failureMessage = "Please try again.";
     results.forEach((result, index) => {
       if (result.status === "rejected") {
         failed = true;
+        if (result.reason instanceof Error) failureMessage = result.reason.message;
         dispatch(sightCompletionSet({ id: targetIds[index], completed }));
       }
     });
     if (failed) {
-      Alert.alert("Could not update collection", "Please try again.");
+      Alert.alert("Could not update collection", failureMessage);
     }
     if (results.some((result) => result.status === "fulfilled")) {
       void api

@@ -51,9 +51,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         message?: string;
         error?: string;
         errors?: Record<string, string[]>;
+        requestId?: string;
       };
       const validationMessage = Object.values(parsed.errors ?? {})[0]?.[0];
       message = validationMessage ?? parsed.message ?? parsed.error ?? message;
+      if (response.status >= 500) {
+        message = parsed.requestId
+          ? `The server could not complete this request. Reference: ${parsed.requestId}`
+          : "The server could not complete this request. Please try again.";
+      }
     } catch {
       // Preserve plain-text server errors.
     }

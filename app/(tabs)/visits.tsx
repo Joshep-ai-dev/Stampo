@@ -144,7 +144,10 @@ export default function PlusTabScreen() {
     [selected, setSelected] = useState<Destination | null>(null);
   const [managedRounds, setManagedRounds] = useState<DailyDestination[]>([]);
   useEffect(() => {
-    void api.dailyDestinations().then(setManagedRounds).catch(() => undefined);
+    void api
+      .dailyDestinations()
+      .then(setManagedRounds)
+      .catch(() => undefined);
   }, []);
   const quizRounds: QuizRound[] = managedRounds.length
     ? managedRounds.map((item) => ({
@@ -233,13 +236,15 @@ export default function PlusTabScreen() {
           </View>
           {phase === "result" ? (
             <View style={s.result}>
-              <Text style={s.resultScore}>{score}/{quizRounds.length}</Text>
+              <Text style={s.resultScore}>
+                {score}/{quizRounds.length}
+              </Text>
               <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
               <Text style={s.correct}>
                 +{(score * 0.05).toFixed(2)} added to your Kroo IQ
               </Text>
               <Button
-                label="DONE FOR TODAY"
+                label=" DONE FOR TODAY "
                 onPress={() => {
                   setIndex(0);
                   setScore(0);
@@ -287,7 +292,9 @@ export default function PlusTabScreen() {
                       : `Not quite — the answer was ${round.options[round.correct]}.`}
                   </Text>
                   <Button
-                    label={index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"}
+                    label={
+                      index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"
+                    }
                     onPress={next}
                   />
                 </>
