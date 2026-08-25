@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { NotificationResponse } from "expo-notifications";
@@ -173,20 +175,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     marginTop: 12,
     fontFamily: "Lora_700Bold",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     letterSpacing: 1.3,
     color: BrandColors.progressGreen,
   },
   title: {
     marginTop: 5,
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.onDark,
   },
   copy: {
     marginTop: 10,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 21,
     textAlign: "center",
     color: BrandColors.onDarkMuted,
@@ -212,5 +214,5 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: BrandColors.copper,
   },
-  confirmText: { fontFamily: "Lora_700Bold", fontSize: 13, color: BrandColors.green },
+  confirmText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(13), color: BrandColors.green },
 });

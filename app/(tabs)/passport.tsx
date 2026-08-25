@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -733,14 +735,14 @@ const styles = StyleSheet.create({
   },
   identityCountry: {
     fontFamily: "Lora_700Bold",
-    fontSize: 19,
+    fontSize: responsiveFontSize(19),
     color: BrandColors.green,
     letterSpacing: 1.2,
   },
   identityType: {
     marginTop: 3,
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.muted,
   },
   identityBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 18 },
@@ -769,7 +771,7 @@ const styles = StyleSheet.create({
   },
   authTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.green,
     textAlign: "center",
   },
@@ -778,7 +780,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 20,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     lineHeight: 17,
     textAlign: "center",
     color: BrandColors.muted,
@@ -791,7 +793,7 @@ const styles = StyleSheet.create({
   },
   authCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 1,
     color: BrandColors.muted,
   },
@@ -799,7 +801,7 @@ const styles = StyleSheet.create({
     height: 42,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
   },
   photoBox: {
@@ -816,14 +818,14 @@ const styles = StyleSheet.create({
   addPhoto: {
     marginTop: 7,
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     color: BrandColors.muted,
   },
   identityFields: { flex: 1, gap: 7 },
   identityField: { borderBottomWidth: 1, borderBottomColor: BrandColors.line },
   fieldCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     letterSpacing: 0.7,
     color: BrandColors.muted,
   },
@@ -831,7 +833,7 @@ const styles = StyleSheet.create({
     height: 33,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   accountButton: {
@@ -843,7 +845,7 @@ const styles = StyleSheet.create({
   },
   accountButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.white,
   },
@@ -859,7 +861,7 @@ const styles = StyleSheet.create({
   },
   signInPrimaryText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     letterSpacing: 0.9,
     color: BrandColors.white,
   },
@@ -873,7 +875,7 @@ const styles = StyleSheet.create({
   },
   createSecondaryText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.6,
     color: BrandColors.green,
   },
@@ -888,7 +890,7 @@ const styles = StyleSheet.create({
   },
   passwordButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 7,
+    fontSize: responsiveFontSize(7),
     letterSpacing: 0.4,
     color: BrandColors.white,
   },
@@ -902,7 +904,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.green,
   },
@@ -917,7 +919,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.copperDark,
   },
@@ -943,7 +945,7 @@ const styles = StyleSheet.create({
   passwordTitle: {
     marginBottom: 14,
     fontFamily: "Lora_700Bold",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: BrandColors.green,
   },
   passwordInput: {
@@ -954,7 +956,7 @@ const styles = StyleSheet.create({
     borderColor: BrandColors.line,
     borderRadius: 9,
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   passwordActions: { marginTop: 16, flexDirection: "row", gap: 9 },
@@ -969,7 +971,7 @@ const styles = StyleSheet.create({
   },
   passwordCancelText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.green,
   },
   passwordSave: {
@@ -982,7 +984,7 @@ const styles = StyleSheet.create({
   },
   passwordSaveText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.white,
   },
   numberRow: {
@@ -995,18 +997,18 @@ const styles = StyleSheet.create({
   },
   numberLabel: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     color: BrandColors.muted,
     letterSpacing: 1,
   },
   passportNumber: {
     fontFamily: "Lora_700Bold",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: BrandColors.green,
   },
   machineCode: {
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     letterSpacing: 0.5,
     color: BrandColors.ink,
   },
@@ -1051,12 +1053,12 @@ const styles = StyleSheet.create({
   },
   genericCode: {
     fontFamily: "Lora_700Bold",
-    fontSize: 30,
+    fontSize: responsiveFontSize(30),
     color: BrandColors.copperDark,
   },
   genericName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     textAlign: "center",
     color: BrandColors.copperDark,
   },
@@ -1088,6 +1090,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: colors.muted,
     fontFamily: "Lora_700Bold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
   },
 });

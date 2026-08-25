@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { memo } from "react";
@@ -88,10 +90,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  flag: { fontSize: 16 },
+  flag: { fontSize: responsiveFontSize(16) },
   name: {
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.green,
     flexShrink: 1,
   },
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
   status: {
     marginTop: 7,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.muted,
   },
   notVisited: { color: BrandColors.muted },

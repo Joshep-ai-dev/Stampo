@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -75,13 +77,13 @@ const styles = StyleSheet.create({
   numberRow: { flexDirection: "row", alignItems: "baseline" },
   value: {
     fontFamily: "Lora_400Regular",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: BrandColors.onDark,
   },
   total: {
     marginLeft: 2,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   labelRow: {
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
   label: {
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
   infoButton: {
@@ -111,7 +113,7 @@ const styles = StyleSheet.create({
   infoText: {
     marginTop: -1,
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     color: BrandColors.copper,
   },
 });

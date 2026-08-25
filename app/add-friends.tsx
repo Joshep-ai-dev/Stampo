@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
@@ -241,12 +243,12 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 4 },
   eyebrow: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     letterSpacing: 1.3,
     color: c.mint,
     marginBottom: 4,
   },
-  title: { fontFamily: "Lora_700Bold", fontSize: 28, color: c.cream },
+  title: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), color: c.cream },
   privacyCard: {
     marginHorizontal: 22,
     marginTop: 20,
@@ -269,13 +271,13 @@ const s = StyleSheet.create({
   privacyCopy: { flex: 1 },
   privacyTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: c.cream,
     marginBottom: 7,
   },
   bodyText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 21,
     color: c.muted,
   },
@@ -284,7 +286,7 @@ const s = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 10,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     color: c.cream,
   },
   qrCard: {
@@ -298,7 +300,7 @@ const s = StyleSheet.create({
   },
   handle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: c.copper,
     marginBottom: 4,
   },
@@ -315,7 +317,7 @@ const s = StyleSheet.create({
     maxWidth: 285,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 21,
     color: c.muted,
   },
@@ -331,7 +333,7 @@ const s = StyleSheet.create({
   },
   scanButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     letterSpacing: 0.4,
     color: c.copper,
   },
@@ -343,7 +345,7 @@ const s = StyleSheet.create({
   },
   shareText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     letterSpacing: 0.3,
     color: c.mint,
   },
@@ -352,7 +354,7 @@ const s = StyleSheet.create({
     marginTop: 12,
     marginBottom: 7,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: c.cream,
   },
   scanner: { flex: 1, backgroundColor: "#000" },
@@ -372,7 +374,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scannerTitle: { fontFamily: "Lora_700Bold", fontSize: 22, color: c.cream },
+  scannerTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(22), color: c.cream },
   scanFrame: {
     width: 260,
     height: 260,
@@ -386,7 +388,7 @@ const s = StyleSheet.create({
     marginTop: 24,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: c.cream,
   },
 });

@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -117,22 +119,22 @@ const styles = StyleSheet.create({
   summary: { flexDirection: "row", alignItems: "center", gap: 9 },
   pin: { width: 38, height: 38, borderRadius: 19, backgroundColor: BrandColors.copper, alignItems: "center", justifyContent: "center" },
   heading: { flex: 1, minWidth: 0 },
-  city: { fontFamily: "Lora_600SemiBold", fontSize: 20, color: BrandColors.ink },
-  meta: { marginTop: 1, fontFamily: "Lora_400Regular", fontSize: 11, color: BrandColors.muted },
+  city: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(20), color: BrandColors.ink },
+  meta: { marginTop: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: BrandColors.muted },
   action: { height: 30, borderRadius: 15, paddingHorizontal: 9, backgroundColor: BrandColors.copper, flexDirection: "row", alignItems: "center", gap: 2 },
-  actionText: { fontFamily: "Lora_700Bold", fontSize: 9, color: BrandColors.white },
+  actionText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(9), color: BrandColors.white },
   counts: { marginTop: 10, marginLeft: 47, flexDirection: "row", gap: 14 },
   countItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  countText: { fontFamily: "Lora_600SemiBold", fontSize: 11, color: BrandColors.copperDark },
+  countText: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(11), color: BrandColors.copperDark },
   details: { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BrandColors.line, gap: 8 },
   note: { padding: 10, borderRadius: 10, backgroundColor: BrandColors.surfaceSoft, flexDirection: "row", alignItems: "flex-start", gap: 7 },
-  noteText: { flex: 1, fontFamily: "Lora_400Regular_Italic", fontSize: 12, lineHeight: 17, color: BrandColors.ink },
+  noteText: { flex: 1, fontFamily: "Lora_400Regular_Italic", fontSize: responsiveFontSize(12), lineHeight: 17, color: BrandColors.ink },
   place: { flexDirection: "row", alignItems: "center", gap: 7 },
-  placeText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: 12, color: BrandColors.ink },
-  suggestionTitle: { marginTop: 4, fontFamily: "Lora_700Bold", fontSize: 9, letterSpacing: 0.8, textTransform: "uppercase", color: BrandColors.muted },
+  placeText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(12), color: BrandColors.ink },
+  suggestionTitle: { marginTop: 4, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(9), letterSpacing: 0.8, textTransform: "uppercase", color: BrandColors.muted },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { minHeight: 30, borderRadius: 15, borderWidth: 1, borderColor: BrandColors.line, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 3 },
   chipSelected: { backgroundColor: BrandColors.green, borderColor: BrandColors.green },
-  chipText: { fontFamily: "Lora_500Medium", fontSize: 10, color: BrandColors.ink },
+  chipText: { fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(10), color: BrandColors.ink },
   chipTextSelected: { color: BrandColors.white },
 });

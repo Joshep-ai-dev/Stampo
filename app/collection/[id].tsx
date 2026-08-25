@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -395,7 +397,7 @@ const s = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: 22,
+    fontSize: responsiveFontSize(22),
     color: BrandColors.copper,
   },
   hero: {
@@ -417,7 +419,7 @@ const s = StyleSheet.create({
     marginTop: 5,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.green,
   },
   descriptionSection: {
@@ -427,13 +429,13 @@ const s = StyleSheet.create({
   },
   descriptionText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
     marginBottom: 8,
   },
   instructionText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
     lineHeight: 18,
   },
@@ -442,7 +444,7 @@ const s = StyleSheet.create({
     marginTop: 20,
     marginBottom: 8,
     fontFamily: "Lora_700Bold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: BrandColors.onDark,
   },
   placeList: { marginHorizontal: 14 },
@@ -469,7 +471,7 @@ const s = StyleSheet.create({
   placeCopy: { flex: 1, minWidth: 0 },
   placeName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
   lockedPlaceName: {
@@ -481,7 +483,7 @@ const s = StyleSheet.create({
   placeLocation: {
     marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.onDarkMuted,
   },
   progressHeader: {
@@ -492,7 +494,7 @@ const s = StyleSheet.create({
   },
   progressText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.copper,
   },
   stampProgress: { paddingHorizontal: 16, gap: 10 },
@@ -543,19 +545,19 @@ const s = StyleSheet.create({
   },
   modalTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.copper,
     textAlign: "center",
   },
   modalSubtitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.copper,
     textAlign: "center",
   },
   modalDescription: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
     textAlign: "center",
     lineHeight: 18,

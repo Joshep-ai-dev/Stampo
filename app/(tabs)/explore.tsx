@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -283,7 +285,7 @@ const s = StyleSheet.create({
   },
   heading: {
     fontFamily: "Lora_500Medium",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.onDark,
   },
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
@@ -313,7 +315,7 @@ const s = StyleSheet.create({
     right: 6,
     bottom: 5,
     fontFamily: "Lora_500Medium",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     color: BrandColors.muted,
   },
   empty: {
@@ -324,7 +326,7 @@ const s = StyleSheet.create({
   },
   emptyText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   challengeRow: {
@@ -370,7 +372,7 @@ const s = StyleSheet.create({
   challengeTitle: {
     textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.green,
     flexShrink: 1,
   },
@@ -383,7 +385,7 @@ const s = StyleSheet.create({
   },
   challengePercent: {
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.muted,
   },
 });

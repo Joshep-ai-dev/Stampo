@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
@@ -797,7 +799,7 @@ const s = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: 28,
+    fontSize: responsiveFontSize(28),
     lineHeight: 34,
     includeFontPadding: false,
     color: BrandColors.copper,
@@ -830,7 +832,7 @@ const s = StyleSheet.create({
   messageText: {
     textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   sectionTitle: {
@@ -838,7 +840,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 17,
     fontFamily: "Lora_700Bold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: BrandColors.onDark,
   },
   sightList: { marginHorizontal: 16 },
@@ -866,7 +868,7 @@ const s = StyleSheet.create({
   sightName: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
   },
   lockedSightName: {
@@ -890,13 +892,13 @@ const s = StyleSheet.create({
   collectionText: { flex: 1 },
   collectionTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
   },
   collectionDetail: {
     marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   collectionEmpty: { marginHorizontal: 16 },
@@ -922,7 +924,7 @@ const s = StyleSheet.create({
   upgradeText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.white,
   },
   upgradeButton: {
@@ -933,7 +935,7 @@ const s = StyleSheet.create({
   },
   upgradeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.copperDark,
   },
   cityList: {
@@ -965,7 +967,7 @@ const s = StyleSheet.create({
   gpsText: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     lineHeight: 18,
     color: BrandColors.onDarkMuted,
   },
@@ -1000,20 +1002,20 @@ const s = StyleSheet.create({
   modalTitle: {
     marginTop: 16,
     fontFamily: "Lora_700Bold",
-    fontSize: 25,
+    fontSize: responsiveFontSize(25),
     textAlign: "center",
     color: BrandColors.copper,
   },
   modalLocation: {
     marginTop: 5,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   modalDescription: {
     marginTop: 13,
     fontFamily: "Lora_400Regular",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     lineHeight: 22,
     textAlign: "center",
     color: BrandColors.onDark,
@@ -1031,7 +1033,7 @@ const s = StyleSheet.create({
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   sightsEmpty: { marginHorizontal: 16 },

@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import {
   countries,
@@ -234,7 +236,7 @@ function CountryMapLabel({
         fill="#FFFFFF"
         stroke="#000000"
         strokeWidth={0.15 / zoomLevel}
-        fontSize={35 / zoomLevel}
+        fontSize={responsiveFontSize(35) / zoomLevel}
         fontFamily="Roboto_900Black"
         textAnchor="start"
       >
@@ -1237,7 +1239,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     color: BrandColors.white,
   },
   hero: {
@@ -1252,7 +1254,7 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 2,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     letterSpacing: 2.4,
     color: BrandColors.copper,
   },
@@ -1261,11 +1263,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
     maxWidth: "58%",
     fontFamily: "Lora_700Bold",
-    fontSize: 48,
+    fontSize: responsiveFontSize(48),
     lineHeight: 56,
     color: BrandColors.onDark,
   },
-  nameCompact: { maxWidth: "64%", fontSize: 42, lineHeight: 48 },
+  nameCompact: { maxWidth: "64%", fontSize: responsiveFontSize(42), lineHeight: 48 },
   levelRow: {
     marginTop: 3,
     flexDirection: "row",
@@ -1278,7 +1280,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.progressGreen,
   },
   globe: {
@@ -1307,7 +1309,7 @@ const styles = StyleSheet.create({
   },
   score: {
     fontFamily: "Lora_400Regular",
-    fontSize: 42,
+    fontSize: responsiveFontSize(42),
     lineHeight: 52,
     width: 100,
     color: BrandColors.onDark,
@@ -1317,7 +1319,7 @@ const styles = StyleSheet.create({
   scoreDetails: { flex: 1 },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     letterSpacing: 0.3,
     color: BrandColors.onDark,
   },
@@ -1339,7 +1341,7 @@ const styles = StyleSheet.create({
   infoButtonText: {
     marginTop: -1,
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     color: BrandColors.copper,
   },
   scoreBar: {
@@ -1363,12 +1365,12 @@ const styles = StyleSheet.create({
   },
   worldPercent: {
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.progressGreen,
   },
   worldText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
   stats: {
@@ -1387,18 +1389,18 @@ const styles = StyleSheet.create({
   statNumberRow: { flexDirection: "row", alignItems: "baseline" },
   statValue: {
     fontFamily: "Lora_400Regular",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: BrandColors.onDark,
   },
   statTotal: {
     marginLeft: 2,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   statLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
   statLabelRow: {
@@ -1416,12 +1418,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: BrandColors.onDark,
   },
   viewMap: {
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.mapGreen,
   },
   mapWrap: {
@@ -1450,7 +1452,7 @@ const styles = StyleSheet.create({
   currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },
   countrySheetOverlay: {
@@ -1501,13 +1503,13 @@ const styles = StyleSheet.create({
   sheetCountryCopy: { flex: 1 },
   sheetCountryName: {
     fontFamily: "Lora_700Bold",
-    fontSize: 27,
+    fontSize: responsiveFontSize(27),
     lineHeight: 34,
     color: BrandColors.onDark,
   },
   sheetVisitStatus: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     letterSpacing: 1.8,
     color: BrandColors.progressGreen,
   },
@@ -1535,13 +1537,13 @@ const styles = StyleSheet.create({
   },
   sheetStatValue: {
     fontFamily: "Lora_700Bold",
-    fontSize: 25,
+    fontSize: responsiveFontSize(25),
     color: BrandColors.onDark,
   },
   sheetStatLabel: {
     marginTop: 3,
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     letterSpacing: 1.1,
     color: BrandColors.onDarkMuted,
   },
@@ -1558,7 +1560,7 @@ const styles = StyleSheet.create({
   },
   sheetCountryButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     letterSpacing: 1.1,
     color: BrandColors.green,
   },
@@ -1577,14 +1579,14 @@ const styles = StyleSheet.create({
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 19,
+    fontSize: responsiveFontSize(19),
     textAlign: "center",
     color: BrandColors.onDark,
   },
   continentEmptyText: {
     paddingVertical: 10,
     fontFamily: "Lora_400Regular_Italic",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 20,
     textAlign: "center",
     color: BrandColors.copper,
@@ -1593,7 +1595,7 @@ const styles = StyleSheet.create({
   continentName: {
     width: 126,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
   continentBar: {
@@ -1612,7 +1614,7 @@ const styles = StyleSheet.create({
     width: 48,
     textAlign: "right",
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
 });

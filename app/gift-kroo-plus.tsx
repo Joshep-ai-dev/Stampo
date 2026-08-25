@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -98,19 +100,19 @@ const styles = StyleSheet.create({
   topBar: { height: 68, justifyContent: "center" },
   backButton: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: BrandColors.paleGreen },
   giftMark: { alignSelf: "center", width: 72, height: 72, alignItems: "center", justifyContent: "center", borderRadius: 36, backgroundColor: BrandColors.greenPanel },
-  title: { marginTop: 14, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: 34, color: BrandColors.onDark },
-  subtitle: { alignSelf: "center", maxWidth: 480, marginTop: 10, paddingHorizontal: 8, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: 15, lineHeight: 23, color: BrandColors.onDarkMuted },
+  title: { marginTop: 14, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(34), color: BrandColors.onDark },
+  subtitle: { alignSelf: "center", maxWidth: 480, marginTop: 10, paddingHorizontal: 8, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(15), lineHeight: 23, color: BrandColors.onDarkMuted },
   product: { width: "100%", minHeight: 104, marginTop: 32, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 13, borderRadius: 8, borderWidth: 2, borderColor: BrandColors.copper, backgroundColor: BrandColors.greenPanel },
   productCopy: { flex: 1, minWidth: 0 },
-  productTitle: { fontFamily: "Lora_700Bold", fontSize: 20, color: BrandColors.onDark },
-  productDetail: { marginTop: 3, fontFamily: "Lora_400Regular", fontSize: 12, color: BrandColors.onDarkMuted },
-  productPrice: { fontFamily: "Lora_700Bold", fontSize: 21, color: BrandColors.onDark },
-  label: { marginTop: 32, fontFamily: "Roboto_900Black", fontSize: 11, letterSpacing: 1.2, color: BrandColors.onDarkMuted },
-  note: { width: "100%", minHeight: 108, marginTop: 10, padding: 16, borderRadius: 8, borderWidth: 1, borderColor: BrandColors.paleGreen, fontFamily: "Lora_400Regular", fontSize: 15, lineHeight: 23, color: BrandColors.onDark, backgroundColor: BrandColors.greenPanel },
+  productTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(20), color: BrandColors.onDark },
+  productDetail: { marginTop: 3, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
+  productPrice: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(21), color: BrandColors.onDark },
+  label: { marginTop: 32, fontFamily: "Roboto_900Black", fontSize: responsiveFontSize(11), letterSpacing: 1.2, color: BrandColors.onDarkMuted },
+  note: { width: "100%", minHeight: 108, marginTop: 10, padding: 16, borderRadius: 8, borderWidth: 1, borderColor: BrandColors.paleGreen, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(15), lineHeight: 23, color: BrandColors.onDark, backgroundColor: BrandColors.greenPanel },
   cta: { width: "100%", height: 64, marginTop: 28, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.copper },
   disabled: { opacity: 0.65 },
-  ctaText: { paddingHorizontal: 12, textAlign: "center", fontFamily: "Roboto_900Black", fontSize: 16, letterSpacing: 1.2, color: BrandColors.green },
+  ctaText: { paddingHorizontal: 12, textAlign: "center", fontFamily: "Roboto_900Black", fontSize: responsiveFontSize(16), letterSpacing: 1.2, color: BrandColors.green },
   referralNote: { width: "100%", marginTop: 24, paddingHorizontal: 18, paddingVertical: 18, flexDirection: "row", alignItems: "flex-start", gap: 10, borderRadius: 8, borderWidth: 1, borderStyle: "dashed", borderColor: BrandColors.paleGreen },
-  referralText: { flex: 1, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: 13, lineHeight: 20, color: BrandColors.onDarkMuted },
+  referralText: { flex: 1, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), lineHeight: 20, color: BrandColors.onDarkMuted },
   highlight: { fontFamily: "Lora_700Bold", color: "#58D7A0" },
 });

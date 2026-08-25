@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -122,19 +124,19 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: "Lora_700Bold",
-    fontSize: 28,
+    fontSize: responsiveFontSize(28),
     color: BrandColors.onDark,
   },
   city: {
     marginTop: 6,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     color: BrandColors.copper,
   },
   description: {
     marginTop: 14,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 22,
     color: BrandColors.onDark,
   },
@@ -148,7 +150,7 @@ const s = StyleSheet.create({
   muted: {
     marginTop: 4,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
 });

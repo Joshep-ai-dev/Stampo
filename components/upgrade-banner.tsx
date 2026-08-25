@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { BrandColors } from "@/constants/theme";
 import {
   manageKrooPlus,
@@ -104,7 +106,7 @@ const s = StyleSheet.create({
   },
   upgradeText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.white,
   },
   upgradeButton: {
@@ -115,7 +117,7 @@ const s = StyleSheet.create({
   },
   upgradeButtonText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.copperDark,
   },
 });

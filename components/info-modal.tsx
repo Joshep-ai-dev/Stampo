@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -35,9 +37,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(0,10,7,.72)" },
   panel: { width: "100%", maxWidth: 360, paddingHorizontal: 24, paddingTop: 26, paddingBottom: 22, alignItems: "center", borderWidth: 1, borderColor: BrandColors.copper, borderRadius: 8, backgroundColor: BrandColors.greenPanel },
   iconCircle: { width: 54, height: 54, alignItems: "center", justifyContent: "center", borderRadius: 27, borderWidth: 1, borderColor: BrandColors.copper },
-  title: { marginTop: 17, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: 24, color: BrandColors.onDark },
-  body: { marginTop: 10, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: 15, lineHeight: 23, color: BrandColors.onDarkMuted },
+  title: { marginTop: 17, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(24), color: BrandColors.onDark },
+  body: { marginTop: 10, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(15), lineHeight: 23, color: BrandColors.onDarkMuted },
   button: { width: "100%", height: 50, marginTop: 22, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: BrandColors.copper },
   buttonPressed: { opacity: 0.8 },
-  buttonText: { fontFamily: "Roboto_900Black", fontSize: 14, letterSpacing: 1.2, color: BrandColors.green },
+  buttonText: { fontFamily: "Roboto_900Black", fontSize: responsiveFontSize(14), letterSpacing: 1.2, color: BrandColors.green },
 });

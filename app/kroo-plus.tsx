@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
     marginTop: 22,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: 31,
+    fontSize: responsiveFontSize(31),
     color: BrandColors.onDark,
   },
   subtitle: {
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     lineHeight: 23,
     color: BrandColors.onDarkMuted,
   },
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
     width: 72,
     textAlign: "center",
     fontFamily: "Roboto_900Black",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },
   featureColumn: { flex: 1, textAlign: "left" },
@@ -205,19 +207,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingRight: 8,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
   valueColumn: { width: 72, alignItems: "center" },
-  value: { fontFamily: "Lora_600SemiBold", fontSize: 19 },
+  value: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(19) },
   freeValue: {
     fontFamily: "Lora_500Medium",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     color: BrandColors.onDarkMuted,
   },
   plusValue: {
     fontFamily: "Lora_700Bold",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     color: BrandColors.copper,
   },
   plans: { width: "100%", marginTop: 28, flexDirection: "row", gap: 12 },
@@ -242,23 +244,23 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Roboto_900Black",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.green,
   },
   planLabel: {
     fontFamily: "Roboto_900Black",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     color: BrandColors.onDark,
   },
   price: {
     marginTop: 13,
     fontFamily: "Lora_700Bold",
-    fontSize: 30,
+    fontSize: responsiveFontSize(30),
     color: BrandColors.onDark,
   },
   priceCents: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
   cta: {
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     textAlign: "center",
     fontFamily: "Roboto_900Black",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     letterSpacing: 1.4,
     color: BrandColors.green,
   },
@@ -283,13 +285,13 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   link: {
     marginTop: 18,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     textDecorationLine: "underline",
     color: BrandColors.onDarkMuted,
   },

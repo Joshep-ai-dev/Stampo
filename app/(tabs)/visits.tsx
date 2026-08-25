@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -258,7 +260,7 @@ export default function PlusTabScreen() {
               <Text style={s.lessonTitle}>{round.country}</Text>
               <Text style={s.kicker}>{round.city.toUpperCase()}</Text>
               <View style={s.lessonImage}>
-                <Text style={{ fontSize: 34 }}>{round.icon}</Text>
+                <Text style={{ fontSize: responsiveFontSize(34) }}>{round.icon}</Text>
               </View>
               <Text style={s.body}>{round.info}</Text>
               <Button label="CONTINUE" onPress={() => setPhase("question")} />
@@ -320,7 +322,7 @@ export default function PlusTabScreen() {
               onPress={() => setSelected(d)}
             >
               <View style={[s.destImage, { backgroundColor: d.color }]}>
-                <Text style={{ fontSize: 28 }}>{d.icon}</Text>
+                <Text style={{ fontSize: responsiveFontSize(28) }}>{d.icon}</Text>
               </View>
               <View style={{ padding: 10 }}>
                 <Text style={s.destName}>{d.name}</Text>
@@ -361,7 +363,7 @@ export default function PlusTabScreen() {
                 <View
                   style={[s.modalImage, { backgroundColor: selected.color }]}
                 >
-                  <Text style={{ fontSize: 48 }}>{selected.icon}</Text>
+                  <Text style={{ fontSize: responsiveFontSize(48) }}>{selected.icon}</Text>
                 </View>
                 <Text style={s.modalTitle}>{selected.name}</Text>
                 <Text style={s.kicker}>{selected.place.toUpperCase()}</Text>
@@ -459,16 +461,16 @@ const s = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: c.cream,
   },
   kicker: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     letterSpacing: 0.8,
     color: c.mint,
   },
-  iq: { fontFamily: "Lora_700Bold", fontSize: 32, color: c.cream },
+  iq: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(32), color: c.cream },
   dailyCard: {
     minHeight: 300,
     margin: 22,
@@ -488,7 +490,7 @@ const s = StyleSheet.create({
   dot: { width: 16, height: 4, borderRadius: 2, backgroundColor: c.line },
   done: { backgroundColor: c.mint },
   current: { backgroundColor: c.copper },
-  lessonTitle: { fontFamily: "Lora_700Bold", fontSize: 21, color: c.cream },
+  lessonTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(21), color: c.cream },
   lessonImage: {
     height: 90,
     marginTop: 12,
@@ -502,7 +504,7 @@ const s = StyleSheet.create({
   body: {
     marginTop: 12,
     fontFamily: "Lora_400Regular",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     lineHeight: 22,
     color: c.cream,
   },
@@ -517,13 +519,13 @@ const s = StyleSheet.create({
   buttonText: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: c.deep,
   },
   question: {
     marginVertical: 12,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     lineHeight: 24,
     color: c.cream,
   },
@@ -539,30 +541,30 @@ const s = StyleSheet.create({
   },
   optionCorrect: { borderColor: c.mint },
   optionWrong: { borderColor: c.error },
-  optionText: { fontFamily: "Lora_400Regular", fontSize: 14, color: c.cream },
+  optionText: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: c.cream },
   correct: {
     marginTop: 8,
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: c.mint,
   },
   wrong: {
     marginTop: 8,
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: c.error,
   },
   result: { paddingTop: 30, alignItems: "center" },
   resultScore: {
     fontFamily: "Lora_700Bold",
-    fontSize: 46,
+    fontSize: responsiveFontSize(46),
     color: c.copper,
   },
   heading: {
     marginTop: 27,
     marginHorizontal: 22,
     fontFamily: "Lora_700Bold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     color: c.cream,
   },
   offerSection: { paddingHorizontal: 22, paddingBottom: 8 },
@@ -570,7 +572,7 @@ const s = StyleSheet.create({
     marginTop: 27,
     marginBottom: 12,
     fontFamily: "Lora_700Bold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     color: c.cream,
   },
   intro: {
@@ -578,7 +580,7 @@ const s = StyleSheet.create({
     marginTop: 8,
     marginBottom: 0,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 21,
     color: c.muted,
   },
@@ -595,10 +597,10 @@ const s = StyleSheet.create({
   destName: {
     minHeight: 30,
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: c.cream,
   },
-  destCost: { fontFamily: "Lora_600SemiBold", fontSize: 13, color: c.mint },
+  destCost: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(13), color: c.mint },
   table: {
     margin: 22,
     marginTop: 12,
@@ -620,21 +622,21 @@ const s = StyleSheet.create({
     paddingVertical: 7,
     paddingRight: 5,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: c.cream,
   },
   colHead: {
     width: 55,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: c.muted,
   },
   value: {
     width: 55,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: c.muted,
   },
   check: { color: c.mint },
@@ -649,11 +651,11 @@ const s = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: c.card,
   },
-  planLabel: { fontFamily: "Lora_700Bold", fontSize: 12, color: c.copper },
+  planLabel: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: c.copper },
   price: {
     marginTop: 12,
     fontFamily: "Lora_700Bold",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: c.cream,
   },
   save: {
@@ -663,12 +665,12 @@ const s = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: c.copper,
   },
-  saveText: { fontFamily: "Lora_700Bold", fontSize: 11, color: c.deep },
+  saveText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(11), color: c.deep },
   terms: {
     marginTop: 10,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: c.muted,
   },
   progressHead: {
@@ -679,7 +681,7 @@ const s = StyleSheet.create({
   complete: {
     marginRight: 22,
     fontFamily: "Lora_700Bold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: c.mint,
   },
   progressCard: {
@@ -694,12 +696,12 @@ const s = StyleSheet.create({
   progressTop: { flexDirection: "row", justifyContent: "space-between" },
   progressTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     color: c.cream,
   },
   progressValue: {
     fontFamily: "Lora_700Bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: c.copper,
   },
   track: {
@@ -711,7 +713,7 @@ const s = StyleSheet.create({
   fill: { height: 8, borderRadius: 4, backgroundColor: c.mint },
   muted: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     lineHeight: 19,
     color: c.muted,
   },
@@ -719,7 +721,7 @@ const s = StyleSheet.create({
     margin: 25,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: c.muted,
   },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
@@ -745,7 +747,7 @@ const s = StyleSheet.create({
   modalTitle: {
     marginTop: 16,
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: c.cream,
   },
   stats: { marginTop: 16, flexDirection: "row", gap: 10 },
@@ -756,7 +758,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     backgroundColor: c.card2,
   },
-  statValue: { fontFamily: "Lora_700Bold", fontSize: 17, color: c.cream },
+  statValue: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: c.cream },
   countryHead: {
     padding: 18,
     flexDirection: "row",
@@ -774,7 +776,7 @@ const s = StyleSheet.create({
   },
   countryTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 26,
+    fontSize: responsiveFontSize(26),
     color: c.cream,
   },
 });

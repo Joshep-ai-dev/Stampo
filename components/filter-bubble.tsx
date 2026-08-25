@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
@@ -41,7 +43,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   selectedText: {

@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -148,14 +150,14 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     paddingRight: 8,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 18,
     color: colors.cream,
   },
   headerText: {
     width: 64,
     fontFamily: "Lora_700Bold",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     color: colors.copper,
     textAlign: "center",
   },
@@ -163,7 +165,7 @@ const s = StyleSheet.create({
   valueText: {
     width: 64,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: colors.copper,
     textAlign: "center",
   },
@@ -188,15 +190,15 @@ const s = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.copper,
   },
-  badgeText: { fontFamily: "Lora_700Bold", fontSize: 10, color: colors.deep },
-  planLabel: { fontFamily: "Lora_700Bold", fontSize: 11, color: colors.cream },
+  badgeText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(10), color: colors.deep },
+  planLabel: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(11), color: colors.cream },
   price: {
     marginTop: 12,
     fontFamily: "Lora_700Bold",
-    fontSize: 27,
+    fontSize: responsiveFontSize(27),
     color: colors.cream,
   },
-  suffix: { fontFamily: "Lora_400Regular", fontSize: 13 },
+  suffix: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13) },
   cta: {
     minHeight: 58,
     marginTop: 20,
@@ -208,7 +210,7 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.6 },
   ctaText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     letterSpacing: 1,
     color: colors.deep,
   },
@@ -216,7 +218,7 @@ const s = StyleSheet.create({
     marginTop: 11,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: colors.copper,
   },
   restore: {
@@ -224,7 +226,7 @@ const s = StyleSheet.create({
     textAlign: "center",
     textDecorationLine: "underline",
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: colors.copper,
   },
 });

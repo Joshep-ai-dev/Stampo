@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
   wrapper: { marginTop: 20, paddingHorizontal: 20, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: colors.ink,
     marginBottom: 10,
   },
@@ -395,7 +397,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
     paddingVertical: 0,
   },
@@ -422,16 +424,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
   },
   resultPressed: { backgroundColor: BrandColors.surfaceSoft },
-  flag: { fontSize: 24, marginRight: 11 },
+  flag: { fontSize: responsiveFontSize(24), marginRight: 11 },
   resultText: { flex: 1, paddingVertical: 8 },
   cityName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
   },
   cityLocation: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: colors.muted,
     marginTop: 2,
   },
@@ -474,13 +476,13 @@ const styles = StyleSheet.create({
   headerAction: {
     width: 74,
     fontFamily: "Lora_400Regular",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
   },
   headerSpacer: { width: 74 },
   modalTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: colors.ink,
     letterSpacing: 1,
   },
@@ -494,23 +496,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
   },
-  selectedFlag: { fontSize: 40, marginRight: 20 },
+  selectedFlag: { fontSize: responsiveFontSize(40), marginRight: 20 },
   selectedText: { flex: 1 },
   selectedCountry: {
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: "#fff8ed",
     opacity: 0.9,
   },
   selectedName: {
     fontFamily: "Lora_700Bold",
-    fontSize: 27,
+    fontSize: responsiveFontSize(27),
     color: "#fffdf8",
     marginTop: 2,
   },
   fieldLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
     marginBottom: 8,
   },
@@ -528,7 +530,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
   },
   noteInput: {
@@ -538,7 +540,7 @@ const styles = StyleSheet.create({
     borderColor: colors.divider,
     padding: 14,
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     lineHeight: 23,
     color: colors.ink,
   },
@@ -558,7 +560,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     color: "#fffaf1",
     letterSpacing: 1.4,
   },
@@ -579,7 +581,7 @@ const styles = StyleSheet.create({
   },
   wishlistText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.brown,
     letterSpacing: 1,
   },

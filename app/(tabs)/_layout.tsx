@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -34,7 +36,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#49B964",
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: responsiveFontSize(11),
           fontWeight: "600",
           marginTop: 1,
         },
