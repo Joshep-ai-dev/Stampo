@@ -100,10 +100,14 @@ function IdentityPage({
       quality: 0.8,
     });
     if (!result.canceled) {
-      const photoUri = result.assets[0].uri;
-      dispatch(photoChanged(photoUri));
-      if (profile.isSignedIn) {
-        void api.updateProfile({ ...profile, photoUri }).catch(() => undefined);
+      try {
+        const uploaded = await api.uploadProfileImage(result.assets[0]);
+        dispatch(photoChanged(uploaded.photoUri));
+      } catch (error) {
+        Alert.alert(
+          "Photo not uploaded",
+          error instanceof Error ? error.message : "Please try again.",
+        );
       }
     }
   };

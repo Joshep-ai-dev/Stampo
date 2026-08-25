@@ -179,7 +179,21 @@ export default function ProfileScreen() {
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled) dispatch(photoChanged(result.assets[0].uri));
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (!profile.isSignedIn) {
+      dispatch(photoChanged(asset.uri));
+      return;
+    }
+    try {
+      const uploaded = await api.uploadProfileImage(asset);
+      dispatch(photoChanged(uploaded.photoUri));
+    } catch (error) {
+      Alert.alert(
+        "Photo not uploaded",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
   };
 
   const socialSignIn = (provider: "Google" | "Apple") => {

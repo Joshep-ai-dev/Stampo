@@ -77,9 +77,6 @@ export default function CityScreen() {
           </TouchableOpacity>
           <View style={s.heroCopy}>
             <Text style={s.title}>{city.name}</Text>
-            <Text style={s.coords}>
-              {city.latitude.toFixed(3)}, {city.longitude.toFixed(3)}
-            </Text>
           </View>
         </View>
         <View style={s.panel}>
@@ -104,7 +101,7 @@ export default function CityScreen() {
             />
             <View style={s.rowCopy}>
               <Text style={s.rowTitle}>{sight.name}</Text>
-              <Text style={s.meta}>{sight.category}</Text>
+              <Text style={s.meta}>{sight.description}</Text>
             </View>
             <Ionicons
               name="chevron-forward"

@@ -12,6 +12,7 @@ import countryDetailReducer, {
 import profileReducer, {
   authSessionChanged,
   languageChanged,
+  photoChanged,
   profileDetailsChanged,
   profileHydrated,
   signedOut,
@@ -56,14 +57,16 @@ export async function hydrateStore() {
     const user = await api.restoreSession();
     if (user) {
       const profile = store.getState().profile;
+      const remoteProfile = await api.getProfile().catch(() => null);
       store.dispatch(
         profileDetailsChanged({
           name: user.name,
           email: user.email,
-          nationality: profile.nationality,
-          dateOfBirth: profile.dateOfBirth,
+          nationality: remoteProfile?.nationality ?? profile.nationality,
+          dateOfBirth: remoteProfile?.dateOfBirth ?? profile.dateOfBirth,
         }),
       );
+      if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
       const [visitsResult, travelStateResult] = await Promise.allSettled([

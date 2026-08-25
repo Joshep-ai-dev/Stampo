@@ -149,7 +149,7 @@ export default function CollectionScreen() {
 
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
-    setPlaceDescription(place.content ?? "");
+    setPlaceDescription(place.content ?? place.detail ?? "");
   };
 
   const wishlistId = `collection:${collection.id}`;
@@ -275,7 +275,7 @@ export default function CollectionScreen() {
                     {place.name}
                   </Text>
                   <Text style={s.placeLocation} numberOfLines={1}>
-                    {place.city}, {place.country}
+                    {place.location || [place.city, place.country].filter(Boolean).join(", ")}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -316,7 +316,7 @@ export default function CollectionScreen() {
                         {place.name}
                       </Text>
                       <Text style={s.placeLocation} numberOfLines={1}>
-                        {place.city}, {place.country}
+                        {place.location || [place.city, place.country].filter(Boolean).join(", ")}
                       </Text>
                     </View>
                     <View style={s.lockedCheckIcon}>
@@ -352,7 +352,9 @@ export default function CollectionScreen() {
                   />
                 </View>
                 <Text style={s.modalTitle}>{selectedPlace?.name}</Text>
-                <Text style={s.modalSubtitle}>{selectedPlace?.city}</Text>
+                <Text style={s.modalSubtitle}>
+                  {selectedPlace.location || [selectedPlace.city, selectedPlace.country].filter(Boolean).join(", ")}
+                </Text>
                 <Text style={s.modalDescription}>{placeDescription}</Text>
                 <TouchableOpacity
                   style={s.modalCloseButton}

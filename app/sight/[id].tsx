@@ -80,10 +80,6 @@ export default function SightScreen() {
           <Text style={s.description}>
             {sight.description || "A famous attraction ready to explore."}
           </Text>
-          <Text style={s.meta}>
-            {sight.category} · {sight.latitude.toFixed(4)},{" "}
-            {sight.longitude.toFixed(4)}
-          </Text>
           {sight.imageCredit ? (
             <View style={s.credit}>
               <Text style={s.creditTitle}>Image credit</Text>
@@ -141,12 +137,6 @@ const s = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     color: BrandColors.onDark,
-  },
-  meta: {
-    marginTop: 14,
-    fontFamily: "Lora_500Medium",
-    fontSize: 12,
-    color: BrandColors.onDarkMuted,
   },
   credit: {
     marginTop: 18,

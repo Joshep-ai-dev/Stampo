@@ -33,11 +33,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
+      ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...init?.headers,
     },
@@ -143,6 +145,9 @@ export type ManagedCollectionPlace = {
   name: string;
   city: string;
   country: string;
+  location?: string;
+  detail?: string;
+  access?: "free" | "pro";
   imageUrl?: string;
   content?: string;
   isPremium?: boolean;
@@ -246,9 +251,6 @@ export type SightDetail = {
   name: string;
   slug: string;
   description: string;
-  category: string;
-  latitude: number;
-  longitude: number;
   image: string;
   imageCredit: ImageCredit;
   completed?: boolean;
@@ -292,9 +294,6 @@ function normalizeSight(item: BackendSight): SightDetail {
     name: item.name ?? "",
     slug: item.slug ?? "",
     description: item.description ?? "",
-    category: item.category ?? "attraction",
-    latitude: Number(item.latitude ?? 0),
-    longitude: Number(item.longitude ?? 0),
     image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     completed: item.completed,
@@ -329,6 +328,8 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     isPremium: item.isPremium === true,
     places: (item.places ?? []).map((place) => ({
       ...place,
+      content: place.content ?? place.detail ?? "",
+      isPremium: place.isPremium === true || place.access === "pro",
       imageUrl: backendImageUrl(place.imageUrl),
     })),
   };
@@ -342,6 +343,8 @@ function normalizeCollectionProgress(
     imageUrl: backendImageUrl(item.imageUrl),
     places: item.places?.map((place) => ({
       ...place,
+      content: place.content ?? place.detail ?? "",
+      isPremium: place.isPremium === true || place.access === "pro",
       imageUrl: backendImageUrl(place.imageUrl),
     })),
   };
@@ -415,7 +418,7 @@ export const api = {
         return {
           id: String(item.id ?? ""),
           name: item.name ?? "Traveler",
-          photoUri: item.photoUri ?? null,
+          photoUri: item.photoUri ? backendImageUrl(item.photoUri) : null,
           score,
           level: item.level ?? levelForScore(score),
           stats: item.stats ?? {
@@ -430,7 +433,11 @@ export const api = {
   dailyDestinations: (date = new Date().toISOString().slice(0, 10)) =>
     request<DailyDestination[]>(
       `/daily-destinations?date=${encodeURIComponent(date)}`,
-    ),
+    ).then((items) =>
+      items.map((item) => ({
+        ...item,
+        imageUrl: backendImageUrl(item.imageUrl),
+      }))),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
@@ -474,7 +481,31 @@ export const api = {
       method: "DELETE",
     }),
   currentUser: () => request<AuthUser>("/auth/me"),
-  getProfile: () => request<RemoteProfile>("/profile"),
+  getProfile: () =>
+    request<RemoteProfile>("/profile").then((profile) => ({
+      ...profile,
+      photoUri: profile.photoUri ? backendImageUrl(profile.photoUri) : null,
+    })),
+  uploadProfileImage: async (asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string;
+  }) => {
+    const body = new FormData();
+    body.append(
+      "image",
+      {
+        uri: asset.uri,
+        name: asset.fileName ?? `profile-${Date.now()}.jpg`,
+        type: asset.mimeType ?? "image/jpeg",
+      } as unknown as Blob,
+    );
+    const result = await request<{ photoUri: string }>("/profile/image", {
+      method: "POST",
+      body,
+    });
+    return { photoUri: backendImageUrl(result.photoUri) };
+  },
   updatePassword: (payload: { currentPassword: string; newPassword: string }) =>
     request<void>("/auth/password", {
       method: "PUT",
