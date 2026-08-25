@@ -21,6 +21,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -590,16 +591,14 @@ function WorldMap({
     }
     const task = InteractionManager.runAfterInteractions(() => {
       void (async () => {
-        const asset = Asset.fromModule(
-          require("@/assets/images/world-map.svg"),
-        );
-        await asset.downloadAsync();
-        let svg = "";
         try {
-          svg = await (await fetch(asset.localUri ?? asset.uri)).text();
-        } catch {
-          if (asset.localUri) svg = await new File(asset.localUri).text();
-        }
+          const asset = await Asset.fromModule(
+            require("@/assets/images/world-map.svg"),
+          ).downloadAsync();
+          const assetUri = asset.localUri ?? asset.uri;
+          // fetch(file://...) is inconsistent in packaged Android builds.
+          // Expo File reads both cached and bundled asset URIs directly.
+          let svg = await new File(assetUri).text();
         const parsedCountries = extractMapCountries(svg);
         cachedMapCountries = parsedCountries;
         if (active) {
@@ -715,7 +714,12 @@ function WorldMap({
             );
           }
         });
-        if (active) setXml(svg);
+          if (active) setXml(svg);
+        } catch (error) {
+          console.warn("Could not load bundled world map", error);
+          // Stop the permanent loading state if a damaged APK is installed.
+          if (active) setXml("ready");
+        }
       })();
     });
     return () => {
@@ -901,6 +905,8 @@ function WorldMap({
 }
 
 export default function HomeScreen() {
+  const { width: screenWidth } = useWindowDimensions();
+  const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
   const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
@@ -1060,11 +1066,18 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.hero}>
+        <View style={[styles.hero, compact && styles.heroCompact]}>
           <BrandHeader />
           <View style={styles.welcome}>
             <Text style={styles.greeting}>WELCOME</Text>
-            <Text style={styles.name}>{name || "Traveler"}</Text>
+            <Text
+              style={[styles.name, compact && styles.nameCompact]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+            >
+              {name || "Traveler"}
+            </Text>
             <View style={styles.levelRow}>
               <Image
                 source={require("@/assets/images/other/compass.png")}
@@ -1078,7 +1091,7 @@ export default function HomeScreen() {
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
-            style={styles.globe}
+            style={[styles.globe, compact && styles.globeCompact]}
             contentFit="contain"
           />
         </View>
@@ -1233,6 +1246,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     overflow: "hidden",
   },
+  heroCompact: { height: 190, paddingHorizontal: 18 },
   welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
@@ -1251,6 +1265,7 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     color: BrandColors.onDark,
   },
+  nameCompact: { maxWidth: "64%", fontSize: 42, lineHeight: 48 },
   levelRow: {
     marginTop: 3,
     flexDirection: "row",
@@ -1274,6 +1289,7 @@ const styles = StyleSheet.create({
     height: 210,
     zIndex: 0,
   },
+  globeCompact: { right: 4, width: 185, height: 185 },
   scoreCard: {
     marginTop: -24,
     marginHorizontal: 14,

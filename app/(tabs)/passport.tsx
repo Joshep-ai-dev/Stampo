@@ -5,11 +5,15 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  Platform,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -324,7 +328,12 @@ function IdentityPage({
             >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
           </>
         ) : (
-          <View style={styles.authPage}>
+          <ScrollView
+            style={styles.authPage}
+            contentContainerStyle={styles.authPageContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.authSeal}>
               <Image
                 source={require("@/assets/images/favicon.png")}
@@ -388,7 +397,7 @@ function IdentityPage({
                 <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         )}
       </View>
       <Modal
@@ -516,6 +525,7 @@ export default function PassportScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [activePage, setActivePage] = useState(0);
   const listRef = useRef<FlatList<PassportPage>>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
   useFocusEffect(
     useCallback(() => {
       setActivePage(0);
@@ -571,8 +581,12 @@ export default function PassportScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.carouselArea}>
-        <FlatList
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.carouselArea}>
+          <Animated.FlatList
           ref={listRef}
           data={passportPages}
           horizontal
@@ -581,40 +595,75 @@ export default function PassportScreen() {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(page) => page.id}
           onMomentumScrollEnd={handleScrollEnd}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true },
+          )}
+          scrollEventThrottle={16}
           getItemLayout={(_, index) => ({
             length: screenWidth,
             offset: screenWidth * index,
             index,
           })}
-          renderItem={({ item }) => (
-            <View style={[styles.pageFrame, { width: screenWidth }]}>
-              {item.type === "cover" ? (
-                <Image
-                  source={item.image}
-                  style={{ width: pageHeight, height: pageHeight }}
-                  contentFit="contain"
-                />
-              ) : item.type === "identity" ? (
-                <IdentityPage
-                  profile={profile}
-                  krooNumber={krooNumber}
-                  width={pageWidth}
-                  height={pageHeight}
-                />
-              ) : (
-                <StampPage
-                  slots={item.slots}
-                  width={pageWidth}
-                  height={pageHeight}
-                  onStampPress={(stamp) =>
-                    router.push(`/country/${stamp.code}` as never)
-                  }
-                />
-              )}
-            </View>
-          )}
-        />
-        <TouchableOpacity
+          renderItem={({ item, index }) => {
+            const inputRange = [
+              (index - 1) * screenWidth,
+              index * screenWidth,
+              (index + 1) * screenWidth,
+            ];
+            const rotateY = scrollX.interpolate({
+              inputRange,
+              outputRange: ["-55deg", "0deg", "55deg"],
+              extrapolate: "clamp",
+            });
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.9, 1, 0.9],
+              extrapolate: "clamp",
+            });
+            return (
+              <View style={[styles.pageFrame, { width: screenWidth }]}>
+                <Animated.View
+                  style={[
+                    styles.turningPage,
+                    {
+                      transform: [
+                        { perspective: 1100 },
+                        { rotateY },
+                        { scale },
+                      ],
+                    },
+                  ]}
+                >
+                  {item.type === "cover" ? (
+                    <Image
+                      source={item.image}
+                      style={{ width: pageHeight, height: pageHeight }}
+                      contentFit="contain"
+                    />
+                  ) : item.type === "identity" ? (
+                    <IdentityPage
+                      profile={profile}
+                      krooNumber={krooNumber}
+                      width={pageWidth}
+                      height={pageHeight}
+                    />
+                  ) : (
+                    <StampPage
+                      slots={item.slots}
+                      width={pageWidth}
+                      height={pageHeight}
+                      onStampPress={(stamp) =>
+                        router.push(`/country/${stamp.code}` as never)
+                      }
+                    />
+                  )}
+                </Animated.View>
+              </View>
+            );
+          }}
+          />
+          <TouchableOpacity
           style={styles.shareButton}
           onPress={() =>
             void Share.share({
@@ -623,9 +672,9 @@ export default function PassportScreen() {
           }
         >
           <Ionicons name="arrow-redo-sharp" size={36} color={colors.ink} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.pagination}>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.pagination}>
         <View style={styles.dots}>
           {passportPages.map((page, index) => (
             <TouchableOpacity
@@ -641,19 +690,28 @@ export default function PassportScreen() {
         <Text style={styles.pageCount}>
           {activePage + 1} / {passportPages.length}
         </Text>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+  keyboardArea: { flex: 1 },
   carouselArea: { flex: 1, position: "relative" },
   pageFrame: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  turningPage: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backfaceVisibility: "hidden",
   },
   paper: {
     backgroundColor: colors.paper,
@@ -684,6 +742,10 @@ const styles = StyleSheet.create({
   identityBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 18 },
   authPage: {
     flex: 1,
+    width: "100%",
+  },
+  authPageContent: {
+    flexGrow: 1,
     paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",

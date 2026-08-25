@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { memo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
@@ -8,7 +9,7 @@ import { stampAssets } from "@/data/stamps";
 
 const UNVISITED_STAMP = "#AAB5AF";
 
-export function CountryStampCard({
+export const CountryStampCard = memo(function CountryStampCard({
   country,
   cityCount,
   onPress,
@@ -64,7 +65,7 @@ export function CountryStampCard({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

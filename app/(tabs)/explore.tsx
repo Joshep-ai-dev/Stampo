@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -38,7 +39,7 @@ const collectionImages: Record<string, number> = {
 };
 export default function ExploreScreen() {
   const router = useRouter();
-  const countryRowRef = useRef<ScrollView>(null);
+  const countryRowRef = useRef<FlatList<CountryRecord>>(null);
   const visits = useAppSelector((state) => state.travel.visits);
   const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
@@ -128,32 +129,35 @@ export default function ExploreScreen() {
               selected={countryFilter === x}
               onPress={() => {
                 setCountryFilter(x);
-                countryRowRef.current?.scrollTo({ x: 0, animated: false });
+                countryRowRef.current?.scrollToOffset({
+                  offset: 0,
+                  animated: false,
+                });
               }}
             />
           ))}
         </ScrollView>
-        <ScrollView
+        <FlatList
           ref={countryRowRef}
           horizontal
+          data={countries}
+          keyExtractor={(country) => country.code}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.countryRow}
-        >
-          {countries.length ? (
-            countries.map((country) => {
-              const cityCount = visitedCityCounts.get(country.code)?.size ?? 0;
-              return (
-                <CountryStampCard
-                  key={country.code}
-                  country={country}
-                  cityCount={cityCount}
-                  onPress={() =>
-                    router.push(`/country/${country.code}` as never)
-                  }
-                />
-              );
-            })
-          ) : (
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item: country }) => (
+            <CountryStampCard
+              country={country}
+              cityCount={visitedCityCounts.get(country.code)?.size ?? 0}
+              onPress={() =>
+                router.push(`/country/${country.code}` as never)
+              }
+            />
+          )}
+          ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.emptyText}>
                 {countryFilter === "Visited"
@@ -161,8 +165,8 @@ export default function ExploreScreen() {
                   : `More ${countryFilter} stamps are coming soon.`}
               </Text>
             </View>
-          )}
-        </ScrollView>
+          }
+        />
 
         <Section title="Collections" />
         <ScrollView

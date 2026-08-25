@@ -83,9 +83,9 @@ export async function hydrateStore() {
       store.dispatch(dashboardCleared());
     }
   } catch {
-    store.dispatch(signedOut());
-    store.dispatch(visitsCleared());
-    store.dispatch(dashboardCleared());
+    // A temporary startup/network failure must not erase a valid local
+    // session. restoreSession() already removes invalid (401) tokens and
+    // returns null for them; thrown errors are connectivity/server failures.
   }
 
   if (!persistenceStarted) {
