@@ -86,7 +86,7 @@ export default function ExploreScreen() {
     useState<(typeof collectionFilters)[number]>("All");
   const [collectionCatalog, setCollectionCatalog] = useState<
     CollectionProgress[]
-  >(publicCollectionCatalog);
+  >([]);
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
   const countries = useMemo(() => {
     const visitedCodes = new Set(
@@ -139,14 +139,20 @@ export default function ExploreScreen() {
     }, [isSignedIn]),
   );
   const visibleCollections = useMemo(() => {
-    if (collectionFilter === "All") return collectionCatalog;
+    // Public collection cards are always available for discovery. Do not let
+    // stale authenticated API state leave the signed-out Explore page empty.
+    const source =
+      isSignedIn && collectionCatalog.length > 0
+        ? collectionCatalog
+        : publicCollectionCatalog;
+    if (collectionFilter === "All") return source;
     if (collectionFilter === "Active") {
-      return collectionCatalog.filter(
+      return source.filter(
         (collection) => collection.progress > 0 && collection.progress < 100,
       );
     }
-    return collectionCatalog.filter((collection) => collection.progress >= 100);
-  }, [collectionCatalog, collectionFilter]);
+    return source.filter((collection) => collection.progress >= 100);
+  }, [collectionCatalog, collectionFilter, isSignedIn]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView

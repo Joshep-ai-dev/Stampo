@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     padding: 9,
     elevation: 2,
   },
-  identityPaper: { padding: 20, justifyContent: "space-between" },
+  identityPaper: { padding: 16, justifyContent: "space-between" },
   identityHeading: {
     borderBottomWidth: 1,
     borderBottomColor: BrandColors.line,
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingHorizontal: 10,
     paddingTop: 8,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   authSeal: {
     width: 140,
@@ -820,11 +820,11 @@ const styles = StyleSheet.create({
   },
   authIntro: {
     maxWidth: 300,
-    marginTop: 6,
-    marginBottom: 20,
+    marginTop: 4,
+    marginBottom: 16,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(12),
-    lineHeight: 17,
+    lineHeight: 14,
     textAlign: "center",
     color: BrandColors.muted,
   },
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     color: BrandColors.muted,
   },
   authInput: {
-    height: 42,
+    height: 36,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(16),
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   authButton: { flex: 1 },
   authButtonDisabled: { opacity: 0.55 },
   signInPrimary: {
-    height: 42,
+    height: 36,
     borderRadius: 8,
     backgroundColor: BrandColors.green,
     alignItems: "center",
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     color: BrandColors.white,
   },
   createSecondary: {
-    height: 42,
+    height: 36,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: BrandColors.green,
