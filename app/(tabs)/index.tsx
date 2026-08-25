@@ -2,21 +2,16 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import {
-  countries,
-  getCountryData,
   getCountryDataList,
   getEmojiFlag,
   type TCountryCode,
 } from "countries-list";
-import { Asset } from "expo-asset";
-import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
-  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -44,6 +39,7 @@ import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
+import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
 import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
@@ -70,48 +66,6 @@ const CONTINENTS = [
   { code: "NA", name: "North America" },
   { code: "SA", name: "South America" },
 ];
-function iso3For(code: string) {
-  try {
-    return getCountryData(code.toUpperCase() as TCountryCode).iso3;
-  } catch {
-    return "";
-  }
-}
-
-// Robinson-map coordinates for ISO territories the source groups into a parent
-// country or omits because they are too small to draw at mobile scale.
-const FALLBACK_MAP_POINTS: Record<string, [number, number]> = {
-  ASC: [-14, 10],
-  ALA: [20, -60],
-  BES: [-76, -14],
-  BVT: [3, 55],
-  CCK: [95, 14],
-  CXR: [98, 12],
-  ESH: [-13, -25],
-  GUF: [-57, -5],
-  GLP: [-72, -18],
-  SGS: [-37, 55],
-  HMD: [68, 60],
-  MTQ: [-72, -17],
-  PCN: [-122, 25],
-  PSE: [33, -32],
-  REU: [54, 25],
-  SJM: [20, -72],
-  SSD: [28, -7],
-  TAA: [-13, 38],
-  TKL: [-154, 10],
-  UMI: [-170, -18],
-  XKX: [18, -43],
-  MYT: [43, 15],
-};
-const HIDDEN_MAP_ISO3 = new Set(
-  getCountryDataList()
-    .filter(
-      (country) => country.continent === "OC" || country.continent === "AN",
-    )
-    .map((country) => country.iso3),
-);
-
 type MapCountry = {
   code: string;
   name: string;
@@ -346,32 +300,29 @@ function relativePathBounds(path: string) {
   return { minX, minY, maxX, maxY, centerX, centerY };
 }
 
-function extractMapCountries(svg: string): MapCountry[] {
-  return [...svg.matchAll(/<path\b([\s\S]*?)\/>/g)].flatMap((match) => {
-    const attributes = match[1];
-    const code = attributes.match(/\bid="([A-Z]{2})"/)?.[1];
-    const name = attributes.match(/\btitle="([^"]+)"/)?.[1];
-    const path = attributes.match(/\bd="([^"]+)"/)?.[1];
-    if (!code || !name || !path || !countries[code as TCountryCode]) return [];
-    const bounds = relativePathBounds(path);
-    if (
-      ![bounds.minX, bounds.minY, bounds.maxX, bounds.maxY].every(
-        Number.isFinite,
+function getBundledMapCountries(): MapCountry[] {
+  return (worldMapPaths as [string, string, string][]).flatMap(
+    ([code, name, path]) => {
+      const bounds = relativePathBounds(path);
+      if (
+        ![bounds.minX, bounds.minY, bounds.maxX, bounds.maxY].every(
+          Number.isFinite,
+        )
       )
-    )
-      return [];
-    return [
-      {
-        code,
-        name,
-        path,
-        centerX: bounds.centerX,
-        centerY: bounds.centerY,
-        width: bounds.maxX - bounds.minX,
-        height: bounds.maxY - bounds.minY,
-      },
-    ];
-  });
+        return [];
+      return [
+        {
+          code,
+          name,
+          path,
+          centerX: bounds.centerX,
+          centerY: bounds.centerY,
+          width: bounds.maxX - bounds.minX,
+          height: bounds.maxY - bounds.minY,
+        },
+      ];
+    },
+  );
 }
 
 function WorldMap({
@@ -384,8 +335,10 @@ function WorldMap({
   currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
-  const [xml, setXml] = useState<string>();
-  const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>([]);
+  const [countriesOnMap] = useState<MapCountry[]>(() => {
+    if (!cachedMapCountries) cachedMapCountries = getBundledMapCountries();
+    return cachedMapCountries;
+  });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [committedOffset, setCommittedOffset] = useState({ x: 0, y: 0 });
   const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
@@ -582,153 +535,6 @@ function WorldMap({
         .map((place) => place.id || place.name),
     ),
   ).size;
-  useEffect(() => {
-    let active = true;
-    if (cachedMapCountries) {
-      setCountriesOnMap(cachedMapCountries);
-      setXml("ready");
-      return () => {
-        active = false;
-      };
-    }
-    const task = InteractionManager.runAfterInteractions(() => {
-      void (async () => {
-        try {
-          const asset = await Asset.fromModule(
-            require("@/assets/images/world-map.svg"),
-          ).downloadAsync();
-          const assetUri = asset.localUri ?? asset.uri;
-          // fetch(file://...) is inconsistent in packaged Android builds.
-          // Expo File reads both cached and bundled asset URIs directly.
-          let svg = await new File(assetUri).text();
-        const parsedCountries = extractMapCountries(svg);
-        cachedMapCountries = parsedCountries;
-        if (active) {
-          setCountriesOnMap(parsedCountries);
-          setXml("ready");
-        }
-        // The map renders these paths directly. Skip retaining and rewriting a
-        // second 1.2 MB SVG string when the interactive geometry parsed cleanly.
-        if (parsedCountries.length) return;
-        // The project map may be an Illustrator export with a single branded
-        // land style rather than per-country ISO groups. Preserve its geometry.
-        if (
-          !svg.includes('class="country"') &&
-          (svg.includes(".st0{") || svg.includes("mapsvg:geoViewBox"))
-        ) {
-          const countryList = getCountryDataList();
-          const visitedIso2 = new Set(
-            [...visited]
-              .map((rawCode) => {
-                const code = rawCode.toUpperCase();
-                if (code.length === 2) return code;
-                return (
-                  countryList.find((country) => country.iso3 === code)?.iso2 ??
-                  ""
-                );
-              })
-              .filter(Boolean),
-          );
-          const visitedIso3 = new Set(
-            [...visited].map(iso3For).filter(Boolean),
-          );
-          // Illustrator's embedded JavaScript is intentionally not run by
-          // react-native-svg. Turn the path list already authored in the asset
-          // into ordinary SVG classes so those countries remain visible.
-          let brandedMap = svg
-            .replace(
-              /\.st0\{[^}]+\}/,
-              `.st0{fill:${BrandColors.mapGreen};stroke:${BrandColors.green};stroke-width:.3;stroke-linecap:round;stroke-linejoin:round;}.st0.visited{fill:${BrandColors.mapVisited};}`,
-            )
-            .replace(/<script[\s\S]*?<\/script>/gi, "")
-            .replace(
-              /<(path|polygon|polyline|circle)\b([^>]*?)>/g,
-              (_shape, element: string, attributes: string) => {
-                const id = attributes.match(/\bid="([^"]+)"/)?.[1] ?? "";
-                const iso2 = (
-                  attributes.match(/\bdata-iso2="([A-Za-z]{2})"/)?.[1] ??
-                  (id.startsWith("UM-")
-                    ? "UM"
-                    : id === "GO" || id === "JU"
-                      ? "TF"
-                      : id.match(/^[A-Za-z]{2}$/)
-                        ? id
-                        : "")
-                ).toUpperCase();
-                const iso3 = (
-                  attributes.match(/\bdata-iso3="([A-Za-z]{3})"/)?.[1] ??
-                  (id.match(/^[A-Za-z]{3}$/) ? id : "")
-                ).toUpperCase();
-                const selected = visitedIso2.has(iso2) || visitedIso3.has(iso3);
-                const pathAttributes = attributes
-                  .replace(/\sfill="[^"]*"/g, "")
-                  .replace(/\sstroke="[^"]*"/g, "")
-                  .replace(/\sstroke-width="[^"]*"/g, "")
-                  .replace(/\sclass="[^"]*"/g, "")
-                  .replace(/\s*\/\s*$/, "");
-                // Inline presentation attributes are supported consistently by
-                // react-native-svg; Illustrator CSS classes are not.
-                return `<${element}${pathAttributes} fill="${
-                  selected ? BrandColors.mapVisited : BrandColors.mapGreen
-                }" stroke="${BrandColors.green}" stroke-width=".3" />`;
-              },
-            );
-          // Keep the supplied artwork in charge of geometry. ISO2 ids such as
-          // FR and JP, plus optional ISO3 metadata, respond to saved visits.
-          if (active) setXml(brandedMap);
-          return;
-        }
-        const visitedClasses = [...visited].map(iso3For).filter(Boolean);
-        svg = svg
-          .replace(/<style[\s\S]*?<\/style>/, "")
-          .replace(
-            '<g class="country">',
-            `<g class="country" fill="${BrandColors.mapGreen}" stroke="${BrandColors.green}" stroke-width=".18">`,
-          )
-          .replaceAll('class="water"', 'fill="transparent" stroke="none"')
-          .replaceAll("<circle ", '<circle display="none" ');
-        HIDDEN_MAP_ISO3.forEach((code) => {
-          svg = svg.replace(
-            new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
-            '<g display="none" class="$1"',
-          );
-        });
-        visitedClasses.forEach((code) => {
-          if (HIDDEN_MAP_ISO3.has(code)) return;
-          const hasCountryShape = new RegExp(`class="${code}(?: |")`).test(svg);
-          svg = svg.replace(
-            new RegExp(`<g class="(${code}(?: [^"]*)?)"`, "g"),
-            `<g class="$1" fill="${BrandColors.mapVisited}"`,
-          );
-          svg = svg.replace(
-            `display="none" id="${code}-circle"`,
-            `display="inline" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" id="${code}-circle"`,
-          );
-          svg = svg.replace(
-            new RegExp(`(id="${code}-circle"[^>]*?)r="[^"]+"`),
-            '$1r="1.35"',
-          );
-          if (!hasCountryShape && FALLBACK_MAP_POINTS[code]) {
-            const [cx, cy] = FALLBACK_MAP_POINTS[code];
-            svg = svg.replace(
-              "</svg>",
-              `<circle cx="${cx}" cy="${cy}" r="1.35" fill="${BrandColors.mapVisited}" stroke="${BrandColors.green}" stroke-width=".35" /></svg>`,
-            );
-          }
-        });
-          if (active) setXml(svg);
-        } catch (error) {
-          console.warn("Could not load bundled world map", error);
-          // Stop the permanent loading state if a damaged APK is installed.
-          if (active) setXml("ready");
-        }
-      })();
-    });
-    return () => {
-      active = false;
-      task.cancel();
-    };
-  }, [visited]);
   const countryPaths = useMemo(
     () =>
       countriesOnMap.map((country) => (
@@ -769,8 +575,7 @@ function WorldMap({
       accessibilityLabel={`${visited.size} visited countries highlighted in green`}
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
-      {xml ? (
-        <GestureDetector gesture={mapGesture}>
+      <GestureDetector gesture={mapGesture}>
           <View style={styles.zoomableMap} collapsable={false}>
             <Animated.View
               style={[styles.zoomableMap, animatedTranslationStyle]}
@@ -790,17 +595,7 @@ function WorldMap({
               </Animated.View>
             </Animated.View>
           </View>
-        </GestureDetector>
-      ) : (
-        <View style={styles.mapLoading}>
-          <Ionicons
-            name="earth-outline"
-            size={34}
-            color={BrandColors.mapGreen}
-          />
-          <Text style={styles.mapLoadingText}>Loading your travel map…</Text>
-        </View>
-      )}
+      </GestureDetector>
       {currentLocation && mapCanvasWidth > 1 ? (
         <CurrentPositionPin
           latitude={currentLocation.latitude}
@@ -1244,11 +1039,11 @@ const styles = StyleSheet.create({
   },
   hero: {
     height: 205,
-    paddingHorizontal: 22,
+    paddingHorizontal: 10,
     paddingTop: 0,
     overflow: "hidden",
   },
-  heroCompact: { height: 190, paddingHorizontal: 18 },
+  heroCompact: { height: 190, paddingHorizontal: 10 },
   welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
@@ -1261,13 +1056,17 @@ const styles = StyleSheet.create({
   name: {
     position: "relative",
     zIndex: 2,
-    maxWidth: "58%",
+    maxWidth: "80%",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(48),
     lineHeight: 56,
     color: BrandColors.onDark,
   },
-  nameCompact: { maxWidth: "64%", fontSize: responsiveFontSize(42), lineHeight: 48 },
+  nameCompact: {
+    maxWidth: "64%",
+    fontSize: responsiveFontSize(42),
+    lineHeight: 48,
+  },
   levelRow: {
     marginTop: 3,
     flexDirection: "row",
@@ -1294,8 +1093,7 @@ const styles = StyleSheet.create({
   globeCompact: { right: 4, width: 185, height: 185 },
   scoreCard: {
     marginTop: -24,
-    marginHorizontal: 14,
-    paddingHorizontal: 6,
+    marginHorizontal: 10,
     paddingTop: 4,
     paddingBottom: 13,
     backgroundColor: "transparent",
@@ -1565,7 +1363,7 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
   },
   continentCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginTop: 8,
     padding: 14,
     borderRadius: 15,

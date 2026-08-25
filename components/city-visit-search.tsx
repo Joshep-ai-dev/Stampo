@@ -24,11 +24,7 @@ import { CityRecord, getCities, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  NewVisit,
-  visitReceived,
-  wishlistToggled,
-} from "@/store/travel-slice";
+import { NewVisit, visitReceived, wishlistToggled } from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -373,7 +369,7 @@ export function CityVisitSearch({
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 20, paddingHorizontal: 20, zIndex: 4 },
+  wrapper: { marginTop: 20, paddingHorizontal: 10, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(24),

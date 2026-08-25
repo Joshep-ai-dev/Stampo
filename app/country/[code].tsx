@@ -25,7 +25,7 @@ import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import { api, type ManagedCollection, type SightDetail } from "@/services/api";
+import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
@@ -50,8 +50,6 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
-  const [selectedCollection, setSelectedCollection] =
-    useState<ManagedCollection | null>(null);
   const [selectedCity, setSelectedCity] = useState<{
     id: string;
     name: string;
@@ -403,8 +401,16 @@ export default function CountryScreen() {
                   place.country.toLocaleLowerCase() ===
                   name.toLocaleLowerCase(),
               );
+              const accessiblePlaces = subscription.isKrooPlus
+                ? countryPlaces
+                : countryPlaces.filter(
+                    (place) =>
+                      place.access !== "pro" && place.isPremium !== true,
+                  );
               const locationCount = countryPlaces.length;
-              const completed = countryPlaces.every((place) =>
+              const completed =
+                accessiblePlaces.length > 0 &&
+                accessiblePlaces.every((place) =>
                 completedSightIds.includes(
                   `collection-${collection.id}-${place.id}`,
                 ),
@@ -414,7 +420,9 @@ export default function CountryScreen() {
                   key={collection.id}
                   style={s.sightRow}
                   activeOpacity={0.82}
-                  onPress={() => setSelectedCollection(collection)}
+                  onPress={() =>
+                    router.push(`/collection/${collection.id}` as never)
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${collection.title}`}
                 >
@@ -438,14 +446,15 @@ export default function CountryScreen() {
                     onPress={() =>
                       void toggleCollectionPlaces(
                         collection.id,
-                        countryPlaces.map((place) => place.id),
+                        accessiblePlaces.map((place) => place.id),
                         completed,
                       )
                     }
                     hitSlop={10}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: completed }}
-                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${collection.title} locations in ${name}`}
+                    disabled={!accessiblePlaces.length}
+                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} accessible ${collection.title} locations in ${name}`}
                   >
                     <Ionicons
                       name={completed ? "checkmark-circle" : "ellipse-outline"}
@@ -566,48 +575,6 @@ export default function CountryScreen() {
               <TouchableOpacity
                 style={s.modalClose}
                 onPress={() => setSelectedSight(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={30} color={BrandColors.copper} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
-      <Modal
-        visible={selectedCollection !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setSelectedCollection(null)}
-      >
-        <View style={s.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedCollection(null)}
-            accessibilityLabel="Close collection details"
-          />
-          {selectedCollection ? (
-            <View style={s.sightModal} accessibilityViewIsModal>
-              <ProgressivePlaceImage
-                uri={selectedCollection.imageUrl}
-                style={s.modalImage}
-                contentFit="contain"
-              />
-              <Text style={s.modalTitle}>{selectedCollection.title}</Text>
-              <Text style={s.modalLocation}>
-                {selectedCollection.places.length}{" "}
-                {selectedCollection.places.length === 1
-                  ? "location"
-                  : "locations"}
-              </Text>
-              <Text style={s.modalDescription}>
-                {selectedCollection.description || selectedCollection.detail}
-              </Text>
-              <TouchableOpacity
-                style={s.modalClose}
-                onPress={() => setSelectedCollection(null)}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >

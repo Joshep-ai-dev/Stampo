@@ -82,7 +82,6 @@ export default function CollectionScreen() {
           title: item.title,
           subtitle: item.description || item.detail,
           imageUrl: item.imageUrl,
-          isPremium: item.isPremium,
           places: item.places,
         });
       })
@@ -140,14 +139,13 @@ export default function CollectionScreen() {
   const completedCount = collection.places.filter((place) =>
     completedSightIds.includes(`collection-${collection.id}-${place.id}`),
   ).length;
-  const requiresKrooPlus = (place: CollectionPlace) =>
-    collection.isPremium === true || place.isPremium === true;
+  const freePlaceLimit = 3;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
-    : collection.places.filter((place) => !requiresKrooPlus(place));
+    : collection.places.slice(0, freePlaceLimit);
   const premiumPlaces = subscription.isKrooPlus
     ? []
-    : collection.places.filter(requiresKrooPlus);
+    : collection.places.slice(freePlaceLimit);
 
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);

@@ -16,6 +16,5 @@ export type CollectionDefinition = {
   title: string;
   subtitle: string;
   imageUrl?: string;
-  isPremium?: boolean;
   places: CollectionPlace[];
 };

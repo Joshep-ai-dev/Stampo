@@ -136,7 +136,6 @@ export type CollectionProgress = {
   updatedAt?: string;
   description?: string;
   imageUrl?: string;
-  isPremium?: boolean;
   places?: ManagedCollectionPlace[];
 };
 
@@ -159,7 +158,6 @@ export type ManagedCollection = {
   detail: string;
   description: string;
   imageUrl: string;
-  isPremium: boolean;
   places: ManagedCollectionPlace[];
 };
 
@@ -325,7 +323,6 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     ...item,
     description: item.description ?? item.detail ?? "",
     imageUrl: backendImageUrl(item.imageUrl),
-    isPremium: item.isPremium === true,
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
