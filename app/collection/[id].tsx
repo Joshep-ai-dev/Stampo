@@ -24,7 +24,12 @@ import {
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { visitsHydrated, wishlistToggled } from "@/store/travel-slice";
+import {
+  sightCompletionSet,
+  travelStateHydrated,
+  visitsHydrated,
+  wishlistToggled,
+} from "@/store/travel-slice";
 
 function PlaceImage({
   place,
@@ -48,13 +53,18 @@ export default function CollectionScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const completedSightIds = useAppSelector(
+    (state) => state.travel.completedSightIds,
+  );
   const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const subscription = useAppSelector((state) => state.subscription);
   const [collection, setCollection] = useState<CollectionDefinition | null>(
     null,
   );
   const [collectionLoading, setCollectionLoading] = useState(true);
-  const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [completed, setCompleted] = useState<Set<string>>(
+    () => new Set(completedSightIds),
+  );
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
@@ -66,10 +76,14 @@ export default function CollectionScreen() {
     void api
       .travelState()
       .then((state) => {
-        setCompleted(new Set(state.completedSightIds));
+        dispatch(travelStateHydrated(state));
       })
       .catch(() => undefined);
-  }, [isSignedIn]);
+  }, [dispatch, isSignedIn]);
+
+  useEffect(() => {
+    setCompleted(new Set(completedSightIds));
+  }, [completedSightIds]);
 
   useEffect(() => {
     let active = true;
@@ -122,6 +136,7 @@ export default function CollectionScreen() {
     }
     const targetId = `collection-${collection.id}-${place.id}`;
     const next = !completed.has(targetId);
+    dispatch(sightCompletionSet({ id: targetId, completed: next }));
     setCompleted((current) => {
       const updated = new Set(current);
       if (next) updated.add(targetId);
@@ -136,6 +151,7 @@ export default function CollectionScreen() {
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
     } catch {
+      dispatch(sightCompletionSet({ id: targetId, completed: !next }));
       setCompleted((current) => {
         const updated = new Set(current);
         if (next) updated.delete(targetId);

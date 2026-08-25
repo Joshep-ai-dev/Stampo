@@ -6,7 +6,9 @@ import dashboardReducer, {
   dashboardCleared,
   fetchHomeDashboard,
 } from "./dashboard-slice";
-import countryDetailReducer from "./country-detail-slice";
+import countryDetailReducer, {
+  countryDetailCacheHydrated,
+} from "./country-detail-slice";
 import profileReducer, {
   authSessionChanged,
   languageChanged,
@@ -46,6 +48,8 @@ export async function hydrateStore() {
       store.dispatch(visitsHydrated(saved.travel.visits));
     if (saved.travel) store.dispatch(travelStateHydrated(saved.travel));
     if (saved.profile) store.dispatch(profileHydrated(saved.profile));
+    if (saved.countryDetail?.cache)
+      store.dispatch(countryDetailCacheHydrated(saved.countryDetail.cache));
   }
 
   try {

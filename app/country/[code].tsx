@@ -27,7 +27,11 @@ import { api, type ManagedCollection, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
-import { fetchCountryDetail } from "@/store/country-detail-slice";
+import {
+  countryDetailInvalidated,
+  countrySightCompletionSet,
+  fetchCountryDetail,
+} from "@/store/country-detail-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
 import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
@@ -55,13 +59,14 @@ export default function CountryScreen() {
   } | null>(null);
   useFocusEffect(
     useCallback(() => {
-      if (isSignedIn) void dispatch(fetchCountryDetail(code));
-    }, [code, dispatch, isSignedIn]),
+      void dispatch(fetchCountryDetail(code));
+    }, [code, dispatch]),
   );
   const detail =
-    countryState.data?.country.code === code.toUpperCase()
+    countryState.cache[code.toUpperCase()]?.data ??
+    (countryState.data?.country.code === code.toUpperCase()
       ? countryState.data
-      : null;
+      : null);
   useEffect(() => {
     if (!detail?.isEnriching || !isSignedIn) return;
     const refresh = setTimeout(
@@ -120,6 +125,9 @@ export default function CountryScreen() {
     }
     const next = !completed;
     dispatch(sightCompletionSet({ id: sightId, completed: next }));
+    dispatch(
+      countrySightCompletionSet({ code, sightId, completed: next }),
+    );
     try {
       await api.setSightCompleted(sightId, next);
       void api
@@ -127,9 +135,11 @@ export default function CountryScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
+      dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
     } catch {
       dispatch(sightCompletionSet({ id: sightId, completed }));
+      dispatch(countrySightCompletionSet({ code, sightId, completed }));
       Alert.alert("Could not update sight", "Please try again.");
     }
   };
@@ -169,6 +179,7 @@ export default function CountryScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
+      dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
     }
   };
@@ -278,7 +289,9 @@ export default function CountryScreen() {
               showsVerticalScrollIndicator={visibleSights.length > 6}
             >
               {visibleSights.map((sight) => {
-                const checked = completedSightIds.includes(sight.id);
+                const checked =
+                  completedSightIds.includes(sight.id) ||
+                  sight.completed === true;
                 return (
                   <TouchableOpacity
                     key={sight.id}

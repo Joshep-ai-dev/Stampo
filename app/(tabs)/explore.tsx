@@ -310,9 +310,6 @@ const s = StyleSheet.create({
   empty: {
     width: 280,
     height: 90,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
