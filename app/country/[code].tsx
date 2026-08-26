@@ -12,6 +12,7 @@ import {
   type StyleProp,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   type ViewStyle,
@@ -44,6 +45,7 @@ import {
   sightCompletionSet,
   type Visit,
   visitsHydrated,
+  visitUpdated,
 } from "@/store/travel-slice";
 
 export default function CountryScreen() {
@@ -70,6 +72,9 @@ export default function CountryScreen() {
     regionName?: string;
     visits: Visit[];
   } | null>(null);
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
+  const [editVisitDate, setEditVisitDate] = useState("");
+  const [editVisitNote, setEditVisitNote] = useState("");
   useFocusEffect(
     useCallback(() => {
       void dispatch(fetchCountryDetail(code));
@@ -106,20 +111,27 @@ export default function CountryScreen() {
   const countryVisits = allVisits.filter(
     (visit) => visit.countryCode.toUpperCase() === normalizedCode,
   );
-  const cityIdentity = (cityName: string) =>
-    cityName.trim().toLocaleLowerCase();
-  const visitedCityMap = new Map(
-    (detail?.visitedCities ?? []).map((city) => [cityIdentity(city.name), city]),
-  );
-  countryVisits.forEach((visit) =>
-    visitedCityMap.set(cityIdentity(visit.cityName), {
+  const visitedCityMap = new Map<
+    string,
+    { id: string; name: string; visits: Visit[] }
+  >();
+  countryVisits.forEach((visit) => {
+    const city = visitedCityMap.get(visit.cityId) ?? {
       id: visit.cityId,
       name: visit.cityName,
-    }),
-  );
-  const visitedCities = [...visitedCityMap.values()].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+      visits: [],
+    };
+    city.visits.push(visit);
+    visitedCityMap.set(visit.cityId, city);
+  });
+  const visitedCities = [...visitedCityMap.values()]
+    .map((city) => ({
+      ...city,
+      visits: city.visits.sort((left, right) =>
+        right.visitedAt.localeCompare(left.visitedAt),
+      ),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
@@ -149,7 +161,10 @@ export default function CountryScreen() {
     ),
   );
   const displayedStats = {
-    cities: Math.max(detail?.stats.cities ?? 0, visitedCities.length),
+    cities: Math.max(
+      detail?.stats.cities ?? 0,
+      new Set(countryVisits.map((visit) => visit.cityId)).size,
+    ),
     sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
@@ -242,6 +257,50 @@ export default function CountryScreen() {
       void dispatch(fetchHomeDashboard());
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
+    }
+  };
+  const saveVisitEdits = async () => {
+    if (!selectedCity || !editingVisitId) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editVisitDate)) {
+      Alert.alert("Visit date", "Use the format YYYY-MM-DD.");
+      return;
+    }
+    const visit = selectedCity.visits.find(
+      (item) => item.id === editingVisitId,
+    );
+    if (!visit) return;
+    const updated = {
+      ...visit,
+      visitedAt: editVisitDate,
+      note: editVisitNote.trim(),
+    };
+    dispatch(visitUpdated(updated));
+    setSelectedCity({
+      ...selectedCity,
+      visits: selectedCity.visits.map((item) =>
+        item.id === updated.id ? updated : item,
+      ),
+    });
+    setEditingVisitId(null);
+    if (!isSignedIn) return;
+    try {
+      const remote = await api.updateVisit(updated);
+      dispatch(visitUpdated(remote));
+      setSelectedCity((current) =>
+        current
+          ? {
+              ...current,
+              visits: current.visits.map((item) =>
+                item.id === updated.id ? remote : item,
+              ),
+            }
+          : null,
+      );
+    } catch {
+      Alert.alert(
+        "Saved on this device",
+        "Kroo will sync this edit when the server is available.",
+      );
     }
   };
 
@@ -538,71 +597,66 @@ export default function CountryScreen() {
         )}
 
         <SectionTitle>Cities Visited</SectionTitle>
-        <ScrollView
-          style={s.cityList}
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={visitedCities.length > 6}
-        >
+        <View style={s.cityList}>
           {visitedCities.length ? (
             visitedCities.map((city) => {
+              const latestVisit = city.visits[0];
               const cityDetail = detail?.cities.find(
                 (item) =>
                   item.id === city.id ||
-                  cityIdentity(item.name) === cityIdentity(city.name),
+                  item.name.trim().toLocaleLowerCase() ===
+                    city.name.trim().toLocaleLowerCase(),
               );
-              const cityVisits = allVisits.filter(
-                (visit) =>
-                  visit.countryCode.toUpperCase() === normalizedCode &&
-                  (visit.cityId === city.id ||
-                    cityIdentity(visit.cityName) === cityIdentity(city.name)),
-              );
-              const recordedVisit = cityVisits[0];
+              const sightCount = new Set(
+                city.visits.flatMap((visit) =>
+                  visit.places
+                    .filter((place) => place.type === "sight")
+                    .map((place) => place.id || place.name),
+                ),
+              ).size;
+              const airportCount = new Set(
+                city.visits.flatMap((visit) =>
+                  visit.places
+                    .filter((place) => place.type === "airport")
+                    .map((place) => place.id || place.name),
+                ),
+              ).size;
               return (
                 <TouchableOpacity
                   key={city.id}
-                  style={[s.sightRow, s.cityRow]}
-                  onPress={() =>
+                  style={s.sightRow}
+                  onPress={() => {
                     setSelectedCity({
                       id: city.id,
                       name: city.name,
                       image: cityDetail?.image,
                       description: cityDetail?.description,
-                      regionName: recordedVisit?.subcountry,
-                      visits: cityVisits,
-                    })
-                  }
+                      regionName: latestVisit.subcountry,
+                      visits: city.visits,
+                    });
+                    setEditingVisitId(null);
+                  }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Open details for ${city.name}`}
+                  accessibilityLabel={`Open visit history for ${city.name}`}
                 >
                   <CityThumbnail
                     cityId={city.id}
                     cityName={city.name}
                     countryName={name}
-                    regionName={recordedVisit?.subcountry}
+                    regionName={latestVisit.subcountry}
                     initialUri={cityDetail?.image}
                     latitude={cityDetail?.latitude}
                     longitude={cityDetail?.longitude}
                   />
                   <View style={s.collectionText}>
-                    <Text numberOfLines={1} style={s.sightName}>
+                    <Text numberOfLines={1} style={s.collectionTitle}>
                       {city.name}
                     </Text>
-                    {recordedVisit ? (
-                      <Text style={s.collectionDetail}>
-                        {
-                          recordedVisit.places.filter(
-                            (place) => place.type === "sight",
-                          ).length
-                        }{" "}
-                        sights ·{" "}
-                        {
-                          recordedVisit.places.filter(
-                            (place) => place.type === "airport",
-                          ).length
-                        }{" "}
-                        airports
-                      </Text>
-                    ) : null}
+                    <Text style={s.collectionDetail}>
+                      {sightCount} sights · {airportCount} airports ·{" "}
+                      {city.visits.length}{" "}
+                      {city.visits.length === 1 ? "visit" : "visits"}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -610,7 +664,7 @@ export default function CountryScreen() {
           ) : (
             <Text style={s.empty}>Your visited cities will appear here.</Text>
           )}
-        </ScrollView>
+        </View>
         <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
@@ -705,27 +759,42 @@ export default function CountryScreen() {
             selectedCity.description || `A city you visited in ${name}.`
           }
           image={
-            <ResolvedPlaceImage
-              initialUri={selectedCity.image}
-              placeName={selectedCity.name}
-              cityName={selectedCity.name}
-              countryName={name}
-              style={s.modalImage}
-              contentFit="cover"
-            />
+            selectedCity.image ? (
+              <ResolvedPlaceImage
+                initialUri={selectedCity.image}
+                placeName={selectedCity.name}
+                cityName={selectedCity.name}
+                countryName={name}
+                style={s.modalImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[s.modalImage, s.modalImagePlaceholder]}>
+                <Ionicons
+                  name="business-outline"
+                  size={46}
+                  color={BrandColors.copper}
+                />
+              </View>
+            )
           }
-          onClose={() => setSelectedCity(null)}
+          onClose={() => {
+            setSelectedCity(null);
+            setEditingVisitId(null);
+          }}
         >
           <View style={s.visitRecordCard}>
-            <Text style={s.visitRecordTitle}>
-              {selectedCity.visits.length === 1
-                ? "My Visit Record"
-                : "My Visit Records"}
-            </Text>
-            {selectedCity.visits.length ? (
-              selectedCity.visits.slice(0, 3).map((visit) => (
-                <View key={visit.id} style={s.visitRecordItem}>
-                  <View style={s.visitRecordRow}>
+            <View style={s.visitRecordHeader}>
+              <Text style={s.visitRecordTitle}>My Visit History</Text>
+              <Text style={s.visitHistoryCount}>
+                {selectedCity.visits.length}{" "}
+                {selectedCity.visits.length === 1 ? "visit" : "visits"}
+              </Text>
+            </View>
+            {selectedCity.visits.map((visit) => (
+              <View key={visit.id} style={s.visitRecordItem}>
+                <View style={s.visitItemHeader}>
+                  <View style={[s.visitRecordRow, s.visitItemHeaderDate]}>
                     <Ionicons
                       name="calendar-outline"
                       size={16}
@@ -733,37 +802,86 @@ export default function CountryScreen() {
                     />
                     <Text style={s.visitRecordText}>{visit.visitedAt}</Text>
                   </View>
-                  {visit.note ? (
-                    <View style={s.visitRecordRow}>
-                      <Ionicons
-                        name="document-text-outline"
-                        size={16}
-                        color={BrandColors.copper}
-                      />
-                      <Text style={s.visitRecordText}>{visit.note}</Text>
-                    </View>
-                  ) : null}
-                  {visit.places.map((place) => (
-                    <View key={`${visit.id}-${place.id}`} style={s.visitRecordRow}>
-                      <Ionicons
-                        name={
-                          place.type === "airport"
-                            ? "airplane-outline"
-                            : "camera-outline"
-                        }
-                        size={16}
-                        color={BrandColors.copper}
-                      />
-                      <Text style={s.visitRecordText}>{place.name}</Text>
-                    </View>
-                  ))}
+                  <TouchableOpacity
+                    style={s.visitItemEditButton}
+                    onPress={() => {
+                      if (editingVisitId === visit.id) {
+                        setEditingVisitId(null);
+                        return;
+                      }
+                      setEditingVisitId(visit.id);
+                      setEditVisitDate(visit.visitedAt);
+                      setEditVisitNote(visit.note);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
+                  >
+                    <Text style={s.visitEditText}>
+                      {editingVisitId === visit.id ? "Cancel" : "Edit"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              ))
-            ) : (
-              <Text style={s.visitRecordEmpty}>
-                No visit details are saved for this city yet.
-              </Text>
-            )}
+                {editingVisitId === visit.id ? (
+                  <View style={s.visitEditForm}>
+                    <Text style={s.visitInputLabel}>Visit date</Text>
+                    <TextInput
+                      value={editVisitDate}
+                      onChangeText={setEditVisitDate}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={BrandColors.onDarkMuted}
+                      style={s.visitInput}
+                      maxLength={10}
+                    />
+                    <Text style={s.visitInputLabel}>Note</Text>
+                    <TextInput
+                      value={editVisitNote}
+                      onChangeText={setEditVisitNote}
+                      placeholder="Add a short note"
+                      placeholderTextColor={BrandColors.onDarkMuted}
+                      style={[s.visitInput, s.visitNoteInput]}
+                      maxLength={140}
+                      multiline
+                    />
+                    <TouchableOpacity
+                      style={s.visitSaveButton}
+                      onPress={() => void saveVisitEdits()}
+                    >
+                      <Text style={s.visitSaveText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    {visit.note ? (
+                      <View style={s.visitRecordRow}>
+                        <Ionicons
+                          name="document-text-outline"
+                          size={16}
+                          color={BrandColors.copper}
+                        />
+                        <Text style={s.visitRecordText}>{visit.note}</Text>
+                      </View>
+                    ) : null}
+                    {visit.places.map((place) => (
+                      <View
+                        key={`${visit.id}-${place.id}`}
+                        style={s.visitRecordRow}
+                      >
+                        <Ionicons
+                          name={
+                            place.type === "airport"
+                              ? "airplane-outline"
+                              : "camera-outline"
+                          }
+                          size={16}
+                          color={BrandColors.copper}
+                        />
+                        <Text style={s.visitRecordText}>{place.name}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+              </View>
+            ))}
           </View>
         </DetailModal>
       ) : null}
@@ -1047,18 +1165,12 @@ const s = StyleSheet.create({
     color: BrandColors.copperDark,
   },
   cityList: {
-    maxHeight: 372,
     marginHorizontal: 16,
   },
-  cityRow: {
-    minHeight: 50,
-    gap: 9,
-    paddingVertical: 2,
-  },
   cityImageFrame: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -1090,6 +1202,11 @@ const s = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: BrandColors.greenDeep,
   },
+  modalImagePlaceholder: {
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   visitRecordCard: {
     width: "100%",
     marginTop: 16,
@@ -1100,10 +1217,40 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(10,43,32,.35)",
   },
   visitRecordTitle: {
-    marginBottom: 8,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(15),
     color: BrandColors.copper,
+  },
+  visitRecordHeader: {
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  visitHistoryCount: {
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
+  visitItemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  visitItemHeaderDate: {
+    flex: 1,
+    minWidth: 0,
+  },
+  visitItemEditButton: {
+    flexShrink: 0,
+    marginLeft: 12,
+    paddingHorizontal: 3,
+    paddingVertical: 4,
+  },
+  visitEditText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(13),
+    color: "#57D5A0",
   },
   visitRecordItem: {
     paddingVertical: 7,
@@ -1123,10 +1270,39 @@ const s = StyleSheet.create({
     lineHeight: 18,
     color: BrandColors.onDark,
   },
-  visitRecordEmpty: {
-    fontFamily: "Lora_400Regular_Italic",
-    fontSize: responsiveFontSize(13),
+  visitEditForm: { gap: 6 },
+  visitInputLabel: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
+  },
+  visitInput: {
+    minHeight: 42,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.onDark,
+  },
+  visitNoteInput: {
+    minHeight: 70,
+    paddingTop: 10,
+    textAlignVertical: "top",
+  },
+  visitSaveButton: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: BrandColors.copper,
+  },
+  visitSaveText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.greenDeep,
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",

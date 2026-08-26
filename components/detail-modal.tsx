@@ -51,6 +51,14 @@ export function DetailModal({
           accessibilityLabel={`Close ${title} details`}
         />
         <View style={s.card} accessibilityViewIsModal>
+          <TouchableOpacity
+            style={s.close}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Ionicons name="close" size={21} color={BrandColors.copper} />
+          </TouchableOpacity>
           <ScrollView
             style={s.scroll}
             contentContainerStyle={s.scrollContent}
@@ -77,14 +85,6 @@ export function DetailModal({
           {locked && unlockContent ? (
             <View style={s.unlock}>{unlockContent}</View>
           ) : null}
-          <TouchableOpacity
-            style={s.close}
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-          >
-            <Ionicons name="close" size={30} color={BrandColors.copper} />
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -118,7 +118,6 @@ const s = StyleSheet.create({
   content: {
     width: "100%",
     alignItems: "center",
-    overflow: "hidden",
     borderRadius: 16,
   },
   scroll: {
@@ -152,10 +151,13 @@ const s = StyleSheet.create({
   },
   unlock: { width: "100%", marginTop: 2 },
   close: {
-    width: 48,
-    height: 48,
-    marginTop: 16,
-    borderRadius: 24,
+    position: "absolute",
+    top: 9,
+    right: 9,
+    zIndex: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,

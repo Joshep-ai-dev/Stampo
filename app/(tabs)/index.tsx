@@ -993,8 +993,8 @@ export default function HomeScreen() {
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
     [visits],
   );
-  const localCityIds = useMemo(
-    () => new Set(visits.map((x) => x.cityId)),
+  const localCities = useMemo(
+    () => new Set(visits.map((visit) => visit.cityId)),
     [visits],
   );
   const localContinentCodes = useMemo(
@@ -1029,7 +1029,7 @@ export default function HomeScreen() {
   const localScore = calculateKrooScore({
     continents: localContinentCodes.size,
     countries: localCountryCodes.size,
-    cities: localCityIds.size,
+    cities: localCities.size,
     sights: recordedSightIds.size,
     airports: airportIds.size,
     challengePoints,
@@ -1043,7 +1043,7 @@ export default function HomeScreen() {
   const countryCount = serverHome?.counts.countries ?? localCountryCodes.size;
   const continentCount =
     serverHome?.counts.continents ?? localContinentCodes.size;
-  const cityCount = serverHome?.counts.cities ?? localCityIds.size;
+  const cityCount = serverHome?.counts.cities ?? localCities.size;
   const continentCounts = serverHome?.continentCounts ?? localContinentCounts;
   const score = serverHome?.score ?? localScore;
   const worldProgress =
