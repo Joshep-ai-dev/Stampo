@@ -846,6 +846,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 18,
+    backgroundColor: colors.paper,
+    overflow: "hidden",
     backfaceVisibility: "hidden",
   },
   coverPage: {
@@ -866,7 +869,7 @@ const styles = StyleSheet.create({
     borderColor: colors.paperBorder,
     borderRadius: 18,
     padding: 9,
-    elevation: 2,
+    elevation: 0,
   },
   identityPaper: { padding: 16, justifyContent: "space-between" },
   identityHeading: {
