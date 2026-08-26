@@ -1,4 +1,5 @@
 export const stampAssets: Partial<Record<string, number>> = {
+  AQ: require("../assets/images/stampo/Antarctica.png"),
   AF: require("../assets/images/stampo/Afghanistan.png"),
   AL: require("../assets/images/stampo/Albania.png"),
   DZ: require("../assets/images/stampo/Algeria.png"),

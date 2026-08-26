@@ -84,7 +84,7 @@ const profileSections: readonly ProfileSection[] = [
         id: "sign-in",
         label: "Sign in to existing account",
         description:
-          "Use cloud data from your account. Local data on this device will be discarded. Please contact us if you would like to merge local and cloud data.",
+          "Sign in to sync the travel data on this device with your Kroo account.",
       },
     ],
   },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   modalContent: { padding: 20, gap: 14, paddingBottom: 40 },
   input: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     paddingHorizontal: 15,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     backgroundColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",

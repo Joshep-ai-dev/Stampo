@@ -4,7 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { NotificationResponse } from "expo-notifications";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 import { getCities, type CityRecord } from "@/data/cities";
@@ -15,9 +24,7 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { visitReceived } from "@/store/travel-slice";
 
-function suggestionFromResponse(
-  response: NotificationResponse | null,
-) {
+function suggestionFromResponse(response: NotificationResponse | null) {
   const data = response?.notification.request.content.data;
   if (data?.type !== "arrival") return null;
   return data as unknown as ArrivalSuggestion & { type: "arrival" };
@@ -60,7 +67,10 @@ export function ArrivalSuggestionPrompt() {
 
   const confirmVisit = async () => {
     if (!suggestion || !isSignedIn || !isKrooPlus) {
-      Alert.alert("Kroo+", "Sign in with an active Kroo+ membership to save a GPS-verified visit.");
+      Alert.alert(
+        "Kroo+",
+        "Sign in with an active Kroo+ membership to save a GPS-verified visit.",
+      );
       return;
     }
     setSaving(true);
@@ -72,7 +82,8 @@ export function ArrivalSuggestionPrompt() {
           candidate.countryCode === suggestion.countryCode &&
           candidate.name.toLocaleLowerCase() === normalizedCity,
       ) as CityRecord | undefined;
-      if (!city) throw new Error("The detected city is not in the city catalog yet.");
+      if (!city)
+        throw new Error("The detected city is not in the city catalog yet.");
       const knownAirport = getPlaceSuggestions(city.name).find(
         (place) => place.type === "airport",
       )?.name;
@@ -87,7 +98,13 @@ export function ArrivalSuggestionPrompt() {
         visitedAt: suggestion.detectedAt.slice(0, 10),
         note: "Added from a Kroo+ GPS arrival.",
         places: airport
-          ? [{ id: `gps-airport-${Date.now()}`, name: airport, type: "airport" }]
+          ? [
+              {
+                id: `gps-airport-${Date.now()}`,
+                name: airport,
+                type: "airport",
+              },
+            ]
           : [],
         verification: {
           status: "gps_verified",
@@ -116,7 +133,10 @@ export function ArrivalSuggestionPrompt() {
       onRequestClose={() => setSuggestion(null)}
     >
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setSuggestion(null)} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setSuggestion(null)}
+        />
         {suggestion ? (
           <View style={styles.card}>
             <View style={styles.icon}>
@@ -128,15 +148,29 @@ export function ArrivalSuggestionPrompt() {
               {suggestion.airport
                 ? `${suggestion.airport} was detected.`
                 : `You were detected in ${suggestion.city}, ${suggestion.country}.`}{" "}
-              Confirm to add the city, country, continent, and available airport as a verified visit.
+              Confirm to add the city, country, continent, and available airport
+              as a verified visit.
             </Text>
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.cancel} onPress={() => setSuggestion(null)}>
+              <TouchableOpacity
+                style={styles.cancel}
+                onPress={() => setSuggestion(null)}
+              >
                 <Text style={styles.cancelText}>Not now</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirm} disabled={saving} onPress={() => void confirmVisit()}>
-                <Ionicons name="checkmark-circle" size={19} color={BrandColors.green} />
-                <Text style={styles.confirmText}>{saving ? "Adding…" : "Add verified visit"}</Text>
+              <TouchableOpacity
+                style={styles.confirm}
+                disabled={saving}
+                onPress={() => void confirmVisit()}
+              >
+                <Ionicons
+                  name="checkmark-circle"
+                  size={19}
+                  color={BrandColors.green}
+                />
+                <Text style={styles.confirmText}>
+                  {saving ? "Adding…" : "Add verified visit"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -197,7 +231,7 @@ const styles = StyleSheet.create({
   cancel: {
     minHeight: 46,
     paddingHorizontal: 14,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     alignItems: "center",
@@ -207,12 +241,16 @@ const styles = StyleSheet.create({
   confirm: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 13,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     backgroundColor: BrandColors.copper,
   },
-  confirmText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(13), color: BrandColors.green },
+  confirmText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.green,
+  },
 });

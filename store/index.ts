@@ -56,6 +56,7 @@ export async function hydrateStore() {
   try {
     const user = await api.restoreSession();
     if (user) {
+      const localTravel = store.getState().travel;
       const profile = store.getState().profile;
       const remoteProfile = await api.getProfile().catch(() => null);
       store.dispatch(
@@ -70,7 +71,7 @@ export async function hydrateStore() {
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
       const [visitsResult, travelStateResult] = await Promise.allSettled([
-        api.listVisits(),
+        api.syncVisits(localTravel.visits),
         api.travelState(),
       ]);
       if (visitsResult.status === "fulfilled") {
@@ -82,7 +83,6 @@ export async function hydrateStore() {
       await store.dispatch(fetchHomeDashboard());
     } else {
       store.dispatch(signedOut());
-      store.dispatch(visitsCleared());
       store.dispatch(dashboardCleared());
     }
   } catch {
@@ -97,11 +97,7 @@ export async function hydrateStore() {
       const state = store.getState();
       void AsyncStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify(
-          state.profile.isSignedIn
-            ? state
-            : { profile: state.profile, travel: { visits: [] } },
-        ),
+        JSON.stringify(state),
       );
     });
   }

@@ -16,6 +16,9 @@ export type CityRecord = {
   countryCode: string;
   continentCode: string;
   searchText: string;
+  latitude?: number;
+  longitude?: number;
+  population?: number;
 };
 
 export type CountryRecord = {
@@ -29,6 +32,30 @@ export type CountryRecord = {
 
 let cityCache: Promise<CityRecord[]> | undefined;
 
+const COUNTRY_ALIASES: Record<string, TCountryCode> = {
+  "Korea, Republic of": "KR",
+  "Korea, Democratic People's Republic of": "KP",
+  "United States": "US",
+};
+
+const COUNTRY_SEARCH_ALIASES: Partial<Record<TCountryCode, string>> = {
+  US: "usa america united states of america",
+  GB: "uk great britain united kingdom",
+  KR: "south korea republic of korea",
+  KP: "north korea democratic peoples republic of korea",
+  AE: "uae united arab emirates",
+};
+
+function resolveCountryCode(name: string) {
+  return COUNTRY_ALIASES[name] ?? getCountryCode(name) ?? "";
+}
+
+const DATASET_COUNTRY_CODES: Record<string, TCountryCode> = {
+  XG: "PS",
+  XW: "PS",
+  XR: "SJ",
+};
+
 const RECOGNIZED_COUNTRY_CODES_BY_CONTINENT = {
   Africa: [
     "DZ", "AO", "BJ", "BW", "BF", "BI", "CV", "CM", "CF", "TD", "KM",
@@ -37,6 +64,7 @@ const RECOGNIZED_COUNTRY_CODES_BY_CONTINENT = {
     "MU", "MA", "MZ", "NA", "NE", "NG", "RW", "ST", "SN", "SC", "SL",
     "SO", "ZA", "SS", "SD", "TZ", "TG", "TN", "UG", "ZM", "ZW",
   ],
+  Antarctica: ["AQ"],
   Asia: [
     "AF", "AM", "AZ", "BH", "BD", "BT", "BN", "KH", "CN", "CY", "GE",
     "IN", "ID", "IR", "IQ", "IL", "JP", "JO", "KZ", "KW", "KG", "LA",
@@ -106,28 +134,46 @@ async function readBundledCsv(): Promise<string> {
 
 async function loadCityRecords(): Promise<CityRecord[]> {
   const csv = await readBundledCsv();
-  const rows = csv
+  const allRows = csv
     .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .slice(1);
+    .split(/\r?\n/);
+  const header = parseCsvRow(allRows[0]).map((value) => value.trim());
+  const column = Object.fromEntries(header.map((name, index) => [name, index]));
+  const isSimpleMaps = "city" in column && "iso2" in column && "id" in column;
 
-  return rows.flatMap((row) => {
+  return allRows.slice(1).flatMap((row) => {
     if (!row.trim()) return [];
-    const [name, country, subcountry, geonameId] = parseCsvRow(row);
-    if (!name || !country || !geonameId) return [];
-    const resolvedCode = getCountryCode(country);
+    const fields = parseCsvRow(row);
+    const name = fields[column[isSimpleMaps ? "city" : "name"]]?.trim();
+    const country = fields[column.country]?.trim();
+    const subcountry = fields[column[isSimpleMaps ? "admin_name" : "subcountry"]]?.trim() ?? "";
+    const providedId = fields[column[isSimpleMaps ? "id" : "geonameid"]]?.trim();
+    const cityId = providedId || (isSimpleMaps
+      ? `coord:${fields[column.lat]?.trim()}:${fields[column.lng]?.trim()}`
+      : "");
+    if (!name || !country || !cityId) return [];
+    const rawCsvCode = isSimpleMaps ? fields[column.iso2]?.trim().toUpperCase() : "";
+    const csvCode = DATASET_COUNTRY_CODES[rawCsvCode] ?? rawCsvCode;
+    const resolvedCode = (/^[A-Z]{2}$/.test(csvCode) ? csvCode : resolveCountryCode(country)) as TCountryCode | "";
     const countryCode = resolvedCode || "";
     const continentCode = resolvedCode ? countries[resolvedCode].continent : "";
 
     return [
       {
-        id: geonameId,
+        id: cityId,
         name,
         country,
         subcountry,
         countryCode,
         continentCode,
-        searchText: `${name} ${subcountry} ${country}`.toLocaleLowerCase(),
+        searchText: `${name} ${country} ${subcountry} ${countryCode} ${
+          countryCode
+            ? COUNTRY_SEARCH_ALIASES[countryCode as TCountryCode] ?? ""
+            : ""
+        }`.toLocaleLowerCase(),
+        latitude: isSimpleMaps ? Number(fields[column.lat]) : undefined,
+        longitude: isSimpleMaps ? Number(fields[column.lng]) : undefined,
+        population: isSimpleMaps ? Number(fields[column.population]) || 0 : undefined,
       },
     ];
   });
@@ -139,7 +185,7 @@ export async function getCountriesWithCities(): Promise<CountryRecord[]> {
 
   const countryRecords: CountryRecord[] = [];
   for (const name of countryNames) {
-      const resolvedCode = getCountryCode(name);
+      const resolvedCode = resolveCountryCode(name);
       if (!resolvedCode) continue;
       const code = resolvedCode as TCountryCode;
       const continentCode = countries[code].continent as TContinentCode;
@@ -188,16 +234,19 @@ export async function searchCities(
   if (normalized.length < 2) return [];
 
   const cities = await getCities();
-  const prefixMatches: CityRecord[] = [];
-  const containsMatches: CityRecord[] = [];
-
-  for (const city of cities) {
-    const name = city.name.toLocaleLowerCase();
-    if (name.startsWith(normalized)) prefixMatches.push(city);
-    else if (city.searchText.includes(normalized)) containsMatches.push(city);
-
-    if (prefixMatches.length >= limit) break;
-  }
-
-  return [...prefixMatches, ...containsMatches].slice(0, limit);
+  const terms = normalized.split(/\s+/).filter(Boolean);
+  return cities
+    .filter((city) => terms.every((term) => city.searchText.includes(term)))
+    .sort((left, right) => {
+      const leftName = left.name.toLocaleLowerCase();
+      const rightName = right.name.toLocaleLowerCase();
+      const leftExact = leftName === normalized ? 0 : leftName.startsWith(normalized) ? 1 : 2;
+      const rightExact = rightName === normalized ? 0 : rightName.startsWith(normalized) ? 1 : 2;
+      if (leftExact !== rightExact) return leftExact - rightExact;
+      // Prefer well-known sovereign-country matches over same-name localities.
+      const leftCountryMatch = normalized.includes(left.country.toLocaleLowerCase()) ? 0 : 1;
+      const rightCountryMatch = normalized.includes(right.country.toLocaleLowerCase()) ? 0 : 1;
+      return leftCountryMatch - rightCountryMatch || left.country.localeCompare(right.country);
+    })
+    .slice(0, limit);
 }

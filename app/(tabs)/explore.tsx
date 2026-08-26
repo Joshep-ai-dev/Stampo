@@ -208,7 +208,10 @@ export default function ExploreScreen() {
               country={country}
               cityCount={visitedCityCounts.get(country.code)?.size ?? 0}
               onPress={() =>
-                router.push(`/country/${country.code}` as never)
+                router.push({
+                  pathname: "/country/[code]",
+                  params: { code: country.code },
+                })
               }
             />
           )}

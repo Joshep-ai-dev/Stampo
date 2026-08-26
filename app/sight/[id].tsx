@@ -1,20 +1,20 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { BrandColors } from "@/constants/theme";
+import { api, type SightDetail } from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandColors } from "@/constants/theme";
-import { ProgressivePlaceImage } from "@/components/progressive-place-image";
-import { api, type SightDetail } from "@/services/api";
 export default function SightScreen() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -117,7 +117,7 @@ const s = StyleSheet.create({
   panel: {
     margin: 14,
     padding: 16,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,.2)",

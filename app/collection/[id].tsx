@@ -186,7 +186,7 @@ export default function CollectionScreen() {
     try {
       await Share.share({
         title: collection.title,
-        message: `Take a look at ${collection.title} on Stampo:\n${url}`,
+        message: `Take a look at ${collection.title} on Kroo:\n${url}`,
         url,
       });
     } catch {

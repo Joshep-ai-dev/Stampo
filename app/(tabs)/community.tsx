@@ -132,7 +132,16 @@ export default function LeaderboardScreen() {
           />
         }
       >
-        <Text style={s.title}>LeaderBoard</Text>
+        <View style={s.socialHeader}>
+          <View style={s.logoCrop}>
+            <Image
+              source={require("../../assets/images/kroo_logo_text.png")}
+              style={s.wordmark}
+              contentFit="contain"
+              accessibilityLabel="Kroo"
+            />
+          </View>
+        </View>
         {!isSignedIn ? (
           <Message title="Sign in to join the leaderboard" />
         ) : loading && !globalPeople.length ? (
@@ -295,12 +304,22 @@ function Message({ title }: { title: string }) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.deep },
   content: { paddingBottom: 24 },
-  title: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    color: c.cream,
+  socialHeader: {
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoCrop: {
+    width: 200,
+    height: 60,
+    overflow: "hidden",
+  },
+  wordmark: {
+    position: "absolute",
+    width: 200,
+    height: 75,
+    top: -15,
+    left: 0,
   },
   leaderList: { marginHorizontal: 22, marginTop: 14 },
   lbRow: {

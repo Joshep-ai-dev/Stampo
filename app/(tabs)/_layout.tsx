@@ -93,7 +93,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Community",
+          title: "Social",
           tabBarActiveTintColor: "#49B964",
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
@@ -126,8 +126,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   iconWrap: {
-    width: 44,
-    height: 32,
+    width: 40,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
   },

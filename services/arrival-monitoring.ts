@@ -173,7 +173,7 @@ export async function startArrivalMonitoring() {
       activityType: Location.ActivityType.AutomotiveNavigation,
       showsBackgroundLocationIndicator: true,
       foregroundService: {
-        notificationTitle: "Stampo GPS arrivals",
+        notificationTitle: "Kroo GPS arrivals",
         notificationBody: "Watching for a new city or airport arrival.",
         notificationColor: "#D7925F",
       },

@@ -4,17 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BrandColors } from "@/constants/theme";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { BrandColors } from "@/constants/theme";
 import { api, type CityDetail } from "@/services/api";
 
 export default function CityScreen() {
@@ -159,7 +159,7 @@ const s = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
-    borderRadius: 13,
+    borderRadius: 10,
     backgroundColor: "rgba(10,43,32,.2)",
   },
   description: {

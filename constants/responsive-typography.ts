@@ -1,7 +1,7 @@
 import { Dimensions } from "react-native";
 
-const REFERENCE_PHONE_WIDTH = 390;
-const MINIMUM_FONT_SCALE = 0.82;
+const REFERENCE_PHONE_WIDTH = 430;
+const MINIMUM_FONT_SCALE = 0.78;
 
 /**
  * Keeps the current type scale on standard-width phones and gently reduces it

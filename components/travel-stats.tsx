@@ -24,7 +24,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
           <View style={styles.top}>
             <Ionicons
               name={item.icon as never}
-              size={24}
+              size={20}
               color={BrandColors.copper}
             />
             <View style={styles.numberRow}>
@@ -63,8 +63,8 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
 
 const styles = StyleSheet.create({
   card: {
-    height: 94,
-    borderRadius: 13,
+    height: 80,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,0.20)",

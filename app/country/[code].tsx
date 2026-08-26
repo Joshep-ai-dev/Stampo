@@ -28,12 +28,12 @@ import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
-import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
   fetchCountryDetail,
 } from "@/store/country-detail-slice";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
 import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
@@ -127,9 +127,7 @@ export default function CountryScreen() {
     }
     const next = !completed;
     dispatch(sightCompletionSet({ id: sightId, completed: next }));
-    dispatch(
-      countrySightCompletionSet({ code, sightId, completed: next }),
-    );
+    dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
     try {
       await api.setSightCompleted(sightId, next);
       void api
@@ -170,7 +168,8 @@ export default function CountryScreen() {
     results.forEach((result, index) => {
       if (result.status === "rejected") {
         failed = true;
-        if (result.reason instanceof Error) failureMessage = result.reason.message;
+        if (result.reason instanceof Error)
+          failureMessage = result.reason.message;
         dispatch(sightCompletionSet({ id: targetIds[index], completed }));
       }
     });
@@ -284,7 +283,7 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <SectionTitle>{`Top Sights in ${name}`}</SectionTitle>
+        <SectionTitle>Top Sights</SectionTitle>
         {sights.length ? (
           <View style={s.sightList}>
             <ScrollView
@@ -394,7 +393,7 @@ export default function CountryScreen() {
           </Text>
         )}
 
-        <SectionTitle>{`Collections in ${name}`}</SectionTitle>
+        <SectionTitle>Collections</SectionTitle>
         {countryCollections.length ? (
           <View style={s.collectionList}>
             {countryCollections.map((collection) => {
@@ -413,10 +412,10 @@ export default function CountryScreen() {
               const completed =
                 accessiblePlaces.length > 0 &&
                 accessiblePlaces.every((place) =>
-                completedSightIds.includes(
-                  `collection-${collection.id}-${place.id}`,
-                ),
-              );
+                  completedSightIds.includes(
+                    `collection-${collection.id}-${place.id}`,
+                  ),
+                );
               return (
                 <TouchableOpacity
                   key={collection.id}
@@ -474,7 +473,7 @@ export default function CountryScreen() {
           </Text>
         )}
 
-        <SectionTitle>{`Cities Visited in ${name}`}</SectionTitle>
+        <SectionTitle>Cities Visited</SectionTitle>
         <ScrollView
           style={s.cityList}
           nestedScrollEnabled
@@ -793,7 +792,7 @@ const s = StyleSheet.create({
     marginHorizontal: 14,
     marginTop: 14,
     padding: 16,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,.2)",
@@ -809,7 +808,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 17,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(21),
+    fontSize: responsiveFontSize(18),
     color: BrandColors.onDark,
   },
   sightList: { marginHorizontal: 16 },
@@ -877,7 +876,7 @@ const s = StyleSheet.create({
     marginTop: 4,
     marginBottom: -34,
     padding: 11,
-    borderRadius: 13,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -925,7 +924,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     flexDirection: "row",

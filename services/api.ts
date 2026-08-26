@@ -463,6 +463,11 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ progress }) },
     ),
   listVisits: () => request<Visit[]>("/visits"),
+  syncVisits: (visits: Visit[]) =>
+    request<Visit[]>("/me/sync/visits", {
+      method: "POST",
+      body: JSON.stringify({ visits }),
+    }),
   createVisit: (visit: NewVisit) =>
     request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
   updateVisit: (visit: Visit) =>
@@ -529,7 +534,7 @@ export const api = {
   signIn: async (payload: { email: string; password: string }) => {
     const session = await request<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ ...payload, deviceName: "Stampo mobile app" }),
+      body: JSON.stringify({ ...payload, deviceName: "Kroo mobile app" }),
     });
     setApiToken(session.token);
     await storeAuthToken(session.token);

@@ -52,7 +52,7 @@ import {
 
 const TOTALS: Record<string, number> = {
   AF: 54,
-  AN: 0,
+  AN: 1,
   AS: 48,
   EU: 44,
   NA: 23,
@@ -61,9 +61,11 @@ const TOTALS: Record<string, number> = {
 };
 const CONTINENTS = [
   { code: "AF", name: "Africa" },
+  { code: "AN", name: "Antarctica" },
   { code: "AS", name: "Asia" },
   { code: "EU", name: "Europe" },
   { code: "NA", name: "North America" },
+  { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
 type MapCountry = {
@@ -451,9 +453,12 @@ function WorldMap({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
     });
-  const mapGesture = Gesture.Exclusive(
-    resetGesture,
-    Gesture.Simultaneous(pinchGesture, panGesture),
+  const mapGesture = Gesture.Simultaneous(
+    Gesture.Native(),
+    Gesture.Exclusive(
+      resetGesture,
+      Gesture.Simultaneous(pinchGesture, panGesture),
+    ),
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
     const relativeScale = scale.value / zoomLevel;
@@ -576,25 +581,23 @@ function WorldMap({
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={mapGesture}>
-          <View style={styles.zoomableMap} collapsable={false}>
-            <Animated.View
-              style={[styles.zoomableMap, animatedTranslationStyle]}
-            >
-              <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
-                <Svg
-                  width="100%"
-                  height="100%"
-                  viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <G transform={committedGroupTransform}>
-                    {countryPaths}
-                    {countryLabels}
-                  </G>
-                </Svg>
-              </Animated.View>
+        <View style={styles.zoomableMap} collapsable={false}>
+          <Animated.View style={[styles.zoomableMap, animatedTranslationStyle]}>
+            <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
+              <Svg
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <G transform={committedGroupTransform}>
+                  {countryPaths}
+                  {countryLabels}
+                </G>
+              </Svg>
             </Animated.View>
-          </View>
+          </Animated.View>
+        </View>
       </GestureDetector>
       {currentLocation && mapCanvasWidth > 1 ? (
         <CurrentPositionPin
@@ -813,20 +816,27 @@ export default function HomeScreen() {
       Object.entries(result).map(([code, countries]) => [code, countries.size]),
     );
   }, [visits]);
-  const recordedSights = visits.reduce(
-    (n, v) => n + v.places.filter((p) => p.type === "sight").length,
-    0,
+  const recordedSightIds = new Set(
+    visits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
   );
-  const airports = visits.reduce(
-    (n, v) => n + v.places.filter((p) => p.type === "airport").length,
-    0,
+  const airportIds = new Set(
+    visits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
+        .map((place) => place.id || place.name),
+    ),
   );
+  completedSightIds.forEach((id) => recordedSightIds.add(id));
   const localScore = calculateKrooScore({
     continents: localContinentCodes.size,
     countries: localCountryCodes.size,
     cities: localCityIds.size,
-    sights: recordedSights + new Set(completedSightIds).size,
-    airports,
+    sights: recordedSightIds.size,
+    airports: airportIds.size,
     challengePoints,
   });
   const serverHome = isSignedIn ? dashboard.data : null;
@@ -897,7 +907,9 @@ export default function HomeScreen() {
         </View>
         <View style={styles.scoreCard}>
           <View style={styles.scoreLine}>
-            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+            <View style={styles.scoreStamp}>
+              <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+            </View>
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
@@ -964,31 +976,22 @@ export default function HomeScreen() {
               Countries visited by continent
             </Text>
           </View>
-          {countryCount === 0 && dashboard.status !== "loading" ? (
-            <Text style={styles.continentEmptyText}>
-              Your visited countries will appear here.
-            </Text>
-          ) : null}
-          {CONTINENTS.filter((item) => continentCounts[item.code]).map(
-            (item) => {
-              const count = continentCounts[item.code] ?? 0;
-              const total = TOTALS[item.code];
-              const pct = total ? (count / total) * 100 : 0;
-              return (
-                <View key={item.code} style={styles.continentRow}>
-                  <Text style={styles.continentName}>{item.name}</Text>
-                  <View style={styles.continentBar}>
-                    <View
-                      style={[styles.continentFill, { width: `${pct}%` }]}
-                    />
-                  </View>
-                  <Text style={styles.continentValue}>
-                    {count}/{total}
-                  </Text>
+          {CONTINENTS.map((item) => {
+            const count = continentCounts[item.code] ?? 0;
+            const total = TOTALS[item.code];
+            const pct = total ? (count / total) * 100 : 0;
+            return (
+              <View key={item.code} style={styles.continentRow}>
+                <Text style={styles.continentName}>{item.name}</Text>
+                <View style={styles.continentBar}>
+                  <View style={[styles.continentFill, { width: `${pct}%` }]} />
                 </View>
-              );
-            },
-          )}
+                <Text style={styles.continentValue}>
+                  {count}/{total}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
       <InfoModal
@@ -1117,10 +1120,19 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(42),
     lineHeight: 52,
-    width: 100,
+    minWidth: 82,
     color: BrandColors.onDark,
     includeFontPadding: false,
     textAlign: "center",
+  },
+  scoreStamp: {
+    minWidth: 96,
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: "rgba(201,124,84,.72)",
+    borderRadius: 7,
+    transform: [{ rotate: "-2deg" }],
+    opacity: 0.92,
   },
   scoreDetails: { flex: 1 },
   scoreTitle: {
@@ -1136,8 +1148,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   infoButton: {
-    width: 13,
-    height: 13,
+    width: 11,
+    height: 11,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
@@ -1182,7 +1194,7 @@ const styles = StyleSheet.create({
   stats: {
     height: 94,
     marginTop: 12,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,0.20)",
@@ -1385,7 +1397,7 @@ const styles = StyleSheet.create({
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(19),
+    fontSize: responsiveFontSize(21),
     textAlign: "center",
     color: BrandColors.onDark,
   },

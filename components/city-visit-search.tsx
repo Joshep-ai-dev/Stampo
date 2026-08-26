@@ -24,7 +24,12 @@ import { CityRecord, getCities, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { NewVisit, visitReceived, wishlistToggled } from "@/store/travel-slice";
+import {
+  NewVisit,
+  visitAdded,
+  visitReceived,
+  wishlistToggled,
+} from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -121,13 +126,6 @@ export function CityVisitSearch({
 
   const saveVisit = async () => {
     if (!selectedCity) return;
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Create an account or sign in from your passport before saving a visit.",
-      );
-      return;
-    }
     const visit: NewVisit = {
       cityId: selectedCity.id,
       cityName: selectedCity.name,
@@ -140,7 +138,8 @@ export function CityVisitSearch({
       places: [],
     };
     try {
-      dispatch(visitReceived(await api.createVisit(visit)));
+      if (isSignedIn) dispatch(visitReceived(await api.createVisit(visit)));
+      else dispatch(visitAdded(visit));
       void dispatch(fetchHomeDashboard());
     } catch (error) {
       Alert.alert(
@@ -158,16 +157,12 @@ export function CityVisitSearch({
 
   const saveToWishlist = async () => {
     if (!selectedWishlistId || isWishlisted || wishlistPending) return;
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Create an account or sign in from your passport before saving to your wishlist.",
-      );
-      return;
-    }
-
     setWishlistPending(true);
     dispatch(wishlistToggled(selectedWishlistId));
+    if (!isSignedIn) {
+      setWishlistPending(false);
+      return;
+    }
     try {
       await api.setWishlist(selectedWishlistId, true);
     } catch (error) {
@@ -379,12 +374,12 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: "row", gap: 9 },
   searchInputWrap: {
     flex: 1,
-    height: 50,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -398,9 +393,9 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   searchButton: {
-    width: 52,
-    height: 50,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
@@ -408,7 +403,7 @@ const styles = StyleSheet.create({
   resultsCard: {
     marginTop: 8,
     overflow: "hidden",
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -453,15 +448,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(30,22,17,0.32)",
   },
   sheet: {
-    maxHeight: "91%",
+    maxHeight: "90%",
     minHeight: "75%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     backgroundColor: colors.card,
     overflow: "hidden",
   },
   modalHeader: {
-    height: 76,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -478,19 +473,19 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 74 },
   modalTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(21),
+    fontSize: responsiveFontSize(20),
     color: colors.ink,
     letterSpacing: 1,
   },
   form: { padding: 18, paddingBottom: 38 },
   selectedCard: {
-    minHeight: 105,
-    borderRadius: 18,
+    minHeight: 80,
+    borderRadius: 10,
     backgroundColor: colors.line,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   selectedFlag: { fontSize: responsiveFontSize(40), marginRight: 20 },
   selectedText: { flex: 1 },
@@ -513,12 +508,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   field: {
-    height: 58,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 14,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     marginBottom: 20,
@@ -530,14 +525,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   noteInput: {
-    height: 116,
-    borderRadius: 13,
+    height: 96,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     padding: 14,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(16),
-    lineHeight: 23,
     color: colors.ink,
   },
   counter: {
@@ -547,8 +541,8 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   saveButton: {
-    height: 58,
-    borderRadius: 13,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
@@ -561,8 +555,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   wishlistButton: {
-    height: 56,
-    borderRadius: 13,
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     flexDirection: "row",

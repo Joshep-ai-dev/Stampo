@@ -49,11 +49,7 @@ import {
   profileDetailsChanged,
   signedOut,
 } from "@/store/profile-slice";
-import {
-  travelStateHydrated,
-  visitsCleared,
-  visitsHydrated,
-} from "@/store/travel-slice";
+import { travelStateHydrated, visitsHydrated } from "@/store/travel-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -134,6 +130,7 @@ function IdentityPage({
   compact: boolean;
 }) {
   const dispatch = useAppDispatch();
+  const visits = useAppSelector((state) => state.travel.visits);
   const [draft, setDraft] = useState({
     name: profile.name,
     email: profile.email,
@@ -192,10 +189,10 @@ function IdentityPage({
       profileDetailsChanged({ ...draft, name: user.name, email: user.email }),
     );
     dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-    dispatch(visitsCleared());
+    const localVisits = visits;
     setAuthBusy(true);
     const [visitsResult, travelStateResult] = await Promise.allSettled([
-      api.listVisits(),
+      api.syncVisits(localVisits),
       api.travelState(),
     ]);
     if (visitsResult.status === "fulfilled") {
@@ -273,7 +270,6 @@ function IdentityPage({
       await api.signOut();
     } finally {
       dispatch(signedOut());
-      dispatch(visitsCleared());
       dispatch(dashboardCleared());
     }
   };
@@ -318,7 +314,7 @@ function IdentityPage({
             compact && styles.identityHeadingCompact,
           ]}
         >
-          <Text style={styles.identityCountry}>STAMPO TRAVEL PASSPORT</Text>
+          <Text style={styles.identityCountry}>TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>PASSPORT · P</Text>
         </View>
         {profile.isSignedIn ? (
@@ -392,10 +388,10 @@ function IdentityPage({
             </View>
             <Text
               style={styles.machineCode}
-            >{`P<STAMPO<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
+            >{`P<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
             <Text
               style={styles.machineCode}
-            >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
+            >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<`}</Text>
           </>
         ) : (
           <ScrollView
@@ -720,7 +716,7 @@ export default function PassportScreen() {
         <Image
           source={page.image}
           style={styles.coverArtwork}
-          contentFit="cover"
+          contentFit="fill"
           accessibilityLabel={page.accessibilityLabel}
         />
       </View>
@@ -737,7 +733,12 @@ export default function PassportScreen() {
         slots={page.slots}
         width={pageWidth}
         height={pageHeight}
-        onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)}
+        onStampPress={(stamp) =>
+          router.push({
+            pathname: "/country/[code]",
+            params: { code: stamp.code },
+          })
+        }
       />
     );
 
@@ -779,7 +780,7 @@ export default function PassportScreen() {
               ]}
               onPress={() =>
                 void Share.share({
-                  message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
+                  message: `My Kroo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
                 })
               }
             >
@@ -840,13 +841,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: colors.paper,
+    // The page itself supplies its shape: covers stay square while paper
+    // identity/stamp pages expose their rounded corners.
+    backgroundColor: "transparent",
     overflow: "hidden",
     backfaceVisibility: "hidden",
   },
   coverPage: {
-    borderRadius: 18,
     overflow: "hidden",
     backgroundColor: colors.background,
   },
@@ -870,6 +871,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BrandColors.line,
     paddingBottom: 10,
+    borderRadius: 18,
   },
   identityHeadingCompact: { paddingBottom: 6 },
   identityCountry: {
