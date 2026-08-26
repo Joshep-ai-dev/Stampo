@@ -387,7 +387,7 @@ export default function CountryScreen() {
             {countryCollections.map((collection) => {
               const countryPlaces = collection.places.filter(
                 (place) =>
-                  place.country.toLocaleLowerCase() ===
+                  place.country?.toLocaleLowerCase() ===
                   name.toLocaleLowerCase(),
               );
               const accessiblePlaces = subscription.isKrooPlus

@@ -1,8 +1,8 @@
 export type CollectionPlace = {
   id: string;
   name: string;
-  city: string;
-  country: string;
+  city?: string;
+  country?: string;
   location?: string;
   detail?: string;
   access?: "free" | "pro";
