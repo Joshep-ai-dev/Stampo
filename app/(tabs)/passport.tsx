@@ -4,14 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  Animated,
   KeyboardAvoidingView,
   LayoutChangeEvent,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -23,6 +21,16 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Reanimated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
@@ -61,6 +69,56 @@ type PassportPage =
   | { id: string; type: "cover"; image: number; accessibilityLabel: string }
   | { id: string; type: "identity" }
   | { id: string; type: "stamps"; slots: (Stamp | null)[] };
+
+function BookSheet({
+  index,
+  pageCount,
+  position,
+  width,
+  height,
+  interactive,
+  children,
+}: {
+  index: number;
+  pageCount: number;
+  position: SharedValue<number>;
+  width: number;
+  height: number;
+  interactive: boolean;
+  children: ReactNode;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 1100 },
+      {
+        rotateY: `${interpolate(
+          position.value,
+          [index, index + 1],
+          [0, -179],
+          Extrapolation.CLAMP,
+        )}deg`,
+      },
+    ],
+  }));
+
+  return (
+    <Reanimated.View
+      pointerEvents={interactive ? "auto" : "none"}
+      style={[
+        styles.turningPage,
+        {
+          width,
+          height,
+          zIndex: pageCount - index,
+          transformOrigin: "left center",
+        },
+        animatedStyle,
+      ]}
+    >
+      {children}
+    </Reanimated.View>
+  );
+}
 
 function IdentityPage({
   profile,
@@ -551,15 +609,16 @@ export default function PassportScreen() {
   const [activePage, setActivePage] = useState(0);
   const [carouselHeight, setCarouselHeight] = useState<number | null>(null);
   const activePageRef = useRef(0);
-  const directionRef = useRef<"forward" | "backward" | null>(null);
-  const bookPosition = useRef(new Animated.Value(0)).current;
+  const activePageValue = useSharedValue(0);
+  const gestureStart = useSharedValue(0);
+  const bookPosition = useSharedValue(0);
   useFocusEffect(
     useCallback(() => {
       activePageRef.current = 0;
       setActivePage(0);
-      directionRef.current = null;
-      bookPosition.setValue(0);
-    }, [bookPosition]),
+      activePageValue.value = 0;
+      bookPosition.value = 0;
+    }, [activePageValue, bookPosition]),
   );
   const horizontalInset = compactPassport ? 20 : 36;
   const pageWidth = Math.min(screenWidth - horizontalInset, 620);
@@ -606,69 +665,57 @@ export default function PassportScreen() {
     ];
   }, [visits]);
 
-  const finishTurn = useCallback(
-    (complete: boolean) => {
-      const direction = directionRef.current;
-      const currentIndex = activePageRef.current;
-      const targetIndex =
-        complete && direction
-          ? currentIndex + (direction === "forward" ? 1 : -1)
-          : currentIndex;
-      Animated.timing(bookPosition, {
-        toValue: targetIndex,
-        duration: complete ? 220 : 160,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished && complete && direction) {
-          activePageRef.current = targetIndex;
-          setActivePage(targetIndex);
-        }
-        directionRef.current = null;
-      });
-    },
-    [bookPosition],
-  );
-
-  const panResponder = useMemo(
+  const updateActivePage = useCallback((index: number) => {
+    activePageRef.current = index;
+    setActivePage(index);
+  }, []);
+  const pageGesture = useMemo(
     () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) =>
-          Math.abs(gesture.dx) > 8 &&
-          Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
-        onPanResponderMove: (_, gesture) => {
-          let direction = directionRef.current;
-          if (!direction) {
-            if (
-              gesture.dx < 0 &&
-              activePageRef.current < passportPages.length - 1
-            ) {
-              direction = "forward";
-            } else if (gesture.dx > 0 && activePageRef.current > 0) {
-              direction = "backward";
-            } else {
-              return;
-            }
-            bookPosition.stopAnimation();
-            directionRef.current = direction;
-          }
-          const distance = direction === "forward" ? -gesture.dx : gesture.dx;
-          const progress = Math.max(0, Math.min(1, distance / pageWidth));
-          bookPosition.setValue(
-            activePageRef.current +
-              (direction === "forward" ? progress : -progress),
+      Gesture.Pan()
+        .activeOffsetX([-8, 8])
+        .failOffsetY([-14, 14])
+        .onBegin(() => {
+          gestureStart.value = activePageValue.value;
+        })
+        .onUpdate((event) => {
+          bookPosition.value = Math.max(
+            0,
+            Math.min(
+              passportPages.length - 1,
+              gestureStart.value - event.translationX / pageWidth,
+            ),
           );
-        },
-        onPanResponderRelease: (_, gesture) => {
-          if (!directionRef.current) return;
-          const distance =
-            directionRef.current === "forward" ? -gesture.dx : gesture.dx;
-          const velocity =
-            directionRef.current === "forward" ? -gesture.vx : gesture.vx;
-          finishTurn(distance > pageWidth * 0.35 || velocity > 0.65);
-        },
-        onPanResponderTerminate: () => finishTurn(false),
-      }),
-    [bookPosition, finishTurn, pageWidth, passportPages.length],
+        })
+        .onEnd((event) => {
+          const movement = bookPosition.value - activePageValue.value;
+          const shouldAdvance = movement > 0.3 || event.velocityX < -650;
+          const shouldGoBack = movement < -0.3 || event.velocityX > 650;
+          const target = Math.max(
+            0,
+            Math.min(
+              passportPages.length - 1,
+              activePageValue.value +
+                (shouldAdvance ? 1 : shouldGoBack ? -1 : 0),
+            ),
+          );
+          bookPosition.value = withTiming(
+            target,
+            { duration: 240 },
+            (finished) => {
+              if (!finished) return;
+              activePageValue.value = target;
+              runOnJS(updateActivePage)(target);
+            },
+          );
+        }),
+    [
+      activePageValue,
+      bookPosition,
+      gestureStart,
+      pageWidth,
+      passportPages.length,
+      updateActivePage,
+    ],
   );
 
   const renderPage = (page: PassportPage) =>
@@ -706,61 +753,50 @@ export default function PassportScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View
-          style={styles.carouselArea}
-          onLayout={(event: LayoutChangeEvent) => {
-            const measuredHeight = event.nativeEvent.layout.height;
-            setCarouselHeight((current) =>
-              Math.max(current ?? 0, measuredHeight),
-            );
-          }}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.pageFrame}>
-            {passportPages.map((page, index) => {
-              const rotation = bookPosition.interpolate({
-                inputRange: [index, index + 1],
-                outputRange: ["0deg", "-89.5deg"],
-                extrapolate: "clamp",
-              });
-              return (
-                <Animated.View
+        <GestureDetector gesture={pageGesture}>
+          <View
+            style={styles.carouselArea}
+            onLayout={(event: LayoutChangeEvent) => {
+              const measuredHeight = event.nativeEvent.layout.height;
+              setCarouselHeight((current) =>
+                Math.max(current ?? 0, measuredHeight),
+              );
+            }}
+          >
+            <View style={styles.pageFrame}>
+              {passportPages.map((page, index) => (
+                <BookSheet
                   key={page.id}
-                  pointerEvents={index === activePage ? "auto" : "none"}
-                  style={[
-                    styles.turningPage,
-                    {
-                      width: pageWidth,
-                      height: pageHeight,
-                      zIndex: passportPages.length - index,
-                      transformOrigin: "left center",
-                      transform: [{ perspective: 1100 }, { rotateY: rotation }],
-                    },
-                  ]}
+                  index={index}
+                  pageCount={passportPages.length}
+                  position={bookPosition}
+                  width={pageWidth}
+                  height={pageHeight}
+                  interactive={index === activePage}
                 >
                   {renderPage(page)}
-                </Animated.View>
-              );
-            })}
+                </BookSheet>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.shareButton,
+                compactPassport && styles.shareButtonCompact,
+              ]}
+              onPress={() =>
+                void Share.share({
+                  message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
+                })
+              }
+            >
+              <Ionicons
+                name="arrow-redo-sharp"
+                size={compactPassport ? 24 : 30}
+                color={colors.ink}
+              />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.shareButton,
-              compactPassport && styles.shareButtonCompact,
-            ]}
-            onPress={() =>
-              void Share.share({
-                message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
-              })
-            }
-          >
-            <Ionicons
-              name="arrow-redo-sharp"
-              size={compactPassport ? 24 : 30}
-              color={colors.ink}
-            />
-          </TouchableOpacity>
-        </View>
+        </GestureDetector>
         <View style={styles.pagination}>
           <View style={styles.dots}>
             {passportPages.map((page, index) => (
@@ -768,21 +804,21 @@ export default function PassportScreen() {
                 key={page.id}
                 style={[styles.dot, index === activePage && styles.dotActive]}
                 onPress={() => {
-                  if (directionRef.current || index === activePageRef.current)
-                    return;
-                  bookPosition.stopAnimation();
-                  Animated.timing(bookPosition, {
-                    toValue: index,
-                    duration: Math.min(
-                      700,
-                      220 * Math.abs(index - activePageRef.current),
-                    ),
-                    useNativeDriver: true,
-                  }).start(({ finished }) => {
-                    if (!finished) return;
-                    activePageRef.current = index;
-                    setActivePage(index);
-                  });
+                  if (index === activePageRef.current) return;
+                  bookPosition.value = withTiming(
+                    index,
+                    {
+                      duration: Math.min(
+                        700,
+                        220 * Math.abs(index - activePageRef.current),
+                      ),
+                    },
+                    (finished) => {
+                      if (!finished) return;
+                      activePageValue.value = index;
+                      runOnJS(updateActivePage)(index);
+                    },
+                  );
                 }}
               />
             ))}
