@@ -1,6 +1,9 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   Alert,
@@ -49,6 +52,14 @@ type ProfileSection = {
 };
 
 const profileSections: readonly ProfileSection[] = [
+  {
+    id: "membership",
+    title: "Membership",
+    rows: [
+      { id: "kroo-plus", label: "Kroo+" },
+      { id: "gift-kroo-plus", label: "Gift a membership" },
+    ],
+  },
   {
     id: "personal-info",
     title: "Personal Info",
@@ -124,6 +135,7 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const profile = useAppSelector((state) => state.profile);
   const [activeRow, setActiveRow] = useState<ProfileRow | null>(null);
@@ -146,6 +158,14 @@ export default function ProfileScreen() {
   );
 
   const openRow = (row: ProfileRow) => {
+    if (row.id === "kroo-plus") {
+      router.push("/kroo-plus" as never);
+      return;
+    }
+    if (row.id === "gift-kroo-plus") {
+      router.push("/gift-kroo-plus" as never);
+      return;
+    }
     setActiveRow(row);
     setDraft(row.value ?? "");
     setEmail("");
@@ -161,7 +181,21 @@ export default function ProfileScreen() {
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled) dispatch(photoChanged(result.assets[0].uri));
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (!profile.isSignedIn) {
+      dispatch(photoChanged(asset.uri));
+      return;
+    }
+    try {
+      const uploaded = await api.uploadProfileImage(asset);
+      dispatch(photoChanged(uploaded.photoUri));
+    } catch (error) {
+      Alert.alert(
+        "Photo not uploaded",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
   };
 
   const socialSignIn = (provider: "Google" | "Apple") => {
@@ -246,7 +280,7 @@ export default function ProfileScreen() {
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />
@@ -383,13 +417,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Lora_400Regular",
-    fontSize: 40,
+    fontSize: responsiveFontSize(40),
     color: BrandColors.onDark,
   },
   headerSubtitle: {
     marginTop: 2,
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   avatarButton: {
@@ -421,7 +455,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginBottom: 9,
     fontFamily: "Lora_400Regular",
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     color: BrandColors.onDarkMuted,
   },
   card: {
@@ -438,19 +472,19 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, paddingVertical: 14 },
   rowLabel: {
     fontFamily: "Lora_400Regular",
-    fontSize: 25,
+    fontSize: responsiveFontSize(25),
     color: colors.ink,
   },
   rowDescription: {
     marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     lineHeight: 23,
     color: colors.muted,
   },
   rowValue: {
     fontFamily: "Lora_400Regular",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: colors.muted,
   },
   divider: {
@@ -483,12 +517,12 @@ const styles = StyleSheet.create({
   cancel: {
     width: 75,
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
   },
   modalTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: colors.ink,
   },
   modalSpacer: { width: 75 },
@@ -500,7 +534,7 @@ const styles = StyleSheet.create({
     borderColor: colors.divider,
     paddingHorizontal: 15,
     fontFamily: "Lora_500Medium",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
   },
   socialButton: {
@@ -519,12 +553,12 @@ const styles = StyleSheet.create({
   appleButton: { backgroundColor: "#111111" },
   googleText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
   },
   appleText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.white,
   },
   orRow: {
@@ -538,7 +572,11 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.divider,
   },
-  orText: { fontFamily: "Lora_400Regular", fontSize: 13, color: colors.muted },
+  orText: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: colors.muted,
+  },
   languageList: {
     borderRadius: 14,
     overflow: "hidden",
@@ -556,12 +594,12 @@ const styles = StyleSheet.create({
   },
   languageText: {
     fontFamily: "Lora_500Medium",
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     color: colors.ink,
   },
   legalText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     lineHeight: 27,
     color: colors.muted,
   },
@@ -575,7 +613,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 19,
+    fontSize: responsiveFontSize(19),
     letterSpacing: 1,
     color: "#fffaf1",
   },

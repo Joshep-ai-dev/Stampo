@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -77,9 +79,6 @@ export default function CityScreen() {
           </TouchableOpacity>
           <View style={s.heroCopy}>
             <Text style={s.title}>{city.name}</Text>
-            <Text style={s.coords}>
-              {city.latitude.toFixed(3)}, {city.longitude.toFixed(3)}
-            </Text>
           </View>
         </View>
         <View style={s.panel}>
@@ -104,7 +103,7 @@ export default function CityScreen() {
             />
             <View style={s.rowCopy}>
               <Text style={s.rowTitle}>{sight.name}</Text>
-              <Text style={s.meta}>{sight.category}</Text>
+              <Text style={s.meta}>{sight.description}</Text>
             </View>
             <Ionicons
               name="chevron-forward"
@@ -146,13 +145,13 @@ const s = StyleSheet.create({
   heroCopy: { position: "absolute", left: 18, bottom: 20 },
   title: {
     fontFamily: "Lora_700Bold",
-    fontSize: 36,
+    fontSize: responsiveFontSize(36),
     color: BrandColors.onDark,
   },
   coords: {
     marginTop: 4,
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   panel: {
@@ -165,7 +164,7 @@ const s = StyleSheet.create({
   },
   description: {
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     lineHeight: 21,
     color: BrandColors.onDark,
   },
@@ -177,7 +176,7 @@ const s = StyleSheet.create({
   heading: {
     margin: 16,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: BrandColors.onDark,
   },
   row: {
@@ -198,13 +197,13 @@ const s = StyleSheet.create({
   rowCopy: { flex: 1 },
   rowTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
   },
   meta: {
     marginTop: 3,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   empty: {

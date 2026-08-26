@@ -1,23 +1,25 @@
 {
   "expo": {
-    "name": "Stampo",
+    "name": "Kroo",
     "slug": "Stampo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/favicon.png",
-    "scheme": "stampo",
+    "icon": "./assets/images/icon.png",
+    "scheme": "Kroo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.darkhorse9372.Stampo",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/favicon.png",
-        "monochromeImage": "./assets/images/favicon.png"
+        "foregroundImage": "./assets/images/icon.png",
+        "monochromeImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -25,29 +27,40 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Kroo to scan a friend's QR code."
+        }
+      ],
+      [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Stampo to access your photos so you can choose a profile picture.",
-          "cameraPermission": "Allow Stampo to use your camera so you can take a profile picture.",
+          "photosPermission": "Allow Kroo to access your photos so you can choose a profile picture.",
+          "cameraPermission": "Allow Kroo to use your camera so you can take a profile picture.",
           "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Stampo to use your location to verify visited places."
+          "locationWhenInUsePermission": "Allow Kroo to show your position and verify visited places.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Kroo to recognize new city and airport arrivals and suggest GPS-verified visits.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/favicon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#063D30",

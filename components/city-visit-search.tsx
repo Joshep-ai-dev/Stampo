@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -22,7 +24,7 @@ import { CityRecord, getCities, searchCities } from "@/data/cities";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { NewVisit, visitReceived } from "@/store/travel-slice";
+import { NewVisit, visitReceived, wishlistToggled } from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -59,13 +61,19 @@ export function CityVisitSearch({
 } = {}) {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CityRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCity, setSelectedCity] = useState<CityRecord | null>(null);
   const [visitDate, setVisitDate] = useState(today);
   const [note, setNote] = useState("");
+  const [wishlistPending, setWishlistPending] = useState(false);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
+  const selectedWishlistId = selectedCity ? `city:${selectedCity.id}` : null;
+  const isWishlisted = selectedWishlistId
+    ? wishlistIds.includes(selectedWishlistId)
+    : false;
 
   useEffect(() => {
     let active = true;
@@ -134,10 +142,12 @@ export function CityVisitSearch({
     try {
       dispatch(visitReceived(await api.createVisit(visit)));
       void dispatch(fetchHomeDashboard());
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Visit not saved",
-        "The server could not save this visit. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "The server could not save this visit. Please try again.",
       );
       return;
     }
@@ -146,11 +156,37 @@ export function CityVisitSearch({
     setResults([]);
   };
 
+  const saveToWishlist = async () => {
+    if (!selectedWishlistId || isWishlisted || wishlistPending) return;
+    if (!isSignedIn) {
+      Alert.alert(
+        "Sign in required",
+        "Create an account or sign in from your passport before saving to your wishlist.",
+      );
+      return;
+    }
+
+    setWishlistPending(true);
+    dispatch(wishlistToggled(selectedWishlistId));
+    try {
+      await api.setWishlist(selectedWishlistId, true);
+    } catch (error) {
+      dispatch(wishlistToggled(selectedWishlistId));
+      Alert.alert(
+        "Wishlist not updated",
+        error instanceof Error
+          ? error.message
+          : "The server could not save this city. Please try again.",
+      );
+    } finally {
+      setWishlistPending(false);
+    }
+  };
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.searchRow}>
         <View style={styles.searchInputWrap}>
-          <Ionicons name="search-outline" size={21} color={colors.muted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -228,7 +264,7 @@ export function CityVisitSearch({
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />
@@ -296,6 +332,33 @@ export function CityVisitSearch({
                 >
                   <Text style={styles.saveText}>SAVE VISIT</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.wishlistButton,
+                    isWishlisted && styles.wishlistButtonSaved,
+                  ]}
+                  onPress={() => void saveToWishlist()}
+                  activeOpacity={0.8}
+                  disabled={wishlistPending || isWishlisted}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isWishlisted ? "Saved to wishlist" : "Save to wishlist"
+                  }
+                >
+                  {wishlistPending ? (
+                    <ActivityIndicator color={colors.brown} />
+                  ) : (
+                    <Ionicons
+                      name={isWishlisted ? "heart" : "heart-outline"}
+                      size={21}
+                      color={colors.brown}
+                    />
+                  )}
+                  <Text style={styles.wishlistText}>
+                    {isWishlisted ? "SAVED TO WISHLIST" : "SAVE TO WISHLIST"}
+                  </Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
@@ -306,10 +369,10 @@ export function CityVisitSearch({
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 20, paddingHorizontal: 20, zIndex: 4 },
+  wrapper: { marginTop: 20, paddingHorizontal: 10, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: colors.ink,
     marginBottom: 10,
   },
@@ -328,8 +391,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
     paddingVertical: 0,
   },
@@ -356,16 +420,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
   },
   resultPressed: { backgroundColor: BrandColors.surfaceSoft },
-  flag: { fontSize: 24, marginRight: 11 },
+  flag: { fontSize: responsiveFontSize(24), marginRight: 11 },
   resultText: { flex: 1, paddingVertical: 8 },
   cityName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
   },
   cityLocation: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: colors.muted,
     marginTop: 2,
   },
@@ -408,13 +472,13 @@ const styles = StyleSheet.create({
   headerAction: {
     width: 74,
     fontFamily: "Lora_400Regular",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
   },
   headerSpacer: { width: 74 },
   modalTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 21,
+    fontSize: responsiveFontSize(21),
     color: colors.ink,
     letterSpacing: 1,
   },
@@ -428,23 +492,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
   },
-  selectedFlag: { fontSize: 40, marginRight: 20 },
+  selectedFlag: { fontSize: responsiveFontSize(40), marginRight: 20 },
   selectedText: { flex: 1 },
   selectedCountry: {
     fontFamily: "Lora_400Regular",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: "#fff8ed",
     opacity: 0.9,
   },
   selectedName: {
     fontFamily: "Lora_700Bold",
-    fontSize: 27,
+    fontSize: responsiveFontSize(27),
     color: "#fffdf8",
     marginTop: 2,
   },
   fieldLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
     marginBottom: 8,
   },
@@ -462,7 +526,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: colors.ink,
   },
   noteInput: {
@@ -472,7 +536,7 @@ const styles = StyleSheet.create({
     borderColor: colors.divider,
     padding: 14,
     fontFamily: "Lora_400Regular",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     lineHeight: 23,
     color: colors.ink,
   },
@@ -492,8 +556,29 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     color: "#fffaf1",
     letterSpacing: 1.4,
+  },
+  wishlistButton: {
+    height: 56,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    marginTop: 12,
+    backgroundColor: colors.card,
+  },
+  wishlistButtonSaved: {
+    backgroundColor: colors.panel,
+  },
+  wishlistText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(16),
+    color: colors.brown,
+    letterSpacing: 1,
   },
 });

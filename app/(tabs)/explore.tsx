@@ -1,9 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Alert,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,12 +17,12 @@ import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
-import { collections as defaultCollections } from "@/data/explore";
 import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
 const countryFilters = [
   "All",
+  "Visited",
   "Africa",
   "Antarctica",
   "Asia",
@@ -38,37 +39,73 @@ const collectionImages: Record<string, number> = {
   parks: require("../../assets/images/collection/National Parks Collector.png"),
   usa: require("../../assets/images/collection/United States Explorer.png"),
 };
+const publicCollectionCatalog: CollectionProgress[] = [
+  {
+    id: "wonders",
+    title: "Seven Wonders",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "seas",
+    title: "Seven Seas",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "unesco",
+    title: "UNESCO Explorer",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "parks",
+    title: "National Parks Collector",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+  {
+    id: "usa",
+    title: "United States Explorer",
+    detail: "",
+    progress: 0,
+    status: "inactive",
+  },
+];
 export default function ExploreScreen() {
   const router = useRouter();
+  const countryRowRef = useRef<FlatList<CountryRecord>>(null);
   const visits = useAppSelector((state) => state.travel.visits);
-  const [countryFilter, setCountryFilter] = useState("All");
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
     useState<(typeof collectionFilters)[number]>("All");
   const [collectionCatalog, setCollectionCatalog] = useState<
     CollectionProgress[]
-  >(() =>
-    defaultCollections.map(({ id, title, detail, progress }) => ({
-      id,
-      title,
-      detail,
-      progress,
-      status: progress >= 100 ? "completed" : "active",
-    })),
-  );
+  >([]);
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
-  const countries = useMemo(
-    () =>
-      (countryFilter === "All"
+  const countries = useMemo(() => {
+    const visitedCodes = new Set(
+      visits.map((visit) => visit.countryCode.trim().toUpperCase()),
+    );
+    return (
+      countryFilter === "All"
         ? countryCatalog
-        : countryCatalog.filter(
-            (country) => country.continent === countryFilter,
-          )
-      )
-        .slice()
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    [countryCatalog, countryFilter],
-  );
+        : countryFilter === "Visited"
+          ? countryCatalog.filter((country) =>
+              visitedCodes.has(country.code.toUpperCase()),
+            )
+          : countryCatalog.filter(
+              (country) => country.continent === countryFilter,
+            )
+    )
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [countryCatalog, countryFilter, visits]);
   const visitedCityCounts = useMemo(() => {
     const counts = new Map<string, Set<string>>();
     visits.forEach((visit) => {
@@ -78,70 +115,44 @@ export default function ExploreScreen() {
     });
     return counts;
   }, [visits]);
-  useEffect(() => {
-    if (!isSignedIn) return;
-    void api
-      .listCollections()
-      .then(setCollectionCatalog)
-      .catch(() => undefined);
-  }, [isSignedIn]);
-  const visibleCollections = useMemo(
-    () =>
-      collectionFilter === "All"
-        ? collectionCatalog
-        : collectionCatalog.filter(
-            (collection) =>
-              collection.status === collectionFilter.toLocaleLowerCase(),
-          ),
-    [collectionCatalog, collectionFilter],
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSignedIn) {
+        setCollectionCatalog(publicCollectionCatalog);
+        return;
+      }
+      let active = true;
+      void api
+        .listCollections()
+        .then((items) => {
+          if (active)
+            setCollectionCatalog(
+              items.length > 0 ? items : publicCollectionCatalog,
+            );
+        })
+        .catch(() => {
+          if (active) setCollectionCatalog(publicCollectionCatalog);
+        });
+      return () => {
+        active = false;
+      };
+    }, [isSignedIn]),
   );
-  const setCollectionProgress = async (
-    collection: CollectionProgress,
-    progress: number,
-  ) => {
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Sign in from Passport to save collection progress.",
+  const visibleCollections = useMemo(() => {
+    // Public collection cards are always available for discovery. Do not let
+    // stale authenticated API state leave the signed-out Explore page empty.
+    const source =
+      isSignedIn && collectionCatalog.length > 0
+        ? collectionCatalog
+        : publicCollectionCatalog;
+    if (collectionFilter === "All") return source;
+    if (collectionFilter === "Active") {
+      return source.filter(
+        (collection) => collection.progress > 0 && collection.progress < 100,
       );
-      return;
     }
-    const optimistic = {
-      ...collection,
-      progress,
-      status: progress >= 100 ? ("completed" as const) : ("active" as const),
-    };
-    setCollectionCatalog((current) =>
-      current.map((item) => (item.id === collection.id ? optimistic : item)),
-    );
-    try {
-      const saved = await api.setCollectionProgress(collection.id, progress);
-      setCollectionCatalog((current) =>
-        current.map((item) => (item.id === saved.id ? saved : item)),
-      );
-    } catch {
-      setCollectionCatalog((current) =>
-        current.map((item) => (item.id === collection.id ? collection : item)),
-      );
-      Alert.alert("Not saved", "Collection progress could not be updated.");
-    }
-  };
-  const showCollection = (collection: CollectionProgress) =>
-    Alert.alert(collection.title, collection.detail, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Keep Active",
-        onPress: () =>
-          void setCollectionProgress(
-            collection,
-            Math.max(1, Math.min(collection.progress, 99)),
-          ),
-      },
-      {
-        text: "Mark Completed",
-        onPress: () => void setCollectionProgress(collection, 100),
-      },
-    ]);
+    return source.filter((collection) => collection.progress >= 100);
+  }, [collectionCatalog, collectionFilter, isSignedIn]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -157,31 +168,10 @@ export default function ExploreScreen() {
                 contentFit="contain"
               />
             </View>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              hitSlop={10}
-              style={s.bell}
-              onPress={() =>
-                Alert.alert(
-                  "Notifications",
-                  "You’re all caught up. New stamps, rewards, and travel activity will appear here.",
-                )
-              }
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={27}
-                color={BrandColors.copper}
-              />
-            </TouchableOpacity>
           </View>
         </View>
 
-        <Section
-          title="Countries"
-          onPress={() => router.push("/country-atlas")}
-        />
+        <Section title="Countries" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -192,47 +182,48 @@ export default function ExploreScreen() {
               key={x}
               label={x}
               selected={countryFilter === x}
-              onPress={() => setCountryFilter(x)}
+              onPress={() => {
+                setCountryFilter(x);
+                countryRowRef.current?.scrollToOffset({
+                  offset: 0,
+                  animated: false,
+                });
+              }}
             />
           ))}
         </ScrollView>
-        <ScrollView
+        <FlatList
+          ref={countryRowRef}
           horizontal
+          data={countries}
+          keyExtractor={(country) => country.code}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.countryRow}
-        >
-          {countries.length ? (
-            countries.map((country) => {
-              const cityCount = visitedCityCounts.get(country.code)?.size ?? 0;
-              return (
-                <CountryStampCard
-                  key={country.code}
-                  country={country}
-                  cityCount={cityCount}
-                  onPress={() =>
-                    router.push(`/country/${country.code}` as never)
-                  }
-                />
-              );
-            })
-          ) : (
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item: country }) => (
+            <CountryStampCard
+              country={country}
+              cityCount={visitedCityCounts.get(country.code)?.size ?? 0}
+              onPress={() =>
+                router.push(`/country/${country.code}` as never)
+              }
+            />
+          )}
+          ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.emptyText}>
-                More {countryFilter} stamps are coming soon.
+                {countryFilter === "Visited"
+                  ? "Your visited country stamps will appear here."
+                  : `More ${countryFilter} stamps are coming soon.`}
               </Text>
             </View>
-          )}
-        </ScrollView>
-
-        <Section
-          title="Collections"
-          onPress={() =>
-            Alert.alert(
-              "Collections",
-              "Track active travel collections and review the ones you have completed.",
-            )
           }
         />
+
+        <Section title="Collections" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -258,7 +249,9 @@ export default function ExploreScreen() {
                 key={collection.id}
                 style={s.challenge}
                 activeOpacity={0.82}
-                onPress={() => showCollection(collection)}
+                onPress={() =>
+                  router.push(`/collection/${collection.id}` as never)
+                }
               >
                 <View style={s.collectionHeader}>
                   <Text style={s.challengeTitle} numberOfLines={1}>
@@ -267,7 +260,12 @@ export default function ExploreScreen() {
                 </View>
                 <View style={s.challengeSeal}>
                   <Image
-                    source={collectionImages[collection.id]}
+                    source={
+                      collectionImages[collection.id] ??
+                      (collection.imageUrl
+                        ? { uri: collection.imageUrl }
+                        : require("@/assets/images/other/globe-airplane.png"))
+                    }
                     style={s.collectionImage}
                     contentFit="contain"
                   />
@@ -301,18 +299,15 @@ export default function ExploreScreen() {
     </SafeAreaView>
   );
 }
-function Section({ title, onPress }: { title: string; onPress: () => void }) {
+function Section({ title }: { title: string }) {
   return (
     <View style={s.headingRow}>
       <Text style={s.heading}>{title}</Text>
-      <TouchableOpacity onPress={onPress} accessibilityRole="button">
-        <Text style={s.link}>View all ›</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BrandColors.green },
+  safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 30 },
   headerPad: { paddingHorizontal: 18 },
   exploreHeader: {
@@ -333,14 +328,6 @@ const s = StyleSheet.create({
     top: -15,
     left: 0,
   },
-  bell: {
-    position: "absolute",
-    right: 0,
-    width: 34,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headingRow: {
     marginTop: 23,
     marginBottom: 11,
@@ -351,13 +338,8 @@ const s = StyleSheet.create({
   },
   heading: {
     fontFamily: "Lora_500Medium",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.onDark,
-  },
-  link: {
-    fontFamily: "Lora_500Medium",
-    fontSize: 14,
-    color: BrandColors.copperDark,
   },
   pills: { paddingHorizontal: 14, gap: 8, paddingBottom: 16 },
   countryRow: {
@@ -386,21 +368,18 @@ const s = StyleSheet.create({
     right: 6,
     bottom: 5,
     fontFamily: "Lora_500Medium",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     color: BrandColors.muted,
   },
   empty: {
     width: 280,
     height: 90,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   challengeRow: {
@@ -446,7 +425,7 @@ const s = StyleSheet.create({
   challengeTitle: {
     textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.green,
     flexShrink: 1,
   },
@@ -459,7 +438,7 @@ const s = StyleSheet.create({
   },
   challengePercent: {
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.muted,
   },
 });

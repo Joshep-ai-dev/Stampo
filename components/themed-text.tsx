@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -36,30 +38,30 @@ export function ThemedText({
 const styles = StyleSheet.create({
   default: {
     fontFamily: 'Lora_400Regular',
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     lineHeight: 24,
   },
   defaultSemiBold: {
     fontFamily: 'Lora_600SemiBold',
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     lineHeight: 24,
     fontWeight: '600',
   },
   title: {
     fontFamily: 'Lora_700Bold',
-    fontSize: 32,
+    fontSize: responsiveFontSize(32),
     fontWeight: 'bold',
     lineHeight: 32,
   },
   subtitle: {
     fontFamily: 'Lora_700Bold',
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontWeight: 'bold',
   },
   link: {
     fontFamily: 'Lora_500Medium',
     lineHeight: 30,
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: '#0a7ea4',
   },
 });

@@ -1,15 +1,20 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  FlatList,
+  Animated,
+  KeyboardAvoidingView,
+  LayoutChangeEvent,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  PanResponder,
+  Platform,
   Pressable,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -62,11 +67,13 @@ function IdentityPage({
   krooNumber,
   width,
   height,
+  compact,
 }: {
   profile: ProfileState;
   krooNumber: string;
   width: number;
   height: number;
+  compact: boolean;
 }) {
   const dispatch = useAppDispatch();
   const [draft, setDraft] = useState({
@@ -96,10 +103,14 @@ function IdentityPage({
       quality: 0.8,
     });
     if (!result.canceled) {
-      const photoUri = result.assets[0].uri;
-      dispatch(photoChanged(photoUri));
-      if (profile.isSignedIn) {
-        void api.updateProfile({ ...profile, photoUri }).catch(() => undefined);
+      try {
+        const uploaded = await api.uploadProfileImage(result.assets[0]);
+        dispatch(photoChanged(uploaded.photoUri));
+      } catch (error) {
+        Alert.alert(
+          "Photo not uploaded",
+          error instanceof Error ? error.message : "Please try again.",
+        );
       }
     }
   };
@@ -164,10 +175,12 @@ function IdentityPage({
       });
       await finishAuthentication(user);
       setPassword("");
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Sign up failed",
-        "Please check your connection and try again.",
+        error instanceof Error
+          ? error.message
+          : "Please check your connection and try again.",
       );
     } finally {
       setAuthBusy(false);
@@ -186,8 +199,13 @@ function IdentityPage({
       });
       await finishAuthentication(user);
       setPassword("");
-    } catch {
-      Alert.alert("Sign in failed", "The email or password is incorrect.");
+    } catch (error) {
+      Alert.alert(
+        "Sign in failed",
+        error instanceof Error
+          ? error.message
+          : "Please check your connection and try again.",
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -235,9 +253,20 @@ function IdentityPage({
   };
   return (
     <>
-      <View style={[styles.paper, styles.identityPaper, { width, height }]}>
-        <View style={styles.identityHeading}>
-          <Text style={styles.identityCountry}>STAMPО TRAVEL PASSPORT</Text>
+      <View
+        style={[
+          styles.paper,
+          styles.identityPaper,
+          { width: width - 15, height: height - 30 },
+        ]}
+      >
+        <View
+          style={[
+            styles.identityHeading,
+            compact && styles.identityHeadingCompact,
+          ]}
+        >
+          <Text style={styles.identityCountry}>STAMPO TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>PASSPORT · P</Text>
         </View>
         {profile.isSignedIn ? (
@@ -317,11 +346,22 @@ function IdentityPage({
             >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<<<<<<<<`}</Text>
           </>
         ) : (
-          <View style={styles.authPage}>
-            <View style={styles.authSeal}>
+          <ScrollView
+            style={styles.authPage}
+            contentContainerStyle={[
+              styles.authPageContent,
+              compact && styles.authPageContentCompact,
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.authSeal, compact && styles.authSealCompact]}>
               <Image
                 source={require("@/assets/images/favicon.png")}
-                style={styles.authKrooMark}
+                style={[
+                  styles.authKrooMark,
+                  compact && styles.authKrooMarkCompact,
+                ]}
                 contentFit="fill"
               />
             </View>
@@ -381,7 +421,7 @@ function IdentityPage({
                 <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         )}
       </View>
       <Modal
@@ -471,7 +511,7 @@ function StampPage({
   onStampPress: (stamp: Stamp) => void;
 }) {
   return (
-    <View style={[styles.paper, { width, height }]}>
+    <View style={[styles.paper, { width: width - 15, height: height - 30 }]}>
       <View style={styles.paperInner}>
         {slots.map((stamp, index) => (
           <Pressable
@@ -507,18 +547,37 @@ export default function PassportScreen() {
     (state) => state.travel.completedSightIds,
   );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(0);
-  const listRef = useRef<FlatList<PassportPage>>(null);
+  const [carouselHeight, setCarouselHeight] = useState<number | null>(null);
+  const [turnDirection, setTurnDirection] = useState<
+    "forward" | "backward" | null
+  >(null);
+  const activePageRef = useRef(0);
+  const directionRef = useRef<"forward" | "backward" | null>(null);
+  const turnProgress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (turnDirection === null) {
+      // Reset only after the animated sheet has been unmounted. This prevents
+      // both an end-of-turn flash and a stale first frame on the next swipe.
+      turnProgress.setValue(0);
+    }
+  }, [turnDirection, turnProgress]);
   useFocusEffect(
     useCallback(() => {
+      activePageRef.current = 0;
       setActivePage(0);
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToOffset({ offset: 0, animated: false });
-      });
-    }, []),
+      directionRef.current = null;
+      setTurnDirection(null);
+      turnProgress.setValue(0);
+    }, [turnProgress]),
   );
-  const pageWidth = Math.min(screenWidth - 36, 620);
-  const pageHeight = Math.min(screenHeight - 190, pageWidth * 1.48);
+  const horizontalInset = compactPassport ? 20 : 36;
+  const pageWidth = Math.min(screenWidth - horizontalInset, 620);
+  const availablePageHeight = carouselHeight
+    ? carouselHeight - (compactPassport ? 20 : 28)
+    : screenHeight - (compactPassport ? 178 : 218);
+  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.48);
   const krooNumber = useMemo(
     () =>
       formatKrooNumber(calculateKrooScoreFromVisits(visits, completedSightIds)),
@@ -558,95 +617,203 @@ export default function PassportScreen() {
     ];
   }, [visits]);
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setActivePage(Math.round(event.nativeEvent.contentOffset.x / screenWidth));
-  };
+  const finishTurn = useCallback(
+    (complete: boolean) => {
+      const direction = directionRef.current;
+      Animated.timing(turnProgress, {
+        toValue: complete ? 1 : 0,
+        duration: complete ? 220 : 160,
+        useNativeDriver: true,
+      }).start(() => {
+        if (complete && direction) {
+          const nextIndex =
+            activePageRef.current + (direction === "forward" ? 1 : -1);
+          activePageRef.current = nextIndex;
+          setActivePage(nextIndex);
+        }
+        // Keep the completed transform intact until React removes the turning
+        // layer. Resetting it here briefly paints the old page face-on.
+        directionRef.current = null;
+        setTurnDirection(null);
+      });
+    },
+    [turnProgress],
+  );
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 8 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+        onPanResponderMove: (_, gesture) => {
+          let direction = directionRef.current;
+          if (!direction) {
+            if (
+              gesture.dx < 0 &&
+              activePageRef.current < passportPages.length - 1
+            ) {
+              direction = "forward";
+            } else if (gesture.dx > 0 && activePageRef.current > 0) {
+              direction = "backward";
+            } else {
+              return;
+            }
+            turnProgress.stopAnimation();
+            turnProgress.setValue(0);
+            directionRef.current = direction;
+            setTurnDirection(direction);
+          }
+          const distance = direction === "forward" ? -gesture.dx : gesture.dx;
+          turnProgress.setValue(Math.max(0, Math.min(1, distance / pageWidth)));
+        },
+        onPanResponderRelease: (_, gesture) => {
+          if (!directionRef.current) return;
+          const distance =
+            directionRef.current === "forward" ? -gesture.dx : gesture.dx;
+          const velocity =
+            directionRef.current === "forward" ? -gesture.vx : gesture.vx;
+          finishTurn(distance > pageWidth * 0.35 || velocity > 0.65);
+        },
+        onPanResponderTerminate: () => finishTurn(false),
+      }),
+    [finishTurn, pageWidth, passportPages.length, turnProgress],
+  );
+
+  const renderPage = (page: PassportPage) =>
+    page.type === "cover" ? (
+      <Image
+        source={page.image}
+        style={{ width: pageWidth, height: pageHeight }}
+        contentFit="cover"
+        accessibilityLabel={page.accessibilityLabel}
+      />
+    ) : page.type === "identity" ? (
+      <IdentityPage
+        profile={profile}
+        krooNumber={krooNumber}
+        width={pageWidth}
+        height={pageHeight}
+        compact={compactPassport}
+      />
+    ) : (
+      <StampPage
+        slots={page.slots}
+        width={pageWidth}
+        height={pageHeight}
+        onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)}
+      />
+    );
+
+  const basePageIndex = Math.min(
+    turnDirection === "forward" ? activePage + 1 : activePage,
+    passportPages.length - 1,
+  );
+  const turningPageIndex =
+    turnDirection === "forward"
+      ? activePage
+      : turnDirection === "backward"
+        ? activePage - 1
+        : null;
+  const pageRotation = turnProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange:
+      turnDirection === "backward" ? ["-89deg", "0deg"] : ["0deg", "-89deg"],
+  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.carouselArea}>
-        <FlatList
-          ref={listRef}
-          data={passportPages}
-          horizontal
-          pagingEnabled
-          bounces={false}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(page) => page.id}
-          onMomentumScrollEnd={handleScrollEnd}
-          getItemLayout={(_, index) => ({
-            length: screenWidth,
-            offset: screenWidth * index,
-            index,
-          })}
-          renderItem={({ item }) => (
-            <View style={[styles.pageFrame, { width: screenWidth }]}>
-              {item.type === "cover" ? (
-                <Image
-                  source={item.image}
-                  style={{ width: pageHeight, height: pageHeight }}
-                  contentFit="contain"
-                />
-              ) : item.type === "identity" ? (
-                <IdentityPage
-                  profile={profile}
-                  krooNumber={krooNumber}
-                  width={pageWidth}
-                  height={pageHeight}
-                />
-              ) : (
-                <StampPage
-                  slots={item.slots}
-                  width={pageWidth}
-                  height={pageHeight}
-                  onStampPress={(stamp) =>
-                    router.push(`/country/${stamp.code}` as never)
-                  }
-                />
-              )}
-            </View>
-          )}
-        />
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={() =>
-            void Share.share({
-              message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
-            })
-          }
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View
+          style={styles.carouselArea}
+          onLayout={(event: LayoutChangeEvent) => {
+            const measuredHeight = event.nativeEvent.layout.height;
+            setCarouselHeight((current) =>
+              Math.max(current ?? 0, measuredHeight),
+            );
+          }}
+          {...panResponder.panHandlers}
         >
-          <Ionicons name="arrow-redo-sharp" size={36} color={colors.ink} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.pagination}>
-        <View style={styles.dots}>
-          {passportPages.map((page, index) => (
-            <TouchableOpacity
-              key={page.id}
-              style={[styles.dot, index === activePage && styles.dotActive]}
-              onPress={() => {
-                listRef.current?.scrollToIndex({ index, animated: true });
-                setActivePage(index);
-              }}
+          <View style={styles.pageFrame}>
+            {renderPage(passportPages[basePageIndex])}
+            {turningPageIndex !== null ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.turningPage,
+                  {
+                    width: pageWidth,
+                    height: pageHeight,
+                    transformOrigin: "left center",
+                    transform: [
+                      { perspective: 1100 },
+                      { rotateY: pageRotation },
+                    ],
+                  },
+                ]}
+              >
+                {renderPage(passportPages[turningPageIndex])}
+              </Animated.View>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.shareButton,
+              compactPassport && styles.shareButtonCompact,
+            ]}
+            onPress={() =>
+              void Share.share({
+                message: `My Stampo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
+              })
+            }
+          >
+            <Ionicons
+              name="arrow-redo-sharp"
+              size={compactPassport ? 24 : 30}
+              color={colors.ink}
             />
-          ))}
+          </TouchableOpacity>
         </View>
-        <Text style={styles.pageCount}>
-          {activePage + 1} / {passportPages.length}
-        </Text>
-      </View>
+        <View style={styles.pagination}>
+          <View style={styles.dots}>
+            {passportPages.map((page, index) => (
+              <TouchableOpacity
+                key={page.id}
+                style={[styles.dot, index === activePage && styles.dotActive]}
+                onPress={() => {
+                  activePageRef.current = index;
+                  setActivePage(index);
+                }}
+              />
+            ))}
+          </View>
+          <Text style={styles.pageCount}>
+            {activePage + 1} / {passportPages.length}
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+  keyboardArea: { flex: 1 },
   carouselArea: { flex: 1, position: "relative" },
   pageFrame: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+    overflow: "visible",
+  },
+  turningPage: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    backfaceVisibility: "hidden",
   },
   paper: {
     backgroundColor: colors.paper,
@@ -656,57 +823,72 @@ const styles = StyleSheet.create({
     padding: 9,
     elevation: 2,
   },
-  identityPaper: { padding: 20, justifyContent: "space-between" },
+  identityPaper: { padding: 16, justifyContent: "space-between" },
   identityHeading: {
     borderBottomWidth: 1,
     borderBottomColor: BrandColors.line,
     paddingBottom: 10,
   },
+  identityHeadingCompact: { paddingBottom: 6 },
   identityCountry: {
     fontFamily: "Lora_700Bold",
-    fontSize: 19,
+    fontSize: responsiveFontSize(19),
     color: BrandColors.green,
     letterSpacing: 1.2,
   },
   identityType: {
     marginTop: 3,
     fontFamily: "Lora_500Medium",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.muted,
   },
   identityBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 18 },
   authPage: {
     flex: 1,
+    width: "100%",
+  },
+  authPageContent: {
+    flexGrow: 1,
     paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
+  },
+  authPageContentCompact: {
+    justifyContent: "flex-start",
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   authSeal: {
     width: 140,
     height: 140,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 10,
     overflow: "hidden",
   },
+  authSealCompact: { width: 92, height: 92, marginBottom: 6 },
   authKrooMark: {
     width: 137,
     height: 137,
-    transform: [{ translateX: 9 }],
+  },
+  authKrooMarkCompact: {
+    width: 90,
+    height: 90,
   },
   authTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     color: BrandColors.green,
     textAlign: "center",
   },
   authIntro: {
     maxWidth: 300,
-    marginTop: 6,
-    marginBottom: 20,
+    marginTop: 4,
+    marginBottom: 16,
     fontFamily: "Lora_400Regular",
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: responsiveFontSize(12),
+    lineHeight: 14,
     textAlign: "center",
     color: BrandColors.muted,
   },
@@ -718,15 +900,15 @@ const styles = StyleSheet.create({
   },
   authCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 1,
     color: BrandColors.muted,
   },
   authInput: {
-    height: 42,
+    height: 36,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
   },
   photoBox: {
@@ -743,14 +925,14 @@ const styles = StyleSheet.create({
   addPhoto: {
     marginTop: 7,
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     color: BrandColors.muted,
   },
   identityFields: { flex: 1, gap: 7 },
   identityField: { borderBottomWidth: 1, borderBottomColor: BrandColors.line },
   fieldCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: 8,
+    fontSize: responsiveFontSize(8),
     letterSpacing: 0.7,
     color: BrandColors.muted,
   },
@@ -758,7 +940,7 @@ const styles = StyleSheet.create({
     height: 33,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   accountButton: {
@@ -770,7 +952,7 @@ const styles = StyleSheet.create({
   },
   accountButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.white,
   },
@@ -778,7 +960,7 @@ const styles = StyleSheet.create({
   authButton: { flex: 1 },
   authButtonDisabled: { opacity: 0.55 },
   signInPrimary: {
-    height: 42,
+    height: 36,
     borderRadius: 8,
     backgroundColor: BrandColors.green,
     alignItems: "center",
@@ -786,12 +968,12 @@ const styles = StyleSheet.create({
   },
   signInPrimaryText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     letterSpacing: 0.9,
     color: BrandColors.white,
   },
   createSecondary: {
-    height: 42,
+    height: 36,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: BrandColors.green,
@@ -800,7 +982,7 @@ const styles = StyleSheet.create({
   },
   createSecondaryText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.6,
     color: BrandColors.green,
   },
@@ -815,7 +997,7 @@ const styles = StyleSheet.create({
   },
   passwordButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 7,
+    fontSize: responsiveFontSize(7),
     letterSpacing: 0.4,
     color: BrandColors.white,
   },
@@ -829,7 +1011,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.green,
   },
@@ -844,7 +1026,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.8,
     color: BrandColors.copperDark,
   },
@@ -870,7 +1052,7 @@ const styles = StyleSheet.create({
   passwordTitle: {
     marginBottom: 14,
     fontFamily: "Lora_700Bold",
-    fontSize: 23,
+    fontSize: responsiveFontSize(23),
     color: BrandColors.green,
   },
   passwordInput: {
@@ -881,7 +1063,7 @@ const styles = StyleSheet.create({
     borderColor: BrandColors.line,
     borderRadius: 9,
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   passwordActions: { marginTop: 16, flexDirection: "row", gap: 9 },
@@ -896,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   passwordCancelText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.green,
   },
   passwordSave: {
@@ -909,7 +1091,7 @@ const styles = StyleSheet.create({
   },
   passwordSaveText: {
     fontFamily: "Lora_700Bold",
-    fontSize: 10,
+    fontSize: responsiveFontSize(10),
     color: BrandColors.white,
   },
   numberRow: {
@@ -922,24 +1104,23 @@ const styles = StyleSheet.create({
   },
   numberLabel: {
     fontFamily: "Lora_700Bold",
-    fontSize: 9,
+    fontSize: responsiveFontSize(9),
     color: BrandColors.muted,
     letterSpacing: 1,
   },
   passportNumber: {
     fontFamily: "Lora_700Bold",
-    fontSize: 17,
+    fontSize: responsiveFontSize(17),
     color: BrandColors.green,
   },
   machineCode: {
     fontFamily: "Lora_500Medium",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     letterSpacing: 0.5,
     color: BrandColors.ink,
   },
   paperInner: {
     flex: 1,
-    borderWidth: 1,
     borderColor: BrandColors.line,
     borderRadius: 14,
     padding: 14,
@@ -950,8 +1131,8 @@ const styles = StyleSheet.create({
     rowGap: 8,
   },
   stampSlot: {
-    width: "49%",
-    height: "47%",
+    width: "47%",
+    height: "45%",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 14,
@@ -964,7 +1145,7 @@ const styles = StyleSheet.create({
   stampImage: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.35 }],
+    transform: [{ scale: 1.3 }],
   },
   genericStamp: {
     width: "90%",
@@ -978,12 +1159,12 @@ const styles = StyleSheet.create({
   },
   genericCode: {
     fontFamily: "Lora_700Bold",
-    fontSize: 30,
+    fontSize: responsiveFontSize(30),
     color: BrandColors.copperDark,
   },
   genericName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     textAlign: "center",
     color: BrandColors.copperDark,
   },
@@ -991,14 +1172,21 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 24,
     right: 14,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: BrandColors.greenDeep,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
+  },
+  shareButtonCompact: {
+    top: 17,
+    right: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   pagination: { height: 80, alignItems: "center", paddingTop: 5 },
   dots: {
@@ -1015,6 +1203,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: colors.muted,
     fontFamily: "Lora_700Bold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
   },
 });

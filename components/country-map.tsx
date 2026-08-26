@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { useEffect, useState } from "react";
 import alpha2To3 from "countries-list/minimal/countries.2to3.min.json";
 import {
@@ -192,18 +194,18 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontFamily: "Lora_700Bold",
-    fontSize: 11,
+    fontSize: responsiveFontSize(11),
     color: BrandColors.copper,
   },
   title: {
     marginTop: 2,
     fontFamily: "Lora_700Bold",
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     color: BrandColors.onDark,
   },
   hint: {
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.copper,
   },
   canvas: {
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
   errorBox: { alignItems: "center", gap: 12 },
   errorText: {
     fontFamily: "Lora_400Regular",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   retry: {
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.white,
   },
 });

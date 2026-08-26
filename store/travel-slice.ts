@@ -100,6 +100,15 @@ const travelSlice = createSlice({
         ? state.completedSightIds.filter((id) => id !== action.payload)
         : [...state.completedSightIds, action.payload];
     },
+    sightCompletionSet(
+      state,
+      action: PayloadAction<{ id: string; completed: boolean }>,
+    ) {
+      const { id, completed } = action.payload;
+      state.completedSightIds = completed
+        ? [...new Set([...state.completedSightIds, id])]
+        : state.completedSightIds.filter((item) => item !== id);
+    },
     wishlistToggled(state, action: PayloadAction<string>) {
       state.wishlistIds = state.wishlistIds.includes(action.payload)
         ? state.wishlistIds.filter((id) => id !== action.payload)
@@ -136,6 +145,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;

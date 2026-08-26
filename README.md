@@ -35,12 +35,14 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Start the app
 
    ```bash
-   npx expo start
-   export CHOKIDAR_USEPOLLING=true
-   export WATCHPACK_POLLING=true
-   npx expo start --localhost --port 8081 --clear
-   npx expo start --offline --clear
+   npm run android
    ```
+
+   This starts Metro on the LAN. Scan the QR code with Expo Go; do not press
+   `a`, which requires a working local ADB server. Keep the phone and computer
+   on the same network and allow port 8081 through the Windows firewall. Do not
+   add `--clear` for normal launches: it discards Metro's cache and can make
+   Expo Go time out while the first Android bundle is rebuilt.
 
 In the output, you'll find options to open the app in a
 

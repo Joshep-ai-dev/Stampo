@@ -1,3 +1,4 @@
+import "@/services/arrival-monitoring";
 import {
   Lora_400Regular,
   Lora_400Regular_Italic,
@@ -6,13 +7,30 @@ import {
   Lora_700Bold,
   useFonts,
 } from "@expo-google-fonts/lora";
+import {
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+  Fraunces_800ExtraBold,
+} from "@expo-google-fonts/fraunces";
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+} from "@expo-google-fonts/inter";
+import { Roboto_900Black } from "@expo-google-fonts/roboto";
+import {
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from "@expo-google-fonts/space-mono";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Provider } from "react-redux";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
+import { Provider } from "react-redux";
 
+import { ArrivalSuggestionPrompt } from "@/components/arrival-suggestion";
+import { SubscriptionSync } from "@/components/subscription-sync";
 import { hydrateStore, store } from "@/store";
 
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +43,14 @@ export default function RootLayout() {
     Lora_500Medium,
     Lora_600SemiBold,
     Lora_700Bold,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
+    Fraunces_800ExtraBold,
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Roboto_900Black,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
   });
 
   useEffect(() => {
@@ -38,11 +64,15 @@ export default function RootLayout() {
   if ((!loaded && !error) || !hydrated) return null;
 
   return (
-    <Provider store={store}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-      <StatusBar style="light" />
-    </Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <SubscriptionSync />
+        <ArrivalSuggestionPrompt />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <StatusBar style="light" />
+      </Provider>
+    </GestureHandlerRootView>
   );
 }

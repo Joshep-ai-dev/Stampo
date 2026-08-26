@@ -1,5 +1,8 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { memo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
@@ -8,7 +11,7 @@ import { stampAssets } from "@/data/stamps";
 
 const UNVISITED_STAMP = "#AAB5AF";
 
-export function CountryStampCard({
+export const CountryStampCard = memo(function CountryStampCard({
   country,
   cityCount,
   onPress,
@@ -64,7 +67,7 @@ export function CountryStampCard({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -87,10 +90,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  flag: { fontSize: 16 },
+  flag: { fontSize: responsiveFontSize(16) },
   name: {
     fontFamily: "Lora_500Medium",
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: BrandColors.green,
     flexShrink: 1,
   },
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
   status: {
     marginTop: 7,
     fontFamily: "Lora_500Medium",
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: BrandColors.muted,
   },
   notVisited: { color: BrandColors.muted },

@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -28,12 +30,13 @@ export default function TabLayout() {
     <Tabs
       initialRouteName="index"
       screenOptions={{
+        tabBarHideOnKeyboard: true,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarActiveTintColor: "#49B964",
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: responsiveFontSize(11),
           fontWeight: "600",
           marginTop: 1,
         },
@@ -88,15 +91,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="message-board"
+        name="community"
         options={{
-          title: "Message",
+          title: "Community",
+          tabBarActiveTintColor: "#49B964",
+          tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
             <Icon
               focused={focused}
               color={color}
-              on="chatbubbles"
-              off="chatbubbles-outline"
+              on="people"
+              off="people-outline"
             />
           ),
         }}
@@ -115,7 +120,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,3 +1,5 @@
+import { responsiveFontSize } from "@/constants/responsive-typography";
+
 import { StyleSheet, Text, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
@@ -32,7 +34,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: "Lora_500Medium",
-    fontSize: 13,
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   accentText: { color: BrandColors.copper, fontFamily: "Lora_700Bold" },
