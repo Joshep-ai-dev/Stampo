@@ -311,13 +311,7 @@ function IdentityPage({
   };
   return (
     <>
-      <View
-        style={[
-          styles.paper,
-          styles.identityPaper,
-          { width: width - 15, height: height - 30 },
-        ]}
-      >
+      <View style={[styles.paper, styles.identityPaper, { width, height }]}>
         <View
           style={[
             styles.identityHeading,
@@ -569,7 +563,7 @@ function StampPage({
   onStampPress: (stamp: Stamp) => void;
 }) {
   return (
-    <View style={[styles.paper, { width: width - 15, height: height - 30 }]}>
+    <View style={[styles.paper, { width, height }]}>
       <View style={styles.paperInner}>
         {slots.map((stamp, index) => (
           <Pressable
@@ -858,10 +852,10 @@ const styles = StyleSheet.create({
   },
   coverArtwork: {
     position: "absolute",
-    width: "106%",
-    height: "106%",
-    left: "-3%",
-    top: "-3%",
+    width: "100%",
+    height: "100%",
+    left: "0%",
+    top: "0%",
   },
   paper: {
     backgroundColor: colors.paper,
