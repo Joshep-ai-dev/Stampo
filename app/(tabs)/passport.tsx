@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -550,27 +550,16 @@ export default function PassportScreen() {
   const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(0);
   const [carouselHeight, setCarouselHeight] = useState<number | null>(null);
-  const [turnDirection, setTurnDirection] = useState<
-    "forward" | "backward" | null
-  >(null);
   const activePageRef = useRef(0);
   const directionRef = useRef<"forward" | "backward" | null>(null);
-  const turnProgress = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (turnDirection === null) {
-      // Reset only after the animated sheet has been unmounted. This prevents
-      // both an end-of-turn flash and a stale first frame on the next swipe.
-      turnProgress.setValue(0);
-    }
-  }, [turnDirection, turnProgress]);
+  const bookPosition = useRef(new Animated.Value(0)).current;
   useFocusEffect(
     useCallback(() => {
       activePageRef.current = 0;
       setActivePage(0);
       directionRef.current = null;
-      setTurnDirection(null);
-      turnProgress.setValue(0);
-    }, [turnProgress]),
+      bookPosition.setValue(0);
+    }, [bookPosition]),
   );
   const horizontalInset = compactPassport ? 20 : 36;
   const pageWidth = Math.min(screenWidth - horizontalInset, 620);
@@ -620,24 +609,24 @@ export default function PassportScreen() {
   const finishTurn = useCallback(
     (complete: boolean) => {
       const direction = directionRef.current;
-      Animated.timing(turnProgress, {
-        toValue: complete ? 1 : 0,
+      const currentIndex = activePageRef.current;
+      const targetIndex =
+        complete && direction
+          ? currentIndex + (direction === "forward" ? 1 : -1)
+          : currentIndex;
+      Animated.timing(bookPosition, {
+        toValue: targetIndex,
         duration: complete ? 220 : 160,
         useNativeDriver: true,
-      }).start(() => {
-        if (complete && direction) {
-          const nextIndex =
-            activePageRef.current + (direction === "forward" ? 1 : -1);
-          activePageRef.current = nextIndex;
-          setActivePage(nextIndex);
+      }).start(({ finished }) => {
+        if (finished && complete && direction) {
+          activePageRef.current = targetIndex;
+          setActivePage(targetIndex);
         }
-        // Keep the completed transform intact until React removes the turning
-        // layer. Resetting it here briefly paints the old page face-on.
         directionRef.current = null;
-        setTurnDirection(null);
       });
     },
-    [turnProgress],
+    [bookPosition],
   );
 
   const panResponder = useMemo(
@@ -659,13 +648,15 @@ export default function PassportScreen() {
             } else {
               return;
             }
-            turnProgress.stopAnimation();
-            turnProgress.setValue(0);
+            bookPosition.stopAnimation();
             directionRef.current = direction;
-            setTurnDirection(direction);
           }
           const distance = direction === "forward" ? -gesture.dx : gesture.dx;
-          turnProgress.setValue(Math.max(0, Math.min(1, distance / pageWidth)));
+          const progress = Math.max(0, Math.min(1, distance / pageWidth));
+          bookPosition.setValue(
+            activePageRef.current +
+              (direction === "forward" ? progress : -progress),
+          );
         },
         onPanResponderRelease: (_, gesture) => {
           if (!directionRef.current) return;
@@ -677,17 +668,21 @@ export default function PassportScreen() {
         },
         onPanResponderTerminate: () => finishTurn(false),
       }),
-    [finishTurn, pageWidth, passportPages.length, turnProgress],
+    [bookPosition, finishTurn, pageWidth, passportPages.length],
   );
 
   const renderPage = (page: PassportPage) =>
     page.type === "cover" ? (
-      <Image
-        source={page.image}
-        style={{ width: pageWidth, height: pageHeight }}
-        contentFit="cover"
-        accessibilityLabel={page.accessibilityLabel}
-      />
+      <View
+        style={[styles.coverPage, { width: pageWidth, height: pageHeight }]}
+      >
+        <Image
+          source={page.image}
+          style={styles.coverArtwork}
+          contentFit="cover"
+          accessibilityLabel={page.accessibilityLabel}
+        />
+      </View>
     ) : page.type === "identity" ? (
       <IdentityPage
         profile={profile}
@@ -704,22 +699,6 @@ export default function PassportScreen() {
         onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)}
       />
     );
-
-  const basePageIndex = Math.min(
-    turnDirection === "forward" ? activePage + 1 : activePage,
-    passportPages.length - 1,
-  );
-  const turningPageIndex =
-    turnDirection === "forward"
-      ? activePage
-      : turnDirection === "backward"
-        ? activePage - 1
-        : null;
-  const pageRotation = turnProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange:
-      turnDirection === "backward" ? ["-89deg", "0deg"] : ["0deg", "-89deg"],
-  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -738,26 +717,31 @@ export default function PassportScreen() {
           {...panResponder.panHandlers}
         >
           <View style={styles.pageFrame}>
-            {renderPage(passportPages[basePageIndex])}
-            {turningPageIndex !== null ? (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.turningPage,
-                  {
-                    width: pageWidth,
-                    height: pageHeight,
-                    transformOrigin: "left center",
-                    transform: [
-                      { perspective: 1100 },
-                      { rotateY: pageRotation },
-                    ],
-                  },
-                ]}
-              >
-                {renderPage(passportPages[turningPageIndex])}
-              </Animated.View>
-            ) : null}
+            {passportPages.map((page, index) => {
+              const rotation = bookPosition.interpolate({
+                inputRange: [index, index + 1],
+                outputRange: ["0deg", "-89.5deg"],
+                extrapolate: "clamp",
+              });
+              return (
+                <Animated.View
+                  key={page.id}
+                  pointerEvents={index === activePage ? "auto" : "none"}
+                  style={[
+                    styles.turningPage,
+                    {
+                      width: pageWidth,
+                      height: pageHeight,
+                      zIndex: passportPages.length - index,
+                      transformOrigin: "left center",
+                      transform: [{ perspective: 1100 }, { rotateY: rotation }],
+                    },
+                  ]}
+                >
+                  {renderPage(page)}
+                </Animated.View>
+              );
+            })}
           </View>
           <TouchableOpacity
             style={[
@@ -784,8 +768,21 @@ export default function PassportScreen() {
                 key={page.id}
                 style={[styles.dot, index === activePage && styles.dotActive]}
                 onPress={() => {
-                  activePageRef.current = index;
-                  setActivePage(index);
+                  if (directionRef.current || index === activePageRef.current)
+                    return;
+                  bookPosition.stopAnimation();
+                  Animated.timing(bookPosition, {
+                    toValue: index,
+                    duration: Math.min(
+                      700,
+                      220 * Math.abs(index - activePageRef.current),
+                    ),
+                    useNativeDriver: true,
+                  }).start(({ finished }) => {
+                    if (!finished) return;
+                    activePageRef.current = index;
+                    setActivePage(index);
+                  });
                 }}
               />
             ))}
@@ -814,6 +811,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backfaceVisibility: "hidden",
+  },
+  coverPage: {
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: colors.background,
+  },
+  coverArtwork: {
+    position: "absolute",
+    width: "106%",
+    height: "106%",
+    left: "-3%",
+    top: "-3%",
   },
   paper: {
     backgroundColor: colors.paper,
