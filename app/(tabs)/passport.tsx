@@ -4,15 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  FlatList,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -550,22 +549,35 @@ export default function PassportScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(0);
-  const listRef = useRef<FlatList<PassportPage>>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const [carouselHeight, setCarouselHeight] = useState<number | null>(null);
+  const [turnDirection, setTurnDirection] = useState<
+    "forward" | "backward" | null
+  >(null);
+  const activePageRef = useRef(0);
+  const directionRef = useRef<"forward" | "backward" | null>(null);
+  const turnProgress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (turnDirection === null) {
+      // Reset only after the animated sheet has been unmounted. This prevents
+      // both an end-of-turn flash and a stale first frame on the next swipe.
+      turnProgress.setValue(0);
+    }
+  }, [turnDirection, turnProgress]);
   useFocusEffect(
     useCallback(() => {
+      activePageRef.current = 0;
       setActivePage(0);
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToOffset({ offset: 0, animated: false });
-      });
-    }, []),
+      directionRef.current = null;
+      setTurnDirection(null);
+      turnProgress.setValue(0);
+    }, [turnProgress]),
   );
   const horizontalInset = compactPassport ? 20 : 36;
   const pageWidth = Math.min(screenWidth - horizontalInset, 620);
-  const pageHeight = Math.min(
-    screenHeight - (compactPassport ? 150 : 190),
-    pageWidth * 1.48,
-  );
+  const availablePageHeight = carouselHeight
+    ? carouselHeight - (compactPassport ? 20 : 28)
+    : screenHeight - (compactPassport ? 178 : 218);
+  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.48);
   const krooNumber = useMemo(
     () =>
       formatKrooNumber(calculateKrooScoreFromVisits(visits, completedSightIds)),
@@ -605,9 +617,109 @@ export default function PassportScreen() {
     ];
   }, [visits]);
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setActivePage(Math.round(event.nativeEvent.contentOffset.x / screenWidth));
-  };
+  const finishTurn = useCallback(
+    (complete: boolean) => {
+      const direction = directionRef.current;
+      Animated.timing(turnProgress, {
+        toValue: complete ? 1 : 0,
+        duration: complete ? 220 : 160,
+        useNativeDriver: true,
+      }).start(() => {
+        if (complete && direction) {
+          const nextIndex =
+            activePageRef.current + (direction === "forward" ? 1 : -1);
+          activePageRef.current = nextIndex;
+          setActivePage(nextIndex);
+        }
+        // Keep the completed transform intact until React removes the turning
+        // layer. Resetting it here briefly paints the old page face-on.
+        directionRef.current = null;
+        setTurnDirection(null);
+      });
+    },
+    [turnProgress],
+  );
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 8 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+        onPanResponderMove: (_, gesture) => {
+          let direction = directionRef.current;
+          if (!direction) {
+            if (
+              gesture.dx < 0 &&
+              activePageRef.current < passportPages.length - 1
+            ) {
+              direction = "forward";
+            } else if (gesture.dx > 0 && activePageRef.current > 0) {
+              direction = "backward";
+            } else {
+              return;
+            }
+            turnProgress.stopAnimation();
+            turnProgress.setValue(0);
+            directionRef.current = direction;
+            setTurnDirection(direction);
+          }
+          const distance = direction === "forward" ? -gesture.dx : gesture.dx;
+          turnProgress.setValue(Math.max(0, Math.min(1, distance / pageWidth)));
+        },
+        onPanResponderRelease: (_, gesture) => {
+          if (!directionRef.current) return;
+          const distance =
+            directionRef.current === "forward" ? -gesture.dx : gesture.dx;
+          const velocity =
+            directionRef.current === "forward" ? -gesture.vx : gesture.vx;
+          finishTurn(distance > pageWidth * 0.35 || velocity > 0.65);
+        },
+        onPanResponderTerminate: () => finishTurn(false),
+      }),
+    [finishTurn, pageWidth, passportPages.length, turnProgress],
+  );
+
+  const renderPage = (page: PassportPage) =>
+    page.type === "cover" ? (
+      <Image
+        source={page.image}
+        style={{ width: pageWidth, height: pageHeight }}
+        contentFit="cover"
+        accessibilityLabel={page.accessibilityLabel}
+      />
+    ) : page.type === "identity" ? (
+      <IdentityPage
+        profile={profile}
+        krooNumber={krooNumber}
+        width={pageWidth}
+        height={pageHeight}
+        compact={compactPassport}
+      />
+    ) : (
+      <StampPage
+        slots={page.slots}
+        width={pageWidth}
+        height={pageHeight}
+        onStampPress={(stamp) => router.push(`/country/${stamp.code}` as never)}
+      />
+    );
+
+  const basePageIndex = Math.min(
+    turnDirection === "forward" ? activePage + 1 : activePage,
+    passportPages.length - 1,
+  );
+  const turningPageIndex =
+    turnDirection === "forward"
+      ? activePage
+      : turnDirection === "backward"
+        ? activePage - 1
+        : null;
+  const pageRotation = turnProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange:
+      turnDirection === "backward" ? ["-89deg", "0deg"] : ["0deg", "-89deg"],
+  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -615,85 +727,38 @@ export default function PassportScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.carouselArea}>
-          <Animated.FlatList
-            ref={listRef}
-            data={passportPages}
-            horizontal
-            pagingEnabled
-            bounces={false}
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(page) => page.id}
-            onMomentumScrollEnd={handleScrollEnd}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: true },
-            )}
-            scrollEventThrottle={16}
-            getItemLayout={(_, index) => ({
-              length: screenWidth,
-              offset: screenWidth * index,
-              index,
-            })}
-            renderItem={({ item, index }) => {
-              const inputRange = [
-                (index - 1) * screenWidth,
-                index * screenWidth,
-                (index + 1) * screenWidth,
-              ];
-              const rotateY = scrollX.interpolate({
-                inputRange,
-                outputRange: ["-55deg", "0deg", "55deg"],
-                extrapolate: "clamp",
-              });
-              const scale = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.9, 1, 0.9],
-                extrapolate: "clamp",
-              });
-              return (
-                <View style={[styles.pageFrame, { width: screenWidth }]}>
-                  <Animated.View
-                    style={[
-                      styles.turningPage,
-                      {
-                        transform: [
-                          { perspective: 1100 },
-                          { rotateY },
-                          { scale },
-                        ],
-                      },
-                    ]}
-                  >
-                    {item.type === "cover" ? (
-                      <Image
-                        source={item.image}
-                        style={{ width: pageHeight, height: pageHeight - 10 }}
-                        contentFit="contain"
-                      />
-                    ) : item.type === "identity" ? (
-                      <IdentityPage
-                        profile={profile}
-                        krooNumber={krooNumber}
-                        width={pageWidth}
-                        height={pageHeight}
-                        compact={compactPassport}
-                      />
-                    ) : (
-                      <StampPage
-                        slots={item.slots}
-                        width={pageWidth}
-                        height={pageHeight}
-                        onStampPress={(stamp) =>
-                          router.push(`/country/${stamp.code}` as never)
-                        }
-                      />
-                    )}
-                  </Animated.View>
-                </View>
-              );
-            }}
-          />
+        <View
+          style={styles.carouselArea}
+          onLayout={(event: LayoutChangeEvent) => {
+            const measuredHeight = event.nativeEvent.layout.height;
+            setCarouselHeight((current) =>
+              Math.max(current ?? 0, measuredHeight),
+            );
+          }}
+          {...panResponder.panHandlers}
+        >
+          <View style={styles.pageFrame}>
+            {renderPage(passportPages[basePageIndex])}
+            {turningPageIndex !== null ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.turningPage,
+                  {
+                    width: pageWidth,
+                    height: pageHeight,
+                    transformOrigin: "left center",
+                    transform: [
+                      { perspective: 1100 },
+                      { rotateY: pageRotation },
+                    ],
+                  },
+                ]}
+              >
+                {renderPage(passportPages[turningPageIndex])}
+              </Animated.View>
+            ) : null}
+          </View>
           <TouchableOpacity
             style={[
               styles.shareButton,
@@ -719,7 +784,7 @@ export default function PassportScreen() {
                 key={page.id}
                 style={[styles.dot, index === activePage && styles.dotActive]}
                 onPress={() => {
-                  listRef.current?.scrollToIndex({ index, animated: true });
+                  activePageRef.current = index;
                   setActivePage(index);
                 }}
               />
@@ -742,11 +807,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+    overflow: "visible",
   },
   turningPage: {
-    width: "100%",
-    height: "100%",
+    position: "absolute",
     alignItems: "center",
     justifyContent: "center",
     backfaceVisibility: "hidden",
