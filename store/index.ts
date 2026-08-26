@@ -70,9 +70,14 @@ export async function hydrateStore() {
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-      const [visitsResult, travelStateResult] = await Promise.allSettled([
+      const [visitsResult] = await Promise.allSettled([
         api.syncVisits(localTravel.visits),
-        api.travelState(),
+      ]);
+      const [travelStateResult] = await Promise.allSettled([
+        api.syncTravelState({
+          completedSightIds: localTravel.completedSightIds,
+          wishlistIds: localTravel.wishlistIds,
+        }),
       ]);
       if (visitsResult.status === "fulfilled") {
         store.dispatch(visitsHydrated(visitsResult.value));

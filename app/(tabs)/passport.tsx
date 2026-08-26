@@ -131,6 +131,10 @@ function IdentityPage({
 }) {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
+  const completedSightIds = useAppSelector(
+    (state) => state.travel.completedSightIds,
+  );
+  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const [draft, setDraft] = useState({
     name: profile.name,
     email: profile.email,
@@ -191,9 +195,14 @@ function IdentityPage({
     dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
     const localVisits = visits;
     setAuthBusy(true);
-    const [visitsResult, travelStateResult] = await Promise.allSettled([
+    const [visitsResult] = await Promise.allSettled([
       api.syncVisits(localVisits),
-      api.travelState(),
+    ]);
+    const [travelStateResult] = await Promise.allSettled([
+      api.syncTravelState({
+        completedSightIds,
+        wishlistIds,
+      }),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));

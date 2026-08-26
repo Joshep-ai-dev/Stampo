@@ -405,7 +405,7 @@ export const api = {
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   communityLeaderboard: (scope: "global" | "friends") =>
     request<(Partial<CommunityProfile> & Partial<CommunityProfile["stats"]>)[]>(
-      `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
+      `${scope === "friends" ? "/me/community/leaderboard" : "/community/leaderboard"}?scope=${encodeURIComponent(scope)}`,
     ).then((items) =>
       items.map((item) => {
         const score = Number(item.score ?? 0);
@@ -439,6 +439,14 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
+  syncTravelState: (state: {
+    completedSightIds: string[];
+    wishlistIds: string[];
+  }) =>
+    request<TravelStateResponse>("/me/sync/travel-state", {
+      method: "POST",
+      body: JSON.stringify(state),
+    }),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(
       `/me/completions/${encodeURIComponent(sightId)}`,

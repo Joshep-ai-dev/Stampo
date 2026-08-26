@@ -110,16 +110,10 @@ export default function CollectionScreen() {
   }
 
   const toggleCompleted = async (place: CollectionPlace) => {
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Sign in from Passport to save progress.",
-      );
-      return;
-    }
     const targetId = `collection-${collection.id}-${place.id}`;
     const next = !completedSightIds.includes(targetId);
     dispatch(sightCompletionSet({ id: targetId, completed: next }));
+    if (!isSignedIn) return;
     try {
       await api.setSightCompleted(targetId, next);
       void api
@@ -157,17 +151,13 @@ export default function CollectionScreen() {
 
   const toggleWishlist = async () => {
     if (wishlistPending) return;
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Sign in from Passport to add this collection to your wishlist.",
-      );
-      return;
-    }
-
     const next = !isWishlisted;
     setWishlistPending(true);
     dispatch(wishlistToggled(wishlistId));
+    if (!isSignedIn) {
+      setWishlistPending(false);
+      return;
+    }
     try {
       await api.setWishlist(wishlistId, next);
     } catch {

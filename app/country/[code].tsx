@@ -121,13 +121,10 @@ export default function CountryScreen() {
     }
   };
   const toggleSight = async (sightId: string, completed: boolean) => {
-    if (!isSignedIn) {
-      Alert.alert("Sign in required", "Sign in to save completed sights.");
-      return;
-    }
     const next = !completed;
     dispatch(sightCompletionSet({ id: sightId, completed: next }));
     dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
+    if (!isSignedIn) return;
     try {
       await api.setSightCompleted(sightId, next);
       void api
@@ -149,10 +146,6 @@ export default function CountryScreen() {
     placeIds: string[],
     completed: boolean,
   ) => {
-    if (!isSignedIn) {
-      Alert.alert("Sign in required", "Sign in to save collection progress.");
-      return;
-    }
     const next = !completed;
     const targetIds = placeIds.map(
       (placeId) => `collection-${collectionId}-${placeId}`,
@@ -160,6 +153,7 @@ export default function CountryScreen() {
     targetIds.forEach((id) =>
       dispatch(sightCompletionSet({ id, completed: next })),
     );
+    if (!isSignedIn) return;
     const results = await Promise.allSettled(
       targetIds.map((id) => api.setSightCompleted(id, next)),
     );
