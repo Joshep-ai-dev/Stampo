@@ -102,15 +102,15 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   infoButton: {
-    width: 13,
-    height: 13,
+    width: 11,
+    height: 11,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: -3,
-    transform: [{ translateY: -9 }],
+    transform: [{ translateY: -2 }],
   },
   infoText: {
     marginTop: -1,

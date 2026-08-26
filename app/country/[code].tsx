@@ -7,8 +7,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  Modal,
-  Pressable,
   ScrollView,
   Share,
   type StyleProp,
@@ -20,12 +18,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DetailModal } from "@/components/detail-modal";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import { api, type SightDetail } from "@/services/api";
+import {
+  api,
+  type ManagedCollection,
+  type ManagedCollectionPlace,
+  type SightDetail,
+} from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import {
@@ -36,7 +40,11 @@ import {
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
-import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
+import {
+  sightCompletionSet,
+  type Visit,
+  visitsHydrated,
+} from "@/store/travel-slice";
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -50,12 +58,17 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
+  const [selectedCollectionItem, setSelectedCollectionItem] = useState<{
+    collection: ManagedCollection;
+    place: ManagedCollectionPlace;
+  } | null>(null);
   const [selectedCity, setSelectedCity] = useState<{
     id: string;
     name: string;
     image?: string;
     description?: string;
     regionName?: string;
+    visits: Visit[];
   } | null>(null);
   useFocusEffect(
     useCallback(() => {
@@ -93,17 +106,30 @@ export default function CountryScreen() {
   const countryVisits = allVisits.filter(
     (visit) => visit.countryCode.toUpperCase() === normalizedCode,
   );
+  const cityIdentity = (cityName: string) =>
+    cityName.trim().toLocaleLowerCase();
   const visitedCityMap = new Map(
-    (detail?.visitedCities ?? []).map((city) => [city.id, city]),
+    (detail?.visitedCities ?? []).map((city) => [cityIdentity(city.name), city]),
   );
   countryVisits.forEach((visit) =>
-    visitedCityMap.set(visit.cityId, { id: visit.cityId, name: visit.cityName }),
+    visitedCityMap.set(cityIdentity(visit.cityName), {
+      id: visit.cityId,
+      name: visit.cityName,
+    }),
   );
   const visitedCities = [...visitedCityMap.values()].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
+  );
+  const countryCollectionItems = countryCollections.flatMap((collection) =>
+    collection.places
+      .filter(
+        (place) =>
+          place.country?.toLocaleLowerCase() === name.toLocaleLowerCase(),
+      )
+      .map((place) => ({ collection, place })),
   );
   const localSightIds = new Set(
     countryVisits.flatMap((visit) =>
@@ -127,16 +153,13 @@ export default function CountryScreen() {
     sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
-  const lockedCollectionPlaceCount = countryCollections.reduce(
-    (count, collection) =>
-      count +
-      collection.places.filter(
-        (place) =>
-          place.country?.toLocaleLowerCase() === name.toLocaleLowerCase() &&
-          (place.access === "pro" || place.isPremium === true),
-      ).length,
-    0,
-  );
+  const lockedCollectionPlaceCount = countryCollectionItems.filter(
+    ({ place }) => place.access === "pro" || place.isPremium === true,
+  ).length;
+  const selectedCollectionLocked =
+    !subscription.isKrooPlus &&
+    (selectedCollectionItem?.place.access === "pro" ||
+      selectedCollectionItem?.place.isPremium === true);
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!subscription.isKrooPlus) {
@@ -176,7 +199,10 @@ export default function CountryScreen() {
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
     } catch {
-      Alert.alert("Saved on this device", "Kroo will sync this sight when the server is available.");
+      Alert.alert(
+        "Saved on this device",
+        "Kroo will sync this sight when the server is available.",
+      );
     }
   };
 
@@ -203,7 +229,10 @@ export default function CountryScreen() {
       }
     });
     if (failed) {
-      Alert.alert("Saved on this device", "Kroo will sync this collection when the server is available.");
+      Alert.alert(
+        "Saved on this device",
+        "Kroo will sync this collection when the server is available.",
+      );
     }
     if (results.some((result) => result.status === "fulfilled")) {
       void api
@@ -439,68 +468,58 @@ export default function CountryScreen() {
             }
           />
         ) : null}
-        {countryCollections.length ? (
+        {countryCollectionItems.length ? (
           <View style={s.collectionList}>
-            {countryCollections.map((collection) => {
-              const countryPlaces = collection.places.filter(
-                (place) =>
-                  place.country?.toLocaleLowerCase() ===
-                  name.toLocaleLowerCase(),
+            {countryCollectionItems.map(({ collection, place }) => {
+              const locked =
+                !subscription.isKrooPlus &&
+                (place.access === "pro" || place.isPremium === true);
+              const completed = completedSightIds.includes(
+                `collection-${collection.id}-${place.id}`,
               );
-              const accessiblePlaces = subscription.isKrooPlus
-                ? countryPlaces
-                : countryPlaces.filter(
-                    (place) =>
-                      place.access !== "pro" && place.isPremium !== true,
-                  );
-              const locationCount = countryPlaces.length;
-              const completed =
-                accessiblePlaces.length > 0 &&
-                accessiblePlaces.every((place) =>
-                  completedSightIds.includes(
-                    `collection-${collection.id}-${place.id}`,
-                  ),
-                );
               return (
                 <TouchableOpacity
-                  key={collection.id}
-                  style={s.sightRow}
+                  key={`${collection.id}-${place.id}`}
+                  style={[s.sightRow, locked && s.lockedSightRow]}
                   activeOpacity={0.82}
                   onPress={() =>
-                    router.push(`/collection/${collection.id}` as never)
+                    setSelectedCollectionItem({ collection, place })
                   }
                   accessibilityRole="button"
-                  accessibilityLabel={`Open ${collection.title}`}
+                  accessibilityLabel={`Open ${place.name} from ${collection.title}`}
                 >
                   <View style={s.collectionImageFrame}>
                     <ProgressivePlaceImage
-                      uri={collection.imageUrl}
+                      uri={place.imageUrl || collection.imageUrl}
                       style={s.collectionImage}
-                      contentFit="contain"
+                      contentFit="cover"
+                      blurRadius={locked ? 32 : undefined}
                     />
                   </View>
                   <View style={s.collectionText}>
-                    <Text style={s.collectionTitle} numberOfLines={1}>
-                      {collection.title}
+                    <Text
+                      style={[s.collectionTitle, locked && s.lockedSightName]}
+                      numberOfLines={1}
+                    >
+                      {place.name}
                     </Text>
-                    <Text style={s.collectionDetail}>
-                      {locationCount}{" "}
-                      {locationCount === 1 ? "location" : "locations"} in {name}
+                    <Text style={s.collectionDetail} numberOfLines={1}>
+                      {collection.title}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() =>
                       void toggleCollectionPlaces(
                         collection.id,
-                        accessiblePlaces.map((place) => place.id),
+                        [place.id],
                         completed,
                       )
                     }
                     hitSlop={10}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: completed }}
-                    disabled={!accessiblePlaces.length}
-                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} accessible ${collection.title} locations in ${name}`}
+                    disabled={locked}
+                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${place.name}`}
                   >
                     <Ionicons
                       name={completed ? "checkmark-circle" : "ellipse-outline"}
@@ -527,15 +546,21 @@ export default function CountryScreen() {
           {visitedCities.length ? (
             visitedCities.map((city) => {
               const cityDetail = detail?.cities.find(
-                (item) => item.id === city.id,
+                (item) =>
+                  item.id === city.id ||
+                  cityIdentity(item.name) === cityIdentity(city.name),
               );
-              const recordedVisit = allVisits.find(
-                (visit) => visit.cityId === city.id,
+              const cityVisits = allVisits.filter(
+                (visit) =>
+                  visit.countryCode.toUpperCase() === normalizedCode &&
+                  (visit.cityId === city.id ||
+                    cityIdentity(visit.cityName) === cityIdentity(city.name)),
               );
+              const recordedVisit = cityVisits[0];
               return (
                 <TouchableOpacity
                   key={city.id}
-                  style={s.sightRow}
+                  style={[s.sightRow, s.cityRow]}
                   onPress={() =>
                     setSelectedCity({
                       id: city.id,
@@ -543,6 +568,7 @@ export default function CountryScreen() {
                       image: cityDetail?.image,
                       description: cityDetail?.description,
                       regionName: recordedVisit?.subcountry,
+                      visits: cityVisits,
                     })
                   }
                   accessibilityRole="button"
@@ -563,7 +589,18 @@ export default function CountryScreen() {
                     </Text>
                     {recordedVisit ? (
                       <Text style={s.collectionDetail}>
-                        {recordedVisit.places.filter((place) => place.type === "sight").length} sights · {recordedVisit.places.filter((place) => place.type === "airport").length} airports
+                        {
+                          recordedVisit.places.filter(
+                            (place) => place.type === "sight",
+                          ).length
+                        }{" "}
+                        sights ·{" "}
+                        {
+                          recordedVisit.places.filter(
+                            (place) => place.type === "airport",
+                          ).length
+                        }{" "}
+                        airports
                       </Text>
                     ) : null}
                   </View>
@@ -596,89 +633,140 @@ export default function CountryScreen() {
           />
         </TouchableOpacity>
       </ScrollView>
-      <Modal
-        visible={selectedSight !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setSelectedSight(null)}
-      >
-        <View style={s.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedSight(null)}
-            accessibilityLabel="Close sight details"
-          />
-          {selectedSight ? (
-            <View style={s.sightModal}>
-              <ResolvedPlaceImage
-                initialUri={selectedSight.image}
-                placeName={selectedSight.name}
-                cityName={selectedSight.city}
-                countryName={name}
-                style={s.modalImage}
-                contentFit="cover"
-              />
-              <Text style={s.modalTitle}>{selectedSight.name}</Text>
-              <Text style={s.modalLocation}>{selectedSight.city}</Text>
-              <Text style={s.modalDescription}>
-                {selectedSight.description ||
-                  "A famous attraction ready to explore."}
+      {selectedSight ? (
+        <DetailModal
+          visible
+          title={selectedSight.name}
+          location={selectedSight.city}
+          description={
+            selectedSight.description || "A famous attraction ready to explore."
+          }
+          image={
+            <ResolvedPlaceImage
+              initialUri={selectedSight.image}
+              placeName={selectedSight.name}
+              cityName={selectedSight.city}
+              countryName={name}
+              style={s.modalImage}
+              contentFit="cover"
+            />
+          }
+          onClose={() => setSelectedSight(null)}
+        />
+      ) : null}
+      {selectedCollectionItem ? (
+        <DetailModal
+          visible
+          title={selectedCollectionItem.place.name}
+          location={`${selectedCollectionItem.collection.title} · ${
+            selectedCollectionItem.place.city || name
+          }`}
+          description={
+            selectedCollectionItem.place.content ||
+            selectedCollectionItem.place.detail ||
+            `A memorable place in ${selectedCollectionItem.collection.title}.`
+          }
+          image={
+            <ProgressivePlaceImage
+              uri={
+                selectedCollectionItem.place.imageUrl ||
+                selectedCollectionItem.collection.imageUrl
+              }
+              style={s.modalImage}
+              contentFit="cover"
+            />
+          }
+          locked={selectedCollectionLocked}
+          unlockContent={
+            <UpgradeBanner
+              count={1}
+              active={subscription.isKrooPlus}
+              configured={subscription.configured}
+              text="Unlock this collection with Kroo+"
+              onCustomerInfo={(customerInfo) =>
+                dispatch(
+                  subscriptionUpdated({
+                    configured: true,
+                    isKrooPlus: customerHasKrooPlus(customerInfo),
+                  }),
+                )
+              }
+            />
+          }
+          onClose={() => setSelectedCollectionItem(null)}
+        />
+      ) : null}
+      {selectedCity ? (
+        <DetailModal
+          visible
+          title={selectedCity.name}
+          location={[selectedCity.regionName, name].filter(Boolean).join(", ")}
+          description={
+            selectedCity.description || `A city you visited in ${name}.`
+          }
+          image={
+            <ResolvedPlaceImage
+              initialUri={selectedCity.image}
+              placeName={selectedCity.name}
+              cityName={selectedCity.name}
+              countryName={name}
+              style={s.modalImage}
+              contentFit="cover"
+            />
+          }
+          onClose={() => setSelectedCity(null)}
+        >
+          <View style={s.visitRecordCard}>
+            <Text style={s.visitRecordTitle}>
+              {selectedCity.visits.length === 1
+                ? "My Visit Record"
+                : "My Visit Records"}
+            </Text>
+            {selectedCity.visits.length ? (
+              selectedCity.visits.slice(0, 3).map((visit) => (
+                <View key={visit.id} style={s.visitRecordItem}>
+                  <View style={s.visitRecordRow}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={16}
+                      color={BrandColors.copper}
+                    />
+                    <Text style={s.visitRecordText}>{visit.visitedAt}</Text>
+                  </View>
+                  {visit.note ? (
+                    <View style={s.visitRecordRow}>
+                      <Ionicons
+                        name="document-text-outline"
+                        size={16}
+                        color={BrandColors.copper}
+                      />
+                      <Text style={s.visitRecordText}>{visit.note}</Text>
+                    </View>
+                  ) : null}
+                  {visit.places.map((place) => (
+                    <View key={`${visit.id}-${place.id}`} style={s.visitRecordRow}>
+                      <Ionicons
+                        name={
+                          place.type === "airport"
+                            ? "airplane-outline"
+                            : "camera-outline"
+                        }
+                        size={16}
+                        color={BrandColors.copper}
+                      />
+                      <Text style={s.visitRecordText}>{place.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))
+            ) : (
+              <Text style={s.visitRecordEmpty}>
+                No visit details are saved for this city yet.
               </Text>
-              <TouchableOpacity
-                style={s.modalClose}
-                onPress={() => setSelectedSight(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={30} color={BrandColors.copper} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
-      <Modal
-        visible={selectedCity !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setSelectedCity(null)}
-      >
-        <View style={s.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedCity(null)}
-            accessibilityLabel="Close city details"
-          />
-          {selectedCity ? (
-            <View style={s.sightModal} accessibilityViewIsModal>
-              <ResolvedPlaceImage
-                initialUri={selectedCity.image}
-                placeName={selectedCity.name}
-                cityName={selectedCity.name}
-                countryName={name}
-                style={s.modalImage}
-                contentFit="cover"
-              />
-              <Text style={s.modalTitle}>{selectedCity.name}</Text>
-              <Text style={s.modalLocation}>
-                {[selectedCity.regionName, name].filter(Boolean).join(", ")}
-              </Text>
-              <Text style={s.modalDescription}>
-                {selectedCity.description || `A city you visited in ${name}.`}
-              </Text>
-              <TouchableOpacity
-                style={s.modalClose}
-                onPress={() => setSelectedCity(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={30} color={BrandColors.copper} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
+            )}
+          </View>
+        </DetailModal>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -962,10 +1050,15 @@ const s = StyleSheet.create({
     maxHeight: 372,
     marginHorizontal: 16,
   },
+  cityRow: {
+    minHeight: 50,
+    gap: 9,
+    paddingVertical: 2,
+  },
   cityImageFrame: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -991,65 +1084,49 @@ const s = StyleSheet.create({
     lineHeight: 18,
     color: BrandColors.onDarkMuted,
   },
-  modalOverlay: {
-    flex: 1,
-    paddingHorizontal: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(3,29,20,.78)",
-  },
-  sightModal: {
-    width: "100%",
-    maxWidth: 390,
-    padding: 18,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.greenPanel,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
-  },
   modalImage: {
     width: "100%",
     height: 190,
     borderRadius: 16,
     backgroundColor: BrandColors.greenDeep,
   },
-  modalTitle: {
+  visitRecordCard: {
+    width: "100%",
     marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,.35)",
+  },
+  visitRecordTitle: {
+    marginBottom: 8,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(25),
-    textAlign: "center",
+    fontSize: responsiveFontSize(15),
     color: BrandColors.copper,
   },
-  modalLocation: {
-    marginTop: 5,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.onDarkMuted,
+  visitRecordItem: {
+    paddingVertical: 7,
+    gap: 5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BrandColors.paleGreen,
   },
-  modalDescription: {
-    marginTop: 13,
+  visitRecordRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 7,
+  },
+  visitRecordText: {
+    flex: 1,
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(15),
-    lineHeight: 22,
-    textAlign: "center",
+    fontSize: responsiveFontSize(13),
+    lineHeight: 18,
     color: BrandColors.onDark,
   },
-  modalClose: {
-    width: 48,
-    height: 48,
-    marginTop: 16,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.greenDeep,
+  visitRecordEmpty: {
+    fontFamily: "Lora_400Regular_Italic",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDarkMuted,
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",

@@ -1035,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   createSecondaryText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
+    fontSize: responsiveFontSize(10),
     letterSpacing: 0.6,
     color: BrandColors.green,
   },

@@ -1,5 +1,11 @@
 import "@/services/arrival-monitoring";
 import {
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+  Fraunces_800ExtraBold,
+} from "@expo-google-fonts/fraunces";
+import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
+import {
   Lora_400Regular,
   Lora_400Regular_Italic,
   Lora_500Medium,
@@ -7,15 +13,6 @@ import {
   Lora_700Bold,
   useFonts,
 } from "@expo-google-fonts/lora";
-import {
-  Fraunces_600SemiBold,
-  Fraunces_700Bold,
-  Fraunces_800ExtraBold,
-} from "@expo-google-fonts/fraunces";
-import {
-  Inter_400Regular,
-  Inter_600SemiBold,
-} from "@expo-google-fonts/inter";
 import { Roboto_900Black } from "@expo-google-fonts/roboto";
 import { Rye_400Regular } from "@expo-google-fonts/rye";
 import {

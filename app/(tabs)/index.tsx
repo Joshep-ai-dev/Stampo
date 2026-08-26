@@ -30,7 +30,15 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { G, Path, Text as SvgText } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Mask,
+  Path,
+  Rect,
+  Text as SvgText,
+} from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
@@ -200,6 +208,91 @@ function CountryMapLabel({
         {country.name}
       </SvgText>
     </G>
+  );
+}
+
+const SCORE_DISTRESS = [
+  [12, 14, 1.4],
+  [20, 35, 1],
+  [28, 21, 1.8],
+  [35, 45, 1.3],
+  [43, 12, 1],
+  [49, 31, 1.7],
+  [57, 48, 1.1],
+  [64, 18, 1.5],
+  [72, 38, 1],
+  [80, 10, 1.3],
+  [88, 27, 1.8],
+  [98, 44, 1.2],
+  [106, 19, 1],
+  [16, 51, 0.8],
+  [39, 27, 0.7],
+  [68, 52, 0.9],
+  [9, 28, 0.8],
+  [15, 43, 1.7],
+  [24, 11, 0.7],
+  [31, 33, 1.1],
+  [38, 17, 1.5],
+  [45, 51, 0.8],
+  [52, 22, 1.2],
+  [59, 39, 1.9],
+  [67, 8, 0.8],
+  [74, 25, 1.4],
+  [82, 49, 1.6],
+  [91, 15, 0.9],
+  [96, 33, 1.5],
+  [104, 51, 0.8],
+  [109, 36, 1.2],
+  [54, 10, 0.7],
+] as const;
+
+function StampedScore({ value }: { value: number }) {
+  const label = value.toFixed(1);
+  return (
+    <View
+      style={styles.score}
+      accessible
+      accessibilityLabel={`Kroo Score ${label}`}
+    >
+      <Svg width="100%" height="100%" viewBox="0 0 112 58">
+        <Defs>
+          <Mask id="score-stamp-mask">
+            <Rect width="112" height="58" fill="black" />
+            <SvgText
+              x="56"
+              y="47"
+              fill="white"
+              fontFamily="Lora_600SemiBold"
+              fontSize="46"
+              textAnchor="middle"
+            >
+              {label}
+            </SvgText>
+            {SCORE_DISTRESS.map(([cx, cy, radius], index) => (
+              <Circle
+                key={`${cx}-${cy}-${index}`}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill="black"
+                opacity={index % 3 === 0 ? 0.8 : 1}
+              />
+            ))}
+            <Path d="M10 24l17-3 8 1" stroke="black" strokeWidth="1.2" />
+            <Path d="M43 40l13-2 10 1" stroke="black" strokeWidth="1" />
+            <Path d="M76 30l21-4 9 2" stroke="black" strokeWidth="1.4" />
+            <Path d="M23 48l10-2 6 .8" stroke="black" strokeWidth="0.8" />
+          </Mask>
+        </Defs>
+        <Rect
+          width="112"
+          height="58"
+          fill={BrandColors.copper}
+          opacity={0.92}
+          mask="url(#score-stamp-mask)"
+        />
+      </Svg>
+    </View>
   );
 }
 
@@ -403,15 +496,13 @@ function WorldMap({
       const baseX =
         mapCanvasWidth / 2 +
         (screenX - mapCanvasWidth / 2 - committedOffset.x) / zoomLevel;
-      const baseY =
-        125 + (screenY - 125 - committedOffset.y) / zoomLevel;
+      const baseY = 125 + (screenY - 125 - committedOffset.y) / zoomLevel;
       const mapX = (baseX - fittedOffsetX) / fittedScale;
       const mapY = (baseY - fittedOffsetY) / fittedScale;
-      const country = countriesOnMap.find(
-        (candidate) =>
-          candidate.polygons.some((polygon) =>
-            polygonContainsPoint(polygon, mapX, mapY),
-          ),
+      const country = countriesOnMap.find((candidate) =>
+        candidate.polygons.some((polygon) =>
+          polygonContainsPoint(polygon, mapX, mapY),
+        ),
       );
       if (country) setSelectedCountry(country);
     },
@@ -1011,7 +1102,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.scoreCard}>
           <View style={styles.scoreLine}>
-            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+            <StampedScore value={Number(score)} />
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
@@ -1219,14 +1310,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   score: {
-    fontFamily: "Rye_400Regular",
-    fontSize: responsiveFontSize(48),
-    lineHeight: 58,
     width: 112,
-    color: BrandColors.copper,
-    includeFontPadding: false,
-    textAlign: "center",
-    opacity: 0.92,
+    height: 58,
   },
   scoreDetails: { flex: 1 },
   scoreTitle: {
@@ -1248,7 +1333,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
-    marginTop: -3,
+    marginTop: 0,
     justifyContent: "center",
   },
   infoButtonText: {
