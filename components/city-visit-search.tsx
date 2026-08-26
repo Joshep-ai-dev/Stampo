@@ -141,14 +141,13 @@ export function CityVisitSearch({
       if (isSignedIn) dispatch(visitReceived(await api.createVisit(visit)));
       else dispatch(visitAdded(visit));
       void dispatch(fetchHomeDashboard());
-    } catch (error) {
+    } catch {
+      // Keep the same functionality when the account is temporarily offline.
+      dispatch(visitAdded(visit));
       Alert.alert(
-        "Visit not saved",
-        error instanceof Error
-          ? error.message
-          : "The server could not save this visit. Please try again.",
+        "Saved on this device",
+        "Kroo will sync this visit with your account when the server is available.",
       );
-      return;
     }
     closeModal();
     setQuery("");
@@ -165,13 +164,10 @@ export function CityVisitSearch({
     }
     try {
       await api.setWishlist(selectedWishlistId, true);
-    } catch (error) {
-      dispatch(wishlistToggled(selectedWishlistId));
+    } catch {
       Alert.alert(
-        "Wishlist not updated",
-        error instanceof Error
-          ? error.message
-          : "The server could not save this city. Please try again.",
+        "Saved on this device",
+        "Kroo will sync your wishlist when the server is available.",
       );
     } finally {
       setWishlistPending(false);

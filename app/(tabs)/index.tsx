@@ -710,6 +710,7 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
   const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
+  const wishlistIds = useAppSelector((x) => x.travel.wishlistIds);
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
@@ -777,8 +778,8 @@ export default function HomeScreen() {
   }, [isKrooPlus, locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
-      api.listVisits(),
-      api.travelState(),
+      api.syncVisits(visits),
+      api.syncTravelState({ completedSightIds, wishlistIds }),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));
@@ -786,7 +787,7 @@ export default function HomeScreen() {
     if (travelStateResult.status === "fulfilled") {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
-  }, [dispatch]);
+  }, [completedSightIds, dispatch, visits, wishlistIds]);
   useFocusEffect(
     useCallback(() => {
       if (!isSignedIn) return;

@@ -135,9 +135,7 @@ export default function CountryScreen() {
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
     } catch {
-      dispatch(sightCompletionSet({ id: sightId, completed }));
-      dispatch(countrySightCompletionSet({ code, sightId, completed }));
-      Alert.alert("Could not update sight", "Please try again.");
+      Alert.alert("Saved on this device", "Kroo will sync this sight when the server is available.");
     }
   };
 
@@ -158,17 +156,13 @@ export default function CountryScreen() {
       targetIds.map((id) => api.setSightCompleted(id, next)),
     );
     let failed = false;
-    let failureMessage = "Please try again.";
-    results.forEach((result, index) => {
+    results.forEach((result) => {
       if (result.status === "rejected") {
         failed = true;
-        if (result.reason instanceof Error)
-          failureMessage = result.reason.message;
-        dispatch(sightCompletionSet({ id: targetIds[index], completed }));
       }
     });
     if (failed) {
-      Alert.alert("Could not update collection", failureMessage);
+      Alert.alert("Saved on this device", "Kroo will sync this collection when the server is available.");
     }
     if (results.some((result) => result.status === "fulfilled")) {
       void api

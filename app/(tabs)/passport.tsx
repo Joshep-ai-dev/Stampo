@@ -400,7 +400,7 @@ function IdentityPage({
             >{`P<${(draft.name || "TRAVELLER").toUpperCase().replace(/\s/g, "<")}<<<<<<<<`}</Text>
             <Text
               style={styles.machineCode}
-            >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<<`}</Text>
+            >{`${krooNumber.replace(/-/g, "")}<<<<<<<<<<`}</Text>
           </>
         ) : (
           <ScrollView

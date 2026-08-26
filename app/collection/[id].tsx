@@ -121,11 +121,10 @@ export default function CollectionScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-    } catch (error) {
-      dispatch(sightCompletionSet({ id: targetId, completed: !next }));
+    } catch {
       Alert.alert(
-        "Could not update collection",
-        error instanceof Error ? error.message : "Please try again.",
+        "Saved on this device",
+        "Kroo will sync this collection when the server is available.",
       );
     }
   };
@@ -161,10 +160,9 @@ export default function CollectionScreen() {
     try {
       await api.setWishlist(wishlistId, next);
     } catch {
-      dispatch(wishlistToggled(wishlistId));
       Alert.alert(
-        "Could not update wishlist",
-        "Please check your connection and try again.",
+        "Saved on this device",
+        "Kroo will sync your wishlist when the server is available.",
       );
     } finally {
       setWishlistPending(false);
