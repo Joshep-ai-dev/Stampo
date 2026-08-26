@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -73,17 +74,25 @@ export default function CollectionScreen() {
     let active = true;
     setCollection(null);
     setCollectionLoading(true);
-    void api
-      .collectionDetail(id)
-      .then((item) => {
-        if (!active) return;
-        setCollection({
+    const cacheKey = `kroo.collection.${id}.v1`;
+    const applyCollection = (item: Awaited<ReturnType<typeof api.collectionDetail>>) => {
+      if (!active) return;
+      setCollection({
           id: item.id,
           title: item.title,
           subtitle: item.description || item.detail,
           imageUrl: item.imageUrl,
           places: item.places,
-        });
+      });
+    };
+    void AsyncStorage.getItem(cacheKey).then((cached) => {
+      if (cached && active) applyCollection(JSON.parse(cached));
+    }).catch(() => undefined);
+    void api
+      .collectionDetail(id)
+      .then((item) => {
+        applyCollection(item);
+        void AsyncStorage.setItem(cacheKey, JSON.stringify(item));
       })
       .catch(() => undefined)
       .finally(() => {

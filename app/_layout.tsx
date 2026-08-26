@@ -17,6 +17,7 @@ import {
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
 import { Roboto_900Black } from "@expo-google-fonts/roboto";
+import { Rye_400Regular } from "@expo-google-fonts/rye";
 import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
@@ -49,6 +50,7 @@ export default function RootLayout() {
     Inter_400Regular,
     Inter_600SemiBold,
     Roboto_900Black,
+    Rye_400Regular,
     SpaceMono_400Regular,
     SpaceMono_700Bold,
   });

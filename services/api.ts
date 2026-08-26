@@ -107,6 +107,18 @@ export type HomeDashboard = {
   updatedAt: string;
 };
 
+export type CatalogCitySearchResult = {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  continentCode: string;
+  subcountry: string;
+  latitude?: number;
+  longitude?: number;
+  population?: number;
+};
+
 export type TravelStateResponse = {
   completedSightIds: string[];
   wishlistIds: string[];
@@ -378,6 +390,10 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
 
 export const api = {
   countryDetail,
+  searchCities: (query: string, limit = 20) =>
+    request<CatalogCitySearchResult[]>(
+      `/cities?query=${encodeURIComponent(query)}&limit=${limit}`,
+    ),
   cityDetail: (id: string) =>
     request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(
       normalizeCity,

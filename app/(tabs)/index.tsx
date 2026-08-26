@@ -76,6 +76,7 @@ type MapCountry = {
   centerY: number;
   width: number;
   height: number;
+  polygons: { x: number; y: number }[][];
 };
 
 type CurrentMapLocation = {
@@ -221,9 +222,11 @@ function relativePathBounds(path: string) {
   let currentPolygon: { x: number; y: number }[] = [];
   let largestPolygon: { x: number; y: number }[] = [];
   let largestArea = 0;
+  const polygons: { x: number; y: number }[][] = [];
 
   const finishPolygon = () => {
     if (currentPolygon.length < 3) return;
+    polygons.push(currentPolygon);
     let twiceArea = 0;
     for (
       let pointIndex = 0;
@@ -299,7 +302,31 @@ function relativePathBounds(path: string) {
       centerY = weightedY / (3 * twiceArea);
     }
   }
-  return { minX, minY, maxX, maxY, centerX, centerY };
+  return { minX, minY, maxX, maxY, centerX, centerY, polygons };
+}
+
+function polygonContainsPoint(
+  polygon: { x: number; y: number }[],
+  pointX: number,
+  pointY: number,
+) {
+  let inside = false;
+  for (
+    let currentIndex = 0, previousIndex = polygon.length - 1;
+    currentIndex < polygon.length;
+    previousIndex = currentIndex, currentIndex += 1
+  ) {
+    const current = polygon[currentIndex];
+    const previous = polygon[previousIndex];
+    const crossesRay =
+      current.y > pointY !== previous.y > pointY &&
+      pointX <
+        ((previous.x - current.x) * (pointY - current.y)) /
+          (previous.y - current.y) +
+          current.x;
+    if (crossesRay) inside = !inside;
+  }
+  return inside;
 }
 
 function getBundledMapCountries(): MapCountry[] {
@@ -321,6 +348,7 @@ function getBundledMapCountries(): MapCountry[] {
           centerY: bounds.centerY,
           width: bounds.maxX - bounds.minX,
           height: bounds.maxY - bounds.minY,
+          polygons: bounds.polygons,
         },
       ];
     },
@@ -363,6 +391,55 @@ function WorldMap({
       setCommittedOffset({ x, y });
     },
     [],
+  );
+  const selectCountryAt = useCallback(
+    (screenX: number, screenY: number) => {
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
+      const fittedOffsetX = (mapCanvasWidth - MAP_WIDTH * fittedScale) / 2;
+      const fittedOffsetY = (250 - MAP_HEIGHT * fittedScale) / 2;
+      const baseX =
+        mapCanvasWidth / 2 +
+        (screenX - mapCanvasWidth / 2 - committedOffset.x) / zoomLevel;
+      const baseY =
+        125 + (screenY - 125 - committedOffset.y) / zoomLevel;
+      const mapX = (baseX - fittedOffsetX) / fittedScale;
+      const mapY = (baseY - fittedOffsetY) / fittedScale;
+      const country = countriesOnMap.find(
+        (candidate) =>
+          candidate.polygons.some((polygon) =>
+            polygonContainsPoint(polygon, mapX, mapY),
+          ),
+      );
+      if (country) setSelectedCountry(country);
+    },
+    [committedOffset, countriesOnMap, mapCanvasWidth, zoomLevel],
+  );
+  const setMapZoom = useCallback(
+    (nextScale: number) => {
+      const clampedScale = Math.min(20, Math.max(1, nextScale));
+      const reset = clampedScale === 1;
+      const nextX = reset ? 0 : savedTranslateX.value;
+      const nextY = reset ? 0 : savedTranslateY.value;
+      scale.value = clampedScale;
+      savedScale.value = clampedScale;
+      translateX.value = nextX;
+      translateY.value = nextY;
+      savedTranslateX.value = nextX;
+      savedTranslateY.value = nextY;
+      commitMapTransform(clampedScale, nextX, nextY);
+    },
+    [
+      commitMapTransform,
+      savedScale,
+      savedTranslateX,
+      savedTranslateY,
+      scale,
+      translateX,
+      translateY,
+    ],
   );
 
   const pinchGesture = Gesture.Pinch()
@@ -416,6 +493,7 @@ function WorldMap({
   const panGesture = Gesture.Pan()
     .minPointers(1)
     .maxPointers(1)
+    .minDistance(8)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
       const maxX = Math.max(
@@ -453,10 +531,17 @@ function WorldMap({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
     });
+  const countryTapGesture = Gesture.Tap()
+    .numberOfTaps(1)
+    .maxDistance(8)
+    .onEnd((event, successful) => {
+      if (successful) runOnJS(selectCountryAt)(event.x, event.y);
+    });
   const mapGesture = Gesture.Simultaneous(
     Gesture.Native(),
     Gesture.Exclusive(
       resetGesture,
+      countryTapGesture,
       Gesture.Simultaneous(pinchGesture, panGesture),
     ),
   );
@@ -609,6 +694,24 @@ function WorldMap({
           translateY={translateY}
         />
       ) : null}
+      <View style={styles.mapControls}>
+        <TouchableOpacity
+          style={styles.mapControlButton}
+          onPress={() => setMapZoom(zoomLevel * 1.7)}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom map in"
+        >
+          <Ionicons name="add" size={22} color={BrandColors.onDark} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.mapControlButton}
+          onPress={() => setMapZoom(zoomLevel / 1.7)}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom map out"
+        >
+          <Ionicons name="remove" size={22} color={BrandColors.onDark} />
+        </TouchableOpacity>
+      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -908,9 +1011,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.scoreCard}>
           <View style={styles.scoreLine}>
-            <View style={styles.scoreStamp}>
-              <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
-            </View>
+            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
@@ -1118,21 +1219,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   score: {
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(42),
-    lineHeight: 52,
-    minWidth: 82,
-    color: BrandColors.onDark,
+    fontFamily: "Rye_400Regular",
+    fontSize: responsiveFontSize(48),
+    lineHeight: 58,
+    width: 112,
+    color: BrandColors.copper,
     includeFontPadding: false,
     textAlign: "center",
-  },
-  scoreStamp: {
-    minWidth: 96,
-    paddingHorizontal: 5,
-    borderWidth: 2,
-    borderColor: "rgba(201,124,84,.72)",
-    borderRadius: 7,
-    transform: [{ rotate: "-2deg" }],
     opacity: 0.92,
   },
   scoreDetails: { flex: 1 },
@@ -1149,12 +1242,13 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   infoButton: {
-    width: 11,
-    height: 11,
+    width: 12,
+    height: 12,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
+    marginTop: -3,
     justifyContent: "center",
   },
   infoButtonText: {
@@ -1261,6 +1355,23 @@ const styles = StyleSheet.create({
   zoomableMap: {
     width: "100%",
     height: "100%",
+  },
+  mapControls: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    zIndex: 8,
+    gap: 6,
+  },
+  mapControlButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: "rgba(0, 40, 29, 0.92)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   currentPositionPin: {
     position: "absolute",

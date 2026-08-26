@@ -33,6 +33,17 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
                 <Text style={styles.total}>/{item.total}</Text>
               ) : null}
             </View>
+            {item.onInfo ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`About ${item.label.toLowerCase()}`}
+                hitSlop={8}
+                style={[styles.infoButton, { margin: 4 }]}
+                onPress={item.onInfo}
+              >
+                <Text style={styles.infoText}>i</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
           <View style={styles.labelRow}>
             <Text
@@ -43,17 +54,6 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
             >
               {item.label}
             </Text>
-            {item.onInfo ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`About ${item.label.toLowerCase()}`}
-                hitSlop={8}
-                style={styles.infoButton}
-                onPress={item.onInfo}
-              >
-                <Text style={styles.infoText}>i</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
       ))}
@@ -109,6 +109,8 @@ const styles = StyleSheet.create({
     borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: -3,
+    transform: [{ translateY: -9 }],
   },
   infoText: {
     marginTop: -1,

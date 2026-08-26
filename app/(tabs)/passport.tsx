@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   },
   passwordButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(7),
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.4,
     color: BrandColors.white,
   },

@@ -90,11 +90,52 @@ export default function CountryScreen() {
     ? []
     : sights.slice(freeSightLimit);
   const visibleSights = subscription.isKrooPlus ? sights : freeSights;
-  const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
+  const countryVisits = allVisits.filter(
+    (visit) => visit.countryCode.toUpperCase() === normalizedCode,
+  );
+  const visitedCityMap = new Map(
+    (detail?.visitedCities ?? []).map((city) => [city.id, city]),
+  );
+  countryVisits.forEach((visit) =>
+    visitedCityMap.set(visit.cityId, { id: visit.cityId, name: visit.cityName }),
+  );
+  const visitedCities = [...visitedCityMap.values()].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
+  );
+  const localSightIds = new Set(
+    countryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
+  );
+  sights.forEach((sight) => {
+    if (completedSightIds.includes(sight.id)) localSightIds.add(sight.id);
+  });
+  const localAirportIds = new Set(
+    countryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
+        .map((place) => place.id || place.name),
+    ),
+  );
+  const displayedStats = {
+    cities: Math.max(detail?.stats.cities ?? 0, visitedCities.length),
+    sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
+    airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
+  };
+  const lockedCollectionPlaceCount = countryCollections.reduce(
+    (count, collection) =>
+      count +
+      collection.places.filter(
+        (place) =>
+          place.country?.toLocaleLowerCase() === name.toLocaleLowerCase() &&
+          (place.access === "pro" || place.isPremium === true),
+      ).length,
+    0,
   );
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
@@ -239,17 +280,17 @@ export default function CountryScreen() {
             items={[
               {
                 icon: "business-outline",
-                value: detail?.stats.cities ?? 0,
+                value: displayedStats.cities,
                 label: "CITIES",
               },
               {
                 icon: "camera-outline",
-                value: detail?.stats.sights ?? 0,
+                value: displayedStats.sights,
                 label: "SIGHTS",
               },
               {
                 icon: "airplane-outline",
-                value: detail?.stats.airports ?? 0,
+                value: displayedStats.airports,
                 label: "AIRPORTS",
               },
             ]}
@@ -382,6 +423,22 @@ export default function CountryScreen() {
         )}
 
         <SectionTitle>Collections</SectionTitle>
+        {!subscription.isKrooPlus && lockedCollectionPlaceCount > 0 ? (
+          <UpgradeBanner
+            count={lockedCollectionPlaceCount}
+            active={subscription.isKrooPlus}
+            configured={subscription.configured}
+            text="Unlock Kroo+ collection locations"
+            onCustomerInfo={(customerInfo) =>
+              dispatch(
+                subscriptionUpdated({
+                  configured: true,
+                  isKrooPlus: customerHasKrooPlus(customerInfo),
+                }),
+              )
+            }
+          />
+        ) : null}
         {countryCollections.length ? (
           <View style={s.collectionList}>
             {countryCollections.map((collection) => {
@@ -500,9 +557,16 @@ export default function CountryScreen() {
                     latitude={cityDetail?.latitude}
                     longitude={cityDetail?.longitude}
                   />
-                  <Text numberOfLines={1} style={s.sightName}>
-                    {city.name}
-                  </Text>
+                  <View style={s.collectionText}>
+                    <Text numberOfLines={1} style={s.sightName}>
+                      {city.name}
+                    </Text>
+                    {recordedVisit ? (
+                      <Text style={s.collectionDetail}>
+                        {recordedVisit.places.filter((place) => place.type === "sight").length} sights · {recordedVisit.places.filter((place) => place.type === "airport").length} airports
+                      </Text>
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               );
             })

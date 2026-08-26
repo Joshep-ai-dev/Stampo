@@ -21,7 +21,7 @@ import {
 import { BrandColors } from "@/constants/theme";
 
 import { CityRecord, getCities, searchCities } from "@/data/cities";
-import { api } from "@/services/api";
+import { api, type CatalogCitySearchResult } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -55,6 +55,14 @@ function today() {
   const date = new Date();
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
+  return {
+    ...city,
+    subcountry: city.subcountry ?? "",
+    searchText: `${city.name} ${city.country} ${city.subcountry ?? ""} ${city.countryCode}`.toLocaleLowerCase(),
+  };
 }
 
 export function CityVisitSearch({
@@ -103,7 +111,17 @@ export function CityVisitSearch({
               )
               .sort((left, right) => left.name.localeCompare(right.name))
               .slice(0, 40)
-          : await searchCities(normalizedQuery);
+          : await Promise.all([
+              api.searchCities(normalizedQuery, 30).catch(() => []),
+              searchCities(normalizedQuery).catch(() => []),
+            ]).then(([remote, local]) => {
+              const merged = new Map<string, CityRecord>();
+              [...remote.map(remoteCityToRecord), ...local].forEach((city) => {
+                const key = `${city.countryCode}|${city.name}|${city.subcountry}`.toLocaleLowerCase();
+                if (!merged.has(key)) merged.set(key, city);
+              });
+              return [...merged.values()].slice(0, 40);
+            });
         if (active) setResults(matches);
       } finally {
         if (active) setLoading(false);
