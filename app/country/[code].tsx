@@ -178,9 +178,11 @@ export default function CountryScreen() {
       );
   const lockedCollectionItems = subscription.isKrooPlus
     ? []
-    : countryCollectionItems.filter(
-        ({ place }) => place.access === "pro" || place.isPremium === true,
-      ).slice(0, 3);
+    : countryCollectionItems
+        .filter(
+          ({ place }) => place.access === "pro" || place.isPremium === true,
+        )
+        .slice(0, 3);
   const orderedCollectionItems = [
     ...freeCollectionItems,
     ...lockedCollectionItems,
@@ -361,7 +363,14 @@ export default function CountryScreen() {
         </View>
 
         <View style={s.stampHero}>
-          {stamp ? (
+          {detail?.country.coverImage ? (
+            <Image
+              source={{ uri: detail.country.coverImage }}
+              style={s.countryHeroImage}
+              contentFit="cover"
+              contentPosition="center"
+            />
+          ) : stamp ? (
             <Image
               source={stamp}
               style={s.stampImage}
@@ -554,54 +563,56 @@ export default function CountryScreen() {
                     />
                   ) : null}
                   <TouchableOpacity
-                  key={`${collection.id}-${place.id}`}
-                  style={[s.sightRow, locked && s.lockedSightRow]}
-                  activeOpacity={0.82}
-                  onPress={() =>
-                    setSelectedCollectionItem({ collection, place })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${place.name} from ${collection.title}`}
-                >
-                  <View style={s.collectionImageFrame}>
-                    <ProgressivePlaceImage
-                      uri={place.imageUrl || collection.imageUrl}
-                      style={s.collectionImage}
-                      contentFit="cover"
-                      blurRadius={locked ? 32 : undefined}
-                    />
-                  </View>
-                  <View style={s.collectionText}>
-                    <Text
-                      style={[s.collectionTitle, locked && s.lockedSightName]}
-                      numberOfLines={1}
-                    >
-                      {place.name}
-                    </Text>
-                    <Text style={s.collectionDetail} numberOfLines={1}>
-                      {collection.title}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
+                    key={`${collection.id}-${place.id}`}
+                    style={[s.sightRow, locked && s.lockedSightRow]}
+                    activeOpacity={0.82}
                     onPress={() =>
-                      void toggleCollectionPlaces(
-                        collection.id,
-                        [place.id],
-                        completed,
-                      )
+                      setSelectedCollectionItem({ collection, place })
                     }
-                    hitSlop={10}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: completed }}
-                    disabled={locked}
-                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${place.name}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${place.name} from ${collection.title}`}
                   >
-                    <Ionicons
-                      name={completed ? "checkmark-circle" : "ellipse-outline"}
-                      size={28}
-                      color="#57D5A0"
-                    />
-                  </TouchableOpacity>
+                    <View style={s.collectionImageFrame}>
+                      <ProgressivePlaceImage
+                        uri={place.imageUrl || collection.imageUrl}
+                        style={s.collectionImage}
+                        contentFit="cover"
+                        blurRadius={locked ? 32 : undefined}
+                      />
+                    </View>
+                    <View style={s.collectionText}>
+                      <Text
+                        style={[s.collectionTitle, locked && s.lockedSightName]}
+                        numberOfLines={1}
+                      >
+                        {place.name}
+                      </Text>
+                      <Text style={s.collectionDetail} numberOfLines={1}>
+                        {collection.title}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() =>
+                        void toggleCollectionPlaces(
+                          collection.id,
+                          [place.id],
+                          completed,
+                        )
+                      }
+                      hitSlop={10}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: completed }}
+                      disabled={locked}
+                      accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${place.name}`}
+                    >
+                      <Ionicons
+                        name={
+                          completed ? "checkmark-circle" : "ellipse-outline"
+                        }
+                        size={28}
+                        color="#57D5A0"
+                      />
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 </Fragment>
               );
@@ -1061,6 +1072,10 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
     transform: [{ scale: 1.2 }],
+  },
+  countryHeroImage: {
+    width: "100%",
+    height: "100%",
   },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {

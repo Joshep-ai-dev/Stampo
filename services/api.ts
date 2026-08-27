@@ -377,6 +377,10 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
     }
     return {
       ...result,
+      country: {
+        ...result.country,
+        coverImage: backendImageUrl(result.country.coverImage),
+      },
       cities: result.cities.map((item) => normalizeCity(item)),
       sights: result.sights.map((item) => normalizeSight(item)),
       collections: result.collections.map(normalizeCollection),

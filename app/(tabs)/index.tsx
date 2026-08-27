@@ -1271,7 +1271,7 @@ const styles = StyleSheet.create({
   },
   globe: {
     position: "absolute",
-    right: 40,
+    right: 45,
     top: 5,
     width: 210,
     height: 210,
@@ -1577,7 +1577,7 @@ const styles = StyleSheet.create({
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(21),
+    fontSize: responsiveFontSize(18),
     textAlign: "center",
     color: BrandColors.onDark,
   },
