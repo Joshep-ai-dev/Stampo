@@ -2,13 +2,11 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -32,7 +30,6 @@ import { subscriptionUpdated } from "@/store/subscription-slice";
 import {
   sightCompletionSet,
   visitsHydrated,
-  wishlistToggled,
 } from "@/store/travel-slice";
 
 function PlaceImage({
@@ -60,7 +57,6 @@ export default function CollectionScreen() {
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
-  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const subscription = useAppSelector((state) => state.subscription);
   const [collection, setCollection] = useState<CollectionDefinition | null>(
     null,
@@ -69,7 +65,6 @@ export default function CollectionScreen() {
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
-  const [wishlistPending, setWishlistPending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -156,43 +151,6 @@ export default function CollectionScreen() {
     setSelectedPlace(place);
   };
 
-  const wishlistId = `collection:${collection.id}`;
-  const isWishlisted = wishlistIds.includes(wishlistId);
-
-  const toggleWishlist = async () => {
-    if (wishlistPending) return;
-    const next = !isWishlisted;
-    setWishlistPending(true);
-    dispatch(wishlistToggled(wishlistId));
-    if (!isSignedIn) {
-      setWishlistPending(false);
-      return;
-    }
-    try {
-      await api.setWishlist(wishlistId, next);
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync your wishlist when the server is available.",
-      );
-    } finally {
-      setWishlistPending(false);
-    }
-  };
-
-  const shareCollection = async () => {
-    const url = Linking.createURL(`/collection/${collection.id}`);
-    try {
-      await Share.share({
-        title: collection.title,
-        message: `Take a look at ${collection.title} on Kroo:\n${url}`,
-        url,
-      });
-    } catch {
-      Alert.alert("Could not share collection", "Please try again.");
-    }
-  };
-
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content} nestedScrollEnabled>
@@ -207,41 +165,7 @@ export default function CollectionScreen() {
           <Text style={s.title} numberOfLines={2}>
             {collection.title}
           </Text>
-          <View style={s.headerActions}>
-            <TouchableOpacity
-              accessibilityLabel={
-                isWishlisted
-                  ? `Remove ${collection.title} from wishlist`
-                  : `Add ${collection.title} to wishlist`
-              }
-              accessibilityRole="button"
-              accessibilityState={{
-                disabled: wishlistPending,
-                selected: isWishlisted,
-              }}
-              disabled={wishlistPending}
-              style={[s.iconButton, wishlistPending && s.iconButtonDisabled]}
-              onPress={() => void toggleWishlist()}
-            >
-              <Ionicons
-                name={isWishlisted ? "heart" : "heart-outline"}
-                size={22}
-                color={isWishlisted ? BrandColors.copper : BrandColors.onDark}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityLabel={`Share ${collection.title}`}
-              accessibilityRole="button"
-              style={s.iconButton}
-              onPress={() => void shareCollection()}
-            >
-              <Ionicons
-                name="share-outline"
-                size={22}
-                color={BrandColors.onDark}
-              />
-            </TouchableOpacity>
-          </View>
+          <View style={s.headerSpacer} />
         </View>
 
         <View style={s.hero}>
@@ -412,8 +336,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(49,87,73,.56)",
   },
-  headerActions: { flexDirection: "row", gap: 6 },
-  iconButtonDisabled: { opacity: 0.6 },
+  headerSpacer: { width: 42, height: 42 },
   title: {
     flex: 1,
     textAlign: "center",

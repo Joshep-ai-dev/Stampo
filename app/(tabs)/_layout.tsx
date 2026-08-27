@@ -33,7 +33,7 @@ export default function TabLayout() {
         tabBarHideOnKeyboard: true,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: "#49B964",
+        tabBarActiveTintColor: BrandColors.white,
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
           fontSize: responsiveFontSize(11),
@@ -94,7 +94,7 @@ export default function TabLayout() {
         name="community"
         options={{
           title: "Social",
-          tabBarActiveTintColor: "#49B964",
+          tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
             <Icon

@@ -8,7 +8,6 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
-  Share,
   type StyleProp,
   StyleSheet,
   Text,
@@ -347,19 +346,7 @@ export default function CountryScreen() {
           >
             {flag} {name}
           </Text>
-          <TouchableOpacity
-            accessibilityLabel={`Share ${name}`}
-            style={s.iconButton}
-            onPress={() =>
-              void Share.share({ message: `Explore ${name} with Kroo` })
-            }
-          >
-            <Ionicons
-              name="share-outline"
-              size={23}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
+          <View style={s.headerSpacer} />
         </View>
 
         <View style={s.stampHero}>
@@ -1058,6 +1045,7 @@ const s = StyleSheet.create({
     includeFontPadding: false,
     color: BrandColors.copper,
   },
+  headerSpacer: { width: 42, height: 42 },
   stampHero: {
     height: 220,
     marginHorizontal: 14,
