@@ -263,8 +263,8 @@ function StampedScore({ value }: { value: number }) {
         <Rect
           width="112"
           height="58"
-          fill={BrandColors.copper}
-          opacity={0.92}
+          fill={BrandColors.white}
+          opacity={0.96}
           mask="url(#score-stamp-mask)"
         />
       </Svg>
@@ -608,8 +608,8 @@ function WorldMap({
     Gesture.Native(),
     Gesture.Exclusive(
       resetGesture,
-      countryTapGesture,
       Gesture.Simultaneous(pinchGesture, panGesture),
+      countryTapGesture,
     ),
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
@@ -689,6 +689,13 @@ function WorldMap({
     selectedCountryVisits.flatMap((visit) =>
       visit.places
         .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
+  ).size;
+  const selectedAirportCount = new Set(
+    selectedCountryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
         .map((place) => place.id || place.name),
     ),
   ).size;
@@ -839,7 +846,7 @@ function WorldMap({
                 {[
                   { value: selectedCityCount, label: "CITIES" },
                   { value: selectedSightCount, label: "SIGHTS" },
-                  { value: selectedCountryVisits.length, label: "VISITS" },
+                  { value: selectedAirportCount, label: "AIRPORTS" },
                 ].map((stat) => (
                   <View key={stat.label} style={styles.sheetStat}>
                     <Text style={styles.sheetStatValue}>{stat.value}</Text>
@@ -1264,13 +1271,13 @@ const styles = StyleSheet.create({
   },
   globe: {
     position: "absolute",
-    right: 30,
+    right: 40,
     top: 5,
     width: 210,
     height: 210,
     zIndex: 0,
   },
-  globeCompact: { right: 4, width: 185, height: 185 },
+  globeCompact: { right: 14, width: 185, height: 185 },
   scoreCard: {
     marginTop: -24,
     marginHorizontal: 10,
