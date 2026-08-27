@@ -142,13 +142,15 @@ export default function CollectionScreen() {
   const completedCount = collection.places.filter((place) =>
     completedSightIds.includes(`collection-${collection.id}-${place.id}`),
   ).length;
-  const freePlaceLimit = 3;
+  const isPremiumPlace = (place: CollectionPlace) =>
+    place.access === "pro" || place.isPremium === true;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
-    : collection.places.slice(0, freePlaceLimit);
+    : collection.places.filter((place) => !isPremiumPlace(place));
   const premiumPlaces = subscription.isKrooPlus
     ? []
-    : collection.places.slice(freePlaceLimit);
+    : collection.places.filter(isPremiumPlace);
+  const premiumPlacePreviews = premiumPlaces.slice(0, 3);
 
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
@@ -306,7 +308,7 @@ export default function CollectionScreen() {
               }
             />
             <View style={s.lockedList}>
-              {premiumPlaces.map((place) => {
+              {premiumPlacePreviews.map((place) => {
                 const targetId = `collection-${collection.id}-${place.id}`;
                 const checked = completedSightIds.includes(targetId);
                 return (

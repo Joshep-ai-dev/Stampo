@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -171,6 +171,20 @@ export default function CountryScreen() {
   const lockedCollectionPlaceCount = countryCollectionItems.filter(
     ({ place }) => place.access === "pro" || place.isPremium === true,
   ).length;
+  const freeCollectionItems = subscription.isKrooPlus
+    ? countryCollectionItems
+    : countryCollectionItems.filter(
+        ({ place }) => place.access !== "pro" && place.isPremium !== true,
+      );
+  const lockedCollectionItems = subscription.isKrooPlus
+    ? []
+    : countryCollectionItems.filter(
+        ({ place }) => place.access === "pro" || place.isPremium === true,
+      ).slice(0, 3);
+  const orderedCollectionItems = [
+    ...freeCollectionItems,
+    ...lockedCollectionItems,
+  ];
   const selectedCollectionLocked =
     !subscription.isKrooPlus &&
     (selectedCollectionItem?.place.access === "pro" ||
@@ -511,25 +525,9 @@ export default function CountryScreen() {
         )}
 
         <SectionTitle>Collections</SectionTitle>
-        {!subscription.isKrooPlus && lockedCollectionPlaceCount > 0 ? (
-          <UpgradeBanner
-            count={lockedCollectionPlaceCount}
-            active={subscription.isKrooPlus}
-            configured={subscription.configured}
-            text="Unlock Kroo+ collection locations"
-            onCustomerInfo={(customerInfo) =>
-              dispatch(
-                subscriptionUpdated({
-                  configured: true,
-                  isKrooPlus: customerHasKrooPlus(customerInfo),
-                }),
-              )
-            }
-          />
-        ) : null}
         {countryCollectionItems.length ? (
           <View style={s.collectionList}>
-            {countryCollectionItems.map(({ collection, place }) => {
+            {orderedCollectionItems.map(({ collection, place }, index) => {
               const locked =
                 !subscription.isKrooPlus &&
                 (place.access === "pro" || place.isPremium === true);
@@ -537,7 +535,25 @@ export default function CountryScreen() {
                 `collection-${collection.id}-${place.id}`,
               );
               return (
-                <TouchableOpacity
+                <Fragment key={`${collection.id}-${place.id}`}>
+                  {index === freeCollectionItems.length &&
+                  lockedCollectionPlaceCount > 0 ? (
+                    <UpgradeBanner
+                      count={lockedCollectionPlaceCount}
+                      active={subscription.isKrooPlus}
+                      configured={subscription.configured}
+                      text="Unlock Kroo+ collection locations"
+                      onCustomerInfo={(customerInfo) =>
+                        dispatch(
+                          subscriptionUpdated({
+                            configured: true,
+                            isKrooPlus: customerHasKrooPlus(customerInfo),
+                          }),
+                        )
+                      }
+                    />
+                  ) : null}
+                  <TouchableOpacity
                   key={`${collection.id}-${place.id}`}
                   style={[s.sightRow, locked && s.lockedSightRow]}
                   activeOpacity={0.82}
@@ -586,7 +602,8 @@ export default function CountryScreen() {
                       color="#57D5A0"
                     />
                   </TouchableOpacity>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </Fragment>
               );
             })}
           </View>

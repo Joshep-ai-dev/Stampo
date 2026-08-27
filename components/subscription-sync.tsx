@@ -1,5 +1,8 @@
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import type { CustomerInfo } from "react-native-purchases";
+
+import { api } from "@/services/api";
 
 import {
   configureSubscriptions,
@@ -22,12 +25,16 @@ export function SubscriptionSync() {
     let active = true;
     const update = (customerInfo: CustomerInfo) => {
       if (!active) return;
+      const hasKrooPlus = isKrooPlus(customerInfo);
       dispatch(
         subscriptionUpdated({
           configured: true,
-          isKrooPlus: isKrooPlus(customerInfo),
+          isKrooPlus: hasKrooPlus,
         }),
       );
+      if (userId) {
+        void api.setPlan(hasKrooPlus ? "pro" : "free").catch(() => undefined);
+      }
     };
 
     dispatch(subscriptionLoading());
@@ -54,8 +61,17 @@ export function SubscriptionSync() {
         );
       });
 
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        if (nextState !== "active" || !subscriptionsAreConfigured()) return;
+        void Purchases.getCustomerInfo().then(update).catch(() => undefined);
+      },
+    );
+
     return () => {
       active = false;
+      appStateSubscription.remove();
       if (subscriptionsAreConfigured())
         Purchases.removeCustomerInfoUpdateListener(update);
     };

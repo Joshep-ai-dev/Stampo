@@ -1,10 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { BrandColors } from "@/constants/theme";
-import {
-  manageKrooPlus,
-  restoreKrooPlus,
-} from "@/services/subscriptions";
+import { manageKrooPlus, restoreKrooPlus } from "@/services/subscriptions";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -85,9 +82,9 @@ export function UpgradeBanner({
 
 const s = StyleSheet.create({
   upgradeCard: {
-    marginHorizontal: 14,
-    marginVertical: 16,
-    paddingHorizontal: 14,
+    marginHorizontal: 12,
+    marginVertical: 12,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",

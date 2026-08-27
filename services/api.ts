@@ -463,6 +463,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(state),
     }),
+  setPlan: (plan: "free" | "pro") =>
+    request<{ plan: "free" | "pro" }>("/me/plan", {
+      method: "PUT",
+      body: JSON.stringify({ plan }),
+    }),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(
       `/me/completions/${encodeURIComponent(sightId)}`,
