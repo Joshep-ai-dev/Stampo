@@ -26,8 +26,6 @@ import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
 import {
   api,
-  type ManagedCollection,
-  type ManagedCollectionPlace,
   type SightDetail,
 } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
@@ -59,10 +57,6 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
-  const [selectedCollectionItem, setSelectedCollectionItem] = useState<{
-    collection: ManagedCollection;
-    place: ManagedCollectionPlace;
-  } | null>(null);
   const [selectedCity, setSelectedCity] = useState<{
     id: string;
     name: string;
@@ -186,10 +180,6 @@ export default function CountryScreen() {
     ...freeCollectionItems,
     ...lockedCollectionItems,
   ];
-  const selectedCollectionLocked =
-    !subscription.isKrooPlus &&
-    (selectedCollectionItem?.place.access === "pro" ||
-      selectedCollectionItem?.place.isPremium === true);
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!subscription.isKrooPlus) {
@@ -236,44 +226,6 @@ export default function CountryScreen() {
     }
   };
 
-  const toggleCollectionPlaces = async (
-    collectionId: string,
-    placeIds: string[],
-    completed: boolean,
-  ) => {
-    const next = !completed;
-    const targetIds = placeIds.map(
-      (placeId) => `collection-${collectionId}-${placeId}`,
-    );
-    targetIds.forEach((id) =>
-      dispatch(sightCompletionSet({ id, completed: next })),
-    );
-    if (!isSignedIn) return;
-    const results = await Promise.allSettled(
-      targetIds.map((id) => api.setSightCompleted(id, next)),
-    );
-    let failed = false;
-    results.forEach((result) => {
-      if (result.status === "rejected") {
-        failed = true;
-      }
-    });
-    if (failed) {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this collection when the server is available.",
-      );
-    }
-    if (results.some((result) => result.status === "fulfilled")) {
-      void api
-        .listVisits()
-        .then((visits) => dispatch(visitsHydrated(visits)))
-        .catch(() => undefined);
-      void dispatch(fetchHomeDashboard());
-      dispatch(countryDetailInvalidated(code));
-      void dispatch(fetchCountryDetail(code));
-    }
-  };
   const saveVisitEdits = async () => {
     if (!selectedCity || !editingVisitId) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(editVisitDate)) {
@@ -527,9 +479,6 @@ export default function CountryScreen() {
               const locked =
                 !subscription.isKrooPlus &&
                 (place.access === "pro" || place.isPremium === true);
-              const completed = completedSightIds.includes(
-                `collection-${collection.id}-${place.id}`,
-              );
               return (
                 <Fragment key={`${collection.id}-${place.id}`}>
                   {index === freeCollectionItems.length &&
@@ -554,10 +503,10 @@ export default function CountryScreen() {
                     style={[s.sightRow, locked && s.lockedSightRow]}
                     activeOpacity={0.82}
                     onPress={() =>
-                      setSelectedCollectionItem({ collection, place })
+                      router.push(`/collection/${collection.id}` as never)
                     }
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${place.name} from ${collection.title}`}
+                    accessibilityRole="link"
+                    accessibilityLabel={`Open ${collection.title}`}
                   >
                     <View style={s.collectionImageFrame}>
                       <ProgressivePlaceImage
@@ -578,28 +527,6 @@ export default function CountryScreen() {
                         {collection.title}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() =>
-                        void toggleCollectionPlaces(
-                          collection.id,
-                          [place.id],
-                          completed,
-                        )
-                      }
-                      hitSlop={10}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: completed }}
-                      disabled={locked}
-                      accessibilityLabel={`${completed ? "Uncheck" : "Check"} ${place.name}`}
-                    >
-                      <Ionicons
-                        name={
-                          completed ? "checkmark-circle" : "ellipse-outline"
-                        }
-                        size={28}
-                        color="#57D5A0"
-                      />
-                    </TouchableOpacity>
                   </TouchableOpacity>
                 </Fragment>
               );
@@ -721,48 +648,6 @@ export default function CountryScreen() {
             />
           }
           onClose={() => setSelectedSight(null)}
-        />
-      ) : null}
-      {selectedCollectionItem ? (
-        <DetailModal
-          visible
-          title={selectedCollectionItem.place.name}
-          location={`${selectedCollectionItem.collection.title} · ${
-            selectedCollectionItem.place.city || name
-          }`}
-          description={
-            selectedCollectionItem.place.content ||
-            selectedCollectionItem.place.detail ||
-            `A memorable place in ${selectedCollectionItem.collection.title}.`
-          }
-          image={
-            <ProgressivePlaceImage
-              uri={
-                selectedCollectionItem.place.imageUrl ||
-                selectedCollectionItem.collection.imageUrl
-              }
-              style={s.modalImage}
-              contentFit="cover"
-            />
-          }
-          locked={selectedCollectionLocked}
-          unlockContent={
-            <UpgradeBanner
-              count={1}
-              active={subscription.isKrooPlus}
-              configured={subscription.configured}
-              text="Unlock this collection with Kroo+"
-              onCustomerInfo={(customerInfo) =>
-                dispatch(
-                  subscriptionUpdated({
-                    configured: true,
-                    isKrooPlus: customerHasKrooPlus(customerInfo),
-                  }),
-                )
-              }
-            />
-          }
-          onClose={() => setSelectedCollectionItem(null)}
         />
       ) : null}
       {selectedCity ? (
