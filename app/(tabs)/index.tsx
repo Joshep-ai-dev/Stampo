@@ -50,6 +50,7 @@ import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
 import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
+import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -434,6 +435,9 @@ function WorldMap({
   currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
+  const countryDetailCache = useAppSelector((x) => x.countryDetail.cache);
   const [countriesOnMap] = useState<MapCountry[]>(() => {
     if (!cachedMapCountries) cachedMapCountries = getBundledMapCountries();
     return cachedMapCountries;
@@ -682,23 +686,42 @@ function WorldMap({
       return iso2 === selectedCountry.code;
     });
   }, [selectedCountry, visits]);
-  const selectedCityCount = new Set(
-    selectedCountryVisits.map((visit) => visit.cityId),
-  ).size;
-  const selectedSightCount = new Set(
-    selectedCountryVisits.flatMap((visit) =>
-      visit.places
-        .filter((place) => place.type === "sight")
-        .map((place) => place.id || place.name),
-    ),
-  ).size;
-  const selectedAirportCount = new Set(
-    selectedCountryVisits.flatMap((visit) =>
-      visit.places
-        .filter((place) => place.type === "airport")
-        .map((place) => place.id || place.name),
-    ),
-  ).size;
+  useEffect(() => {
+    if (selectedCountry) void dispatch(fetchCountryDetail(selectedCountry.code));
+  }, [dispatch, selectedCountry]);
+  const selectedCountryDetail = selectedCountry
+    ? countryDetailCache[selectedCountry.code.toUpperCase()]?.data
+    : null;
+  const selectedCityCount = Math.max(
+    selectedCountryDetail?.stats.cities ?? 0,
+    new Set(selectedCountryVisits.map((visit) => visit.cityId)).size,
+  );
+  const selectedSightCount = Math.max(
+    selectedCountryDetail?.stats.sights ?? 0,
+    (() => {
+      const sightIds = new Set(
+        selectedCountryVisits.flatMap((visit) =>
+          visit.places
+            .filter((place) => place.type === "sight")
+            .map((place) => place.id || place.name),
+        ),
+      );
+      selectedCountryDetail?.sights.forEach((sight) => {
+        if (completedSightIds.includes(sight.id)) sightIds.add(sight.id);
+      });
+      return sightIds.size;
+    })(),
+  );
+  const selectedAirportCount = Math.max(
+    selectedCountryDetail?.stats.airports ?? 0,
+    new Set(
+      selectedCountryVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size,
+  );
   const countryPaths = useMemo(
     () =>
       countriesOnMap.map((country) => (
