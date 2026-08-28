@@ -7,8 +7,4 @@ config.resolver.blockList = [
   /\/__tests__\/.*/,
 ];
 
-if (!config.resolver.assetExts.includes("csv")) {
-  config.resolver.assetExts.push("csv");
-}
-
 module.exports = config;

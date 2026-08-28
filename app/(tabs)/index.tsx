@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -53,6 +54,7 @@ import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { nameChanged } from "@/store/profile-slice";
 import {
   travelStateHydrated,
   type Visit,
@@ -429,10 +431,12 @@ function WorldMap({
   visited,
   visits,
   currentLocation,
+  onGestureActiveChange,
 }: {
   visited: Set<string>;
   visits: Visit[];
   currentLocation: CurrentMapLocation | null;
+  onGestureActiveChange?: (active: boolean) => void;
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -464,6 +468,10 @@ function WorldMap({
       setCommittedOffset({ x, y });
     },
     [],
+  );
+  const markMapGestureActive = useCallback(
+    (active: boolean) => onGestureActiveChange?.(active),
+    [onGestureActiveChange],
   );
   const selectCountryAt = useCallback(
     (screenX: number, screenY: number) => {
@@ -514,6 +522,9 @@ function WorldMap({
   );
 
   const pinchGesture = Gesture.Pinch()
+    .onBegin(() => {
+      runOnJS(markMapGestureActive)(true);
+    })
     .onStart((event) => {
       pinchStartTranslateX.value = savedTranslateX.value;
       pinchStartTranslateY.value = savedTranslateY.value;
@@ -560,11 +571,17 @@ function WorldMap({
         savedTranslateX.value = 0;
         savedTranslateY.value = 0;
       }
+    })
+    .onFinalize(() => {
+      runOnJS(markMapGestureActive)(false);
     });
   const panGesture = Gesture.Pan()
     .minPointers(1)
     .maxPointers(1)
     .minDistance(8)
+    .onBegin(() => {
+      runOnJS(markMapGestureActive)(true);
+    })
     .onUpdate((event) => {
       if (scale.value <= 1) return;
       const maxX = Math.max(
@@ -589,6 +606,9 @@ function WorldMap({
         translateX.value,
         translateY.value,
       );
+    })
+    .onFinalize(() => {
+      runOnJS(markMapGestureActive)(false);
     });
   const resetGesture = Gesture.Tap()
     .numberOfTaps(2)
@@ -609,7 +629,6 @@ function WorldMap({
       if (successful) runOnJS(selectCountryAt)(event.x, event.y);
     });
   const mapGesture = Gesture.Simultaneous(
-    Gesture.Native(),
     Gesture.Exclusive(
       resetGesture,
       Gesture.Simultaneous(pinchGesture, panGesture),
@@ -617,34 +636,20 @@ function WorldMap({
     ),
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
-    const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
         {
-          translateX: translateX.value - committedOffset.x * relativeScale,
+          translateX: translateX.value,
         },
         {
-          translateY: translateY.value - committedOffset.y * relativeScale,
+          translateY: translateY.value,
         },
       ],
     };
   });
   const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value / zoomLevel }],
+    transform: [{ scale: scale.value }],
   }));
-  const committedGroupTransform = useMemo(() => {
-    if (zoomLevel === 1 && committedOffset.x === 0 && committedOffset.y === 0)
-      return undefined;
-    const fittedMapScale = Math.min(
-      mapCanvasWidth / MAP_WIDTH,
-      250 / MAP_HEIGHT,
-    );
-    const translateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) + committedOffset.x / fittedMapScale;
-    const translateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) + committedOffset.y / fittedMapScale;
-    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${translateX} ${translateY})`;
-  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -772,7 +777,7 @@ function WorldMap({
                 viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
                 preserveAspectRatio="xMidYMid meet"
               >
-                <G transform={committedGroupTransform}>
+                <G>
                   {countryPaths}
                   {countryLabels}
                 </G>
@@ -923,6 +928,15 @@ export default function HomeScreen() {
     body: string;
     icon: keyof typeof Ionicons.glyphMap;
   } | null>(null);
+  const [mapGestureActive, setMapGestureActive] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const [welcomeName, setWelcomeName] = useState(name);
+  const showWelcome = !name && !welcomeDismissed;
+  const saveWelcomeName = useCallback(() => {
+    const trimmed = welcomeName.trim();
+    if (trimmed) dispatch(nameChanged(trimmed));
+    setWelcomeDismissed(true);
+  }, [dispatch, welcomeName]);
   const locateUser = useCallback(async () => {
     if (!isKrooPlus) return;
     try {
@@ -1065,6 +1079,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!mapGestureActive}
         refreshControl={
           <RefreshControl
             refreshing={dashboard.status === "loading"}
@@ -1117,7 +1132,7 @@ export default function HomeScreen() {
                   onPress={() =>
                     setInfoModal({
                       title: "Kroo Score",
-                      body: "Your Kroo Score is out of 100. Continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
+                      body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:\n\n- Continents\n- Countries\n- Cities\n- Airports\n- Sights\n- Challenges",
                       icon: "compass-outline",
                     })
                   }
@@ -1148,7 +1163,7 @@ export default function HomeScreen() {
                   onInfo: () =>
                     setInfoModal({
                       title: "Countries",
-                      body: "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
+                      body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
                       icon: "globe-outline",
                     }),
                 },
@@ -1168,6 +1183,7 @@ export default function HomeScreen() {
           visited={countryCodes}
           visits={visits}
           currentLocation={isKrooPlus ? currentLocation : null}
+          onGestureActiveChange={setMapGestureActive}
         />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
@@ -1200,6 +1216,47 @@ export default function HomeScreen() {
         icon={infoModal?.icon}
         onClose={() => setInfoModal(null)}
       />
+      <Modal visible={showWelcome} transparent animationType="fade">
+        <View style={styles.welcomeOverlay}>
+          <View style={styles.welcomeSheet}>
+            <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
+            <Text style={styles.welcomeBody}>
+              Feel free to look around and try things out
+            </Text>
+            <Text style={styles.welcomeBody}>
+              To save your countries visited and kroo score complete your
+              passport profile page
+            </Text>
+            <Text style={styles.welcomeQuestion}>
+              What name would you like on your passport?
+            </Text>
+            <TextInput
+              value={welcomeName}
+              onChangeText={setWelcomeName}
+              style={styles.welcomeInput}
+              placeholder="Passport name"
+              placeholderTextColor={BrandColors.muted}
+              autoCapitalize="words"
+            />
+            <TouchableOpacity
+              style={styles.welcomeButton}
+              onPress={saveWelcomeName}
+              accessibilityRole="button"
+              accessibilityLabel="Save passport name"
+            >
+              <Text style={styles.welcomeButtonText}>CONTINUE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.welcomeSecondaryButton}
+              onPress={() => setWelcomeDismissed(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Look around Kroo"
+            >
+              <Text style={styles.welcomeSecondaryText}>LOOK AROUND</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1226,6 +1283,82 @@ function InfoButton({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 30 },
+  welcomeOverlay: {
+    flex: 1,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.62)",
+  },
+  welcomeSheet: {
+    width: "100%",
+    maxWidth: 430,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  welcomeTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(28),
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeBody: {
+    marginTop: 12,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(15),
+    lineHeight: 22,
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeQuestion: {
+    marginTop: 22,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeInput: {
+    minHeight: 52,
+    marginTop: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.surface,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.ink,
+  },
+  welcomeButton: {
+    minHeight: 54,
+    marginTop: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
+  },
+  welcomeButtonText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    letterSpacing: 1,
+    color: BrandColors.green,
+  },
+  welcomeSecondaryButton: {
+    minHeight: 42,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  welcomeSecondaryText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    letterSpacing: 0.8,
+    color: BrandColors.onDarkMuted,
+  },
   badge: {
     position: "absolute",
     right: -2,

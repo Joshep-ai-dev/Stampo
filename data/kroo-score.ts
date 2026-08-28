@@ -63,7 +63,8 @@ export function calculateKrooScore(input: KrooScoreInput) {
 }
 
 export const KROO_LEVELS = [
-  { minimum: 75, maximum: 100, name: "Kroo Master" },
+  { minimum: 100, maximum: 100, name: "Kroo Legend" },
+  { minimum: 75, maximum: 99.999, name: "Kroo Master" },
   { minimum: 50, maximum: 74.999, name: "Voyager" },
   { minimum: 30, maximum: 49.999, name: "Wayfarer" },
   { minimum: 15, maximum: 29.999, name: "Explorer" },

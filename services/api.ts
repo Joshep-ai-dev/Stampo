@@ -114,6 +114,7 @@ export type CatalogCitySearchResult = {
   countryCode: string;
   continentCode: string;
   subcountry: string;
+  image?: string;
   latitude?: number;
   longitude?: number;
   population?: number;
@@ -357,6 +358,7 @@ function normalizeCollectionProgress(
 }
 
 function levelForScore(score: number) {
+  if (score >= 100) return "Kroo Legend";
   if (score >= 75) return "Kroo Master";
   if (score >= 50) return "Voyager";
   if (score >= 30) return "Wayfarer";
@@ -394,10 +396,22 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
 
 export const api = {
   countryDetail,
-  searchCities: (query: string, limit = 20) =>
-    request<CatalogCitySearchResult[]>(
-      `/cities?query=${encodeURIComponent(query)}&limit=${limit}`,
-    ),
+  searchCities: (
+    query: string,
+    limit = 20,
+    filters: { countryCode?: string; state?: string } = {},
+    signal?: AbortSignal,
+  ) => {
+    const params = new URLSearchParams({
+      query,
+      limit: String(limit),
+    });
+    if (filters.countryCode) params.set("country", filters.countryCode);
+    if (filters.state) params.set("state", filters.state);
+    return request<CatalogCitySearchResult[]>(`/cities?${params.toString()}`, {
+      signal,
+    });
+  },
   cityDetail: (id: string) =>
     request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(
       normalizeCity,

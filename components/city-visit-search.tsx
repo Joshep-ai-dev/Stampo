@@ -20,7 +20,7 @@ import {
 
 import { BrandColors } from "@/constants/theme";
 
-import { CityRecord, getCities, searchCities } from "@/data/cities";
+import type { CityRecord } from "@/data/cities";
 import { api, type CatalogCitySearchResult } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -90,6 +90,7 @@ export function CityVisitSearch({
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       if (!countryCode && normalizedQuery.length < 2) {
         setResults([]);
@@ -99,29 +100,16 @@ export function CityVisitSearch({
 
       setLoading(true);
       try {
-        const matches = countryCode
-          ? (await getCities())
-              .filter(
-                (city) =>
-                  city.countryCode === countryCode &&
-                  (!normalizedQuery ||
-                    city.searchText.includes(
-                      normalizedQuery.toLocaleLowerCase(),
-                    )),
-              )
-              .sort((left, right) => left.name.localeCompare(right.name))
-              .slice(0, 40)
-          : await Promise.all([
-              api.searchCities(normalizedQuery, 30).catch(() => []),
-              searchCities(normalizedQuery).catch(() => []),
-            ]).then(([remote, local]) => {
-              const merged = new Map<string, CityRecord>();
-              [...remote.map(remoteCityToRecord), ...local].forEach((city) => {
-                const key = `${city.countryCode}|${city.name}|${city.subcountry}`.toLocaleLowerCase();
-                if (!merged.has(key)) merged.set(key, city);
-              });
-              return [...merged.values()].slice(0, 40);
-            });
+        const matches = (
+          await api
+            .searchCities(normalizedQuery, countryCode ? 40 : 30, {
+              countryCode,
+            }, controller.signal)
+            .catch((error) => {
+              if (error instanceof Error && error.name === "AbortError") return [];
+              return [];
+            })
+        ).map(remoteCityToRecord);
         if (active) setResults(matches);
       } finally {
         if (active) setLoading(false);
@@ -130,6 +118,7 @@ export function CityVisitSearch({
 
     return () => {
       active = false;
+      controller.abort();
       clearTimeout(timer);
     };
   }, [countryCode, normalizedQuery]);

@@ -16,7 +16,6 @@ import {
 } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
-import { getCities, type CityRecord } from "@/data/cities";
 import { getPlaceSuggestions } from "@/data/place-suggestions";
 import { api } from "@/services/api";
 import type { ArrivalSuggestion } from "@/services/arrival-monitoring";
@@ -75,13 +74,16 @@ export function ArrivalSuggestionPrompt() {
     }
     setSaving(true);
     try {
-      const cities = await getCities();
       const normalizedCity = suggestion.city.toLocaleLowerCase();
-      const city = cities.find(
+      const city = (
+        await api.searchCities(suggestion.city, 20, {
+          countryCode: suggestion.countryCode,
+        })
+      ).find(
         (candidate) =>
           candidate.countryCode === suggestion.countryCode &&
           candidate.name.toLocaleLowerCase() === normalizedCity,
-      ) as CityRecord | undefined;
+      );
       if (!city)
         throw new Error("The detected city is not in the city catalog yet.");
       const knownAirport = getPlaceSuggestions(city.name).find(
