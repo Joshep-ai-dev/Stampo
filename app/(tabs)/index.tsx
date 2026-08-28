@@ -636,20 +636,38 @@ function WorldMap({
     ),
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
+    const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
         {
-          translateX: translateX.value,
+          translateX: translateX.value - committedOffset.x * relativeScale,
         },
         {
-          translateY: translateY.value,
+          translateY: translateY.value - committedOffset.y * relativeScale,
         },
       ],
     };
   });
   const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.value / zoomLevel }],
   }));
+  const committedGroupTransform = useMemo(() => {
+    if (
+      zoomLevel === 1 &&
+      committedOffset.x === 0 &&
+      committedOffset.y === 0
+    ) {
+      return undefined;
+    }
+    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const translateX =
+      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
+      committedOffset.x / fittedMapScale;
+    const translateY =
+      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
+      committedOffset.y / fittedMapScale;
+    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${translateX} ${translateY})`;
+  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -777,7 +795,7 @@ function WorldMap({
                 viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
                 preserveAspectRatio="xMidYMid meet"
               >
-                <G>
+                <G transform={committedGroupTransform}>
                   {countryPaths}
                   {countryLabels}
                 </G>
