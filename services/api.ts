@@ -120,6 +120,24 @@ export type CatalogCitySearchResult = {
   population?: number;
 };
 
+export type AirportOption = {
+  id: string;
+  name: string;
+  iataCode: string;
+  icaoCode?: string | null;
+};
+
+export type StateDetailResponse = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  country: { id: string; code: string; name: string };
+  cities: CityDetail[];
+  sights: SightDetail[];
+  stats: { cities: number; sights: number; airports: number };
+  visitedCities: { id: string; name: string }[];
+};
+
 export type TravelStateResponse = {
   completedSightIds: string[];
   wishlistIds: string[];
@@ -401,6 +419,20 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
 
 export const api = {
   countryDetail,
+  stateDetail: (countryCode: string, stateName: string) =>
+    request<
+      Omit<StateDetailResponse, "cities" | "sights"> & {
+        cities: BackendCity[];
+        sights: BackendSight[];
+      }
+    >(
+      `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
+    ).then((result) => ({
+      ...result,
+      imageUrl: backendImageUrl(result.imageUrl),
+      cities: result.cities.map(normalizeCity),
+      sights: result.sights.map(normalizeSight),
+    })),
   searchCities: (
     query: string,
     limit = 20,
@@ -437,6 +469,10 @@ export const api = {
     request<BackendSight[]>(
       `/catalog/cities/${encodeURIComponent(id)}/sights`,
     ).then((items) => items.map(normalizeSight)),
+  cityAirports: (id: string) =>
+    request<AirportOption[]>(
+      `/catalog/cities/${encodeURIComponent(id)}/airports`,
+    ),
   sightDetail: (id: string) =>
     request<BackendSight>(`/sights/${encodeURIComponent(id)}`).then(
       normalizeSight,

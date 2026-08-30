@@ -14,11 +14,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BrandColors } from "@/constants/theme";
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
+import { BrandColors } from "@/constants/theme";
 import {
-  getKrooPlusPlanPrices,
   isKrooPlus as customerHasKrooPlus,
+  getKrooPlusPlanPrices,
   restoreKrooPlus,
 } from "@/services/subscriptions";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";

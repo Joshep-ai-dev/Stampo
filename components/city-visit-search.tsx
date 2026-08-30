@@ -21,7 +21,11 @@ import {
 import { BrandColors } from "@/constants/theme";
 
 import type { CityRecord } from "@/data/cities";
-import { api, type CatalogCitySearchResult } from "@/services/api";
+import {
+  api,
+  type AirportOption,
+  type CatalogCitySearchResult,
+} from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -81,6 +85,10 @@ export function CityVisitSearch({
   const [selectedCity, setSelectedCity] = useState<CityRecord | null>(null);
   const [visitDate, setVisitDate] = useState(today);
   const [note, setNote] = useState("");
+  const [airports, setAirports] = useState<AirportOption[]>([]);
+  const [airportsLoading, setAirportsLoading] = useState(false);
+  const [airportMenuOpen, setAirportMenuOpen] = useState(false);
+  const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
   const [wishlistPending, setWishlistPending] = useState(false);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
   const selectedWishlistId = selectedCity ? `city:${selectedCity.id}` : null;
@@ -127,6 +135,14 @@ export function CityVisitSearch({
     setSelectedCity(city);
     setVisitDate(today());
     setNote("");
+    setAirports([]);
+    setSelectedAirport(null);
+    setAirportMenuOpen(false);
+    setAirportsLoading(true);
+    void api.cityAirports(city.id)
+      .then(setAirports)
+      .catch(() => setAirports([]))
+      .finally(() => setAirportsLoading(false));
   };
 
   const closeModal = () => setSelectedCity(null);
@@ -142,7 +158,13 @@ export function CityVisitSearch({
       subcountry: selectedCity.subcountry,
       visitedAt: visitDate,
       note,
-      places: [],
+      places: selectedAirport
+        ? [{
+            id: `airport:${selectedAirport.id}`,
+            name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
+            type: "airport",
+          }]
+        : [],
     };
     try {
       if (isSignedIn) dispatch(visitReceived(await api.createVisit(visit)));
@@ -310,7 +332,47 @@ export function CityVisitSearch({
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>Note (optional)</Text>
+                <Text style={styles.fieldLabel}>Airport (optional)</Text>
+                <TouchableOpacity
+                  style={styles.airportSelect}
+                  onPress={() => setAirportMenuOpen((open) => !open)}
+                  disabled={airportsLoading || airports.length === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select airport"
+                >
+                  {airportsLoading ? (
+                    <ActivityIndicator color={colors.muted} />
+                  ) : (
+                    <Ionicons name="airplane-outline" size={22} color={colors.muted} />
+                  )}
+                  <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>
+                    {selectedAirport
+                      ? `${selectedAirport.name} (${selectedAirport.iataCode})`
+                      : airports.length
+                        ? "Select an airport"
+                        : "No airports listed for this city"}
+                  </Text>
+                  {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
+                </TouchableOpacity>
+                {airportMenuOpen ? (
+                  <View style={styles.airportMenu}>
+                    <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                      <Text style={styles.airportOptionText}>No airport</Text>
+                    </Pressable>
+                    {airports.map((airport) => (
+                      <Pressable
+                        key={airport.id}
+                        style={styles.airportOption}
+                        onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}
+                      >
+                        <Text style={styles.airportOptionText}>{airport.name}</Text>
+                        <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                <Text style={[styles.fieldLabel, styles.noteLabel]}>Note (optional)</Text>
                 <TextInput
                   value={note}
                   onChangeText={(value) => setNote(value.slice(0, 140))}
@@ -536,6 +598,51 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(16),
     color: colors.ink,
+  },
+  noteLabel: { marginTop: 16 },
+  airportSelect: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  airportSelectText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(15),
+    color: colors.ink,
+  },
+  airportPlaceholder: { color: "#aa9c8c" },
+  airportMenu: {
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    overflow: "hidden",
+  },
+  airportOption: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  airportOptionText: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: colors.ink,
+  },
+  airportCode: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    color: colors.brown,
   },
   counter: {
     textAlign: "right",

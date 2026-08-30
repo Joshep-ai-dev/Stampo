@@ -496,11 +496,22 @@ export default function CountryScreen() {
                   ).size;
                   const stateImage = detail?.states.find(
                     (item) =>
-                      item.name.trim().toLocaleLowerCase() ===
+                      item.name?.trim().toLocaleLowerCase() ===
                       stateName.trim().toLocaleLowerCase(),
                   )?.imageUrl;
                   return (
-                    <View key={stateName} style={s.sightRow}>
+                    <TouchableOpacity
+                      key={stateName}
+                      style={s.sightRow}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/state/[countryCode]/[stateName]",
+                          params: { countryCode: "US", stateName },
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${stateName}`}
+                    >
                       {stateImage ? (
                         <Image
                           source={{ uri: stateImage }}
@@ -525,7 +536,12 @@ export default function CountryScreen() {
                           {stateCities} {stateCities === 1 ? "city" : "cities"} visited
                         </Text>
                       </View>
-                    </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </TouchableOpacity>
                   );
                   })
                 ) : (
