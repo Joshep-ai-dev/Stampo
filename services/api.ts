@@ -125,6 +125,9 @@ export type AirportOption = {
   name: string;
   iataCode: string;
   icaoCode?: string | null;
+  city?: string;
+  state?: string;
+  countryCode?: string;
 };
 
 export type StateDetailResponse = {
@@ -472,6 +475,10 @@ export const api = {
   cityAirports: (id: string) =>
     request<AirportOption[]>(
       `/catalog/cities/${encodeURIComponent(id)}/airports`,
+    ),
+  stateAirports: (countryCode: string, state: string) =>
+    request<AirportOption[]>(
+      `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(state)}/airports`,
     ),
   sightDetail: (id: string) =>
     request<BackendSight>(`/sights/${encodeURIComponent(id)}`).then(
