@@ -11,13 +11,13 @@ import {
   type StyleProp,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { DetailModal } from "@/components/detail-modal";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
@@ -42,7 +42,6 @@ import {
   sightCompletionSet,
   type Visit,
   visitsHydrated,
-  visitUpdated,
 } from "@/store/travel-slice";
 
 const collectionImages: Record<string, number> = {
@@ -73,9 +72,6 @@ export default function CountryScreen() {
     regionName?: string;
     visits: Visit[];
   } | null>(null);
-  const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
-  const [editVisitDate, setEditVisitDate] = useState("");
-  const [editVisitNote, setEditVisitNote] = useState("");
   useFocusEffect(
     useCallback(() => {
       void dispatch(fetchCountryDetail(code));
@@ -223,51 +219,6 @@ export default function CountryScreen() {
     }
   };
 
-  const saveVisitEdits = async () => {
-    if (!selectedCity || !editingVisitId) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(editVisitDate)) {
-      Alert.alert("Visit date", "Use the format YYYY-MM-DD.");
-      return;
-    }
-    const visit = selectedCity.visits.find(
-      (item) => item.id === editingVisitId,
-    );
-    if (!visit) return;
-    const updated = {
-      ...visit,
-      visitedAt: editVisitDate,
-      note: editVisitNote.trim(),
-    };
-    dispatch(visitUpdated(updated));
-    setSelectedCity({
-      ...selectedCity,
-      visits: selectedCity.visits.map((item) =>
-        item.id === updated.id ? updated : item,
-      ),
-    });
-    setEditingVisitId(null);
-    if (!isSignedIn) return;
-    try {
-      const remote = await api.updateVisit(updated);
-      dispatch(visitUpdated(remote));
-      setSelectedCity((current) =>
-        current
-          ? {
-              ...current,
-              visits: current.visits.map((item) =>
-                item.id === updated.id ? remote : item,
-              ),
-            }
-          : null,
-      );
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this edit when the server is available.",
-      );
-    }
-  };
-
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -327,12 +278,12 @@ export default function CountryScreen() {
             items={[
               ...(normalizedCode === "US"
                 ? [
-                    {
-                      icon: "map-outline",
-                      value: displayedStats.states,
-                      label: "STATES",
-                    },
-                  ]
+                  {
+                    icon: "map-outline",
+                    value: displayedStats.states,
+                    label: "STATES",
+                  },
+                ]
                 : []),
               {
                 icon: "business-outline",
@@ -415,61 +366,61 @@ export default function CountryScreen() {
                   </TouchableOpacity>
                 );
               })}
-            {lockedSights.length ? (
-              <UpgradeBanner
-                count={lockedSights.length}
-                active={subscription.isKrooPlus}
-                configured={subscription.configured}
-                onCustomerInfo={(customerInfo) =>
-                  dispatch(
-                    subscriptionUpdated({
-                      configured: true,
-                      isKrooPlus: customerHasKrooPlus(customerInfo),
-                    }),
-                  )
-                }
-              />
-            ) : null}
-            {lockedSights.length ? (
-              <View style={s.lockedList}>
-                {lockedSights.map((sight) => (
-                  <View
-                    key={sight.id}
-                    style={[s.sightRow, s.lockedSightRow]}
-                    accessibilityElementsHidden
-                  >
-                    <ResolvedPlaceImage
-                      initialUri={sight.image}
-                      placeName={sight.name}
-                      cityName={sight.city}
-                      countryName={name}
-                      style={s.sightImage}
-                      contentFit="cover"
-                      blurRadius={32}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={[s.sightName, s.lockedSightName]}
+              {lockedSights.length ? (
+                <UpgradeBanner
+                  count={lockedSights.length}
+                  active={subscription.isKrooPlus}
+                  configured={subscription.configured}
+                  onCustomerInfo={(customerInfo) =>
+                    dispatch(
+                      subscriptionUpdated({
+                        configured: true,
+                        isKrooPlus: customerHasKrooPlus(customerInfo),
+                      }),
+                    )
+                  }
+                />
+              ) : null}
+              {lockedSights.length ? (
+                <View style={s.lockedList}>
+                  {lockedSights.map((sight) => (
+                    <View
+                      key={sight.id}
+                      style={[s.sightRow, s.lockedSightRow]}
+                      accessibilityElementsHidden
                     >
-                      {sight.name}
-                    </Text>
-                    <View style={s.lockedSightCheck}>
-                      <Ionicons
-                        name={
-                          sight.completed
-                            ? "checkmark-circle"
-                            : "ellipse-outline"
-                        }
-                        size={28}
-                        color={
-                          sight.completed ? "#57D5A0" : BrandColors.onDarkMuted
-                        }
+                      <ResolvedPlaceImage
+                        initialUri={sight.image}
+                        placeName={sight.name}
+                        cityName={sight.city}
+                        countryName={name}
+                        style={s.sightImage}
+                        contentFit="cover"
+                        blurRadius={32}
                       />
+                      <Text
+                        numberOfLines={1}
+                        style={[s.sightName, s.lockedSightName]}
+                      >
+                        {sight.name}
+                      </Text>
+                      <View style={s.lockedSightCheck}>
+                        <Ionicons
+                          name={
+                            sight.completed
+                              ? "checkmark-circle"
+                              : "ellipse-outline"
+                          }
+                          size={28}
+                          color={
+                            sight.completed ? "#57D5A0" : BrandColors.onDarkMuted
+                          }
+                        />
+                      </View>
                     </View>
-                  </View>
-                ))}
-              </View>
-            ) : null}
+                  ))}
+                </View>
+              ) : null}
             </ScrollView>
           </View>
         ) : (
@@ -489,60 +440,60 @@ export default function CountryScreen() {
               >
                 {visitedStates.length ? (
                   visitedStates.map((stateName) => {
-                  const stateCities = new Set(
-                    countryVisits
-                      .filter((visit) => visit.subcountry.trim() === stateName)
-                      .map((visit) => visit.cityId),
-                  ).size;
-                  const stateImage = detail?.states.find(
-                    (item) =>
-                      item.name?.trim().toLocaleLowerCase() ===
-                      stateName.trim().toLocaleLowerCase(),
-                  )?.imageUrl;
-                  return (
-                    <TouchableOpacity
-                      key={stateName}
-                      style={s.sightRow}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/state/[countryCode]/[stateName]",
-                          params: { countryCode: "US", stateName },
-                        })
-                      }
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${stateName}`}
-                    >
-                      {stateImage ? (
-                        <Image
-                          source={{ uri: stateImage }}
-                          style={s.stateImage}
-                          contentFit="cover"
-                          accessibilityLabel={`${stateName} state`}
-                        />
-                      ) : (
-                        <View style={s.stateIcon}>
-                          <Ionicons
-                            name="map-outline"
-                            size={24}
-                            color={BrandColors.copper}
+                    const stateCities = new Set(
+                      countryVisits
+                        .filter((visit) => visit.subcountry.trim() === stateName)
+                        .map((visit) => visit.cityId),
+                    ).size;
+                    const stateImage = detail?.states.find(
+                      (item) =>
+                        item.name?.trim().toLocaleLowerCase() ===
+                        stateName.trim().toLocaleLowerCase(),
+                    )?.imageUrl;
+                    return (
+                      <TouchableOpacity
+                        key={stateName}
+                        style={s.sightRow}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/state/[countryCode]/[stateName]",
+                            params: { countryCode: "US", stateName },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${stateName}`}
+                      >
+                        {stateImage ? (
+                          <Image
+                            source={{ uri: stateImage }}
+                            style={s.stateImage}
+                            contentFit="cover"
+                            accessibilityLabel={`${stateName} state`}
                           />
+                        ) : (
+                          <View style={s.stateIcon}>
+                            <Ionicons
+                              name="map-outline"
+                              size={24}
+                              color={BrandColors.copper}
+                            />
+                          </View>
+                        )}
+                        <View style={s.collectionText}>
+                          <Text numberOfLines={1} style={s.collectionTitle}>
+                            {stateName}
+                          </Text>
+                          <Text style={s.collectionDetail}>
+                            {stateCities} {stateCities === 1 ? "city" : "cities"} visited
+                          </Text>
                         </View>
-                      )}
-                      <View style={s.collectionText}>
-                        <Text numberOfLines={1} style={s.collectionTitle}>
-                          {stateName}
-                        </Text>
-                        <Text style={s.collectionDetail}>
-                          {stateCities} {stateCities === 1 ? "city" : "cities"} visited
-                        </Text>
-                      </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={20}
-                        color={BrandColors.onDarkMuted}
-                      />
-                    </TouchableOpacity>
-                  );
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color={BrandColors.onDarkMuted}
+                        />
+                      </TouchableOpacity>
+                    );
                   })
                 ) : (
                   <Text style={s.empty}>Your visited states will appear here.</Text>
@@ -561,66 +512,65 @@ export default function CountryScreen() {
           >
             {visitedCities.length ? (
               visitedCities.map((city) => {
-              const latestVisit = city.visits[0];
-              const cityDetail = detail?.cities.find(
-                (item) =>
-                  item.id === city.id ||
-                  item.name.trim().toLocaleLowerCase() ===
+                const latestVisit = city.visits[0];
+                const cityDetail = detail?.cities.find(
+                  (item) =>
+                    item.id === city.id ||
+                    item.name.trim().toLocaleLowerCase() ===
                     city.name.trim().toLocaleLowerCase(),
-              );
-              const sightCount = new Set(
-                city.visits.flatMap((visit) =>
-                  visit.places
-                    .filter((place) => place.type === "sight")
-                    .map((place) => place.id || place.name),
-                ),
-              ).size;
-              const airportCount = new Set(
-                city.visits.flatMap((visit) =>
-                  visit.places
-                    .filter((place) => place.type === "airport")
-                    .map((place) => place.id || place.name),
-                ),
-              ).size;
-              return (
-                <TouchableOpacity
-                  key={city.id}
-                  style={s.sightRow}
-                  onPress={() => {
-                    setSelectedCity({
-                      id: city.id,
-                      name: city.name,
-                      image: cityDetail?.image,
-                      description: cityDetail?.description,
-                      regionName: latestVisit.subcountry,
-                      visits: city.visits,
-                    });
-                    setEditingVisitId(null);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open visit history for ${city.name}`}
-                >
-                  <CityThumbnail
-                    cityId={city.id}
-                    cityName={city.name}
-                    countryName={name}
-                    regionName={latestVisit.subcountry}
-                    initialUri={cityDetail?.image}
-                    latitude={cityDetail?.latitude}
-                    longitude={cityDetail?.longitude}
-                  />
-                  <View style={s.collectionText}>
-                    <Text numberOfLines={1} style={s.collectionTitle}>
-                      {city.name}
-                    </Text>
-                    <Text style={s.collectionDetail}>
-                      {sightCount} sights · {airportCount} airports ·{" "}
-                      {city.visits.length}{" "}
-                      {city.visits.length === 1 ? "visit" : "visits"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
+                );
+                const sightCount = new Set(
+                  city.visits.flatMap((visit) =>
+                    visit.places
+                      .filter((place) => place.type === "sight")
+                      .map((place) => place.id || place.name),
+                  ),
+                ).size;
+                const airportCount = new Set(
+                  city.visits.flatMap((visit) =>
+                    visit.places
+                      .filter((place) => place.type === "airport")
+                      .map((place) => place.id || place.name),
+                  ),
+                ).size;
+                return (
+                  <TouchableOpacity
+                    key={city.id}
+                    style={s.sightRow}
+                    onPress={() => {
+                      setSelectedCity({
+                        id: city.id,
+                        name: city.name,
+                        image: cityDetail?.image,
+                        description: cityDetail?.description,
+                        regionName: latestVisit.subcountry,
+                        visits: city.visits,
+                      });
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open visit history for ${city.name}`}
+                  >
+                    <CityThumbnail
+                      cityId={city.id}
+                      cityName={city.name}
+                      countryName={name}
+                      regionName={latestVisit.subcountry}
+                      initialUri={cityDetail?.image}
+                      latitude={cityDetail?.latitude}
+                      longitude={cityDetail?.longitude}
+                    />
+                    <View style={s.collectionText}>
+                      <Text numberOfLines={1} style={s.collectionTitle}>
+                        {city.name}
+                      </Text>
+                      <Text style={s.collectionDetail}>
+                        {sightCount} sights · {airportCount} airports ·{" "}
+                        {city.visits.length}{" "}
+                        {city.visits.length === 1 ? "visit" : "visits"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
               })
             ) : (
               <Text style={s.empty}>Your visited cities will appear here.</Text>
@@ -739,139 +689,11 @@ export default function CountryScreen() {
         />
       ) : null}
       {selectedCity ? (
-        <DetailModal
-          visible
-          title={selectedCity.name}
-          location={[selectedCity.regionName, name].filter(Boolean).join(", ")}
-          description={
-            selectedCity.description || `A city you visited in ${name}.`
-          }
-          image={
-            selectedCity.image ? (
-              <ResolvedPlaceImage
-                initialUri={selectedCity.image}
-                placeName={selectedCity.name}
-                cityName={selectedCity.name}
-                countryName={name}
-                style={s.modalImage}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={[s.modalImage, s.modalImagePlaceholder]}>
-                <Ionicons
-                  name="business-outline"
-                  size={46}
-                  color={BrandColors.copper}
-                />
-              </View>
-            )
-          }
-          onClose={() => {
-            setSelectedCity(null);
-            setEditingVisitId(null);
-          }}
-        >
-          <View style={s.visitRecordCard}>
-            <View style={s.visitRecordHeader}>
-              <Text style={s.visitRecordTitle}>My Visit History</Text>
-              <Text style={s.visitHistoryCount}>
-                {selectedCity.visits.length}{" "}
-                {selectedCity.visits.length === 1 ? "visit" : "visits"}
-              </Text>
-            </View>
-            {selectedCity.visits.map((visit) => (
-              <View key={visit.id} style={s.visitRecordItem}>
-                <View style={s.visitItemHeader}>
-                  <View style={[s.visitRecordRow, s.visitItemHeaderDate]}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={16}
-                      color={BrandColors.copper}
-                    />
-                    <Text style={s.visitRecordText}>{visit.visitedAt}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={s.visitItemEditButton}
-                    onPress={() => {
-                      if (editingVisitId === visit.id) {
-                        setEditingVisitId(null);
-                        return;
-                      }
-                      setEditingVisitId(visit.id);
-                      setEditVisitDate(visit.visitedAt);
-                      setEditVisitNote(visit.note);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
-                  >
-                    <Text style={s.visitEditText}>
-                      {editingVisitId === visit.id ? "Cancel" : "Edit"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {editingVisitId === visit.id ? (
-                  <View style={s.visitEditForm}>
-                    <Text style={s.visitInputLabel}>Visit date</Text>
-                    <TextInput
-                      value={editVisitDate}
-                      onChangeText={setEditVisitDate}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor={BrandColors.onDarkMuted}
-                      style={s.visitInput}
-                      maxLength={10}
-                    />
-                    <Text style={s.visitInputLabel}>Note</Text>
-                    <TextInput
-                      value={editVisitNote}
-                      onChangeText={setEditVisitNote}
-                      placeholder="Add a short note"
-                      placeholderTextColor={BrandColors.onDarkMuted}
-                      style={[s.visitInput, s.visitNoteInput]}
-                      maxLength={140}
-                      multiline
-                    />
-                    <TouchableOpacity
-                      style={s.visitSaveButton}
-                      onPress={() => void saveVisitEdits()}
-                    >
-                      <Text style={s.visitSaveText}>Save</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <>
-                    {visit.note ? (
-                      <View style={s.visitRecordRow}>
-                        <Ionicons
-                          name="document-text-outline"
-                          size={16}
-                          color={BrandColors.copper}
-                        />
-                        <Text style={s.visitRecordText}>{visit.note}</Text>
-                      </View>
-                    ) : null}
-                    {visit.places.map((place) => (
-                      <View
-                        key={`${visit.id}-${place.id}`}
-                        style={s.visitRecordRow}
-                      >
-                        <Ionicons
-                          name={
-                            place.type === "airport"
-                              ? "airplane-outline"
-                              : "camera-outline"
-                          }
-                          size={16}
-                          color={BrandColors.copper}
-                        />
-                        <Text style={s.visitRecordText}>{place.name}</Text>
-                      </View>
-                    ))}
-                  </>
-                )}
-              </View>
-            ))}
-          </View>
-        </DetailModal>
+        <CityVisitDetailModal
+          city={selectedCity}
+          countryName={name}
+          onClose={() => setSelectedCity(null)}
+        />
       ) : null}
     </SafeAreaView>
   );

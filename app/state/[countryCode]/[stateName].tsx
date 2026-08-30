@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
@@ -40,6 +41,7 @@ export default function StateScreen() {
   const [detail, setDetail] = useState<StateDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,6 +71,17 @@ export default function StateScreen() {
   const sights = detail?.sights ?? [];
   const visibleSights = subscription.isKrooPlus ? sights : sights.slice(0, 3);
   const lockedSights = subscription.isKrooPlus ? [] : sights.slice(3);
+  const selectedCity = selectedCityId
+    ? visitedCities.find((city) => city.id === selectedCityId) ?? null
+    : null;
+  const selectedCatalogCity = selectedCity
+    ? detail?.cities.find((city) => String(city.id) === String(selectedCity.id))
+    : undefined;
+  const selectedCityVisits = selectedCity
+    ? stateVisits
+        .filter((visit) => visit.cityId === selectedCity.id)
+        .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt))
+    : [];
 
   const toggleSight = async (id: string, completed: boolean) => {
     const next = !completed;
@@ -163,7 +176,7 @@ export default function StateScreen() {
               {visitedCities.map((city) => {
                 const catalogCity = detail.cities.find((item) => String(item.id) === String(city.id));
                 return (
-                  <TouchableOpacity key={city.id} style={styles.row} onPress={() => router.push(`/city/${city.id}`)}>
+                  <TouchableOpacity key={city.id} style={styles.row} onPress={() => setSelectedCityId(city.id)}>
                     <ProgressivePlaceImage uri={catalogCity?.image} style={styles.cityImage} contentFit="cover" />
                     <Text style={styles.rowTitle}>{city.name}</Text>
                     <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
@@ -175,6 +188,19 @@ export default function StateScreen() {
           </>
         ) : null}
       </ScrollView>
+      {selectedCity ? (
+        <CityVisitDetailModal
+          city={{
+            ...selectedCity,
+            image: selectedCatalogCity?.image,
+            description: selectedCatalogCity?.description,
+            regionName: detail?.name ?? stateName,
+            visits: selectedCityVisits,
+          }}
+          countryName="United States"
+          onClose={() => setSelectedCityId(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -199,4 +225,23 @@ const styles = StyleSheet.create({
   cityImage: { width: 50, height: 50, borderRadius: 25, backgroundColor: BrandColors.greenPanel },
   rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
   empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  modalImage: { width: "100%", height: 190, borderRadius: 14, backgroundColor: BrandColors.greenPanel },
+  modalPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
+  visitCard: { width: "100%", marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: BrandColors.greenDeep },
+  visitHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  visitTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
+  visitCount: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
+  visitItem: { paddingVertical: 10, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BrandColors.paleGreen },
+  visitItemHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  visitRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  visitText: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
+  editButton: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: BrandColors.copper },
+  editText: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
+  editForm: { gap: 7, paddingTop: 4 },
+  inputLabel: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
+  noteInputLabel: { marginTop: 8 },
+  input: { minHeight: 42, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.paleGreen, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
+  noteInput: { minHeight: 76, paddingTop: 10, textAlignVertical: "top" },
+  saveButton: { height: 40, marginTop: 6, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.copper },
+  saveText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(14), color: BrandColors.green },
 });
