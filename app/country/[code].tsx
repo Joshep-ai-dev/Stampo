@@ -494,15 +494,29 @@ export default function CountryScreen() {
                       .filter((visit) => visit.subcountry.trim() === stateName)
                       .map((visit) => visit.cityId),
                   ).size;
+                  const stateImage = detail?.states.find(
+                    (item) =>
+                      item.name.trim().toLocaleLowerCase() ===
+                      stateName.trim().toLocaleLowerCase(),
+                  )?.imageUrl;
                   return (
                     <View key={stateName} style={s.sightRow}>
-                      <View style={s.stateIcon}>
-                        <Ionicons
-                          name="map-outline"
-                          size={24}
-                          color={BrandColors.copper}
+                      {stateImage ? (
+                        <Image
+                          source={{ uri: stateImage }}
+                          style={s.stateImage}
+                          contentFit="cover"
+                          accessibilityLabel={`${stateName} state`}
                         />
-                      </View>
+                      ) : (
+                        <View style={s.stateIcon}>
+                          <Ionicons
+                            name="map-outline"
+                            size={24}
+                            color={BrandColors.copper}
+                          />
+                        </View>
+                      )}
                       <View style={s.collectionText}>
                         <Text numberOfLines={1} style={s.collectionTitle}>
                           {stateName}
@@ -1074,6 +1088,12 @@ const s = StyleSheet.create({
     borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: BrandColors.greenPanel,
+  },
+  stateImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: BrandColors.greenPanel,
   },
   collectionRow: {

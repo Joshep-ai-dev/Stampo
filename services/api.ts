@@ -223,6 +223,7 @@ export type CountryDetailResponse = {
     coverImage: string;
   };
   featuredIn: { name: string; icon: string; slug: string }[];
+  states: { id: string; name: string; countryId: string; imageUrl: string }[];
   cities: CityDetail[];
   sights: SightDetail[];
   collections: ManagedCollection[];
@@ -384,6 +385,10 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
         coverImage: backendImageUrl(result.country.coverImage),
       },
       cities: result.cities.map((item) => normalizeCity(item)),
+      states: (result.states ?? []).map((item) => ({
+        ...item,
+        imageUrl: backendImageUrl(item.imageUrl),
+      })),
       sights: result.sights.map((item) => normalizeSight(item)),
       collections: result.collections.map(normalizeCollection),
     };
