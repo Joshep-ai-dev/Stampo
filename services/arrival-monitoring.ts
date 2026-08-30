@@ -22,6 +22,7 @@ export type ArrivalSuggestion = {
   latitude: number;
   longitude: number;
   city: string;
+  cityCandidates?: string[];
   country: string;
   countryCode: string;
   region: string;
@@ -53,10 +54,25 @@ async function arrivalFromLocation(location: Location.LocationObject) {
   const airport = /\b(airport|aerodrome|terminal)\b/i.test(placeName)
     ? placeName
     : "";
+  // Reverse geocoders vary by platform and country. A position inside a city
+  // may be returned as its village, district, county, prefecture, or region.
+  const cityCandidates = [
+    address.city,
+    address.subregion,
+    address.district,
+    address.region,
+  ].filter(
+    (value, index, values): value is string =>
+      Boolean(value?.trim()) &&
+      values.findIndex(
+        (candidate) => candidate?.trim().toLocaleLowerCase() === value?.trim().toLocaleLowerCase(),
+      ) === index,
+  );
   return {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
-    city: address.city ?? address.district ?? address.subregion ?? "",
+    city: cityCandidates[0] ?? "",
+    cityCandidates,
     country: address.country ?? address.isoCountryCode,
     countryCode: address.isoCountryCode.toUpperCase(),
     region: address.region ?? "",

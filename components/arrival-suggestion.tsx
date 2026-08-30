@@ -33,6 +33,16 @@ function suggestionFromResponse(response: NotificationResponse | null) {
   return data as unknown as ArrivalSuggestion & { type: "arrival" };
 }
 
+function normalizePlaceName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/\b(city|municipality|district|county|prefecture|province)\b/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
 export function ArrivalSuggestionPrompt() {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
@@ -83,18 +93,35 @@ export function ArrivalSuggestionPrompt() {
     }
     setSaving(true);
     try {
-      const normalizedCity = suggestion.city.toLocaleLowerCase();
-      const city = (
-        await api.searchCities(suggestion.city, 20, {
-          countryCode: suggestion.countryCode,
-        })
-      ).find(
-        (candidate) =>
-          candidate.countryCode === suggestion.countryCode &&
-          candidate.name.toLocaleLowerCase() === normalizedCity,
+      const locationNames = [
+        ...(suggestion.cityCandidates ?? []),
+        suggestion.city,
+        suggestion.region,
+      ].filter(
+        (name, index, names) =>
+          Boolean(name?.trim()) &&
+          names.findIndex(
+            (candidate) => normalizePlaceName(candidate) === normalizePlaceName(name),
+          ) === index,
       );
+      let city = null;
+      for (const locationName of locationNames) {
+        const normalizedLocation = normalizePlaceName(locationName);
+        const candidates = await api.searchCities(locationName, 20, {
+          countryCode: suggestion.countryCode,
+        });
+        city =
+          candidates.find(
+            (candidate) =>
+              candidate.countryCode === suggestion.countryCode &&
+              normalizePlaceName(candidate.name) === normalizedLocation,
+          ) ?? null;
+        if (city) break;
+      }
       if (!city)
-        throw new Error("The detected city is not in the city catalog yet.");
+        throw new Error(
+          `Could not match ${locationNames.join(", ")} to a city in the catalog.`,
+        );
       const knownAirport = getPlaceSuggestions(city.name).find(
         (place) => place.type === "airport",
       )?.name;
