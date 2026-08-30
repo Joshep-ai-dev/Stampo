@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { canUseGpsArrivals } from "@/services/gps-access";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCountryDataList,
@@ -8,9 +9,8 @@ import {
 } from "countries-list";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
-import { canUseGpsArrivals } from "@/services/gps-access";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -394,9 +394,9 @@ function polygonContainsPoint(
     const crossesRay =
       current.y > pointY !== previous.y > pointY &&
       pointX <
-        ((previous.x - current.x) * (pointY - current.y)) /
-          (previous.y - current.y) +
-          current.x;
+      ((previous.x - current.x) * (pointY - current.y)) /
+      (previous.y - current.y) +
+      current.x;
     if (crossesRay) inside = !inside;
   }
   return inside;
@@ -544,11 +544,11 @@ function WorldMap({
         (pinchStartFocalX.value -
           mapCanvasWidth / 2 -
           pinchStartTranslateX.value) *
-          (1 - scaleChange);
+        (1 - scaleChange);
       const nextTranslateY =
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
-          (1 - scaleChange);
+        (1 - scaleChange);
       const maxX = Math.max(
         0,
         (mapCanvasWidth * (nextScale - 1)) / 2 - mapCanvasWidth * 0.15,
@@ -678,7 +678,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-                "");
+              "");
         })
         .filter(Boolean),
     );
@@ -693,7 +693,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-                "");
+              "");
         })
         .filter(Boolean),
     );
@@ -951,6 +951,7 @@ export default function HomeScreen() {
   const dashboard = useAppSelector((x) => x.dashboard);
   const [currentLocation, setCurrentLocation] =
     useState<CurrentMapLocation | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [infoModal, setInfoModal] = useState<{
     title: string;
     body: string;
@@ -982,7 +983,7 @@ export default function HomeScreen() {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-    } catch {}
+    } catch { }
   }, [gpsArrivalsAllowed]);
   useEffect(() => {
     let active = true;
@@ -1030,12 +1031,16 @@ export default function HomeScreen() {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
   }, [completedSightIds, dispatch, visits, wishlistIds]);
+  const refreshSignedInTravelRef = useRef(refreshSignedInTravel);
+  useEffect(() => {
+    refreshSignedInTravelRef.current = refreshSignedInTravel;
+  }, [refreshSignedInTravel]);
   useFocusEffect(
     useCallback(() => {
       if (!isSignedIn) return;
-      void refreshSignedInTravel();
+      void refreshSignedInTravelRef.current();
       void dispatch(fetchHomeDashboard());
-    }, [dispatch, isSignedIn, refreshSignedInTravel]),
+    }, [dispatch, isSignedIn]),
   );
   const localCountryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
@@ -1097,10 +1102,17 @@ export default function HomeScreen() {
   const worldProgress =
     serverHome?.worldProgress ??
     Math.round((localCountryCodes.size / 195) * 100);
-  const refreshHome = useCallback(() => {
+  const refreshHome = useCallback(async () => {
     if (!isSignedIn) return;
-    void refreshSignedInTravel();
-    void dispatch(fetchHomeDashboard());
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        refreshSignedInTravel(),
+        dispatch(fetchHomeDashboard()).unwrap(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [dispatch, isSignedIn, refreshSignedInTravel]);
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -1110,8 +1122,8 @@ export default function HomeScreen() {
         scrollEnabled={!mapGestureActive}
         refreshControl={
           <RefreshControl
-            refreshing={dashboard.status === "loading"}
-            onRefresh={refreshHome}
+            refreshing={refreshing}
+            onRefresh={() => void refreshHome()}
             tintColor={BrandColors.copper}
             colors={[BrandColors.copper]}
           />
