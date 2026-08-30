@@ -113,13 +113,14 @@ export default function CountryScreen() {
     { id: string; name: string; visits: Visit[] }
   >();
   countryVisits.forEach((visit) => {
-    const city = visitedCityMap.get(visit.cityId) ?? {
+    const cityKey = `${visit.subcountry.trim().toLocaleLowerCase()}:${visit.cityName.trim().toLocaleLowerCase()}`;
+    const city = visitedCityMap.get(cityKey) ?? {
       id: visit.cityId,
       name: visit.cityName,
       visits: [],
     };
     city.visits.push(visit);
-    visitedCityMap.set(visit.cityId, city);
+    visitedCityMap.set(cityKey, city);
   });
   const visitedCities = [...visitedCityMap.values()]
     .map((city) => ({
@@ -503,7 +504,7 @@ export default function CountryScreen() {
           </>
         ) : null}
 
-        <SectionTitle>Cities</SectionTitle>
+        <SectionTitle>Cities Visited</SectionTitle>
         <View style={s.cityList}>
           <ScrollView
             style={s.categoryScroller}

@@ -1,11 +1,11 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
-import { api } from "@/services/api";
+import { api, type AirportOption } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { type Visit, visitUpdated } from "@/store/travel-slice";
@@ -32,6 +32,31 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [editVisitDate, setEditVisitDate] = useState("");
   const [editVisitNote, setEditVisitNote] = useState("");
+  const [airports, setAirports] = useState<AirportOption[]>([]);
+  const [airportsLoading, setAirportsLoading] = useState(false);
+  const [airportMenuOpen, setAirportMenuOpen] = useState(false);
+  const [editAirport, setEditAirport] = useState<AirportOption | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setAirportsLoading(true);
+    void api.cityAirports(city.id)
+      .then((items) => { if (active) setAirports(items); })
+      .catch(() => { if (active) setAirports([]); })
+      .finally(() => { if (active) setAirportsLoading(false); });
+    return () => { active = false; };
+  }, [city.id]);
+
+  const airportFromVisit = (visit: Visit): AirportOption | null => {
+    const place = visit.places.find((item) => item.type === "airport");
+    if (!place) return null;
+    const code = place.name.match(/\(([A-Z0-9]{3})\)\s*$/)?.[1] ?? "";
+    return airports.find((airport) => airport.iataCode === code || `airport:${airport.id}` === place.id) ?? {
+      id: place.id.replace(/^airport:/, ""),
+      name: place.name.replace(/\s*\([A-Z0-9]{3}\)\s*$/, ""),
+      iataCode: code,
+    };
+  };
 
   const save = async () => {
     if (!editingVisitId || !/^\d{4}-\d{2}-\d{2}$/.test(editVisitDate)) {
@@ -40,7 +65,19 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     }
     const visit = currentVisits.find((item) => item.id === editingVisitId);
     if (!visit) return;
-    const updated = { ...visit, visitedAt: editVisitDate, note: editVisitNote.trim() };
+    const updated = {
+      ...visit,
+      visitedAt: editVisitDate,
+      note: editVisitNote.trim(),
+      places: [
+        ...visit.places.filter((place) => place.type !== "airport"),
+        ...(editAirport ? [{
+          id: `airport:${editAirport.id}`,
+          name: editAirport.iataCode ? `${editAirport.name} (${editAirport.iataCode})` : editAirport.name,
+          type: "airport" as const,
+        }] : []),
+      ],
+    };
     setCurrentVisits((items) => items.map((item) => item.id === updated.id ? updated : item));
     dispatch(visitUpdated(updated));
     setEditingVisitId(null);
@@ -90,6 +127,8 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                     setEditingVisitId(visit.id);
                     setEditVisitDate(visit.visitedAt);
                     setEditVisitNote(visit.note);
+                    setEditAirport(airportFromVisit(visit));
+                    setAirportMenuOpen(false);
                   }
                 }}
                 accessibilityRole="button"
@@ -102,6 +141,35 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
               <View style={s.form}>
                 <Text style={s.label}>Visit date</Text>
                 <TextInput value={editVisitDate} onChangeText={setEditVisitDate} placeholder="YYYY-MM-DD" placeholderTextColor={BrandColors.onDarkMuted} style={s.input} maxLength={10} />
+                <Text style={[s.label, s.noteLabel]}>Airport</Text>
+                <View style={s.airportWrap}>
+                  <TouchableOpacity
+                    style={s.airportSelect}
+                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    disabled={airportsLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit airport"
+                  >
+                    {airportsLoading ? <ActivityIndicator color={BrandColors.onDarkMuted} /> : <Ionicons name="airplane-outline" size={18} color={BrandColors.copper} />}
+                    <Text style={[s.airportValue, !editAirport && s.airportPlaceholder]} numberOfLines={1}>
+                      {editAirport ? `${editAirport.name}${editAirport.iataCode ? ` (${editAirport.iataCode})` : ""}` : "No airport"}
+                    </Text>
+                    <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={18} color={BrandColors.onDarkMuted} />
+                  </TouchableOpacity>
+                  {airportMenuOpen ? (
+                    <ScrollView style={s.airportMenu} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      <Pressable style={s.airportOption} onPress={() => { setEditAirport(null); setAirportMenuOpen(false); }}>
+                        <Text style={s.airportOptionName}>No airport</Text>
+                      </Pressable>
+                      {airports.map((airport) => (
+                        <Pressable key={airport.id} style={s.airportOption} onPress={() => { setEditAirport(airport); setAirportMenuOpen(false); }}>
+                          <Text style={s.airportOptionName}>{airport.name}</Text>
+                          <Text style={s.airportCode}>{airport.iataCode}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                </View>
                 <Text style={[s.label, s.noteLabel]}>Note</Text>
                 <TextInput value={editVisitNote} onChangeText={(value) => setEditVisitNote(value.slice(0, 140))} placeholder="Add a short note" placeholderTextColor={BrandColors.onDarkMuted} style={[s.input, s.noteInput]} maxLength={140} multiline />
                 <TouchableOpacity style={s.saveButton} onPress={() => void save()}>
@@ -139,6 +207,14 @@ const s = StyleSheet.create({
   noteLabel: { marginTop: 8 },
   input: { minHeight: 42, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.paleGreen, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
   noteInput: { minHeight: 76, paddingTop: 10, textAlignVertical: "top" },
+  airportWrap: { position: "relative", zIndex: 20, overflow: "visible" },
+  airportSelect: { minHeight: 42, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.paleGreen, flexDirection: "row", alignItems: "center", gap: 8 },
+  airportValue: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: BrandColors.onDark },
+  airportPlaceholder: { color: BrandColors.onDarkMuted },
+  airportMenu: { position: "absolute", top: 46, left: 0, right: 0, maxHeight: 190, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.copper, backgroundColor: BrandColors.greenPanel, zIndex: 30, elevation: 14 },
+  airportOption: { minHeight: 44, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
+  airportOptionName: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
+  airportCode: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
   saveButton: { height: 40, marginTop: 6, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.copper },
   saveText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(14), color: BrandColors.green },
 });

@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
@@ -63,7 +63,7 @@ export default function StateScreen() {
       visit.subcountry.trim().toLocaleLowerCase() === stateName.trim().toLocaleLowerCase(),
   );
   const visitedCities = [...new Map(
-    stateVisits.map((visit) => [visit.cityId, { id: visit.cityId, name: visit.cityName }]),
+    stateVisits.map((visit) => [visit.cityName.trim().toLocaleLowerCase(), { id: visit.cityId, name: visit.cityName }]),
   ).values()].sort((left, right) => left.name.localeCompare(right.name));
   const localAirportCount = new Set(
     stateVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id)),
@@ -79,8 +79,8 @@ export default function StateScreen() {
     : undefined;
   const selectedCityVisits = selectedCity
     ? stateVisits
-        .filter((visit) => visit.cityId === selectedCity.id)
-        .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt))
+      .filter((visit) => visit.cityName.trim().toLocaleLowerCase() === selectedCity.name.trim().toLocaleLowerCase())
+      .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt))
     : [];
 
   const toggleSight = async (id: string, completed: boolean) => {
@@ -175,7 +175,9 @@ export default function StateScreen() {
             <View style={styles.list}>
               {visitedCities.map((city) => {
                 const catalogCity = detail.cities.find((item) => String(item.id) === String(city.id));
-                const cityVisits = stateVisits.filter((visit) => visit.cityId === city.id);
+                const cityVisits = stateVisits.filter(
+                  (visit) => visit.cityName.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase(),
+                );
                 const sightCount = new Set(
                   cityVisits.flatMap((visit) => visit.places
                     .filter((place) => place.type === "sight")
