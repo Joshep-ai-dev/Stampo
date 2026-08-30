@@ -530,7 +530,7 @@ export default function CountryScreen() {
                   city.visits.flatMap((visit) =>
                     visit.places
                       .filter((place) => place.type === "airport")
-                      .map((place) => place.id || place.name),
+                      .map((place) => place.name.trim().toLocaleLowerCase()),
                   ),
                 ).size;
                 return (
@@ -564,7 +564,7 @@ export default function CountryScreen() {
                         {city.name}
                       </Text>
                       <Text style={s.collectionDetail}>
-                        {sightCount} sights · {airportCount} airports ·{" "}
+                        {sightCount} {sightCount === 1 ? "sight" : "sights"} · {airportCount} {airportCount === 1 ? "airport" : "airports"} ·{" "}
                         {city.visits.length}{" "}
                         {city.visits.length === 1 ? "visit" : "visits"}
                       </Text>

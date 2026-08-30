@@ -333,44 +333,51 @@ export function CityVisitSearch({
                 </View>
 
                 <Text style={styles.fieldLabel}>Airport (optional)</Text>
-                <TouchableOpacity
-                  style={styles.airportSelect}
-                  onPress={() => setAirportMenuOpen((open) => !open)}
-                  disabled={airportsLoading || airports.length === 0}
-                  accessibilityRole="button"
-                  accessibilityLabel="Select airport"
-                >
-                  {airportsLoading ? (
-                    <ActivityIndicator color={colors.muted} />
-                  ) : (
-                    <Ionicons name="airplane-outline" size={22} color={colors.muted} />
-                  )}
-                  <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>
-                    {selectedAirport
-                      ? `${selectedAirport.name} (${selectedAirport.iataCode})`
-                      : airports.length
-                        ? "Select an airport"
-                        : "No airports listed for this city"}
-                  </Text>
-                  {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
-                </TouchableOpacity>
-                {airportMenuOpen ? (
-                  <View style={styles.airportMenu}>
-                    <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
-                      <Text style={styles.airportOptionText}>No airport</Text>
-                    </Pressable>
-                    {airports.map((airport) => (
-                      <Pressable
-                        key={airport.id}
-                        style={styles.airportOption}
-                        onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}
-                      >
-                        <Text style={styles.airportOptionText}>{airport.name}</Text>
-                        <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                <View style={styles.airportDropdownWrap}>
+                  <TouchableOpacity
+                    style={styles.airportSelect}
+                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    disabled={airportsLoading || airports.length === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select airport"
+                  >
+                    {airportsLoading ? (
+                      <ActivityIndicator color={colors.muted} />
+                    ) : (
+                      <Ionicons name="airplane-outline" size={22} color={colors.muted} />
+                    )}
+                    <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>
+                      {selectedAirport
+                        ? `${selectedAirport.name} (${selectedAirport.iataCode})`
+                        : airports.length
+                          ? "Select an airport"
+                          : "No airports listed for this city"}
+                    </Text>
+                    {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
+                  </TouchableOpacity>
+                  {airportMenuOpen ? (
+                    <ScrollView
+                      style={styles.airportMenu}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator
+                    >
+                      <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                        <Text style={styles.airportOptionText}>No airport</Text>
                       </Pressable>
-                    ))}
-                  </View>
-                ) : null}
+                      {airports.map((airport) => (
+                        <Pressable
+                          key={airport.id}
+                          style={styles.airportOption}
+                          onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}
+                        >
+                          <Text style={styles.airportOptionText}>{airport.name}</Text>
+                          <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                </View>
 
                 <Text style={[styles.fieldLabel, styles.noteLabel]}>Note (optional)</Text>
                 <TextInput
@@ -610,6 +617,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
   },
+  airportDropdownWrap: {
+    position: "relative",
+    zIndex: 20,
+    overflow: "visible",
+  },
   airportSelectText: {
     flex: 1,
     fontFamily: "Lora_500Medium",
@@ -618,11 +630,22 @@ const styles = StyleSheet.create({
   },
   airportPlaceholder: { color: "#aa9c8c" },
   airportMenu: {
-    marginTop: 6,
+    position: "absolute",
+    top: 54,
+    left: 0,
+    right: 0,
+    maxHeight: 220,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     overflow: "hidden",
+    backgroundColor: colors.card,
+    zIndex: 30,
+    elevation: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   airportOption: {
     minHeight: 48,

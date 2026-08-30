@@ -175,10 +175,26 @@ export default function StateScreen() {
             <View style={styles.list}>
               {visitedCities.map((city) => {
                 const catalogCity = detail.cities.find((item) => String(item.id) === String(city.id));
+                const cityVisits = stateVisits.filter((visit) => visit.cityId === city.id);
+                const sightCount = new Set(
+                  cityVisits.flatMap((visit) => visit.places
+                    .filter((place) => place.type === "sight")
+                    .map((place) => place.id || place.name)),
+                ).size;
+                const airportCount = new Set(
+                  cityVisits.flatMap((visit) => visit.places
+                    .filter((place) => place.type === "airport")
+                    .map((place) => place.name.trim().toLocaleLowerCase())),
+                ).size;
                 return (
                   <TouchableOpacity key={city.id} style={styles.row} onPress={() => setSelectedCityId(city.id)}>
                     <ProgressivePlaceImage uri={catalogCity?.image} style={styles.cityImage} contentFit="cover" />
-                    <Text style={styles.rowTitle}>{city.name}</Text>
+                    <View style={styles.cityText}>
+                      <Text style={[styles.rowTitle, styles.cityTitle]}>{city.name}</Text>
+                      <Text style={styles.cityDetail}>
+                        {sightCount} {sightCount === 1 ? "sight" : "sights"} · {airportCount} {airportCount === 1 ? "airport" : "airports"} · {cityVisits.length} {cityVisits.length === 1 ? "visit" : "visits"}
+                      </Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
                   </TouchableOpacity>
                 );
@@ -224,6 +240,9 @@ const styles = StyleSheet.create({
   thumbnail: { width: 58, height: 58, borderRadius: 11, backgroundColor: BrandColors.greenPanel },
   cityImage: { width: 50, height: 50, borderRadius: 25, backgroundColor: BrandColors.greenPanel },
   rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
+  cityText: { flex: 1, gap: 3 },
+  cityTitle: { flex: 0 },
+  cityDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
   modalImage: { width: "100%", height: 190, borderRadius: 14, backgroundColor: BrandColors.greenPanel },
   modalPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
