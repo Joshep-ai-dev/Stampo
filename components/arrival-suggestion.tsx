@@ -18,6 +18,10 @@ import {
 import { BrandColors } from "@/constants/theme";
 import { getPlaceSuggestions } from "@/data/place-suggestions";
 import { api } from "@/services/api";
+import {
+  canUseGpsArrivals,
+  GPS_ARRIVALS_REQUIRE_KROO_PLUS,
+} from "@/services/gps-access";
 import type { ArrivalSuggestion } from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -47,14 +51,17 @@ export function ArrivalSuggestionPrompt() {
     let removeListener: (() => void) | undefined;
     void import("expo-notifications").then((Notifications) => {
       if (!active) return;
-      void Notifications.getLastNotificationResponseAsync().then((response) => {
+      const consumeResponse = async (response: NotificationResponse | null) => {
         const arrival = suggestionFromResponse(response);
         if (arrival) setSuggestion(arrival);
-      });
+        if (response) {
+          await Notifications.clearLastNotificationResponseAsync();
+        }
+      };
+      void Notifications.getLastNotificationResponseAsync().then(consumeResponse);
       const subscription =
         Notifications.addNotificationResponseReceivedListener((response) => {
-          const arrival = suggestionFromResponse(response);
-          if (arrival) setSuggestion(arrival);
+          void consumeResponse(response);
         });
       removeListener = () => subscription.remove();
     });
@@ -65,10 +72,12 @@ export function ArrivalSuggestionPrompt() {
   }, []);
 
   const confirmVisit = async () => {
-    if (!suggestion || !isSignedIn || !isKrooPlus) {
+    if (!suggestion || !isSignedIn || !canUseGpsArrivals(isKrooPlus)) {
       Alert.alert(
-        "Kroo+",
-        "Sign in with an active Kroo+ membership to save a GPS-verified visit.",
+        GPS_ARRIVALS_REQUIRE_KROO_PLUS ? "Kroo+" : "Sign in required",
+        GPS_ARRIVALS_REQUIRE_KROO_PLUS
+          ? "Sign in with an active Kroo+ membership to save a GPS-verified visit."
+          : "Sign in to save a GPS-verified visit.",
       );
       return;
     }
@@ -98,7 +107,7 @@ export function ArrivalSuggestionPrompt() {
         continentCode: city.continentCode,
         subcountry: city.subcountry,
         visitedAt: suggestion.detectedAt.slice(0, 10),
-        note: "Added from a Kroo+ GPS arrival.",
+        note: "Added from a GPS arrival.",
         places: airport
           ? [
               {
@@ -152,7 +161,11 @@ export function ArrivalSuggestionPrompt() {
             <View style={styles.icon}>
               <Ionicons name="navigate" size={24} color={BrandColors.green} />
             </View>
-            <Text style={styles.eyebrow}>KROO+ GPS ARRIVAL</Text>
+            <Text style={styles.eyebrow}>
+              {GPS_ARRIVALS_REQUIRE_KROO_PLUS
+                ? "KROO+ GPS ARRIVAL"
+                : "GPS ARRIVAL"}
+            </Text>
             <Text style={styles.title}>Add {suggestion.city}?</Text>
             <Text style={styles.copy}>
               {suggestion.airport

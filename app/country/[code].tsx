@@ -31,6 +31,10 @@ import {
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import {
+  canUseGpsArrivals,
+  GPS_ARRIVALS_REQUIRE_KROO_PLUS,
+} from "@/services/gps-access";
+import {
   countryDetailInvalidated,
   countrySightCompletionSet,
   fetchCountryDetail,
@@ -176,7 +180,7 @@ export default function CountryScreen() {
   };
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
-    if (!subscription.isKrooPlus) {
+    if (!canUseGpsArrivals(subscription.isKrooPlus)) {
       Alert.alert(
         "Kroo+ GPS arrivals",
         "Upgrade to Kroo+ to detect arrivals and create GPS-verified visits.",
@@ -650,7 +654,7 @@ export default function CountryScreen() {
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
           accessibilityRole="button"
-          accessibilityLabel="Enable Kroo+ GPS arrivals"
+          accessibilityLabel="Enable GPS arrivals"
         >
           <Ionicons
             name="location-outline"
@@ -658,8 +662,9 @@ export default function CountryScreen() {
             color={BrandColors.copper}
           />
           <Text style={s.gpsText}>
-            Kroo+ can automatically add visited cities using GPS when you opt
-            in.
+            {GPS_ARRIVALS_REQUIRE_KROO_PLUS
+              ? "Kroo+ can automatically add visited cities using GPS when you opt in."
+              : "Automatically add visited cities using GPS when you opt in. Free during launch."}
           </Text>
           <Ionicons
             name="chevron-forward"

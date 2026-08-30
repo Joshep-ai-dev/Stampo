@@ -8,6 +8,7 @@ import {
 } from "countries-list";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
+import { canUseGpsArrivals } from "@/services/gps-access";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -946,6 +947,7 @@ export default function HomeScreen() {
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
   const isKrooPlus = useAppSelector((x) => x.subscription.isKrooPlus);
+  const gpsArrivalsAllowed = canUseGpsArrivals(isKrooPlus);
   const dashboard = useAppSelector((x) => x.dashboard);
   const [currentLocation, setCurrentLocation] =
     useState<CurrentMapLocation | null>(null);
@@ -964,7 +966,7 @@ export default function HomeScreen() {
     setWelcomeDismissed(true);
   }, [dispatch, welcomeName]);
   const locateUser = useCallback(async () => {
-    if (!isKrooPlus) return;
+    if (!gpsArrivalsAllowed) return;
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) return;
@@ -981,11 +983,11 @@ export default function HomeScreen() {
         longitude: position.coords.longitude,
       });
     } catch {}
-  }, [isKrooPlus]);
+  }, [gpsArrivalsAllowed]);
   useEffect(() => {
     let active = true;
     let subscription: Location.LocationSubscription | undefined;
-    if (!isKrooPlus) {
+    if (!gpsArrivalsAllowed) {
       setCurrentLocation(null);
       void stopArrivalMonitoring().catch(() => undefined);
       return () => {
@@ -1015,7 +1017,7 @@ export default function HomeScreen() {
       active = false;
       subscription?.remove();
     };
-  }, [isKrooPlus, locateUser]);
+  }, [gpsArrivalsAllowed, locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.syncVisits(visits),
@@ -1208,7 +1210,7 @@ export default function HomeScreen() {
         <WorldMap
           visited={countryCodes}
           visits={visits}
-          currentLocation={isKrooPlus ? currentLocation : null}
+          currentLocation={gpsArrivalsAllowed ? currentLocation : null}
           onGestureActiveChange={setMapGestureActive}
         />
         <View style={styles.continentCard}>
