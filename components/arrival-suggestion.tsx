@@ -1,7 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import Constants, { ExecutionEnvironment } from "expo-constants";
 import type { NotificationResponse } from "expo-notifications";
 import { useEffect, useState } from "react";
 import {
@@ -51,10 +50,7 @@ export function ArrivalSuggestionPrompt() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (
-      Platform.OS === "web" ||
-      Constants.executionEnvironment === ExecutionEnvironment.StoreClient
-    ) {
+    if (Platform.OS === "web") {
       return;
     }
     let active = true;
@@ -135,15 +131,14 @@ export function ArrivalSuggestionPrompt() {
         subcountry: city.subcountry,
         visitedAt: suggestion.detectedAt.slice(0, 10),
         note: "Added from a GPS arrival.",
-        places: airport
-          ? [
-              {
-                id: `gps-airport-${Date.now()}`,
-                name: airport,
-                type: "airport",
-              },
-            ]
-          : [],
+        places: [
+          ...(airport
+            ? [{ id: `gps-airport-${Date.now()}`, name: airport, type: "airport" as const }]
+            : []),
+          ...(suggestion.nearbyPlace?.type === "sight"
+            ? [{ id: suggestion.nearbyPlace.id, name: suggestion.nearbyPlace.name, type: "sight" as const }]
+            : []),
+        ],
         verification: {
           status: "gps_verified",
           checkedAt: suggestion.detectedAt,
@@ -195,7 +190,9 @@ export function ArrivalSuggestionPrompt() {
             </Text>
             <Text style={styles.title}>Add {suggestion.city}?</Text>
             <Text style={styles.copy}>
-              {suggestion.airport
+              {suggestion.nearbyPlace
+                ? `You are ${Math.round(suggestion.nearbyPlace.distanceMeters)} m from ${suggestion.nearbyPlace.name}, a Kroo ${suggestion.nearbyPlace.type === "sight" ? "Top Sight" : "collection place"}.`
+                : suggestion.airport
                 ? `${suggestion.airport} was detected.`
                 : `You were detected in ${suggestion.city}, ${suggestion.country}.`}{" "}
               Confirm to add the city, country, continent, and available airport

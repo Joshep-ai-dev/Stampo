@@ -130,6 +130,18 @@ export type AirportOption = {
   countryCode?: string;
 };
 
+export type NearbyCatalogPlace = {
+  id: string;
+  type: "sight" | "collection";
+  name: string;
+  city?: string;
+  countryCode?: string;
+  distanceMeters: number;
+  latitude: number;
+  longitude: number;
+  wikipediaTitle: string;
+};
+
 export type StateDetailResponse = {
   id: string;
   name: string;
@@ -479,6 +491,10 @@ export const api = {
   stateAirports: (countryCode: string, state: string) =>
     request<AirportOption[]>(
       `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(state)}/airports`,
+    ),
+  nearbyCatalogPlaces: (latitude: number, longitude: number, radius = 1000) =>
+    request<NearbyCatalogPlace[]>(
+      `/catalog/nearby?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&radius=${encodeURIComponent(radius)}`,
     ),
   sightDetail: (id: string) =>
     request<BackendSight>(`/sights/${encodeURIComponent(id)}`).then(
