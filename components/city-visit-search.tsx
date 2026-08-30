@@ -160,10 +160,10 @@ export function CityVisitSearch({
       note,
       places: selectedAirport
         ? [{
-            id: `airport:${selectedAirport.id}`,
-            name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
-            type: "airport",
-          }]
+          id: `airport:${selectedAirport.id}`,
+          name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
+          type: "airport",
+        }]
         : [],
     };
     try {
@@ -332,7 +332,7 @@ export function CityVisitSearch({
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>Airport (optional)</Text>
+                <Text style={styles.fieldLabel}>Airport</Text>
                 <View style={styles.airportDropdownWrap}>
                   <TouchableOpacity
                     style={styles.airportSelect}
@@ -379,7 +379,7 @@ export function CityVisitSearch({
                   ) : null}
                 </View>
 
-                <Text style={[styles.fieldLabel, styles.noteLabel]}>Note (optional)</Text>
+                <Text style={[styles.fieldLabel, styles.noteLabel]}>Note</Text>
                 <TextInput
                   value={note}
                   onChangeText={(value) => setNote(value.slice(0, 140))}
