@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -44,6 +44,14 @@ import {
   visitsHydrated,
   visitUpdated,
 } from "@/store/travel-slice";
+
+const collectionImages: Record<string, number> = {
+  wonders: require("../../assets/images/collection/Seven Wonders.png"),
+  seas: require("../../assets/images/collection/Seven Seas.png"),
+  unesco: require("../../assets/images/collection/UNESCO Explorer.png"),
+  parks: require("../../assets/images/collection/National Parks Collector.png"),
+  usa: require("../../assets/images/collection/United States Explorer.png"),
+};
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -125,17 +133,22 @@ export default function CountryScreen() {
       ),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
+  const visitedStates = [...new Set(
+    countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+  )].sort((left, right) => left.localeCompare(right));
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
-  const countryCollectionItems = countryCollections.flatMap((collection) =>
-    collection.places
-      .filter(
+  const countryCollectionItems = countryCollections
+    .map((collection) => ({
+      collection,
+      places: collection.places.filter(
         (place) =>
-          place.country?.toLocaleLowerCase() === name.toLocaleLowerCase(),
-      )
-      .map((place) => ({ collection, place })),
-  );
+          place.country?.trim().toLocaleLowerCase() ===
+          name.trim().toLocaleLowerCase(),
+      ),
+    }))
+    .filter(({ places }) => places.length > 0);
   const localSightIds = new Set(
     countryVisits.flatMap((visit) =>
       visit.places
@@ -154,6 +167,9 @@ export default function CountryScreen() {
     ),
   );
   const displayedStats = {
+    states: new Set(
+      countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+    ).size,
     cities: Math.max(
       detail?.stats.cities ?? 0,
       new Set(countryVisits.map((visit) => visit.cityId)).size,
@@ -161,25 +177,6 @@ export default function CountryScreen() {
     sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
-  const lockedCollectionPlaceCount = countryCollectionItems.filter(
-    ({ place }) => place.access === "pro" || place.isPremium === true,
-  ).length;
-  const freeCollectionItems = subscription.isKrooPlus
-    ? countryCollectionItems
-    : countryCollectionItems.filter(
-        ({ place }) => place.access !== "pro" && place.isPremium !== true,
-      );
-  const lockedCollectionItems = subscription.isKrooPlus
-    ? []
-    : countryCollectionItems
-        .filter(
-          ({ place }) => place.access === "pro" || place.isPremium === true,
-        )
-        .slice(0, 3);
-  const orderedCollectionItems = [
-    ...freeCollectionItems,
-    ...lockedCollectionItems,
-  ];
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!subscription.isKrooPlus) {
@@ -328,6 +325,15 @@ export default function CountryScreen() {
         <View style={s.statsWrap}>
           <TravelStats
             items={[
+              ...(normalizedCode === "US"
+                ? [
+                    {
+                      icon: "map-outline",
+                      value: displayedStats.states,
+                      label: "STATES",
+                    },
+                  ]
+                : []),
               {
                 icon: "business-outline",
                 value: displayedStats.cities,
@@ -409,7 +415,6 @@ export default function CountryScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
             {lockedSights.length ? (
               <UpgradeBanner
                 count={lockedSights.length}
@@ -465,6 +470,7 @@ export default function CountryScreen() {
                 ))}
               </View>
             ) : null}
+            </ScrollView>
           </View>
         ) : (
           <Text style={[s.empty, s.sightsEmpty]}>
@@ -472,76 +478,59 @@ export default function CountryScreen() {
           </Text>
         )}
 
-        <SectionTitle>Collections</SectionTitle>
-        {countryCollectionItems.length ? (
-          <View style={s.collectionList}>
-            {orderedCollectionItems.map(({ collection, place }, index) => {
-              const locked =
-                !subscription.isKrooPlus &&
-                (place.access === "pro" || place.isPremium === true);
-              return (
-                <Fragment key={`${collection.id}-${place.id}`}>
-                  {index === freeCollectionItems.length &&
-                  lockedCollectionPlaceCount > 0 ? (
-                    <UpgradeBanner
-                      count={lockedCollectionPlaceCount}
-                      active={subscription.isKrooPlus}
-                      configured={subscription.configured}
-                      text="Unlock Kroo+ collection locations"
-                      onCustomerInfo={(customerInfo) =>
-                        dispatch(
-                          subscriptionUpdated({
-                            configured: true,
-                            isKrooPlus: customerHasKrooPlus(customerInfo),
-                          }),
-                        )
-                      }
-                    />
-                  ) : null}
-                  <TouchableOpacity
-                    key={`${collection.id}-${place.id}`}
-                    style={[s.sightRow, locked && s.lockedSightRow]}
-                    activeOpacity={0.82}
-                    onPress={() =>
-                      router.push(`/collection/${collection.id}` as never)
-                    }
-                    accessibilityRole="link"
-                    accessibilityLabel={`Open ${collection.title}`}
-                  >
-                    <View style={s.collectionImageFrame}>
-                      <ProgressivePlaceImage
-                        uri={place.imageUrl || collection.imageUrl}
-                        style={s.collectionImage}
-                        contentFit="cover"
-                        blurRadius={locked ? 32 : undefined}
-                      />
+        {normalizedCode === "US" ? (
+          <>
+            <SectionTitle>States</SectionTitle>
+            <View style={s.cityList}>
+              <ScrollView
+                style={s.categoryScroller}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={visitedStates.length > 3}
+              >
+                {visitedStates.length ? (
+                  visitedStates.map((stateName) => {
+                  const stateCities = new Set(
+                    countryVisits
+                      .filter((visit) => visit.subcountry.trim() === stateName)
+                      .map((visit) => visit.cityId),
+                  ).size;
+                  return (
+                    <View key={stateName} style={s.sightRow}>
+                      <View style={s.stateIcon}>
+                        <Ionicons
+                          name="map-outline"
+                          size={24}
+                          color={BrandColors.copper}
+                        />
+                      </View>
+                      <View style={s.collectionText}>
+                        <Text numberOfLines={1} style={s.collectionTitle}>
+                          {stateName}
+                        </Text>
+                        <Text style={s.collectionDetail}>
+                          {stateCities} {stateCities === 1 ? "city" : "cities"} visited
+                        </Text>
+                      </View>
                     </View>
-                    <View style={s.collectionText}>
-                      <Text
-                        style={[s.collectionTitle, locked && s.lockedSightName]}
-                        numberOfLines={1}
-                      >
-                        {place.name}
-                      </Text>
-                      <Text style={s.collectionDetail} numberOfLines={1}>
-                        {collection.title}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </Fragment>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={[s.empty, s.collectionEmpty]}>
-            No collections feature locations in {name} yet.
-          </Text>
-        )}
+                  );
+                  })
+                ) : (
+                  <Text style={s.empty}>Your visited states will appear here.</Text>
+                )}
+              </ScrollView>
+            </View>
+          </>
+        ) : null}
 
-        <SectionTitle>Cities Visited</SectionTitle>
+        <SectionTitle>Cities</SectionTitle>
         <View style={s.cityList}>
-          {visitedCities.length ? (
-            visitedCities.map((city) => {
+          <ScrollView
+            style={s.categoryScroller}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={visitedCities.length > 3}
+          >
+            {visitedCities.length ? (
+              visitedCities.map((city) => {
               const latestVisit = city.visits[0];
               const cityDetail = detail?.cities.find(
                 (item) =>
@@ -602,11 +591,80 @@ export default function CountryScreen() {
                   </View>
                 </TouchableOpacity>
               );
-            })
-          ) : (
-            <Text style={s.empty}>Your visited cities will appear here.</Text>
-          )}
+              })
+            ) : (
+              <Text style={s.empty}>Your visited cities will appear here.</Text>
+            )}
+          </ScrollView>
         </View>
+
+        <SectionTitle>Collections</SectionTitle>
+        {countryCollectionItems.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.collectionRow}
+          >
+            {countryCollectionItems.map(({ collection }) => {
+              const completedCount = collection.places.filter((place) =>
+                completedSightIds.includes(
+                  `collection-${collection.id}-${place.id}`,
+                ),
+              ).length;
+              const progress = collection.places.length
+                ? Math.round((completedCount / collection.places.length) * 100)
+                : 0;
+              return (
+                <TouchableOpacity
+                  key={collection.id}
+                  style={s.collectionCard}
+                  activeOpacity={0.82}
+                  onPress={() =>
+                    router.push(`/collection/${collection.id}` as never)
+                  }
+                  accessibilityRole="link"
+                  accessibilityLabel={`Open ${collection.title}`}
+                >
+                  <View style={s.collectionHeader}>
+                    <Text style={s.collectionCardTitle} numberOfLines={1}>
+                      {collection.title}
+                    </Text>
+                  </View>
+                  <View style={s.collectionSeal}>
+                    <Image
+                      source={
+                        collectionImages[collection.id] ??
+                        (collection.imageUrl
+                          ? { uri: collection.imageUrl }
+                          : require("@/assets/images/other/globe-airplane.png"))
+                      }
+                      style={s.collectionImage}
+                      contentFit="contain"
+                    />
+                  </View>
+                  {progress > 0 ? (
+                    <View style={s.collectionProgressRow}>
+                      <View style={s.collectionProgressTrack}>
+                        <View
+                          style={[
+                            s.collectionProgressFill,
+                            { width: `${progress}%` },
+                          ]}
+                        />
+                      </View>
+                      <Text style={s.collectionPercent}>{progress}%</Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <Text style={[s.empty, s.collectionEmpty]}>
+            No collections feature locations in {name} yet.
+          </Text>
+        )}
+
         <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
@@ -975,7 +1033,8 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   sightList: { marginHorizontal: 16 },
-  sightScroller: { maxHeight: 372 },
+  sightScroller: { maxHeight: 186 },
+  categoryScroller: { maxHeight: 186 },
   sightRow: {
     minHeight: 62,
     flexDirection: "row",
@@ -1009,17 +1068,78 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   lockedSightCheck: { opacity: 0.28 },
-  collectionList: { marginHorizontal: 16 },
-  collectionImageFrame: {
+  stateIcon: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.greenPanel,
   },
+  collectionRow: {
+    paddingHorizontal: 16,
+    gap: 10,
+    paddingTop: 5,
+    paddingBottom: 12,
+  },
+  collectionCard: {
+    width: 148,
+    height: 240,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 9,
+    borderRadius: 12,
+    backgroundColor: BrandColors.surface,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#C5A36C",
+  },
+  collectionHeader: {
+    width: "100%",
+    height: 24,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  collectionSeal: {
+    width: 124,
+    height: 174,
+    marginTop: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
   collectionImage: { width: "100%", height: "100%" },
+  collectionCardTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.green,
+    flexShrink: 1,
+  },
+  collectionProgressRow: {
+    width: "100%",
+    marginTop: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  collectionProgressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BrandColors.surfaceSoft,
+    overflow: "hidden",
+  },
+  collectionProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: BrandColors.copper,
+  },
+  collectionPercent: {
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(10),
+    color: BrandColors.muted,
+  },
   collectionText: { flex: 1 },
   collectionTitle: {
     fontFamily: "Lora_600SemiBold",

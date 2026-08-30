@@ -745,6 +745,11 @@ function WorldMap({
       ),
     ).size,
   );
+  const selectedStateCount = new Set(
+    selectedCountryVisits
+      .map((visit) => visit.subcountry.trim())
+      .filter(Boolean),
+  ).size;
   const countryPaths = useMemo(
     () =>
       countriesOnMap.map((country) => (
@@ -890,6 +895,9 @@ function WorldMap({
               </View>
               <View style={styles.sheetStats}>
                 {[
+                  ...(selectedCountry.code === "US"
+                    ? [{ value: selectedStateCount, label: "STATES" }]
+                    : []),
                   { value: selectedCityCount, label: "CITIES" },
                   { value: selectedSightCount, label: "SIGHTS" },
                   { value: selectedAirportCount, label: "AIRPORTS" },
