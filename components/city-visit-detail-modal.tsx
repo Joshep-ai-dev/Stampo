@@ -8,7 +8,7 @@ import { BrandColors } from "@/constants/theme";
 import { api, type AirportOption } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { type Visit, visitUpdated } from "@/store/travel-slice";
+import { visitRemoved, visitUpdated, type Visit } from "@/store/travel-slice";
 import { DetailModal } from "./detail-modal";
 import { ProgressivePlaceImage } from "./progressive-place-image";
 
@@ -36,6 +36,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   const [airportsLoading, setAirportsLoading] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const [editAirport, setEditAirport] = useState<AirportOption | null>(null);
+  const [deletingVisitId, setDeletingVisitId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -92,6 +93,32 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     }
   };
 
+  const deleteVisit = async (visit: Visit) => {
+    setDeletingVisitId(visit.id);
+    try {
+      if (isSignedIn) await api.deleteVisit(visit.id);
+      setCurrentVisits((items) => items.filter((item) => item.id !== visit.id));
+      dispatch(visitRemoved(visit.id));
+      if (editingVisitId === visit.id) setEditingVisitId(null);
+      if (isSignedIn) void dispatch(fetchHomeDashboard());
+    } catch {
+      Alert.alert("Could not delete visit", "Please check your connection and try again.");
+    } finally {
+      setDeletingVisitId(null);
+    }
+  };
+
+  const confirmDeleteVisit = (visit: Visit) => {
+    Alert.alert(
+      "Delete visit?",
+      `Delete your ${visit.visitedAt} visit to ${city.name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => void deleteVisit(visit) },
+      ],
+    );
+  };
+
   return (
     <DetailModal
       visible
@@ -119,23 +146,60 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                 <Ionicons name="calendar-outline" size={16} color={BrandColors.copper} />
                 <Text style={s.text}>{visit.visitedAt}</Text>
               </View>
-              <TouchableOpacity
-                style={s.editButton}
-                onPress={() => {
-                  if (editingVisitId === visit.id) setEditingVisitId(null);
-                  else {
-                    setEditingVisitId(visit.id);
-                    setEditVisitDate(visit.visitedAt);
-                    setEditVisitNote(visit.note);
-                    setEditAirport(airportFromVisit(visit));
-                    setAirportMenuOpen(false);
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
-              >
-                <Text style={s.editText}>{editingVisitId === visit.id ? "Cancel" : "Edit"}</Text>
-              </TouchableOpacity>
+              <View style={s.actions}>
+                {editingVisitId === visit.id ? (
+                  <>
+                    <TouchableOpacity
+                      style={s.iconButton}
+                      hitSlop={6}
+                      onPress={() => setEditingVisitId(null)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel editing visit"
+                    >
+                      <Ionicons name="close" size={19} color={BrandColors.copper} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.iconButton}
+                      hitSlop={6}
+                      onPress={() => void save()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Save visit"
+                    >
+                      <Ionicons name="save-outline" size={19} color={BrandColors.copper} />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={s.iconButton}
+                      hitSlop={6}
+                      onPress={() => {
+                        setEditingVisitId(visit.id);
+                        setEditVisitDate(visit.visitedAt);
+                        setEditVisitNote(visit.note);
+                        setEditAirport(airportFromVisit(visit));
+                        setAirportMenuOpen(false);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
+                    >
+                      <Ionicons name="create-outline" size={19} color={BrandColors.copper} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.iconButton}
+                      hitSlop={6}
+                      onPress={() => confirmDeleteVisit(visit)}
+                      disabled={deletingVisitId === visit.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete visit from ${visit.visitedAt}`}
+                    >
+                      {deletingVisitId === visit.id
+                        ? <ActivityIndicator size="small" color="#e35d5d" />
+                        : <Ionicons name="trash-outline" size={19} color="#e35d5d" />}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
             </View>
             {editingVisitId === visit.id ? (
               <View style={s.form}>
@@ -172,9 +236,6 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                 </View>
                 <Text style={[s.label, s.noteLabel]}>Note</Text>
                 <TextInput value={editVisitNote} onChangeText={(value) => setEditVisitNote(value.slice(0, 140))} placeholder="Add a short note" placeholderTextColor={BrandColors.onDarkMuted} style={[s.input, s.noteInput]} maxLength={140} multiline />
-                <TouchableOpacity style={s.saveButton} onPress={() => void save()}>
-                  <Text style={s.saveText}>Save</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -200,8 +261,8 @@ const s = StyleSheet.create({
   itemHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   row: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 8 },
   text: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
-  editButton: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: BrandColors.copper },
-  editText: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
+  actions: { flexDirection: "row", alignItems: "center", gap: 1, marginRight: -7 },
+  iconButton: { width: 29, height: 34, alignItems: "center", justifyContent: "center" },
   form: { gap: 7, paddingTop: 4 },
   label: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   noteLabel: { marginTop: 8 },
@@ -215,6 +276,4 @@ const s = StyleSheet.create({
   airportOption: { minHeight: 44, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   airportOptionName: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
   airportCode: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
-  saveButton: { height: 40, marginTop: 6, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.copper },
-  saveText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(14), color: BrandColors.green },
 });
