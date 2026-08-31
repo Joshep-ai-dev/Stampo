@@ -92,6 +92,6 @@ const s = StyleSheet.create({
   copy: { flex: 1 },
   itemTitle: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
   detail: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
-  empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  empty: { marginHorizontal: 16, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
   locked: { opacity: 0.5 },
 });

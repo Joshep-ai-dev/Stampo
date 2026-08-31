@@ -153,7 +153,16 @@ const styles = StyleSheet.create({
   titleRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
   stateFlag: { width: 38, height: 25, borderRadius: 2, backgroundColor: BrandColors.greenPanel },
   title: { flexShrink: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), lineHeight: 34, color: BrandColors.copper },
-  hero: { height: 250, marginHorizontal: 14, marginBottom: 14, borderRadius: 16, borderWidth: 1, borderColor: BrandColors.copperDark, overflow: "hidden", backgroundColor: BrandColors.surface },
+  hero: {
+    height: 250,
+    marginHorizontal: 14,
+    marginBottom: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BrandColors.copperDark,
+    overflow: "hidden",
+    backgroundColor: BrandColors.surface
+  },
   heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   loader: { marginTop: 80 },

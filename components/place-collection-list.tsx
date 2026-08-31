@@ -43,5 +43,5 @@ const s = StyleSheet.create({
   track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: BrandColors.surfaceSoft, overflow: "hidden" },
   fill: { height: "100%", borderRadius: 2, backgroundColor: BrandColors.copper },
   percent: { fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(10), color: BrandColors.muted },
-  empty: { marginHorizontal: 16, paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  empty: { marginHorizontal: 16, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
 });

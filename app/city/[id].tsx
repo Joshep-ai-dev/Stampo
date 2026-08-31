@@ -103,11 +103,14 @@ export default function CityScreen() {
               )}
             </View>
 
-            <TravelStats items={[
-              { icon: "calendar-outline", value: cityVisits.length, label: "VISITS" },
-              { icon: "camera-outline", value: completedCitySightCount, label: "SIGHTS" },
-              { icon: "airplane-outline", value: airportCount, label: "AIRPORTS" },
-            ]} />
+            <View style={s.statsWrap}>
+
+              <TravelStats items={[
+                { icon: "calendar-outline", value: cityVisits.length, label: "VISITS" },
+                { icon: "camera-outline", value: completedCitySightCount, label: "SIGHTS" },
+                { icon: "airplane-outline", value: airportCount, label: "AIRPORTS" },
+              ]} />
+            </View>
 
             {city.description ? <Text style={s.description}>{city.description}</Text> : null}
 
@@ -143,15 +146,31 @@ export default function CityScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
-  content: { paddingHorizontal: 16, paddingBottom: 48 },
-  header: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12 },
+  content: { paddingBottom: 48 },
+  header: {
+    minHeight: 64,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   back: { width: 42, height: 42, borderRadius: 25, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.paleGreen },
   headerSpacer: { width: 50 },
   title: { flex: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(25), color: BrandColors.copper },
   loader: { marginTop: 80 },
   message: { padding: 24, borderRadius: 12, backgroundColor: BrandColors.greenPanel },
   messageText: { textAlign: "center", color: BrandColors.onDark, fontFamily: "Lora_500Medium" },
-  hero: { height: 250, borderRadius: 18, borderWidth: 3, borderColor: BrandColors.surface, overflow: "hidden", marginBottom: 18 },
+  hero: {
+    height: 250,
+    marginHorizontal: 14,
+    marginBottom: 14,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: BrandColors.copperDark,
+    backgroundColor: BrandColors.surface,
+  },
   heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
   heroPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   description: { marginTop: 20, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), lineHeight: 21, color: BrandColors.onDarkMuted },
@@ -162,11 +181,12 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(18),
     color: BrandColors.onDark,
   },
-  list: { overflow: "hidden", borderRadius: 12 },
+  list: { marginHorizontal: 16, overflow: "hidden", borderRadius: 12 },
   row: { minHeight: 66, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   thumbnail: { width: 58, height: 58, borderRadius: 11, backgroundColor: BrandColors.greenPanel },
   rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
   visitCopy: { flex: 1, gap: 3 },
   meta: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  statsWrap: { marginHorizontal: 14, marginBottom: 2 }
 });
