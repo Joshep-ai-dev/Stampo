@@ -568,6 +568,11 @@ export default function CountryScreen() {
                         {city.visits.length === 1 ? "visit" : "visits"}
                       </Text>
                     </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={BrandColors.onDarkMuted}
+                    />
                   </TouchableOpacity>
                 );
               })
