@@ -302,6 +302,10 @@ export type SightDetail = {
 export type CityDetail = {
   id: string;
   countryId: string;
+  country?: string;
+  countryCode?: string;
+  continentCode?: string;
+  subcountry?: string;
   geonamesId: string | null;
   wikidataId: string | null;
   wikipediaTitle: string | null;

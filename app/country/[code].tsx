@@ -255,9 +255,12 @@ export default function CountryScreen() {
         </View>
 
         <View style={s.stampHero}>
-          {detail?.country.coverImage ? (
+          {!detail ? (
+            <View style={s.heroLoading} />
+          ) : detail.country.coverImage ? (
             <Image
               source={{ uri: detail.country.coverImage }}
+              recyclingKey={`country-${code}-${detail.country.coverImage}`}
               style={s.countryHeroImage}
               contentFit="cover"
               contentPosition="center"
@@ -542,16 +545,7 @@ export default function CountryScreen() {
                   <TouchableOpacity
                     key={city.id}
                     style={s.sightRow}
-                    onPress={() => {
-                      setSelectedCity({
-                        id: city.id,
-                        name: city.name,
-                        image: cityDetail?.image,
-                        description: cityDetail?.description,
-                        regionName: latestVisit.subcountry,
-                        visits: city.visits,
-                      });
-                    }}
+                    onPress={() => router.push(`/city/${city.id}` as never)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open visit history for ${city.name}`}
                   >
@@ -848,7 +842,7 @@ const s = StyleSheet.create({
   },
   headerSpacer: { width: 42, height: 42 },
   stampHero: {
-    height: 220,
+    height: 250,
     marginHorizontal: 14,
     marginBottom: 14,
     borderRadius: 16,
@@ -866,6 +860,7 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  heroLoading: { flex: 1, backgroundColor: BrandColors.greenPanel },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,

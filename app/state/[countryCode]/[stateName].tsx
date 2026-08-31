@@ -104,7 +104,7 @@ export default function StateScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.back} onPress={() => router.back()} accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={29} color={BrandColors.onDark} />
+            <Ionicons name="chevron-back" size={25} color={BrandColors.onDark} />
           </TouchableOpacity>
           <Text style={styles.title} numberOfLines={1}>🇺🇸 {detail?.name ?? stateName}</Text>
           <View style={styles.headerSpacer} />
@@ -122,6 +122,7 @@ export default function StateScreen() {
             <View style={styles.hero}>
               <Image
                 source={detail.imageUrl ? { uri: detail.imageUrl } : require("@/assets/images/other/globe-airplane.png")}
+                recyclingKey={`state-${countryCode}-${stateName}-${detail.imageUrl || "fallback"}`}
                 style={styles.heroImage}
                 contentFit="cover"
                 accessibilityLabel={`${detail.name} state image`}
@@ -189,7 +190,7 @@ export default function StateScreen() {
                     .map((place) => place.name.trim().toLocaleLowerCase())),
                 ).size;
                 return (
-                  <TouchableOpacity key={city.id} style={styles.row} onPress={() => setSelectedCityId(city.id)}>
+                  <TouchableOpacity key={city.id} style={styles.row} onPress={() => router.push(`/city/${city.id}` as never)}>
                     <ProgressivePlaceImage uri={catalogCity?.image} style={styles.cityImage} contentFit="cover" />
                     <View style={styles.cityText}>
                       <Text style={[styles.rowTitle, styles.cityTitle]}>{city.name}</Text>
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingHorizontal: 16, paddingBottom: 48 },
   header: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12 },
-  back: { width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.paleGreen },
+  back: { width: 42, height: 42, borderRadius: 25, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.paleGreen },
   headerSpacer: { width: 50 },
   title: { flex: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(25), color: BrandColors.copper },
   hero: { height: 250, borderRadius: 18, borderWidth: 3, borderColor: BrandColors.surface, overflow: "hidden", marginBottom: 18 },

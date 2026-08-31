@@ -792,7 +792,13 @@ function WorldMap({
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={mapGesture}>
-        <View style={styles.zoomableMap} collapsable={false}>
+        <View
+          style={styles.zoomableMap}
+          collapsable={false}
+          onTouchStart={() => markMapGestureActive(true)}
+          onTouchEnd={() => markMapGestureActive(false)}
+          onTouchCancel={() => markMapGestureActive(false)}
+        >
           <Animated.View style={[styles.zoomableMap, animatedTranslationStyle]}>
             <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
               <Svg
@@ -1120,6 +1126,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!mapGestureActive}
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
