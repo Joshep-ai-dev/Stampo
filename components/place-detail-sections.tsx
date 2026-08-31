@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { ReactNode } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { type ReactNode, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
@@ -9,6 +10,36 @@ import { ProgressivePlaceImage } from "./progressive-place-image";
 
 export function PlaceSectionTitle({ children }: { children: string }) {
   return <Text style={s.sectionTitle}>{children}</Text>;
+}
+
+function FadingScrollList({ itemCount, children }: { itemCount: number; children: ReactNode }) {
+  const scrollable = itemCount > 3;
+  const [atBottom, setAtBottom] = useState(false);
+  return (
+    <View style={[s.scrollFrame, scrollable && s.scrollFrameOverflow]}>
+      <ScrollView
+        style={s.scroller}
+        nestedScrollEnabled
+        scrollEnabled={scrollable}
+        showsVerticalScrollIndicator={scrollable}
+        scrollEventThrottle={16}
+        onScroll={({ nativeEvent }) => {
+          const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+          setAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 4);
+        }}
+      >
+        {children}
+      </ScrollView>
+      {scrollable && !atBottom ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(3,29,20,0)", BrandColors.green]}
+          locations={[0, 0.92]}
+          style={s.bottomFade}
+        />
+      ) : null}
+    </View>
+  );
 }
 
 export function TopSightsSection({ sights, lockedSights = [], completedSightIds, onOpen, onToggle, upgrade }: {
@@ -24,7 +55,7 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
     <>
       <PlaceSectionTitle>Top Sights</PlaceSectionTitle>
       <View style={s.list}>
-        <ScrollView style={s.scroller} nestedScrollEnabled showsVerticalScrollIndicator={sights.length > 3}>
+        <FadingScrollList itemCount={sights.length + lockedSights.length}>
           {sights.map((sight) => {
             const checked = sight.completed === true || completedSightIds.includes(sight.id);
             return (
@@ -45,7 +76,7 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
               <Ionicons name="lock-closed" size={21} color={BrandColors.onDarkMuted} />
             </View>
           ))}
-        </ScrollView>
+        </FadingScrollList>
       </View>
     </>
   );
@@ -58,7 +89,7 @@ function NavigablePlaceSection({ title, items, emptyText, onOpen }: { title: str
     <>
       <PlaceSectionTitle>{title}</PlaceSectionTitle>
       <View style={s.list}>
-        <ScrollView style={s.scroller} nestedScrollEnabled showsVerticalScrollIndicator={items.length > 3}>
+        <FadingScrollList itemCount={items.length}>
           {items.length ? items.map((item) => (
             <TouchableOpacity key={item.id} style={s.row} onPress={() => onOpen(item)} accessibilityRole="button">
               {item.image ? <ProgressivePlaceImage uri={item.image} style={s.roundImage} contentFit="cover" /> : <View style={s.icon}><Ionicons name="map-outline" size={24} color={BrandColors.copper} /></View>}
@@ -66,7 +97,7 @@ function NavigablePlaceSection({ title, items, emptyText, onOpen }: { title: str
               <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
             </TouchableOpacity>
           )) : <Text style={s.empty}>{emptyText}</Text>}
-        </ScrollView>
+        </FadingScrollList>
       </View>
     </>
   );
@@ -83,7 +114,10 @@ export function CitiesVisitedSection(props: Omit<Parameters<typeof NavigablePlac
 const s = StyleSheet.create({
   sectionTitle: { marginTop: 23, marginBottom: 10, marginHorizontal: 17, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(18), color: BrandColors.onDark },
   list: { marginHorizontal: 16, overflow: "hidden" },
-  scroller: { maxHeight: 186 },
+  scrollFrame: { position: "relative" },
+  scrollFrameOverflow: { height: 236 },
+  scroller: { flexGrow: 0 },
+  bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 42 },
   row: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   image: { width: 46, height: 46, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
   roundImage: { width: 46, height: 46, borderRadius: 23, backgroundColor: BrandColors.greenPanel },
