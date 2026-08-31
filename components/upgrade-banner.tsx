@@ -82,7 +82,6 @@ export function UpgradeBanner({
 
 const s = StyleSheet.create({
   upgradeCard: {
-    marginHorizontal: 12,
     marginVertical: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
