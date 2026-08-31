@@ -7,6 +7,26 @@ import { BrandColors } from "@/constants/theme";
 import type { ManagedCollection } from "@/services/api";
 import { PlaceSectionTitle } from "./place-detail-sections";
 
+const collectionArtwork: Record<string, number> = {
+  wonders: require("@/assets/images/collection/Seven Wonders.png"),
+  seas: require("@/assets/images/collection/Seven Seas.png"),
+  unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
+  parks: require("@/assets/images/collection/National Parks Collector.png"),
+  usa: require("@/assets/images/collection/United States Explorer.png"),
+};
+
+function artworkFor(collection: ManagedCollection) {
+  const id = collection.id.toLocaleLowerCase();
+  const title = collection.title.toLocaleLowerCase();
+  if (collectionArtwork[id]) return collectionArtwork[id];
+  if (title.includes("seven wonder")) return collectionArtwork.wonders;
+  if (title.includes("seven sea")) return collectionArtwork.seas;
+  if (title.includes("unesco")) return collectionArtwork.unesco;
+  if (title.includes("national park")) return collectionArtwork.parks;
+  if (title.includes("united states") || title.includes("usa")) return collectionArtwork.usa;
+  return collection.imageUrl ? { uri: collection.imageUrl } : require("@/assets/images/other/globe-airplane.png");
+}
+
 export function PlaceCollectionList({ collections, completedSightIds, placeName }: {
   collections: ManagedCollection[];
   completedSightIds: string[];
@@ -20,10 +40,17 @@ export function PlaceCollectionList({ collections, completedSightIds, placeName 
         const completed = collection.places.filter((place) => completedSightIds.includes(`collection-${collection.id}-${place.id}`)).length;
         const progress = collection.places.length ? Math.round((completed / collection.places.length) * 100) : 0;
         return (
-          <TouchableOpacity key={collection.id} style={s.card} onPress={() => router.push(`/collection/${collection.id}` as never)}>
+          <TouchableOpacity
+            key={collection.id}
+            style={s.card}
+            activeOpacity={0.84}
+            onPress={() => router.push(`/collection/${collection.id}` as never)}
+            accessibilityRole="link"
+            accessibilityLabel={`Open ${collection.title}`}
+          >
             <Text style={s.title} numberOfLines={1}>{collection.title}</Text>
             <View style={s.seal}>
-              <Image source={collection.imageUrl ? { uri: collection.imageUrl } : require("@/assets/images/other/globe-airplane.png")} style={s.image} contentFit="contain" />
+              <Image source={artworkFor(collection)} style={s.image} contentFit="contain" />
             </View>
             {progress > 0 ? <View style={s.progressRow}><View style={s.track}><View style={[s.fill, { width: `${progress}%` }]} /></View><Text style={s.percent}>{progress}%</Text></View> : null}
           </TouchableOpacity>
