@@ -448,22 +448,10 @@ export default function CountryScreen() {
               >
                 {visitedStates.length ? (
                   visitedStates.map((stateName) => {
-                    const stateVisits = countryVisits.filter(
-                      (visit) => visit.subcountry.trim() === stateName,
-                    );
-                    const stateSightCount = new Set(
-                      stateVisits.flatMap((visit) =>
-                        visit.places
-                          .filter((place) => place.type === "sight")
-                          .map((place) => place.id || place.name),
-                      ),
-                    ).size;
-                    const stateAirportCount = new Set(
-                      stateVisits.flatMap((visit) =>
-                        visit.places
-                          .filter((place) => place.type === "airport")
-                          .map((place) => place.id || place.name),
-                      ),
+                    const stateCities = new Set(
+                      countryVisits
+                        .filter((visit) => visit.subcountry.trim() === stateName)
+                        .map((visit) => visit.cityId),
                     ).size;
                     const stateImage = detail?.states.find(
                       (item) =>
@@ -504,7 +492,7 @@ export default function CountryScreen() {
                             {stateName}
                           </Text>
                           <Text style={s.collectionDetail}>
-                            {stateSightCount} {stateSightCount === 1 ? "sight" : "sights"} · {stateAirportCount} {stateAirportCount === 1 ? "airport" : "airports"} · {stateVisits.length} {stateVisits.length === 1 ? "visit" : "visits"}
+                            {stateCities} {stateCities === 1 ? "city" : "cities"} visited
                           </Text>
                         </View>
                         <Ionicons

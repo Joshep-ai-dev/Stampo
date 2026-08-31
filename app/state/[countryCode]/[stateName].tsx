@@ -16,8 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
-import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { PlaceCollectionList } from "@/components/place-collection-list";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";

@@ -75,7 +75,7 @@ export default function CityScreen() {
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <TouchableOpacity style={s.back} onPress={() => router.back()} accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={25} color={BrandColors.onDark} />
+            <Ionicons name="chevron-back" size={24} color={BrandColors.onDark} />
           </TouchableOpacity>
           <Text style={s.title} numberOfLines={1}>
             {city?.name ?? "City"}
@@ -127,7 +127,7 @@ export default function CityScreen() {
               {!sights.length ? <Text style={s.empty}>Top sights will appear here.</Text> : null}
             </View>
 
-            <Text style={s.sectionTitle}>My Visit History</Text>
+            <Text style={s.sectionTitle}>Visit Notes</Text>
             <View style={s.list}>
               {cityVisits.map((visit) => (
                 <TouchableOpacity key={visit.id} style={s.row} onPress={() => setHistoryOpen(true)}>
@@ -181,5 +181,5 @@ const s = StyleSheet.create({
   rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
   visitCopy: { flex: 1, gap: 3 },
   meta: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
-  empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
+  empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
 });
