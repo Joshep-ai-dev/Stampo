@@ -29,11 +29,11 @@ import {
   type SightDetail,
 } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import {
   canUseGpsArrivals,
   GPS_ARRIVALS_REQUIRE_KROO_PLUS,
 } from "@/services/gps-access";
+import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
@@ -448,10 +448,22 @@ export default function CountryScreen() {
               >
                 {visitedStates.length ? (
                   visitedStates.map((stateName) => {
-                    const stateCities = new Set(
-                      countryVisits
-                        .filter((visit) => visit.subcountry.trim() === stateName)
-                        .map((visit) => visit.cityId),
+                    const stateVisits = countryVisits.filter(
+                      (visit) => visit.subcountry.trim() === stateName,
+                    );
+                    const stateSightCount = new Set(
+                      stateVisits.flatMap((visit) =>
+                        visit.places
+                          .filter((place) => place.type === "sight")
+                          .map((place) => place.id || place.name),
+                      ),
+                    ).size;
+                    const stateAirportCount = new Set(
+                      stateVisits.flatMap((visit) =>
+                        visit.places
+                          .filter((place) => place.type === "airport")
+                          .map((place) => place.id || place.name),
+                      ),
                     ).size;
                     const stateImage = detail?.states.find(
                       (item) =>
@@ -492,7 +504,7 @@ export default function CountryScreen() {
                             {stateName}
                           </Text>
                           <Text style={s.collectionDetail}>
-                            {stateCities} {stateCities === 1 ? "city" : "cities"} visited
+                            {stateSightCount} {stateSightCount === 1 ? "sight" : "sights"} · {stateAirportCount} {stateAirportCount === 1 ? "airport" : "airports"} · {stateVisits.length} {stateVisits.length === 1 ? "visit" : "visits"}
                           </Text>
                         </View>
                         <Ionicons

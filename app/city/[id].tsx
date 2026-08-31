@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { getEmojiFlag, type TCountryCode } from "countries-list";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -79,7 +78,7 @@ export default function CityScreen() {
             <Ionicons name="chevron-back" size={25} color={BrandColors.onDark} />
           </TouchableOpacity>
           <Text style={s.title} numberOfLines={1}>
-            {countryCode.length === 2 ? `${getEmojiFlag(countryCode as TCountryCode)} ` : ""}{city?.name ?? "City"}
+            {city?.name ?? "City"}
           </Text>
           <View style={s.headerSpacer} />
         </View>
@@ -169,7 +168,13 @@ const s = StyleSheet.create({
   heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
   heroPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   description: { marginTop: 20, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), lineHeight: 21, color: BrandColors.onDarkMuted },
-  sectionTitle: { marginTop: 28, marginBottom: 12, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(23), color: BrandColors.onDark },
+  sectionTitle: {
+    marginTop: 23,
+    marginBottom: 10,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(18),
+    color: BrandColors.onDark,
+  },
   list: { overflow: "hidden", borderRadius: 12 },
   row: { minHeight: 66, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   thumbnail: { width: 58, height: 58, borderRadius: 11, backgroundColor: BrandColors.greenPanel },

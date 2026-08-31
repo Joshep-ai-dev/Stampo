@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { PlaceCollectionList } from "@/components/place-collection-list";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
@@ -68,6 +69,7 @@ export default function StateScreen() {
   const localAirportCount = new Set(
     stateVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id)),
   ).size;
+  const stateFlagUrl = `https://cdn.civil.services/us-states/flags/${stateName.trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-")}-small.png`;
   const sights = detail?.sights ?? [];
   const visibleSights = subscription.isKrooPlus ? sights : sights.slice(0, 3);
   const lockedSights = subscription.isKrooPlus ? [] : sights.slice(3);
@@ -106,7 +108,10 @@ export default function StateScreen() {
           <TouchableOpacity style={styles.back} onPress={() => router.back()} accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={25} color={BrandColors.onDark} />
           </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>🇺🇸 {detail?.name ?? stateName}</Text>
+          <View style={styles.titleRow}>
+            <Image source={{ uri: stateFlagUrl }} style={styles.stateFlag} contentFit="cover" accessibilityLabel={`${detail?.name ?? stateName} flag`} />
+            <Text style={styles.title} numberOfLines={1}>{detail?.name ?? stateName}</Text>
+          </View>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -129,11 +134,11 @@ export default function StateScreen() {
               />
             </View>
 
-            <TravelStats items={[
+            <View style={styles.statsWrap}><TravelStats items={[
               { icon: "business-outline", value: Math.max(detail.stats.cities, visitedCities.length), label: "CITIES" },
               { icon: "camera-outline", value: Math.max(detail.stats.sights, completedSightIds.filter((id) => sights.some((sight) => sight.id === id)).length), label: "SIGHTS" },
               { icon: "airplane-outline", value: Math.max(detail.stats.airports, localAirportCount), label: "AIRPORTS" },
-            ]} />
+            ]} /></View>
 
             <Text style={styles.sectionTitle}>Top Sights</Text>
             <View style={styles.list}>
@@ -204,6 +209,9 @@ export default function StateScreen() {
               })}
               {!visitedCities.length ? <Text style={styles.empty}>Your visited cities in {detail.name} will appear here.</Text> : null}
             </View>
+
+            <Text style={styles.sectionTitle}>Collections</Text>
+            <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
         ) : null}
       </ScrollView>
@@ -225,24 +233,34 @@ export default function StateScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BrandColors.canvas },
-  content: { paddingHorizontal: 16, paddingBottom: 48 },
-  header: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12 },
-  back: { width: 42, height: 42, borderRadius: 25, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.paleGreen },
-  headerSpacer: { width: 50 },
-  title: { flex: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(25), color: BrandColors.copper },
-  hero: { height: 250, borderRadius: 18, borderWidth: 3, borderColor: BrandColors.surface, overflow: "hidden", marginBottom: 18 },
+  safe: { flex: 1, backgroundColor: BrandColors.green },
+  content: { paddingBottom: 44 },
+  header: { minHeight: 64, paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  back: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(49,87,73,.56)" },
+  headerSpacer: { width: 42, height: 42 },
+  titleRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
+  stateFlag: { width: 38, height: 25, borderRadius: 2, backgroundColor: BrandColors.greenPanel },
+  title: { flexShrink: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), lineHeight: 34, color: BrandColors.copper },
+  hero: { height: 250, marginHorizontal: 14, marginBottom: 14, borderRadius: 16, borderWidth: 1, borderColor: BrandColors.copperDark, overflow: "hidden", backgroundColor: BrandColors.surface },
   heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
+  statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   loader: { marginTop: 80 },
   message: { padding: 24, borderRadius: 12, backgroundColor: BrandColors.greenPanel },
   messageText: { textAlign: "center", color: BrandColors.onDark, fontFamily: "Lora_500Medium" },
-  sectionTitle: { marginTop: 28, marginBottom: 12, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(23), color: BrandColors.onDark },
-  list: { overflow: "hidden", borderRadius: 12 },
-  row: { minHeight: 66, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
+  sectionTitle: {
+    marginTop: 23,
+    marginBottom: 10,
+    marginHorizontal: 17,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(18),
+    color: BrandColors.onDark,
+  },
+  list: { marginHorizontal: 16, overflow: "hidden", maxHeight: 186 },
+  row: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   lockedRow: { opacity: 0.5 },
-  thumbnail: { width: 58, height: 58, borderRadius: 11, backgroundColor: BrandColors.greenPanel },
-  cityImage: { width: 50, height: 50, borderRadius: 25, backgroundColor: BrandColors.greenPanel },
-  rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
+  thumbnail: { width: 46, height: 46, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
+  cityImage: { width: 46, height: 46, borderRadius: 23, backgroundColor: BrandColors.greenPanel },
+  rowTitle: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
   cityText: { flex: 1, gap: 3 },
   cityTitle: { flex: 0 },
   cityDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },

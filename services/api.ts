@@ -149,6 +149,7 @@ export type StateDetailResponse = {
   country: { id: string; code: string; name: string };
   cities: CityDetail[];
   sights: SightDetail[];
+  collections: ManagedCollection[];
   stats: { cities: number; sights: number; airports: number };
   visitedCities: { id: string; name: string }[];
 };
@@ -318,6 +319,7 @@ export type CityDetail = {
   image: string;
   imageCredit: ImageCredit;
   sights?: SightDetail[];
+  collections?: ManagedCollection[];
 };
 
 type BackendSight = Partial<SightDetail> & { imageUrl?: string };
@@ -440,18 +442,22 @@ export const api = {
   countryDetail,
   stateDetail: (countryCode: string, stateName: string) =>
     request<
-      Omit<StateDetailResponse, "cities" | "sights"> & {
+      Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
         cities: BackendCity[];
         sights: BackendSight[];
       }
     >(
       `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
-    ).then((result) => ({
-      ...result,
-      imageUrl: backendImageUrl(result.imageUrl),
-      cities: result.cities.map(normalizeCity),
-      sights: result.sights.map(normalizeSight),
-    })),
+    ).then(async (result) => {
+      const cities = result.cities.map(normalizeCity);
+      let collections: ManagedCollection[] = [];
+      try {
+        const country = await countryDetail(countryCode);
+        const cityNames = new Set(cities.map((city) => city.name.trim().toLocaleLowerCase()));
+        collections = country.collections.filter((collection) => collection.places.some((place) => cityNames.has(place.city?.trim().toLocaleLowerCase() ?? "")));
+      } catch { /* State details remain usable when collections are unavailable. */ }
+      return { ...result, imageUrl: backendImageUrl(result.imageUrl), cities, sights: result.sights.map(normalizeSight), collections };
+    }),
   searchCities: (
     query: string,
     limit = 20,
@@ -469,9 +475,16 @@ export const api = {
     });
   },
   cityDetail: (id: string) =>
-    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(
-      normalizeCity,
-    ),
+    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(async (result) => {
+      const city = normalizeCity(result);
+      let collections: ManagedCollection[] = [];
+      try {
+        const country = await countryDetail(city.countryCode ?? city.countryId);
+        const cityName = city.name.trim().toLocaleLowerCase();
+        collections = country.collections.filter((collection) => collection.places.some((place) => place.city?.trim().toLocaleLowerCase() === cityName));
+      } catch { /* City details remain usable when collections are unavailable. */ }
+      return { ...city, collections };
+    }),
   resolveCityImage: (_input: {
     name: string;
     country: string;

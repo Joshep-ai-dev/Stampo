@@ -136,7 +136,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     >
       <View style={s.card}>
         <View style={s.header}>
-          <Text style={s.title}>My Visit History</Text>
+          <Text style={s.title}>Visit Notes</Text>
           <Text style={s.count}>{currentVisits.length} {currentVisits.length === 1 ? "visit" : "visits"}</Text>
         </View>
         {currentVisits.map((visit) => (
