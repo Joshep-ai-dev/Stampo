@@ -15,9 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
-import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { CitiesVisitedSection, TopSightsSection, type PlaceListItem } from "@/components/place-detail-sections";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
@@ -42,7 +41,6 @@ export default function StateScreen() {
   const [detail, setDetail] = useState<StateDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,17 +71,13 @@ export default function StateScreen() {
   const sights = detail?.sights ?? [];
   const visibleSights = subscription.isKrooPlus ? sights : sights.slice(0, 3);
   const lockedSights = subscription.isKrooPlus ? [] : sights.slice(3);
-  const selectedCity = selectedCityId
-    ? visitedCities.find((city) => city.id === selectedCityId) ?? null
-    : null;
-  const selectedCatalogCity = selectedCity
-    ? detail?.cities.find((city) => String(city.id) === String(selectedCity.id))
-    : undefined;
-  const selectedCityVisits = selectedCity
-    ? stateVisits
-      .filter((visit) => visit.cityName.trim().toLocaleLowerCase() === selectedCity.name.trim().toLocaleLowerCase())
-      .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt))
-    : [];
+  const cityItems: PlaceListItem[] = visitedCities.map((city) => {
+    const catalogCity = detail?.cities.find((item) => String(item.id) === String(city.id));
+    const matchingVisits = stateVisits.filter((visit) => visit.cityName.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase());
+    const sightCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
+    const airportCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
+    return { id: city.id, name: city.name, image: catalogCity?.image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}` };
+  });
 
   const toggleSight = async (id: string, completed: boolean) => {
     const next = !completed;
@@ -140,94 +134,12 @@ export default function StateScreen() {
               { icon: "airplane-outline", value: Math.max(detail.stats.airports, localAirportCount), label: "AIRPORTS" },
             ]} /></View>
 
-            <Text style={styles.sectionTitle}>Top Sights</Text>
-            <View style={styles.list}>
-              {visibleSights.map((sight) => {
-                const checked = sight.completed === true || completedSightIds.includes(sight.id);
-                return (
-                  <TouchableOpacity key={sight.id} style={styles.row} onPress={() => router.push(`/sight/${sight.id}`)}>
-                    <ProgressivePlaceImage uri={sight.image} style={styles.thumbnail} contentFit="cover" />
-                    <Text style={styles.rowTitle} numberOfLines={1}>{sight.name}</Text>
-                    <TouchableOpacity
-                      hitSlop={10}
-                      onPress={() => void toggleSight(sight.id, checked)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                    >
-                      <Ionicons name={checked ? "checkmark-circle" : "ellipse-outline"} size={28} color="#57D5A0" />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })}
-              {lockedSights.length ? (
-                <UpgradeBanner
-                  count={lockedSights.length}
-                  active={subscription.isKrooPlus}
-                  configured={subscription.configured}
-                  onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))}
-                />
-              ) : null}
-              {lockedSights.map((sight) => (
-                <View key={sight.id} style={[styles.row, styles.lockedRow]}>
-                  <ProgressivePlaceImage uri={sight.image} style={styles.thumbnail} contentFit="cover" blurRadius={28} />
-                  <Text style={styles.rowTitle} numberOfLines={1}>{sight.name}</Text>
-                  <Ionicons name="lock-closed" size={21} color={BrandColors.onDarkMuted} />
-                </View>
-              ))}
-              {!sights.length ? <Text style={styles.empty}>Top sights will appear here.</Text> : null}
-            </View>
-
-            <Text style={styles.sectionTitle}>Cities Visited</Text>
-            <View style={styles.list}>
-              {visitedCities.map((city) => {
-                const catalogCity = detail.cities.find((item) => String(item.id) === String(city.id));
-                const cityVisits = stateVisits.filter(
-                  (visit) => visit.cityName.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase(),
-                );
-                const sightCount = new Set(
-                  cityVisits.flatMap((visit) => visit.places
-                    .filter((place) => place.type === "sight")
-                    .map((place) => place.id || place.name)),
-                ).size;
-                const airportCount = new Set(
-                  cityVisits.flatMap((visit) => visit.places
-                    .filter((place) => place.type === "airport")
-                    .map((place) => place.name.trim().toLocaleLowerCase())),
-                ).size;
-                return (
-                  <TouchableOpacity key={city.id} style={styles.row} onPress={() => router.push(`/city/${city.id}` as never)}>
-                    <ProgressivePlaceImage uri={catalogCity?.image} style={styles.cityImage} contentFit="cover" />
-                    <View style={styles.cityText}>
-                      <Text style={[styles.rowTitle, styles.cityTitle]}>{city.name}</Text>
-                      <Text style={styles.cityDetail}>
-                        {sightCount} {sightCount === 1 ? "sight" : "sights"} · {airportCount} {airportCount === 1 ? "airport" : "airports"} · {cityVisits.length} {cityVisits.length === 1 ? "visit" : "visits"}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
-                  </TouchableOpacity>
-                );
-              })}
-              {!visitedCities.length ? <Text style={styles.empty}>Your visited cities in {detail.name} will appear here.</Text> : null}
-            </View>
-
-            <Text style={styles.sectionTitle}>Collections</Text>
+            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={(sight) => router.push(`/sight/${sight.id}` as never)} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
+            <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push(`/city/${city.id}` as never)} />
             <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
         ) : null}
       </ScrollView>
-      {selectedCity ? (
-        <CityVisitDetailModal
-          city={{
-            ...selectedCity,
-            image: selectedCatalogCity?.image,
-            description: selectedCatalogCity?.description,
-            regionName: detail?.name ?? stateName,
-            visits: selectedCityVisits,
-          }}
-          countryName="United States"
-          onClose={() => setSelectedCityId(null)}
-        />
-      ) : null}
     </SafeAreaView>
   );
 }

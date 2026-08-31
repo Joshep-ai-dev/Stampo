@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import type { ManagedCollection } from "@/services/api";
+import { PlaceSectionTitle } from "./place-detail-sections";
 
 export function PlaceCollectionList({ collections, completedSightIds, placeName }: {
   collections: ManagedCollection[];
@@ -12,9 +13,9 @@ export function PlaceCollectionList({ collections, completedSightIds, placeName 
   placeName: string;
 }) {
   const router = useRouter();
-  if (!collections.length) return <Text style={s.empty}>No collections feature locations in {placeName} yet.</Text>;
+  if (!collections.length) return <><PlaceSectionTitle>Collections</PlaceSectionTitle><Text style={s.empty}>No collections feature locations in {placeName} yet.</Text></>;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
+    <><PlaceSectionTitle>Collections</PlaceSectionTitle><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
       {collections.map((collection) => {
         const completed = collection.places.filter((place) => completedSightIds.includes(`collection-${collection.id}-${place.id}`)).length;
         const progress = collection.places.length ? Math.round((completed / collection.places.length) * 100) : 0;
@@ -28,7 +29,7 @@ export function PlaceCollectionList({ collections, completedSightIds, placeName 
           </TouchableOpacity>
         );
       })}
-    </ScrollView>
+    </ScrollView></>
   );
 }
 

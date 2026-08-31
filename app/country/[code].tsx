@@ -17,8 +17,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { DetailModal } from "@/components/detail-modal";
+import { CitiesVisitedSection, StatesSection, TopSightsSection, type PlaceListItem } from "@/components/place-detail-sections";
+import { PlaceCollectionList } from "@/components/place-collection-list";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
@@ -48,14 +49,6 @@ import {
   visitsHydrated,
 } from "@/store/travel-slice";
 
-const collectionImages: Record<string, number> = {
-  wonders: require("../../assets/images/collection/Seven Wonders.png"),
-  seas: require("../../assets/images/collection/Seven Seas.png"),
-  unesco: require("../../assets/images/collection/UNESCO Explorer.png"),
-  parks: require("../../assets/images/collection/National Parks Collector.png"),
-  usa: require("../../assets/images/collection/United States Explorer.png"),
-};
-
 export default function CountryScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -68,14 +61,6 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
-  const [selectedCity, setSelectedCity] = useState<{
-    id: string;
-    name: string;
-    image?: string;
-    description?: string;
-    regionName?: string;
-    visits: Visit[];
-  } | null>(null);
   useFocusEffect(
     useCallback(() => {
       void dispatch(fetchCountryDetail(code));
@@ -178,6 +163,19 @@ export default function CountryScreen() {
     sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
+  const stateItems: PlaceListItem[] = visitedStates.map((stateName) => {
+    const matchingVisits = countryVisits.filter((visit) => visit.subcountry.trim() === stateName);
+    const sightCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
+    const airportCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
+    const image = detail?.states.find((item) => item.name?.trim().toLocaleLowerCase() === stateName.trim().toLocaleLowerCase())?.imageUrl;
+    return { id: stateName, name: stateName, image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}` };
+  });
+  const cityItems: PlaceListItem[] = visitedCities.map((city) => {
+    const cityDetail = detail?.cities.find((item) => item.id === city.id || item.name.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase());
+    const sightCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
+    const airportCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
+    return { id: city.id, name: city.name, image: cityDetail?.image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}` };
+  });
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!canUseGpsArrivals(subscription.isKrooPlus)) {
@@ -327,327 +325,14 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <SectionTitle>Top Sights</SectionTitle>
-        {sights.length ? (
-          <View style={s.sightList}>
-            <ScrollView
-              style={s.sightScroller}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={visibleSights.length > 6}
-            >
-              {visibleSights.map((sight) => {
-                const checked =
-                  completedSightIds.includes(sight.id) ||
-                  sight.completed === true;
-                return (
-                  <TouchableOpacity
-                    key={sight.id}
-                    style={s.sightRow}
-                    onPress={() => setSelectedSight(sight)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
-                  >
-                    <ResolvedPlaceImage
-                      initialUri={sight.image}
-                      placeName={sight.name}
-                      cityName={sight.city}
-                      countryName={name}
-                      style={s.sightImage}
-                      contentFit="cover"
-                    />
-                    <Text numberOfLines={1} style={s.sightName}>
-                      {sight.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => void toggleSight(sight.id, checked)}
-                      hitSlop={10}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                      accessibilityLabel={`${checked ? "Uncheck" : "Check"} ${sight.name}`}
-                    >
-                      <Ionicons
-                        name={checked ? "checkmark-circle" : "ellipse-outline"}
-                        size={28}
-                        color="#57D5A0"
-                      />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })}
-              {lockedSights.length ? (
-                <UpgradeBanner
-                  count={lockedSights.length}
-                  active={subscription.isKrooPlus}
-                  configured={subscription.configured}
-                  onCustomerInfo={(customerInfo) =>
-                    dispatch(
-                      subscriptionUpdated({
-                        configured: true,
-                        isKrooPlus: customerHasKrooPlus(customerInfo),
-                      }),
-                    )
-                  }
-                />
-              ) : null}
-              {lockedSights.length ? (
-                <View style={s.lockedList}>
-                  {lockedSights.map((sight) => (
-                    <View
-                      key={sight.id}
-                      style={[s.sightRow, s.lockedSightRow]}
-                      accessibilityElementsHidden
-                    >
-                      <ResolvedPlaceImage
-                        initialUri={sight.image}
-                        placeName={sight.name}
-                        cityName={sight.city}
-                        countryName={name}
-                        style={s.sightImage}
-                        contentFit="cover"
-                        blurRadius={32}
-                      />
-                      <Text
-                        numberOfLines={1}
-                        style={[s.sightName, s.lockedSightName]}
-                      >
-                        {sight.name}
-                      </Text>
-                      <View style={s.lockedSightCheck}>
-                        <Ionicons
-                          name={
-                            sight.completed
-                              ? "checkmark-circle"
-                              : "ellipse-outline"
-                          }
-                          size={28}
-                          color={
-                            sight.completed ? "#57D5A0" : BrandColors.onDarkMuted
-                          }
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </ScrollView>
-          </View>
-        ) : (
-          <Text style={[s.empty, s.sightsEmpty]}>
-            Top sights will appear here.
-          </Text>
-        )}
+        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
 
         {normalizedCode === "US" ? (
-          <>
-            <SectionTitle>States</SectionTitle>
-            <View style={s.cityList}>
-              <ScrollView
-                style={s.categoryScroller}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={visitedStates.length > 3}
-              >
-                {visitedStates.length ? (
-                  visitedStates.map((stateName) => {
-                    const stateCities = new Set(
-                      countryVisits
-                        .filter((visit) => visit.subcountry.trim() === stateName)
-                        .map((visit) => visit.cityId),
-                    ).size;
-                    const stateImage = detail?.states.find(
-                      (item) =>
-                        item.name?.trim().toLocaleLowerCase() ===
-                        stateName.trim().toLocaleLowerCase(),
-                    )?.imageUrl;
-                    return (
-                      <TouchableOpacity
-                        key={stateName}
-                        style={s.sightRow}
-                        onPress={() =>
-                          router.push({
-                            pathname: "/state/[countryCode]/[stateName]",
-                            params: { countryCode: "US", stateName },
-                          })
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open ${stateName}`}
-                      >
-                        {stateImage ? (
-                          <Image
-                            source={{ uri: stateImage }}
-                            style={s.stateImage}
-                            contentFit="cover"
-                            accessibilityLabel={`${stateName} state`}
-                          />
-                        ) : (
-                          <View style={s.stateIcon}>
-                            <Ionicons
-                              name="map-outline"
-                              size={24}
-                              color={BrandColors.copper}
-                            />
-                          </View>
-                        )}
-                        <View style={s.collectionText}>
-                          <Text numberOfLines={1} style={s.collectionTitle}>
-                            {stateName}
-                          </Text>
-                          <Text style={s.collectionDetail}>
-                            {stateCities} {stateCities === 1 ? "city" : "cities"} visited
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={20}
-                          color={BrandColors.onDarkMuted}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <Text style={s.empty}>Your visited states will appear here.</Text>
-                )}
-              </ScrollView>
-            </View>
-          </>
+          <StatesSection items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
         ) : null}
 
-        <SectionTitle>Cities Visited</SectionTitle>
-        <View style={s.cityList}>
-          <ScrollView
-            style={s.categoryScroller}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={visitedCities.length > 3}
-          >
-            {visitedCities.length ? (
-              visitedCities.map((city) => {
-                const latestVisit = city.visits[0];
-                const cityDetail = detail?.cities.find(
-                  (item) =>
-                    item.id === city.id ||
-                    item.name.trim().toLocaleLowerCase() ===
-                    city.name.trim().toLocaleLowerCase(),
-                );
-                const sightCount = new Set(
-                  city.visits.flatMap((visit) =>
-                    visit.places
-                      .filter((place) => place.type === "sight")
-                      .map((place) => place.id || place.name),
-                  ),
-                ).size;
-                const airportCount = new Set(
-                  city.visits.flatMap((visit) =>
-                    visit.places
-                      .filter((place) => place.type === "airport")
-                      .map((place) => place.name.trim().toLocaleLowerCase()),
-                  ),
-                ).size;
-                return (
-                  <TouchableOpacity
-                    key={city.id}
-                    style={s.sightRow}
-                    onPress={() => router.push(`/city/${city.id}` as never)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open visit history for ${city.name}`}
-                  >
-                    <CityThumbnail
-                      cityId={city.id}
-                      cityName={city.name}
-                      countryName={name}
-                      regionName={latestVisit.subcountry}
-                      initialUri={cityDetail?.image}
-                      latitude={cityDetail?.latitude}
-                      longitude={cityDetail?.longitude}
-                    />
-                    <View style={s.collectionText}>
-                      <Text numberOfLines={1} style={s.collectionTitle}>
-                        {city.name}
-                      </Text>
-                      <Text style={s.collectionDetail}>
-                        {sightCount} {sightCount === 1 ? "sight" : "sights"} · {airportCount} {airportCount === 1 ? "airport" : "airports"} ·{" "}
-                        {city.visits.length}{" "}
-                        {city.visits.length === 1 ? "visit" : "visits"}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={BrandColors.onDarkMuted}
-                    />
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <Text style={s.empty}>Your visited cities will appear here.</Text>
-            )}
-          </ScrollView>
-        </View>
-
-        <SectionTitle>Collections</SectionTitle>
-        {countryCollectionItems.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.collectionRow}
-          >
-            {countryCollectionItems.map(({ collection }) => {
-              const completedCount = collection.places.filter((place) =>
-                completedSightIds.includes(
-                  `collection-${collection.id}-${place.id}`,
-                ),
-              ).length;
-              const progress = collection.places.length
-                ? Math.round((completedCount / collection.places.length) * 100)
-                : 0;
-              return (
-                <TouchableOpacity
-                  key={collection.id}
-                  style={s.collectionCard}
-                  activeOpacity={0.82}
-                  onPress={() =>
-                    router.push(`/collection/${collection.id}` as never)
-                  }
-                  accessibilityRole="link"
-                  accessibilityLabel={`Open ${collection.title}`}
-                >
-                  <View style={s.collectionHeader}>
-                    <Text style={s.collectionCardTitle} numberOfLines={1}>
-                      {collection.title}
-                    </Text>
-                  </View>
-                  <View style={s.collectionSeal}>
-                    <Image
-                      source={
-                        collectionImages[collection.id] ??
-                        (collection.imageUrl
-                          ? { uri: collection.imageUrl }
-                          : require("@/assets/images/other/globe-airplane.png"))
-                      }
-                      style={s.collectionImage}
-                      contentFit="contain"
-                    />
-                  </View>
-                  {progress > 0 ? (
-                    <View style={s.collectionProgressRow}>
-                      <View style={s.collectionProgressTrack}>
-                        <View
-                          style={[
-                            s.collectionProgressFill,
-                            { width: `${progress}%` },
-                          ]}
-                        />
-                      </View>
-                      <Text style={s.collectionPercent}>{progress}%</Text>
-                    </View>
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <Text style={[s.empty, s.collectionEmpty]}>
-            No collections feature locations in {name} yet.
-          </Text>
-        )}
+        <CitiesVisitedSection items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push(`/city/${city.id}` as never)} />
+        <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
 
         <TouchableOpacity
           style={s.gpsCard}
@@ -693,79 +378,7 @@ export default function CountryScreen() {
           onClose={() => setSelectedSight(null)}
         />
       ) : null}
-      {selectedCity ? (
-        <CityVisitDetailModal
-          city={selectedCity}
-          countryName={name}
-          onClose={() => setSelectedCity(null)}
-        />
-      ) : null}
     </SafeAreaView>
-  );
-}
-
-function SectionTitle({ children }: { children: string }) {
-  return <Text style={s.sectionTitle}>{children}</Text>;
-}
-
-function CityThumbnail({
-  cityId,
-  cityName,
-  countryName,
-  regionName,
-  initialUri,
-  latitude,
-  longitude,
-}: {
-  cityId: string;
-  cityName: string;
-  countryName: string;
-  regionName?: string;
-  initialUri?: string;
-  latitude?: number;
-  longitude?: number;
-}) {
-  const [uri, setUri] = useState(initialUri ?? "");
-
-  useEffect(() => {
-    setUri(initialUri ?? "");
-    if (initialUri) return;
-    let active = true;
-    void (async () => {
-      const cityDetail = await api.cityDetail(cityId).catch(() => null);
-      if (!active) return;
-      if (cityDetail?.image) {
-        setUri(cityDetail.image);
-        return;
-      }
-      const resolved = await api
-        .resolveCityImage({
-          name: cityName,
-          country: countryName,
-          region: regionName,
-          latitude,
-          longitude,
-        })
-        .catch(() => null);
-      if (active && resolved?.image) setUri(resolved.image);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [
-    cityId,
-    cityName,
-    countryName,
-    initialUri,
-    latitude,
-    longitude,
-    regionName,
-  ]);
-
-  return (
-    <View style={s.cityImageFrame}>
-      <ProgressivePlaceImage uri={uri} style={s.cityImage} contentFit="cover" />
-    </View>
   );
 }
 

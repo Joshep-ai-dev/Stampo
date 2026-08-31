@@ -5,6 +5,8 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
+import { PlaceCollectionList } from "@/components/place-collection-list";
+import { PlaceSectionTitle, TopSightsSection } from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { responsiveFontSize } from "@/constants/responsive-typography";
@@ -51,7 +53,6 @@ export default function CityScreen() {
     sight.completed === true || completedSightIds.includes(sight.id),
   ).length;
   const countryName = city?.country ?? cityVisits[0]?.country ?? "";
-  const countryCode = (city?.countryCode ?? city?.countryId ?? cityVisits[0]?.countryCode ?? "").toUpperCase();
   const regionName = city?.subcountry ?? cityVisits[0]?.subcountry ?? "";
 
   const toggleSight = async (sightId: string, completed: boolean) => {
@@ -110,24 +111,9 @@ export default function CityScreen() {
 
             {city.description ? <Text style={s.description}>{city.description}</Text> : null}
 
-            <Text style={s.sectionTitle}>Top Sights</Text>
-            <View style={s.list}>
-              {sights.map((sight) => {
-                const checked = sight.completed === true || completedSightIds.includes(sight.id);
-                return (
-                  <TouchableOpacity key={sight.id} style={s.row} onPress={() => router.push(`/sight/${sight.id}` as never)}>
-                    <ProgressivePlaceImage uri={sight.image} style={s.thumbnail} contentFit="cover" />
-                    <Text style={s.rowTitle} numberOfLines={1}>{sight.name}</Text>
-                    <TouchableOpacity hitSlop={10} onPress={() => void toggleSight(sight.id, checked)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
-                      <Ionicons name={checked ? "checkmark-circle" : "ellipse-outline"} size={28} color="#57D5A0" />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })}
-              {!sights.length ? <Text style={s.empty}>Top sights will appear here.</Text> : null}
-            </View>
+            <TopSightsSection sights={sights} completedSightIds={completedSightIds} onOpen={(sight) => router.push(`/sight/${sight.id}` as never)} onToggle={(sightId, checked) => void toggleSight(sightId, checked)} />
 
-            <Text style={s.sectionTitle}>Visit Notes</Text>
+            <PlaceSectionTitle>Visit Notes</PlaceSectionTitle>
             <View style={s.list}>
               {cityVisits.map((visit) => (
                 <TouchableOpacity key={visit.id} style={s.row} onPress={() => setHistoryOpen(true)}>
@@ -143,6 +129,7 @@ export default function CityScreen() {
               ))}
               {!cityVisits.length ? <Text style={s.empty}>Your visits to {city.name} will appear here.</Text> : null}
             </View>
+            <PlaceCollectionList collections={city.collections ?? []} completedSightIds={completedSightIds} placeName={city.name} />
           </>
         ) : null}
       </ScrollView>
