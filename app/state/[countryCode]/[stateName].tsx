@@ -15,12 +15,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
 import { CitiesVisitedSection, TopSightsSection, type PlaceListItem } from "@/components/place-detail-sections";
+import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
-import { api, type StateDetailResponse } from "@/services/api";
+import { api, type SightDetail, type StateDetailResponse } from "@/services/api";
 import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -97,6 +99,7 @@ export default function StateScreen() {
   const [detail, setDetail] = useState<StateDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -191,12 +194,22 @@ export default function StateScreen() {
               { icon: "airplane-outline", value: Math.max(detail.stats.airports, localAirportCount), label: "AIRPORTS" },
             ]} /></View>
 
-            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={(sight) => router.push(`/sight/${sight.id}` as never)} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
+            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
             <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push(`/city/${city.id}` as never)} />
             <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
         ) : null}
       </ScrollView>
+      {selectedSight ? (
+        <DetailModal
+          visible
+          title={selectedSight.name}
+          location={selectedSight.city}
+          description={selectedSight.description || "A famous attraction ready to explore."}
+          image={<ProgressivePlaceImage uri={selectedSight.image} style={styles.modalImage} contentFit="cover" />}
+          onClose={() => setSelectedSight(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -211,16 +224,22 @@ const styles = StyleSheet.create({
   stateFlag: { width: 32, height: 24, borderRadius: 2, backgroundColor: BrandColors.greenPanel },
   title: { flexShrink: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), lineHeight: 34, color: BrandColors.copper },
   hero: {
-    height: 250,
     marginHorizontal: 14,
     marginBottom: 14,
+    padding: 0,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: BrandColors.copperDark,
-    overflow: "hidden",
+    borderColor: BrandColors.copper,
+    alignItems: "center",
     backgroundColor: BrandColors.surface
   },
-  heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
+  heroImage: {
+    width: "100%",
+    height: undefined,
+    aspectRatio: 1.5,
+    borderRadius: 16,
+  },
+
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   loader: { marginTop: 80 },
   message: { padding: 24, borderRadius: 12, backgroundColor: BrandColors.greenPanel },
@@ -243,7 +262,7 @@ const styles = StyleSheet.create({
   cityTitle: { flex: 0 },
   cityDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
-  modalImage: { width: "100%", height: 190, borderRadius: 14, backgroundColor: BrandColors.greenPanel },
+  modalImage: { width: "100%", height: 190, borderRadius: 16, backgroundColor: BrandColors.greenDeep },
   modalPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   visitCard: { width: "100%", marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: BrandColors.greenDeep },
   visitHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },

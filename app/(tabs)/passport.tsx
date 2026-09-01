@@ -37,6 +37,7 @@ import { BrandColors } from "@/constants/theme";
 import {
   calculateKrooScoreFromVisits,
   formatKrooNumber,
+  getKrooLevel,
 } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
@@ -603,6 +604,7 @@ export default function PassportScreen() {
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
+  const challengePoints = useAppSelector((state) => state.travel.challengePoints);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(0);
@@ -625,11 +627,12 @@ export default function PassportScreen() {
     ? carouselHeight - (compactPassport ? 20 : 28)
     : screenHeight - (compactPassport ? 178 : 218);
   const pageHeight = Math.min(availablePageHeight, pageWidth * 1.48);
-  const krooNumber = useMemo(
-    () =>
-      formatKrooNumber(calculateKrooScoreFromVisits(visits, completedSightIds)),
-    [completedSightIds, visits],
+  const krooScore = useMemo(
+    () => calculateKrooScoreFromVisits(visits, completedSightIds, challengePoints),
+    [challengePoints, completedSightIds, visits],
   );
+  const krooNumber = useMemo(() => formatKrooNumber(krooScore), [krooScore]);
+  const krooLevel = useMemo(() => getKrooLevel(krooScore).toUpperCase(), [krooScore]);
 
   const passportPages = useMemo(() => {
     const countryMap = new Map<string, Stamp>();
@@ -694,7 +697,7 @@ export default function PassportScreen() {
             Math.min(
               passportPages.length - 1,
               activePageValue.value +
-                (shouldAdvance ? 1 : shouldGoBack ? -1 : 0),
+              (shouldAdvance ? 1 : shouldGoBack ? -1 : 0),
             ),
           );
           bookPosition.value = withTiming(
@@ -728,6 +731,28 @@ export default function PassportScreen() {
           contentFit="fill"
           accessibilityLabel={page.accessibilityLabel}
         />
+        {page.id === "front-cover" ? (
+          <>
+            {profile.name ? (
+              <Text
+                style={styles.coverName}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
+                {profile.name}
+              </Text>
+            ) : null}
+            <Text
+              style={styles.coverLevel}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {krooLevel}
+            </Text>
+          </>
+        ) : null}
       </View>
     ) : page.type === "identity" ? (
       <IdentityPage
@@ -866,6 +891,36 @@ const styles = StyleSheet.create({
     height: "100%",
     left: "0%",
     top: "0%",
+  },
+  coverName: {
+    position: "absolute",
+    top: "10%",
+    left: "12%",
+    right: "12%",
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(20),
+    lineHeight: responsiveFontSize(34),
+    letterSpacing: 1.4,
+    color: BrandColors.copper,
+    textShadowColor: "rgba(0,0,0,.72)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  coverLevel: {
+    position: "absolute",
+    top: "79.5%",
+    left: "13%",
+    right: "13%",
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(19),
+    lineHeight: responsiveFontSize(25),
+    letterSpacing: 2,
+    color: "#9F6045",
+    textShadowColor: "rgba(0,0,0,.72)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   paper: {
     backgroundColor: colors.paper,

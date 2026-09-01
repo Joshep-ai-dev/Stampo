@@ -162,16 +162,21 @@ const s = StyleSheet.create({
   message: { padding: 24, borderRadius: 12, backgroundColor: BrandColors.greenPanel },
   messageText: { textAlign: "center", color: BrandColors.onDark, fontFamily: "Lora_500Medium" },
   hero: {
-    height: 250,
     marginHorizontal: 14,
     marginBottom: 14,
+    padding: 0,
     borderRadius: 16,
-    overflow: "hidden",
     borderWidth: 1,
-    borderColor: BrandColors.copperDark,
-    backgroundColor: BrandColors.surface,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    backgroundColor: BrandColors.surface
   },
-  heroImage: { width: "100%", height: "100%", backgroundColor: BrandColors.greenPanel },
+  heroImage: {
+    width: "100%",
+    height: undefined,
+    aspectRatio: 1.5,
+    borderRadius: 16,
+  },
   heroPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   description: { marginTop: 20, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), lineHeight: 21, color: BrandColors.onDarkMuted },
   sectionTitle: {

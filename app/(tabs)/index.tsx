@@ -961,7 +961,11 @@ export default function HomeScreen() {
   const [infoModal, setInfoModal] = useState<{
     title: string;
     body: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon?: keyof typeof Ionicons.glyphMap;
+    bullets?: string[];
+    showKrooLogo?: boolean;
+    eyebrow?: string;
+    footer?: string;
   } | null>(null);
   const [mapGestureActive, setMapGestureActive] = useState(false);
   const [welcomeName, setWelcomeName] = useState(name);
@@ -1106,6 +1110,15 @@ export default function HomeScreen() {
   const worldProgress =
     serverHome?.worldProgress ??
     Math.round((localCountryCodes.size / 195) * 100);
+  const openKrooScore = useCallback(() => {
+    setInfoModal({
+      title: "Kroo Score",
+      body: "Your Kroo Score reflects how well-traveled you are and is calculated from:",
+      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
+      showKrooLogo: true,
+      footer: serverHome?.level ?? getKrooLevel(score),
+    });
+  }, [score, serverHome?.level]);
   const refreshHome = useCallback(async () => {
     if (!isSignedIn) return;
     setRefreshing(true);
@@ -1167,20 +1180,14 @@ export default function HomeScreen() {
           />
         </View>
         <View style={styles.scoreCard}>
-          <View style={styles.scoreLine}>
+          <TouchableOpacity style={styles.scoreLine} onPress={openKrooScore} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Open Kroo Score details">
             <StampedScore value={Number(score)} />
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
                 <InfoButton
                   label="About Kroo Score"
-                  onPress={() =>
-                    setInfoModal({
-                      title: "Kroo Score",
-                      body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:\n\n- Continents\n- Countries\n- Cities\n- Airports\n- Sights\n- Challenges",
-                      icon: "compass-outline",
-                    })
-                  }
+                  onPress={openKrooScore}
                 />
               </View>
               <View style={styles.scoreBar}>
@@ -1196,7 +1203,7 @@ export default function HomeScreen() {
                 <Text style={styles.worldText}> of the world explored</Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.statsShared}>
             <TravelStats
               items={[
@@ -1259,6 +1266,10 @@ export default function HomeScreen() {
         title={infoModal?.title ?? ""}
         body={infoModal?.body ?? ""}
         icon={infoModal?.icon}
+        bullets={infoModal?.bullets}
+        showKrooLogo={infoModal?.showKrooLogo}
+        eyebrow={infoModal?.eyebrow}
+        footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
       <Modal visible={showWelcome} transparent animationType="fade">
