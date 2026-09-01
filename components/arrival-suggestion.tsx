@@ -17,11 +17,11 @@ import {
 import { BrandColors } from "@/constants/theme";
 import { getPlaceSuggestions } from "@/data/place-suggestions";
 import { api } from "@/services/api";
+import type { ArrivalSuggestion } from "@/services/arrival-monitoring";
 import {
   canUseGpsArrivals,
   GPS_ARRIVALS_REQUIRE_KROO_PLUS,
 } from "@/services/gps-access";
-import type { ArrivalSuggestion } from "@/services/arrival-monitoring";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { visitAdded, visitReceived, type NewVisit } from "@/store/travel-slice";
@@ -133,7 +133,13 @@ export function ArrivalSuggestionPrompt() {
         note: "Added from a GPS arrival.",
         places: [
           ...(airport
-            ? [{ id: `gps-airport-${Date.now()}`, name: airport, type: "airport" as const }]
+            ? [{
+              id: suggestion.nearbyPlace?.type === "airport"
+                ? `airport:${suggestion.nearbyPlace.id}`
+                : `gps-airport-${Date.now()}`,
+              name: airport,
+              type: "airport" as const,
+            }]
             : []),
           ...(suggestion.nearbyPlace?.type === "sight"
             ? [{ id: suggestion.nearbyPlace.id, name: suggestion.nearbyPlace.name, type: "sight" as const }]
@@ -195,8 +201,8 @@ export function ArrivalSuggestionPrompt() {
                   ? `You are at ${suggestion.nearbyPlace.name}, an airport near ${suggestion.city}.`
                   : `You are ${Math.round(suggestion.nearbyPlace.distanceMeters)} m from ${suggestion.nearbyPlace.name}, a Kroo ${suggestion.nearbyPlace.type === "sight" ? "Top Sight" : "collection place"}.`
                 : suggestion.airport
-                ? `${suggestion.airport} was detected.`
-                : `You were detected in ${suggestion.city}, ${suggestion.country}.`}{" "}
+                  ? `${suggestion.airport} was detected.`
+                  : `You were detected in ${suggestion.city}, ${suggestion.country}.`}{" "}
               Confirm to add the city, country, continent, and available airport
               as a verified visit.
             </Text>
