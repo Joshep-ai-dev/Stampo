@@ -117,7 +117,7 @@ function NavigablePlaceSection({ title, items, emptyText, onOpen }: { title: str
 }
 
 export function StatesSection(props: Omit<Parameters<typeof NavigablePlaceSection>[0], "title">) {
-  return <NavigablePlaceSection title="States" {...props} />;
+  return <NavigablePlaceSection title="States Visited" {...props} />;
 }
 
 export function CitiesVisitedSection(props: Omit<Parameters<typeof NavigablePlaceSection>[0], "title">) {
