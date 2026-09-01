@@ -351,7 +351,13 @@ export type CityDetail = {
   collections?: ManagedCollection[];
 };
 
-type BackendSight = Partial<SightDetail> & { imageUrl?: string };
+type BackendSight = Omit<Partial<SightDetail>, "city"> & {
+  city?: string | { id?: string | number; name?: string } | null;
+  cityName?: string;
+  city_name?: string;
+  city_id?: string | number;
+  imageUrl?: string;
+};
 type BackendCity = Partial<CityDetail> & {
   country?: string;
   countryCode?: string;
@@ -361,11 +367,14 @@ type BackendCity = Partial<CityDetail> & {
 };
 
 function normalizeSight(item: BackendSight): SightDetail {
+  const relatedCity = typeof item.city === "object" && item.city ? item.city : null;
   return {
     id: String(item.id ?? ""),
     countryId: String(item.countryId ?? ""),
-    cityId: String(item.cityId ?? ""),
-    city: item.city ?? "",
+    cityId: String(item.cityId ?? item.city_id ?? relatedCity?.id ?? ""),
+    city: typeof item.city === "string"
+      ? item.city
+      : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
     opentripmapXid: item.opentripmapXid ?? null,
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,

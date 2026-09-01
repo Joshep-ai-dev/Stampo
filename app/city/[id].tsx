@@ -5,13 +5,14 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
+import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
 import { PlaceSectionTitle, TopSightsSection } from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
-import { api, type CityDetail } from "@/services/api";
+import { api, type CityDetail, type SightDetail } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sightCompletionSet } from "@/store/travel-slice";
@@ -27,6 +28,7 @@ export default function CityScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,7 +116,7 @@ export default function CityScreen() {
 
             {city.description ? <Text style={s.description}>{city.description}</Text> : null}
 
-            <TopSightsSection sights={sights} completedSightIds={completedSightIds} onOpen={(sight) => router.push(`/sight/${sight.id}` as never)} onToggle={(sightId, checked) => void toggleSight(sightId, checked)} />
+            <TopSightsSection sights={sights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(sightId, checked) => void toggleSight(sightId, checked)} locationForSight={(sight) => sight.city || city.name} />
 
             <PlaceSectionTitle>Visit Notes</PlaceSectionTitle>
             <View style={s.list}>
@@ -139,6 +141,16 @@ export default function CityScreen() {
 
       {city && historyOpen ? (
         <CityVisitDetailModal city={{ id: city.id, name: city.name, image: city.image, description: city.description, regionName, visits: cityVisits }} countryName={countryName} onClose={() => setHistoryOpen(false)} />
+      ) : null}
+      {selectedSight ? (
+        <DetailModal
+          visible
+          title={selectedSight.name}
+          location={[city?.name || selectedSight.city, regionName, countryName].filter(Boolean).join(", ")}
+          description={selectedSight.description || "A famous attraction ready to explore."}
+          image={<ProgressivePlaceImage uri={selectedSight.image} style={s.modalImage} contentFit="cover" />}
+          onClose={() => setSelectedSight(null)}
+        />
       ) : null}
     </SafeAreaView>
   );
@@ -193,5 +205,6 @@ const s = StyleSheet.create({
   visitCopy: { flex: 1, gap: 3 },
   meta: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
-  statsWrap: { marginHorizontal: 14, marginBottom: 2 }
+  statsWrap: { marginHorizontal: 14, marginBottom: 2 },
+  modalImage: { width: "100%", height: 190, borderRadius: 16, backgroundColor: BrandColors.greenDeep },
 });

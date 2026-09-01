@@ -42,14 +42,17 @@ function FadingScrollList({ itemCount, children }: { itemCount: number; children
   );
 }
 
-export function TopSightsSection({ sights, lockedSights = [], completedSightIds, onOpen, onToggle, upgrade }: {
+export function TopSightsSection({ sights, lockedSights = [], completedSightIds, onOpen, onToggle, locationForSight, upgrade }: {
   sights: SightDetail[];
   lockedSights?: SightDetail[];
   completedSightIds: string[];
   onOpen: (sight: SightDetail) => void;
   onToggle: (id: string, completed: boolean) => void;
+  locationForSight?: (sight: SightDetail) => string;
   upgrade?: ReactNode;
 }) {
+  const cityLabel = (sight: SightDetail) =>
+    (locationForSight?.(sight) ?? sight.city).split(",")[0]?.trim() ?? "";
   if (!sights.length && !lockedSights.length) return <><PlaceSectionTitle>Top Sights</PlaceSectionTitle><Text style={[s.empty, { marginHorizontal: 16 }]}>Top sights will appear here.</Text></>;
   return (
     <>
@@ -58,10 +61,14 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
         <FadingScrollList itemCount={sights.length + lockedSights.length}>
           {sights.map((sight) => {
             const checked = sight.completed === true || completedSightIds.includes(sight.id);
+            const city = cityLabel(sight);
             return (
               <TouchableOpacity key={sight.id} style={s.row} onPress={() => onOpen(sight)} accessibilityRole="button">
                 <ProgressivePlaceImage uri={sight.image} style={s.image} contentFit="cover" />
-                <Text style={s.name} numberOfLines={1}>{sight.name}</Text>
+                <View style={s.sightCopy}>
+                  <Text style={s.name} numberOfLines={1}>{sight.name}</Text>
+                  {city ? <Text style={s.sightLocation} numberOfLines={1}>{city}</Text> : null}
+                </View>
                 <TouchableOpacity hitSlop={10} onPress={() => onToggle(sight.id, checked)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
                   <Ionicons name={checked ? "checkmark-circle" : "ellipse-outline"} size={28} color="#57D5A0" />
                 </TouchableOpacity>
@@ -69,13 +76,19 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
             );
           })}
           {upgrade}
-          {lockedSights.map((sight) => (
-            <View key={sight.id} style={[s.row, s.locked]}>
-              <ProgressivePlaceImage uri={sight.image} style={s.image} contentFit="cover" blurRadius={32} />
-              <Text style={s.name} numberOfLines={1}>{sight.name}</Text>
-              <Ionicons name="lock-closed" size={21} color={BrandColors.onDarkMuted} />
-            </View>
-          ))}
+          {lockedSights.map((sight) => {
+            const city = cityLabel(sight);
+            return (
+              <View key={sight.id} style={[s.row, s.locked]}>
+                <ProgressivePlaceImage uri={sight.image} style={s.image} contentFit="cover" blurRadius={32} />
+                <View style={s.sightCopy}>
+                  <Text style={s.name} numberOfLines={1}>{sight.name}</Text>
+                  {city ? <Text style={s.sightLocation} numberOfLines={1}>{city}</Text> : null}
+                </View>
+                <Ionicons name="lock-closed" size={21} color={BrandColors.onDarkMuted} />
+              </View>
+            );
+          })}
         </FadingScrollList>
       </View>
     </>
@@ -122,7 +135,9 @@ const s = StyleSheet.create({
   image: { width: 46, height: 46, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
   roundImage: { width: 46, height: 46, borderRadius: 23, backgroundColor: BrandColors.greenPanel },
   icon: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenPanel },
-  name: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
+  sightCopy: { flex: 1, minWidth: 0 },
+  name: { fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
+  sightLocation: { marginTop: 3, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: BrandColors.onDarkMuted },
   copy: { flex: 1 },
   itemTitle: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
   detail: { marginTop: 2, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },

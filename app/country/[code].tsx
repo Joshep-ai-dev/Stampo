@@ -325,7 +325,7 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
+        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail?.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
 
         {normalizedCode === "US" ? (
           <StatesSection items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />

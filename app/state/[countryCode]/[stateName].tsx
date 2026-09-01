@@ -194,7 +194,7 @@ export default function StateScreen() {
               { icon: "airplane-outline", value: Math.max(detail.stats.airports, localAirportCount), label: "AIRPORTS" },
             ]} /></View>
 
-            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
+            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
             <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push(`/city/${city.id}` as never)} />
             <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
