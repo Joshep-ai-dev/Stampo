@@ -15,7 +15,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,7 +22,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   type SharedValue,
@@ -630,11 +629,9 @@ function WorldMap({
       if (successful) runOnJS(selectCountryAt)(event.x, event.y);
     });
   const mapGesture = Gesture.Simultaneous(
-    Gesture.Exclusive(
-      resetGesture,
-      Gesture.Simultaneous(pinchGesture, panGesture),
-      countryTapGesture,
-    ),
+    Gesture.Exclusive(resetGesture, countryTapGesture),
+    pinchGesture,
+    panGesture,
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
     const relativeScale = scale.value / zoomLevel;
