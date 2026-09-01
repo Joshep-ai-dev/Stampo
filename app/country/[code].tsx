@@ -467,7 +467,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
-    backgroundColor: BrandColors.surface
+    backgroundColor: BrandColors.surface,
+    overflow: "hidden",
   },
   stampImage: {
     width: "100%",
