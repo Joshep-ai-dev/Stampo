@@ -29,7 +29,7 @@ import "react-native-reanimated";
 import { Provider } from "react-redux";
 
 import { ArrivalSuggestionPrompt } from "@/components/arrival-suggestion";
-import { SubscriptionSync } from "@/components/subscription-sync";
+import { SubscriptionProvider } from "@/components/subscription-provider";
 import { hydrateStore, store } from "@/store";
 
 SplashScreen.preventAutoHideAsync();
@@ -112,12 +112,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <SubscriptionSync />
-        <ArrivalSuggestionPrompt />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-        <StatusBar style="light" />
+        <SubscriptionProvider>
+          <ArrivalSuggestionPrompt />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+          <StatusBar style="light" />
+        </SubscriptionProvider>
       </Provider>
     </GestureHandlerRootView>
   );

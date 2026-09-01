@@ -1,7 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { useKrooPlusBilling } from "@/components/subscription-provider";
 import { BrandColors } from "@/constants/theme";
-import { manageKrooPlus, restoreKrooPlus } from "@/services/subscriptions";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -9,9 +9,6 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 type UpgradeBannerProps = {
   active: boolean;
   configured: boolean;
-  onCustomerInfo: (
-    customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
-  ) => void;
   text?: string;
   count?: number;
 };
@@ -19,10 +16,10 @@ type UpgradeBannerProps = {
 export function UpgradeBanner({
   active,
   configured,
-  onCustomerInfo,
   text = "Unlock all top sights with Kroo+",
 }: UpgradeBannerProps) {
   const router = useRouter();
+  const billing = useKrooPlusBilling();
   const showError = (error: unknown) =>
     Alert.alert(
       "Kroo+",
@@ -37,11 +34,11 @@ export function UpgradeBanner({
     if (!configured) {
       Alert.alert(
         "Kroo+ setup required",
-        "Add the RevenueCat iOS and Android public SDK keys, then rebuild the app.",
+        "Install a development or production build and configure the Kroo+ products in Google Play Console.",
       );
       return;
     }
-    void manageKrooPlus().then(onCustomerInfo).catch(showError);
+    void billing.manage().catch(showError);
   };
 
   return (

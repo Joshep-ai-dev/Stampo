@@ -23,10 +23,8 @@ import {
   type CollectionPlace,
 } from "@/data/collections";
 import { api } from "@/services/api";
-import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { subscriptionUpdated } from "@/store/subscription-slice";
 import {
   sightCompletionSet,
   visitsHydrated,
@@ -223,14 +221,6 @@ export default function CollectionScreen() {
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
                 text="Unlock collections with Kroo+"
-                onCustomerInfo={(customerInfo) =>
-                  dispatch(
-                    subscriptionUpdated({
-                      configured: true,
-                      isKrooPlus: customerHasKrooPlus(customerInfo),
-                    }),
-                  )
-                }
               />
             </View>
             <View style={s.lockedList}>  {premiumPlacePreviews.map((place) => {
@@ -303,14 +293,6 @@ export default function CollectionScreen() {
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
                 text="Unlock this place with Kroo+"
-                onCustomerInfo={(customerInfo) =>
-                  dispatch(
-                    subscriptionUpdated({
-                      configured: true,
-                      isKrooPlus: customerHasKrooPlus(customerInfo),
-                    }),
-                  )
-                }
               />
             }
             onClose={() => setSelectedPlace(null)}

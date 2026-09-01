@@ -13,7 +13,11 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://krootravel.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://krootravel.com/api/v1",
+        "EXPO_PUBLIC_KROO_PLUS_MONTHLY_PRODUCT_ID": "kroo_plus",
+        "EXPO_PUBLIC_KROO_PLUS_ANNUAL_PRODUCT_ID": "kroo_plus",
+        "EXPO_PUBLIC_KROO_PLUS_MONTHLY_BASE_PLAN_ID": "monthly",
+        "EXPO_PUBLIC_KROO_PLUS_ANNUAL_BASE_PLAN_ID": "annual"
       },
       "android": {
         "buildType": "apk"
@@ -21,7 +25,11 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://krootravel.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://krootravel.com/api/v1",
+        "EXPO_PUBLIC_KROO_PLUS_MONTHLY_PRODUCT_ID": "kroo_plus",
+        "EXPO_PUBLIC_KROO_PLUS_ANNUAL_PRODUCT_ID": "kroo_plus",
+        "EXPO_PUBLIC_KROO_PLUS_MONTHLY_BASE_PLAN_ID": "monthly",
+        "EXPO_PUBLIC_KROO_PLUS_ANNUAL_BASE_PLAN_ID": "annual"
       },
       "android": {}
     }

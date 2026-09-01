@@ -23,10 +23,8 @@ import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { api, type SightDetail, type StateDetailResponse } from "@/services/api";
-import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { subscriptionUpdated } from "@/store/subscription-slice";
 import { sightCompletionSet } from "@/store/travel-slice";
 
 const US_STATE_CODES: Record<string, string> = {
@@ -194,7 +192,7 @@ export default function StateScreen() {
               { icon: "airplane-outline", value: Math.max(detail.stats.airports, localAirportCount), label: "AIRPORTS" },
             ]} /></View>
 
-            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} onCustomerInfo={(customerInfo) => dispatch(subscriptionUpdated({ configured: true, isKrooPlus: customerHasKrooPlus(customerInfo) }))} /> : null} />
+            <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
             <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push(`/city/${city.id}` as never)} />
             <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
