@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(20),
     lineHeight: responsiveFontSize(34),
-    letterSpacing: 1.4,
+    letterSpacing: 2,
     color: BrandColors.copper,
     textShadowColor: "rgba(0,0,0,.72)",
     textShadowOffset: { width: 0, height: 1 },

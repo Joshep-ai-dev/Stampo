@@ -279,6 +279,33 @@ type CountryImportPendingResponse = {
   message: string;
 };
 
+const ANTARCTICA_DETAIL: CountryDetailResponse = {
+  isEnriching: false,
+  country: {
+    id: "AQ",
+    code: "AQ",
+    iso3: "ATA",
+    name: "Antarctica",
+    officialName: "Antarctica",
+    flag: "🇦🇶",
+    capital: "",
+    population: 0,
+    languages: [],
+    currencies: [],
+    continent: "Antarctica",
+    region: "Antarctica",
+    description: "The southernmost continent, surrounding the South Pole.",
+    coverImage: "",
+  },
+  featuredIn: [],
+  states: [],
+  cities: [],
+  sights: [],
+  collections: [],
+  stats: { cities: 0, totalCities: 0, sights: 0, totalSights: 0, airports: 0 },
+  visitedCities: [],
+};
+
 export type ImageCredit = {
   sourceUrl: string;
   filePageUrl: string;
@@ -410,11 +437,18 @@ function levelForScore(score: number) {
 }
 
 async function countryDetail(code: string): Promise<CountryDetailResponse> {
-  const path = `/catalog/countries/${encodeURIComponent(code)}`;
+  const normalizedCode = code.trim().toUpperCase();
+  const path = `/catalog/countries/${encodeURIComponent(normalizedCode)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
-    const result = await request<
-      CountryDetailResponse | CountryImportPendingResponse
-    >(path);
+    let result: CountryDetailResponse | CountryImportPendingResponse;
+    try {
+      result = await request<CountryDetailResponse | CountryImportPendingResponse>(path);
+    } catch (error) {
+      if (normalizedCode === "AQ" && error instanceof ApiError && error.status === 404) {
+        return ANTARCTICA_DETAIL;
+      }
+      throw error;
+    }
     if ("status" in result) {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
       continue;
