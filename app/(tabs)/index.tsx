@@ -964,13 +964,11 @@ export default function HomeScreen() {
     icon: keyof typeof Ionicons.glyphMap;
   } | null>(null);
   const [mapGestureActive, setMapGestureActive] = useState(false);
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [welcomeName, setWelcomeName] = useState(name);
-  const showWelcome = !name && !welcomeDismissed;
+  const showWelcome = !name;
   const saveWelcomeName = useCallback(() => {
     const trimmed = welcomeName.trim();
     if (trimmed) dispatch(nameChanged(trimmed));
-    setWelcomeDismissed(true);
   }, [dispatch, welcomeName]);
   const locateUser = useCallback(async () => {
     if (!gpsArrivalsAllowed) return;
@@ -1268,20 +1266,26 @@ export default function HomeScreen() {
           <View style={styles.welcomeSheet}>
             <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
             <Text style={styles.welcomeBody}>
-              Feel free to look around and try things out
+              Feel free to look around and try it out — no account needed.
             </Text>
             <Text style={styles.welcomeBody}>
-              To save your countries visited and kroo score complete your
-              passport profile page
+              When you&apos;re ready to save your travel progress and Kroo score,
+              complete your passport profile on the passport page.
+            </Text>
+            <Text style={styles.welcomeBody}>
+              Curious about more? <Text style={styles.welcomeStrong}>Kroo+</Text>{" "}
+              members verify their travels with GPS and can work toward winning
+              a real dream vacation — up to $5,000 — through the Dream Vacation
+              Challenge.
             </Text>
             <Text style={styles.welcomeQuestion}>
-              What name would you like on your passport?
+              What name would you like to use on your passport?
             </Text>
             <TextInput
               value={welcomeName}
               onChangeText={setWelcomeName}
               style={styles.welcomeInput}
-              placeholder="Passport name"
+              placeholder="First Name"
               placeholderTextColor={BrandColors.muted}
               autoCapitalize="words"
             />
@@ -1290,16 +1294,9 @@ export default function HomeScreen() {
               onPress={saveWelcomeName}
               accessibilityRole="button"
               accessibilityLabel="Save passport name"
+              disabled={!welcomeName.trim()}
             >
               <Text style={styles.welcomeButtonText}>CONTINUE</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.welcomeSecondaryButton}
-              onPress={() => setWelcomeDismissed(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Look around Kroo"
-            >
-              <Text style={styles.welcomeSecondaryText}>LOOK AROUND</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1361,6 +1358,9 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
     textAlign: "center",
   },
+  welcomeStrong: {
+    fontFamily: "Lora_700Bold",
+  },
   welcomeQuestion: {
     marginTop: 22,
     fontFamily: "Lora_600SemiBold",
@@ -1379,6 +1379,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
+    textAlign: "center",
   },
   welcomeButton: {
     minHeight: 54,

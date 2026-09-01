@@ -92,6 +92,10 @@ async function notifyForArrival(location: Location.LocationObject) {
         nearbyPlace.type + ":" + nearbyPlace.id,
       );
       arrival.nearbyPlace = nearbyPlace;
+      if (nearbyPlace.type === "airport") {
+        const code = nearbyPlace.iataCode || nearbyPlace.icaoCode;
+        arrival.airport = `${nearbyPlace.name}${code ? ` (${code})` : ""}`;
+      }
     }
   }
   const previousRaw = await AsyncStorage.getItem(LAST_ARRIVAL_KEY);
@@ -109,7 +113,9 @@ async function notifyForArrival(location: Location.LocationObject) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: arrival.nearbyPlace
-        ? `You're near ${arrival.nearbyPlace.name}`
+        ? arrival.nearbyPlace.type === "airport"
+          ? `Airport arrival: ${arrival.nearbyPlace.name}`
+          : `You're near ${arrival.nearbyPlace.name}`
         : `Add your arrival in ${arrival.city}?`,
       body: arrival.airport
         ? `${arrival.airport} was detected. Confirm to add the airport, city, country, and continent as GPS verified.`

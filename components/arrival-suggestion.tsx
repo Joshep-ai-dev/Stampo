@@ -191,7 +191,9 @@ export function ArrivalSuggestionPrompt() {
             <Text style={styles.title}>Add {suggestion.city}?</Text>
             <Text style={styles.copy}>
               {suggestion.nearbyPlace
-                ? `You are ${Math.round(suggestion.nearbyPlace.distanceMeters)} m from ${suggestion.nearbyPlace.name}, a Kroo ${suggestion.nearbyPlace.type === "sight" ? "Top Sight" : "collection place"}.`
+                ? suggestion.nearbyPlace.type === "airport"
+                  ? `You are at ${suggestion.nearbyPlace.name}, an airport near ${suggestion.city}.`
+                  : `You are ${Math.round(suggestion.nearbyPlace.distanceMeters)} m from ${suggestion.nearbyPlace.name}, a Kroo ${suggestion.nearbyPlace.type === "sight" ? "Top Sight" : "collection place"}.`
                 : suggestion.airport
                 ? `${suggestion.airport} was detected.`
                 : `You were detected in ${suggestion.city}, ${suggestion.country}.`}{" "}

@@ -18,8 +18,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
-import { CitiesVisitedSection, StatesSection, TopSightsSection, type PlaceListItem } from "@/components/place-detail-sections";
 import { PlaceCollectionList } from "@/components/place-collection-list";
+import { CitiesVisitedSection, type PlaceListItem, StatesSection, TopSightsSection } from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";

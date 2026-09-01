@@ -87,7 +87,9 @@ export async function hydrateStore() {
       }
       await store.dispatch(fetchHomeDashboard());
     } else {
-      store.dispatch(signedOut());
+      // No server session is normal for guests. Preserve their locally saved
+      // passport name and preferences while clearing authentication state.
+      store.dispatch(authSessionChanged({ isSignedIn: false, userId: null }));
       store.dispatch(dashboardCleared());
     }
   } catch {

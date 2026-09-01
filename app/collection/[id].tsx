@@ -1,7 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -74,11 +74,11 @@ export default function CollectionScreen() {
     const applyCollection = (item: Awaited<ReturnType<typeof api.collectionDetail>>) => {
       if (!active) return;
       setCollection({
-          id: item.id,
-          title: item.title,
-          subtitle: item.description || item.detail,
-          imageUrl: item.imageUrl,
-          places: item.places,
+        id: item.id,
+        title: item.title,
+        subtitle: item.description || item.detail,
+        imageUrl: item.imageUrl,
+        places: item.places,
       });
     };
     void AsyncStorage.getItem(cacheKey).then((cached) => {
@@ -218,103 +218,106 @@ export default function CollectionScreen() {
 
         {premiumPlaces.length > 0 ? (
           <>
-            <UpgradeBanner
-              active={subscription.isKrooPlus}
-              configured={subscription.configured}
-              text="Unlock collections with Kroo+"
-              onCustomerInfo={(customerInfo) =>
-                dispatch(
-                  subscriptionUpdated({
-                    configured: true,
-                    isKrooPlus: customerHasKrooPlus(customerInfo),
-                  }),
-                )
-              }
-            />
-            <View style={s.lockedList}>
-              {premiumPlacePreviews.map((place) => {
-                const targetId = `collection-${collection.id}-${place.id}`;
-                const checked = completedSightIds.includes(targetId);
-                return (
-                  <TouchableOpacity
-                    key={place.id}
-                    style={[s.placeRow, s.lockedPlaceRow]}
-                    onPress={() => handlePlaceTap(place)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open locked ${place.name}`}
-                  >
-                    <PlaceImage place={place} blurRadius={32} />
-                    <View style={s.placeCopy}>
-                      <Text
-                        style={[s.placeName, s.lockedPlaceName]}
-                        numberOfLines={1}
-                      >
-                        {place.name}
-                      </Text>
-                      <Text style={s.placeLocation} numberOfLines={1}>
-                        {place.location || [place.city, place.country].filter(Boolean).join(", ")}
-                      </Text>
-                    </View>
-                    <View style={s.lockedCheckIcon}>
-                      <Ionicons
-                        name={checked ? "checkmark-circle" : "ellipse-outline"}
-                        size={25}
-                        color={BrandColors.onDarkMuted}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={s.upgradeBannerWrapper}>
+              <UpgradeBanner
+                active={subscription.isKrooPlus}
+                configured={subscription.configured}
+                text="Unlock collections with Kroo+"
+                onCustomerInfo={(customerInfo) =>
+                  dispatch(
+                    subscriptionUpdated({
+                      configured: true,
+                      isKrooPlus: customerHasKrooPlus(customerInfo),
+                    }),
+                  )
+                }
+              />
+            </View>
+            <View style={s.lockedList}>  {premiumPlacePreviews.map((place) => {
+              const targetId = `collection-${collection.id}-${place.id}`;
+              const checked = completedSightIds.includes(targetId);
+              return (
+                <TouchableOpacity
+                  key={place.id}
+                  style={[s.placeRow, s.lockedPlaceRow]}
+                  onPress={() => handlePlaceTap(place)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open locked ${place.name}`}
+                >
+                  <PlaceImage place={place} blurRadius={32} />
+                  <View style={s.placeCopy}>
+                    <Text
+                      style={[s.placeName, s.lockedPlaceName]}
+                      numberOfLines={1}
+                    >
+                      {place.name}
+                    </Text>
+                    <Text style={s.placeLocation} numberOfLines={1}>
+                      {place.location || [place.city, place.country].filter(Boolean).join(", ")}
+                    </Text>
+                  </View>
+                  <View style={s.lockedCheckIcon}>
+                    <Ionicons
+                      name={checked ? "checkmark-circle" : "ellipse-outline"}
+                      size={25}
+                      color={BrandColors.onDarkMuted}
+                    />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
             </View>
           </>
         ) : null}
       </ScrollView>
 
-      {selectedPlace ? (
-        <DetailModal
-          visible
-          title={selectedPlace.name}
-          location={
-            selectedPlace.location ||
-            [selectedPlace.city, selectedPlace.country]
-              .filter(Boolean)
-              .join(", ")
-          }
-          description={
-            selectedPlace.content ||
-            selectedPlace.detail ||
-            "A memorable place in this collection."
-          }
-          image={
-            <ProgressivePlaceImage
-              uri={selectedPlace.imageUrl}
-              style={s.modalPlaceImage}
-              contentFit="cover"
-            />
-          }
-          locked={
-            !subscription.isKrooPlus &&
-            premiumPlaces.some((place) => place.id === selectedPlace.id)
-          }
-          unlockContent={
-            <UpgradeBanner
-              active={subscription.isKrooPlus}
-              configured={subscription.configured}
-              text="Unlock this place with Kroo+"
-              onCustomerInfo={(customerInfo) =>
-                dispatch(
-                  subscriptionUpdated({
-                    configured: true,
-                    isKrooPlus: customerHasKrooPlus(customerInfo),
-                  }),
-                )
-              }
-            />
-          }
-          onClose={() => setSelectedPlace(null)}
-        />
-      ) : null}
-    </SafeAreaView>
+      {
+        selectedPlace ? (
+          <DetailModal
+            visible
+            title={selectedPlace.name}
+            location={
+              selectedPlace.location ||
+              [selectedPlace.city, selectedPlace.country]
+                .filter(Boolean)
+                .join(", ")
+            }
+            description={
+              selectedPlace.content ||
+              selectedPlace.detail ||
+              "A memorable place in this collection."
+            }
+            image={
+              <ProgressivePlaceImage
+                uri={selectedPlace.imageUrl}
+                style={s.modalPlaceImage}
+                contentFit="cover"
+              />
+            }
+            locked={
+              !subscription.isKrooPlus &&
+              premiumPlaces.some((place) => place.id === selectedPlace.id)
+            }
+            unlockContent={
+              <UpgradeBanner
+                active={subscription.isKrooPlus}
+                configured={subscription.configured}
+                text="Unlock this place with Kroo+"
+                onCustomerInfo={(customerInfo) =>
+                  dispatch(
+                    subscriptionUpdated({
+                      configured: true,
+                      isKrooPlus: customerHasKrooPlus(customerInfo),
+                    }),
+                  )
+                }
+              />
+            }
+            onClose={() => setSelectedPlace(null)}
+          />
+        ) : null
+      }
+    </SafeAreaView >
   );
 }
 
@@ -417,6 +420,9 @@ const s = StyleSheet.create({
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
+  },
+  upgradeBannerWrapper: {
+    marginHorizontal: 16
   },
   lockedPlaceName: {
     color: "rgba(248,234,212,.4)",

@@ -27,6 +27,62 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { subscriptionUpdated } from "@/store/subscription-slice";
 import { sightCompletionSet } from "@/store/travel-slice";
 
+const US_STATE_CODES: Record<string, string> = {
+  "Alabama": "al",
+  "Alaska": "ak",
+  "Arizona": "az",
+  "Arkansas": "ar",
+  "California": "ca",
+  "Colorado": "co",
+  "Connecticut": "ct",
+  "Delaware": "de",
+  "Florida": "fl",
+  "Georgia": "ga",
+  "Hawaii": "hi",
+  "Idaho": "id",
+  "Illinois": "il",
+  "Indiana": "in",
+  "Iowa": "ia",
+  "Kansas": "ks",
+  "Kentucky": "ky",
+  "Louisiana": "la",
+  "Maine": "me",
+  "Maryland": "md",
+  "Massachusetts": "ma",
+  "Michigan": "mi",
+  "Minnesota": "mn",
+  "Mississippi": "ms",
+  "Missouri": "mo",
+  "Montana": "mt",
+  "Nebraska": "ne",
+  "Nevada": "nv",
+  "New Hampshire": "nh",
+  "New Jersey": "nj",
+  "New Mexico": "nm",
+  "New York": "ny",
+  "North Carolina": "nc",
+  "North Dakota": "nd",
+  "Ohio": "oh",
+  "Oklahoma": "ok",
+  "Oregon": "or",
+  "Pennsylvania": "pa",
+  "Rhode Island": "ri",
+  "South Carolina": "sc",
+  "South Dakota": "sd",
+  "Tennessee": "tn",
+  "Texas": "tx",
+  "Utah": "ut",
+  "Vermont": "vt",
+  "Virginia": "va",
+  "Washington": "wa",
+  "West Virginia": "wv",
+  "Wisconsin": "wi",
+  "Wyoming": "wy",
+  "District of Columbia": "dc",
+  "Puerto Rico": "pr"
+};
+
+
 export default function StateScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -67,7 +123,8 @@ export default function StateScreen() {
   const localAirportCount = new Set(
     stateVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id)),
   ).size;
-  const stateFlagUrl = `https://cdn.civil.services/us-states/flags/${stateName.trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-")}-small.png`;
+  const stateCode = US_STATE_CODES[stateName];
+  const stateFlagUrl = `https://flagcdn.com/72x54/us-${stateCode}.png`;
   const sights = detail?.sights ?? [];
   const visibleSights = subscription.isKrooPlus ? sights : sights.slice(0, 3);
   const lockedSights = subscription.isKrooPlus ? [] : sights.slice(3);
@@ -151,7 +208,7 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(49,87,73,.56)" },
   headerSpacer: { width: 42, height: 42 },
   titleRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
-  stateFlag: { width: 38, height: 25, borderRadius: 2, backgroundColor: BrandColors.greenPanel },
+  stateFlag: { width: 32, height: 24, borderRadius: 2, backgroundColor: BrandColors.greenPanel },
   title: { flexShrink: 1, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), lineHeight: 34, color: BrandColors.copper },
   hero: {
     height: 250,
