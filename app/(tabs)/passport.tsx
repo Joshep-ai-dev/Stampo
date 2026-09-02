@@ -585,7 +585,7 @@ export default function PassportScreen() {
       {
         id: "front-cover",
         type: "cover" as const,
-        image: require("@/assets/images/other/passport-front.png"),
+        image: require("@/assets/images/other/passport-front.webp"),
         accessibilityLabel: "Electronic passport front cover",
       },
       { id: "identity", type: "identity" as const },
@@ -593,7 +593,7 @@ export default function PassportScreen() {
       {
         id: "back-cover",
         type: "cover" as const,
-        image: require("@/assets/images/other/passport-back.png"),
+        image: require("@/assets/images/other/passport-back.webp"),
         accessibilityLabel: "Passport back cover",
       },
     ];
