@@ -27,7 +27,6 @@ import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handl
 import Animated, {
   runOnJS,
   type SharedValue,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -107,7 +106,6 @@ const MAP_GEO_LEFT = -169.110266;
 const MAP_GEO_TOP = 83.600842;
 const MAP_GEO_RIGHT = 190.486279;
 const MAP_GEO_BOTTOM = -58.508473;
-const AnimatedMapGroup = Animated.createAnimatedComponent(G);
 
 function projectToWorldMap(latitude: number, longitude: number) {
   const clampedLatitude = Math.max(
@@ -520,18 +518,32 @@ function WorldMap({
     (nextScale: number) => {
       const clampedScale = Math.min(20, Math.max(1, nextScale));
       const reset = clampedScale === 1;
-      const nextX = reset ? 0 : savedTranslateX.value;
-      const nextY = reset ? 0 : savedTranslateY.value;
-      scale.value = clampedScale;
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+      const maxX = Math.max(
+        0,
+        (MAP_WIDTH * fittedScale * clampedScale - mapCanvasWidth) / 2,
+      );
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * clampedScale - 250) / 2,
+      );
+      const nextX = reset
+        ? 0
+        : Math.max(-maxX, Math.min(maxX, savedTranslateX.value));
+      const nextY = reset
+        ? 0
+        : Math.max(-maxY, Math.min(maxY, savedTranslateY.value));
+      scale.value = withTiming(clampedScale, { duration: 160 });
       savedScale.value = clampedScale;
-      translateX.value = nextX;
-      translateY.value = nextY;
+      translateX.value = reset ? withTiming(0, { duration: 160 }) : nextX;
+      translateY.value = reset ? withTiming(0, { duration: 160 }) : nextY;
       savedTranslateX.value = nextX;
       savedTranslateY.value = nextY;
       commitMapTransform(clampedScale, nextX, nextY);
     },
     [
       commitMapTransform,
+      mapCanvasWidth,
       savedScale,
       savedTranslateX,
       savedTranslateY,
@@ -649,20 +661,39 @@ function WorldMap({
     pinchGesture,
     panGesture,
   );
-  const animatedMapProps = useAnimatedProps(() => {
-    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+  const animatedTranslationStyle = useAnimatedStyle(() => {
+    const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
-        { translateX: translateX.value / fittedMapScale },
-        { translateY: translateY.value / fittedMapScale },
-        { translateX: MAP_WIDTH / 2 },
-        { translateY: MAP_HEIGHT / 2 },
-        { scale: scale.value },
-        { translateX: -MAP_WIDTH / 2 },
-        { translateY: -MAP_HEIGHT / 2 },
+        {
+          translateX: translateX.value - committedOffset.x * relativeScale,
+        },
+        {
+          translateY: translateY.value - committedOffset.y * relativeScale,
+        },
       ],
     };
   });
+  const animatedScaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value / zoomLevel }],
+  }));
+  const committedGroupTransform = useMemo(() => {
+    if (
+      zoomLevel === 1 &&
+      committedOffset.x === 0 &&
+      committedOffset.y === 0
+    ) {
+      return undefined;
+    }
+    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const svgTranslateX =
+      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
+      committedOffset.x / fittedMapScale;
+    const svgTranslateY =
+      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
+      committedOffset.y / fittedMapScale;
+    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${svgTranslateX} ${svgTranslateY})`;
+  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -790,17 +821,29 @@ function WorldMap({
           style={styles.zoomableMap}
           collapsable={false}
         >
-          <Svg
-            width="100%"
-            height="100%"
-            viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-            preserveAspectRatio="xMidYMid meet"
+          <Animated.View
+            style={[styles.zoomableMap, animatedTranslationStyle]}
+            pointerEvents="none"
           >
-            <AnimatedMapGroup animatedProps={animatedMapProps}>
-              {countryPaths}
-              {countryLabels}
-            </AnimatedMapGroup>
-          </Svg>
+            <Animated.View
+              style={[styles.zoomableMap, animatedScaleStyle]}
+              pointerEvents="none"
+              renderToHardwareTextureAndroid
+              shouldRasterizeIOS
+            >
+              <Svg
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <G transform={committedGroupTransform}>
+                  {countryPaths}
+                  {countryLabels}
+                </G>
+              </Svg>
+            </Animated.View>
+          </Animated.View>
         </View>
       </GestureDetector>
       {currentLocation && mapCanvasWidth > 1 ? (
