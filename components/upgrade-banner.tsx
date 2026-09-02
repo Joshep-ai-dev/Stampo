@@ -62,17 +62,6 @@ export function UpgradeBanner({
         />
         <Text style={s.upgradeText}>{active ? "Kroo+ is active" : text}</Text>
       </View>
-      <View style={s.upgradeButton}>
-        <Text style={s.upgradeButtonText}>
-          {active
-            ? configured
-              ? "Manage"
-              : "Kroo Free"
-            : configured
-              ? "Upgrade"
-              : "Kroo+"}
-        </Text>
-      </View>
     </TouchableOpacity>
   );
 }
@@ -101,16 +90,5 @@ const s = StyleSheet.create({
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(13),
     color: BrandColors.white,
-  },
-  upgradeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: BrandColors.surface,
-    borderRadius: 8,
-  },
-  upgradeButtonText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
-    color: BrandColors.copperDark,
   },
 });

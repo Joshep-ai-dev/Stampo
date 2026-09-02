@@ -733,16 +733,6 @@ export default function PassportScreen() {
         />
         {page.id === "front-cover" ? (
           <>
-            {profile.name ? (
-              <Text
-                style={styles.coverName}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.65}
-              >
-                {profile.name}
-              </Text>
-            ) : null}
             <Text
               style={styles.coverLevel}
               numberOfLines={1}

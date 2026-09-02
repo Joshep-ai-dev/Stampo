@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
@@ -14,7 +13,6 @@ export function PlaceSectionTitle({ children }: { children: string }) {
 
 function FadingScrollList({ itemCount, children }: { itemCount: number; children: ReactNode }) {
   const scrollable = itemCount > 3;
-  const [atBottom, setAtBottom] = useState(false);
   return (
     <View style={[s.scrollFrame, scrollable && s.scrollFrameOverflow]}>
       <ScrollView
@@ -22,22 +20,9 @@ function FadingScrollList({ itemCount, children }: { itemCount: number; children
         nestedScrollEnabled
         scrollEnabled={scrollable}
         showsVerticalScrollIndicator={scrollable}
-        scrollEventThrottle={16}
-        onScroll={({ nativeEvent }) => {
-          const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
-          setAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 4);
-        }}
       >
         {children}
       </ScrollView>
-      {scrollable && !atBottom ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={["rgba(3,29,20,0)", BrandColors.green]}
-          locations={[0, 0.92]}
-          style={s.bottomFade}
-        />
-      ) : null}
     </View>
   );
 }
@@ -58,8 +43,8 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
     <>
       <PlaceSectionTitle>Top Sights</PlaceSectionTitle>
       <View style={s.list}>
-        <FadingScrollList itemCount={sights.length + lockedSights.length}>
-          {sights.map((sight) => {
+        <FadingScrollList itemCount={Math.min(sights.length, 3)}>
+          {sights.slice(0, 3).map((sight) => {
             const checked = sight.completed === true || completedSightIds.includes(sight.id);
             const city = cityLabel(sight);
             return (
@@ -76,19 +61,6 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
             );
           })}
           {upgrade}
-          {lockedSights.map((sight) => {
-            const city = cityLabel(sight);
-            return (
-              <View key={sight.id} style={[s.row, s.locked]}>
-                <ProgressivePlaceImage uri={sight.image} style={s.image} contentFit="cover" blurRadius={32} />
-                <View style={s.sightCopy}>
-                  <Text style={s.name} numberOfLines={1}>{sight.name}</Text>
-                  {city ? <Text style={s.sightLocation} numberOfLines={1}>{city}</Text> : null}
-                </View>
-                <Ionicons name="lock-closed" size={21} color={BrandColors.onDarkMuted} />
-              </View>
-            );
-          })}
         </FadingScrollList>
       </View>
     </>
@@ -97,7 +69,7 @@ export function TopSightsSection({ sights, lockedSights = [], completedSightIds,
 
 export type PlaceListItem = { id: string; name: string; image?: string; detail: string };
 
-function NavigablePlaceSection({ title, items, emptyText, onOpen }: { title: string; items: PlaceListItem[]; emptyText: string; onOpen: (item: PlaceListItem) => void }) {
+function NavigablePlaceSection({ title, items, emptyText, onOpen, showDetail = true }: { title: string; items: PlaceListItem[]; emptyText: string; onOpen: (item: PlaceListItem) => void; showDetail?: boolean }) {
   return (
     <>
       <PlaceSectionTitle>{title}</PlaceSectionTitle>
@@ -106,7 +78,10 @@ function NavigablePlaceSection({ title, items, emptyText, onOpen }: { title: str
           {items.length ? items.map((item) => (
             <TouchableOpacity key={item.id} style={s.row} onPress={() => onOpen(item)} accessibilityRole="button">
               {item.image ? <ProgressivePlaceImage uri={item.image} style={s.roundImage} contentFit="cover" /> : <View style={s.icon}><Ionicons name="map-outline" size={24} color={BrandColors.copper} /></View>}
-              <View style={s.copy}><Text style={s.itemTitle} numberOfLines={1}>{item.name}</Text><Text style={s.detail} numberOfLines={1}>{item.detail}</Text></View>
+              <View style={s.copy}>
+                <Text style={s.itemTitle} numberOfLines={1}>{item.name}</Text>
+                {showDetail ? <Text style={s.detail} numberOfLines={1}>{item.detail}</Text> : null}
+              </View>
               <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
             </TouchableOpacity>
           )) : <Text style={s.empty}>{emptyText}</Text>}
@@ -128,9 +103,8 @@ const s = StyleSheet.create({
   sectionTitle: { marginTop: 23, marginBottom: 10, marginHorizontal: 17, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(18), color: BrandColors.onDark },
   list: { marginHorizontal: 16, overflow: "hidden" },
   scrollFrame: { position: "relative" },
-  scrollFrameOverflow: { height: 236 },
+  scrollFrameOverflow: { height: 186 },
   scroller: { flexGrow: 0 },
-  bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 42 },
   row: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   image: { width: 46, height: 46, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
   roundImage: { width: 46, height: 46, borderRadius: 23, backgroundColor: BrandColors.greenPanel },

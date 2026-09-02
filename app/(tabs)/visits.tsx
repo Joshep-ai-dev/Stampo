@@ -214,6 +214,7 @@ export default function PlusTabScreen() {
           contentFit="contain"
           accessibilityLabel="Kroo, Collect the world"
         />
+        {isPlus ? <>
         <View style={s.dailyHead}>
           <View>
             <Text style={s.sectionTitle}>Daily Destination</Text>
@@ -303,6 +304,15 @@ export default function PlusTabScreen() {
             </View>
           )}
         </View>
+        </> : (
+          <View style={s.offerSection}>
+            <Text style={s.offerHeading}>Go further with Kroo+</Text>
+            <KrooPlusOffer
+              onPurchase={() => router.push("/gift-kroo-plus" as never)}
+              onRestore={() => router.push("/kroo-plus" as never)}
+            />
+          </View>
+        )}
         <Text style={s.heading}>Dream Vacation Challenge</Text>
         <Text style={s.intro}>
           Complete 3 requirements as a{" "}
@@ -330,17 +340,7 @@ export default function PlusTabScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        {isPlus ? (
-          <Progress score={krooScore} iq={iq} />
-        ) : (
-          <View style={s.offerSection}>
-            <Text style={s.offerHeading}>Go further with Kroo+</Text>
-            <KrooPlusOffer
-              onPurchase={() => router.push("/gift-kroo-plus" as never)}
-              onRestore={() => router.push("/kroo-plus" as never)}
-            />
-          </View>
-        )}
+        {isPlus ? <Progress score={krooScore} iq={iq} /> : null}
       </ScrollView>
       <Modal
         transparent

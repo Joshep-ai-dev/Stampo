@@ -50,6 +50,13 @@ export default function CityScreen() {
   const airportCount = new Set(cityVisits.flatMap((visit) => visit.places
     .filter((place) => place.type === "airport")
     .map((place) => place.id || place.name))).size;
+  const visitedAirports = Array.from(
+    new Map(
+      cityVisits.flatMap((visit) => visit.places)
+        .filter((place) => place.type === "airport")
+        .map((place) => [place.id || place.name, place]),
+    ).values(),
+  );
   const sights = city?.sights ?? [];
   const completedCitySightCount = sights.filter((sight) =>
     sight.completed === true || completedSightIds.includes(sight.id),
@@ -118,6 +125,17 @@ export default function CityScreen() {
 
             <TopSightsSection sights={sights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(sightId, checked) => void toggleSight(sightId, checked)} locationForSight={(sight) => sight.city || city.name} />
 
+            <PlaceSectionTitle>Airports Visited</PlaceSectionTitle>
+            <View style={s.list}>
+              {visitedAirports.map((airport) => (
+                <View key={airport.id || airport.name} style={s.row}>
+                  <Ionicons name="airplane-outline" size={20} color={BrandColors.copper} />
+                  <Text style={s.rowTitle}>{airport.name}</Text>
+                </View>
+              ))}
+              {!visitedAirports.length ? <Text style={s.empty}>Your visited airports in {city.name} will appear here.</Text> : null}
+            </View>
+
             <PlaceSectionTitle>Visit Notes</PlaceSectionTitle>
             <View style={s.list}>
               {cityVisits.map((visit) => (
@@ -126,7 +144,7 @@ export default function CityScreen() {
                   <View style={s.visitCopy}>
                     <Text style={s.rowTitle}>{visit.visitedAt}</Text>
                     <Text style={s.meta} numberOfLines={1}>
-                      {visit.places.find((place) => place.type === "airport")?.name ?? visit.note ?? "Visited city"}
+                      {visit.note || "Visited city"}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />

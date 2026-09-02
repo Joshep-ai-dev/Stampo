@@ -326,10 +326,10 @@ export default function CountryScreen() {
         <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail?.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
 
         {normalizedCode === "US" ? (
-          <StatesSection items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
+          <StatesSection showDetail={false} items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
         ) : null}
 
-        <CitiesVisitedSection items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push(`/city/${city.id}` as never)} />
+        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push(`/city/${city.id}` as never)} />
         <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
 
         <TouchableOpacity

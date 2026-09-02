@@ -606,6 +606,7 @@ function WorldMap({
       }
     });
   const panGesture = Gesture.Pan()
+    .enabled(zoomLevel > 1)
     .minPointers(1)
     .maxPointers(1)
     .minDistance(6)
@@ -1142,7 +1143,7 @@ export default function HomeScreen() {
   const openKrooScore = useCallback(() => {
     setInfoModal({
       title: "Kroo Score",
-      body: "Your Kroo Score reflects how well-traveled you are and is calculated from:",
+      body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
       bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
@@ -1304,17 +1305,11 @@ export default function HomeScreen() {
           <View style={styles.welcomeSheet}>
             <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
             <Text style={styles.welcomeBody}>
-              Feel free to look around and try it out — no account needed.
+              Feel free to look around and try it out no account needed.
             </Text>
             <Text style={styles.welcomeBody}>
-              When you&apos;re ready to save your travel progress and Kroo score,
-              complete your passport profile on the passport page.
-            </Text>
-            <Text style={styles.welcomeBody}>
-              Curious about more? <Text style={styles.welcomeStrong}>Kroo+</Text>{" "}
-              members verify their travels with GPS and can work toward winning
-              a real dream vacation — up to $5,000 — through the Dream Vacation
-              Challenge.
+              When you&apos;re ready to save your travel progress and kroo score,
+              simply complete your passport profile on the passport page.
             </Text>
             <Text style={styles.welcomeQuestion}>
               What name would you like to use on your passport?

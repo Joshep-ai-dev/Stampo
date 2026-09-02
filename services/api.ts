@@ -523,12 +523,20 @@ export const api = {
     request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(async (result) => {
       const city = normalizeCity(result);
       let collections: ManagedCollection[] = [];
+      let sights = city.sights ?? [];
       try {
         const country = await countryDetail(city.countryCode ?? city.countryId);
         const cityName = city.name.trim().toLocaleLowerCase();
         collections = country.collections.filter((collection) => collection.places.some((place) => place.city?.trim().toLocaleLowerCase() === cityName));
+        const countryCitySights = country.sights.filter((sight) =>
+          String(sight.cityId) === String(city.id) ||
+          sight.city?.trim().toLocaleLowerCase() === cityName,
+        );
+        sights = [...sights, ...countryCitySights].filter(
+          (sight, index, all) => all.findIndex((item) => item.id === sight.id) === index,
+        );
       } catch { /* City details remain usable when collections are unavailable. */ }
-      return { ...city, collections };
+      return { ...city, sights, collections };
     }),
   resolveCityImage: (_input: {
     name: string;
