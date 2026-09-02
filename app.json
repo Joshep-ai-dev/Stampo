@@ -81,7 +81,8 @@
         }
       ],
       "expo-asset",
-      "expo-iap"
+      "expo-iap",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

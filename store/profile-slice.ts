@@ -5,6 +5,7 @@ export type ProfileState = {
   email: string;
   nationality: string;
   dateOfBirth: string;
+  sex: "M" | "F" | "";
   krooNumber: number;
   isSignedIn: boolean;
   userId: string | null;
@@ -17,6 +18,7 @@ const initialState: ProfileState = {
   email: "",
   nationality: "",
   dateOfBirth: "",
+  sex: "",
   krooNumber: 0,
   isSignedIn: false,
   userId: null,
@@ -34,7 +36,7 @@ const profileSlice = createSlice({
     profileDetailsChanged(
       state,
       action: PayloadAction<
-        Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth">
+        Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth" | "sex">
       >,
     ) {
       Object.assign(state, action.payload);

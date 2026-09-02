@@ -173,6 +173,7 @@ export type RemoteProfile = {
   plan: "free" | "pro";
   nationality: string;
   dateOfBirth: string;
+  sex?: "M" | "F" | "";
   photoUri: string | null;
 };
 

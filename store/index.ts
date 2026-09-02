@@ -65,6 +65,7 @@ export async function hydrateStore() {
           email: user.email,
           nationality: remoteProfile?.nationality ?? profile.nationality,
           dateOfBirth: remoteProfile?.dateOfBirth ?? profile.dateOfBirth,
+          sex: remoteProfile?.sex ?? profile.sex,
         }),
       );
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
