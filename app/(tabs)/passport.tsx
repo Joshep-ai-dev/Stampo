@@ -325,13 +325,13 @@ function IdentityPage({
                   </View>
                   <View style={styles.sexField}>
                     <Text style={styles.fieldCaption}>SEX</Text>
-                    <View style={styles.sexOptions}>
+                    {editing ? <View style={styles.sexOptions}>
                       {(["M", "F"] as const).map((sex) => (
-                        <TouchableOpacity disabled={!editing} key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}>
+                        <TouchableOpacity key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}>
                           <Text style={[styles.sexOptionText, draft.sex === sex && styles.sexOptionTextSelected]}>{sex}</Text>
                         </TouchableOpacity>
                       ))}
-                    </View>
+                    </View> : <Text style={styles.identityValue}>{draft.sex || "—"}</Text>}
                   </View>
                 </View>
                 <View style={styles.identityField}>
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: BrandColors.green,
   },
-  accountActions: { flexDirection: "row", gap: 6 },
+  accountActions: { marginTop: 32, flexDirection: "row", gap: 6 },
   passwordButton: {
     flex: 1.5,
     height: 30,
