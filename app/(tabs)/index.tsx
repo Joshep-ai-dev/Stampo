@@ -12,6 +12,7 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  InteractionManager,
   Modal,
   Pressable,
   RefreshControl,
@@ -26,6 +27,7 @@ import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handl
 import Animated, {
   runOnJS,
   type SharedValue,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -97,6 +99,7 @@ type CurrentMapLocation = {
 };
 
 let cachedMapCountries: MapCountry[] | null = null;
+let cachedMapCountriesPromise: Promise<MapCountry[]> | null = null;
 
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
@@ -104,6 +107,7 @@ const MAP_GEO_LEFT = -169.110266;
 const MAP_GEO_TOP = 83.600842;
 const MAP_GEO_RIGHT = 190.486279;
 const MAP_GEO_BOTTOM = -58.508473;
+const AnimatedMapGroup = Animated.createAnimatedComponent(G);
 
 function projectToWorldMap(latitude: number, longitude: number) {
   const clampedLatitude = Math.max(
@@ -427,25 +431,35 @@ function getBundledMapCountries(): MapCountry[] {
   );
 }
 
+function loadBundledMapCountries() {
+  if (cachedMapCountries) return Promise.resolve(cachedMapCountries);
+  if (!cachedMapCountriesPromise) {
+    cachedMapCountriesPromise = new Promise<MapCountry[]>((resolve) => {
+      InteractionManager.runAfterInteractions(() => {
+        cachedMapCountries = getBundledMapCountries();
+        resolve(cachedMapCountries);
+      });
+    });
+  }
+  return cachedMapCountriesPromise;
+}
+
 function WorldMap({
   visited,
   visits,
   currentLocation,
-  onGestureActiveChange,
 }: {
   visited: Set<string>;
   visits: Visit[];
   currentLocation: CurrentMapLocation | null;
-  onGestureActiveChange?: (active: boolean) => void;
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
   const countryDetailCache = useAppSelector((x) => x.countryDetail.cache);
-  const [countriesOnMap] = useState<MapCountry[]>(() => {
-    if (!cachedMapCountries) cachedMapCountries = getBundledMapCountries();
-    return cachedMapCountries;
-  });
+  const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>(
+    () => cachedMapCountries ?? [],
+  );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [committedOffset, setCommittedOffset] = useState({ x: 0, y: 0 });
   const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
@@ -462,16 +476,22 @@ function WorldMap({
   const pinchStartTranslateY = useSharedValue(0);
   const pinchStartFocalX = useSharedValue(0);
   const pinchStartFocalY = useSharedValue(0);
+  useEffect(() => {
+    if (countriesOnMap.length > 0) return;
+    let active = true;
+    void loadBundledMapCountries().then((countries) => {
+      if (active) setCountriesOnMap(countries);
+    });
+    return () => {
+      active = false;
+    };
+  }, [countriesOnMap.length]);
   const commitMapTransform = useCallback(
     (nextScale: number, x: number, y: number) => {
       setZoomLevel(nextScale);
       setCommittedOffset({ x, y });
     },
     [],
-  );
-  const markMapGestureActive = useCallback(
-    (active: boolean) => onGestureActiveChange?.(active),
-    [onGestureActiveChange],
   );
   const selectCountryAt = useCallback(
     (screenX: number, screenY: number) => {
@@ -522,9 +542,6 @@ function WorldMap({
   );
 
   const pinchGesture = Gesture.Pinch()
-    .onBegin(() => {
-      runOnJS(markMapGestureActive)(true);
-    })
     .onStart((event) => {
       pinchStartTranslateX.value = savedTranslateX.value;
       pinchStartTranslateY.value = savedTranslateY.value;
@@ -548,11 +565,15 @@ function WorldMap({
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
         (1 - scaleChange);
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
       const maxX = Math.max(
         0,
-        (mapCanvasWidth * (nextScale - 1)) / 2 - mapCanvasWidth * 0.15,
+        (MAP_WIDTH * fittedScale * nextScale - mapCanvasWidth) / 2,
       );
-      const maxY = Math.max(0, (250 * (nextScale - 1)) / 2 - 250 * 0.12);
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * nextScale - 250) / 2,
+      );
       translateX.value = Math.max(-maxX, Math.min(maxX, nextTranslateX));
       translateY.value = Math.max(-maxY, Math.min(maxY, nextTranslateY));
     })
@@ -571,24 +592,22 @@ function WorldMap({
         savedTranslateX.value = 0;
         savedTranslateY.value = 0;
       }
-    })
-    .onFinalize(() => {
-      runOnJS(markMapGestureActive)(false);
     });
   const panGesture = Gesture.Pan()
     .minPointers(1)
     .maxPointers(1)
-    .minDistance(8)
-    .onBegin(() => {
-      runOnJS(markMapGestureActive)(true);
-    })
+    .minDistance(6)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
       const maxX = Math.max(
         0,
-        (mapCanvasWidth * (scale.value - 1)) / 2 - mapCanvasWidth * 0.15,
+        (MAP_WIDTH * fittedScale * scale.value - mapCanvasWidth) / 2,
       );
-      const maxY = Math.max(0, (250 * (scale.value - 1)) / 2 - 250 * 0.12);
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * scale.value - 250) / 2,
+      );
       translateX.value = Math.max(
         -maxX,
         Math.min(maxX, savedTranslateX.value + event.translationX),
@@ -606,9 +625,6 @@ function WorldMap({
         translateX.value,
         translateY.value,
       );
-    })
-    .onFinalize(() => {
-      runOnJS(markMapGestureActive)(false);
     });
   const resetGesture = Gesture.Tap()
     .numberOfTaps(2)
@@ -633,39 +649,20 @@ function WorldMap({
     pinchGesture,
     panGesture,
   );
-  const animatedTranslationStyle = useAnimatedStyle(() => {
-    const relativeScale = scale.value / zoomLevel;
+  const animatedMapProps = useAnimatedProps(() => {
+    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
     return {
       transform: [
-        {
-          translateX: translateX.value - committedOffset.x * relativeScale,
-        },
-        {
-          translateY: translateY.value - committedOffset.y * relativeScale,
-        },
+        { translateX: translateX.value / fittedMapScale },
+        { translateY: translateY.value / fittedMapScale },
+        { translateX: MAP_WIDTH / 2 },
+        { translateY: MAP_HEIGHT / 2 },
+        { scale: scale.value },
+        { translateX: -MAP_WIDTH / 2 },
+        { translateY: -MAP_HEIGHT / 2 },
       ],
     };
   });
-  const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value / zoomLevel }],
-  }));
-  const committedGroupTransform = useMemo(() => {
-    if (
-      zoomLevel === 1 &&
-      committedOffset.x === 0 &&
-      committedOffset.y === 0
-    ) {
-      return undefined;
-    }
-    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
-    const translateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
-      committedOffset.x / fittedMapScale;
-    const translateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
-      committedOffset.y / fittedMapScale;
-    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${translateX} ${translateY})`;
-  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -792,25 +789,18 @@ function WorldMap({
         <View
           style={styles.zoomableMap}
           collapsable={false}
-          onTouchStart={() => markMapGestureActive(true)}
-          onTouchEnd={() => markMapGestureActive(false)}
-          onTouchCancel={() => markMapGestureActive(false)}
         >
-          <Animated.View style={[styles.zoomableMap, animatedTranslationStyle]}>
-            <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
-              <Svg
-                width="100%"
-                height="100%"
-                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <G transform={committedGroupTransform}>
-                  {countryPaths}
-                  {countryLabels}
-                </G>
-              </Svg>
-            </Animated.View>
-          </Animated.View>
+          <Svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <AnimatedMapGroup animatedProps={animatedMapProps}>
+              {countryPaths}
+              {countryLabels}
+            </AnimatedMapGroup>
+          </Svg>
         </View>
       </GestureDetector>
       {currentLocation && mapCanvasWidth > 1 ? (
@@ -964,7 +954,6 @@ export default function HomeScreen() {
     eyebrow?: string;
     footer?: string;
   } | null>(null);
-  const [mapGestureActive, setMapGestureActive] = useState(false);
   const [welcomeName, setWelcomeName] = useState(name);
   const showWelcome = !name;
   const saveWelcomeName = useCallback(() => {
@@ -1133,7 +1122,6 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={!mapGestureActive}
         nestedScrollEnabled
         refreshControl={
           <RefreshControl
@@ -1232,7 +1220,6 @@ export default function HomeScreen() {
           visited={countryCodes}
           visits={visits}
           currentLocation={gpsArrivalsAllowed ? currentLocation : null}
-          onGestureActiveChange={setMapGestureActive}
         />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
