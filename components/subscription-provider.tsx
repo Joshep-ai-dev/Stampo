@@ -59,7 +59,7 @@ function findProduct(products: ProductSubscription[], plan: KrooPlusPlan) {
   return products.find((product) => product.id === planProductId(plan));
 }
 
-function findAndroidOffer(product: ProductSubscription | undefined, plan: K rooPlusPlan) {
+function findAndroidOffer(product: ProductSubscription | undefined, plan: KrooPlusPlan) {
   if (!product || product.platform !== "android") return undefined;
   return product.subscriptionOffers.find(
     (offer) => offer.basePlanIdAndroid === planBaseId(plan),
