@@ -1326,6 +1326,7 @@ export default function HomeScreen() {
               placeholder="First Name"
               placeholderTextColor={BrandColors.muted}
               autoCapitalize="words"
+              textAlign="center"
             />
             <TouchableOpacity
               style={styles.welcomeButton}
@@ -1418,6 +1419,8 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
     textAlign: "center",
+    textAlignVertical: "center",
+    writingDirection: "ltr",
   },
   welcomeButton: {
     minHeight: 54,
