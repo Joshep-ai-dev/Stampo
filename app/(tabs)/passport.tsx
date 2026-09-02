@@ -145,8 +145,10 @@ function IdentityPage({
     dateOfBirth: profile.dateOfBirth,
     sex: profile.sex,
   });
-  const [password, setPassword] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<"initial" | "create-account" | "code">("initial");
+  const [authPurpose, setAuthPurpose] = useState<"sign-in" | "create-account">("sign-in");
+  const [verificationCode, setVerificationCode] = useState("");
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -237,59 +239,34 @@ function IdentityPage({
     }
     await dispatch(fetchHomeDashboard());
   };
-  const signUp = async () => {
-    if (!draft.email.trim() || password.length < 6) {
-      Alert.alert(
-        "Check your details",
-        "Enter your email and a password of at least 6 characters.",
-      );
-      return;
-    }
-    const generatedName = draft.name.trim() ||
-      draft.email
-        .trim()
-        .split("@")[0]
-        .replace(/[._-]+/g, " ")
-        .replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Traveler";
-    try {
-      const user = await api.signUp({
-        name: generatedName,
-        email: draft.email.trim(),
-        password,
-      });
-      await finishAuthentication(user);
-      setPassword("");
-    } catch (error) {
-      Alert.alert(
-        "Sign up failed",
-        error instanceof Error
-          ? error.message
-          : "Please check your connection and try again.",
-      );
-    } finally {
-      setAuthBusy(false);
-    }
-  };
-  const signIn = async () => {
-    if (!draft.email.trim() || !password) {
-      Alert.alert("Sign in", "Enter your email and password.");
+  const requestCode = async (purpose: "sign-in" | "create-account") => {
+    if (!draft.email.trim() || (purpose === "create-account" && !draft.name.trim())) {
+      Alert.alert("Check your details", "Enter your name and email.");
       return;
     }
     try {
       setAuthBusy(true);
-      const { user } = await api.signIn({
-        email: draft.email.trim(),
-        password,
+      await api.requestAuthCode({ email: draft.email.trim(), purpose });
+      setAuthPurpose(purpose);
+      setVerificationCode("");
+      setAuthMode("code");
+    } catch (error) {
+      Alert.alert("Code not sent", error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+  const verifyCode = async () => {
+    if (verificationCode.length !== 6) return;
+    try {
+      setAuthBusy(true);
+      const user = await api.verifyAuthCode({
+        email: draft.email.trim(), code: verificationCode, purpose: authPurpose,
+        ...(authPurpose === "create-account" ? draft : {}),
       });
       await finishAuthentication(user);
-      setPassword("");
     } catch (error) {
-      Alert.alert(
-        "Sign in failed",
-        error instanceof Error
-          ? error.message
-          : "Please check your connection and try again.",
-      );
+      Alert.alert("Code not verified", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setAuthBusy(false);
     }
@@ -341,33 +318,10 @@ function IdentityPage({
                 )}
               </TouchableOpacity>
               <View style={styles.identityFields}>
-                {([ ["name", "GIVEN NAME", "First name"], ["email", "EMAIL", "you@example.com"] ] as const).map(([key, label, placeholder]) => (
-                  <View key={key} style={styles.identityField}>
-                    <Text style={styles.fieldCaption}>{label}</Text>
-                    {editing ? <TextInput
-                      value={draft[key]}
-                      onChangeText={(value) =>
-                        setDraft((current) => ({ ...current, [key]: value }))
-                      }
-                      placeholder={placeholder}
-                      placeholderTextColor="#a89378"
-                      style={styles.identityInput}
-                    /> : <Text style={styles.identityValue}>{draft[key] || "—"}</Text>}
-                  </View>
-                ))}
-                <View style={styles.identityField}>
-                  <Text style={styles.fieldCaption}>NATIONALITY</Text>
-                  <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setCountryPickerVisible(true)} disabled={!editing}>
-                    <Text style={styles.passportSelectText}>{draft.nationality || "Select country"}</Text>
-                    {editing ? <Ionicons name="chevron-down" size={14} color={BrandColors.muted} /> : null}
-                  </TouchableOpacity>
-                </View>
                 <View style={styles.passportFieldRow}>
                   <View style={[styles.identityField, styles.passportFieldGrow]}>
-                    <Text style={styles.fieldCaption}>DATE OF BIRTH</Text>
-                    <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setDatePickerVisible(true)} disabled={!editing}>
-                      <Text style={styles.passportSelectText}>{draft.dateOfBirth || "YYYY-MM-DD"}</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.fieldCaption}>GIVEN NAME</Text>
+                    {editing ? <TextInput value={draft.name} onChangeText={(name) => setDraft((current) => ({ ...current, name }))} placeholder="First name" placeholderTextColor="#a89378" style={styles.identityInput} /> : <Text style={styles.identityValue}>{draft.name || "—"}</Text>}
                   </View>
                   <View style={styles.sexField}>
                     <Text style={styles.fieldCaption}>SEX</Text>
@@ -378,6 +332,25 @@ function IdentityPage({
                         </TouchableOpacity>
                       ))}
                     </View>
+                  </View>
+                </View>
+                <View style={styles.identityField}>
+                  <Text style={styles.fieldCaption}>EMAIL</Text>
+                  {editing ? <TextInput value={draft.email} onChangeText={(email) => setDraft((current) => ({ ...current, email }))} placeholder="you@example.com" placeholderTextColor="#a89378" style={styles.identityInput} /> : <Text style={styles.identityValue}>{draft.email || "—"}</Text>}
+                </View>
+                <View style={styles.passportFieldRow}>
+                  <View style={[styles.identityField, styles.passportFieldGrow]}>
+                    <Text style={styles.fieldCaption}>NATIONALITY</Text>
+                    <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setCountryPickerVisible(true)} disabled={!editing}>
+                      <Text numberOfLines={1} style={styles.passportSelectText}>{draft.nationality || "Select country"}</Text>
+                      {editing ? <Ionicons name="chevron-down" size={14} color={BrandColors.muted} /> : null}
+                    </TouchableOpacity>
+                  </View>
+                  <View style={[styles.identityField, styles.passportFieldGrow]}>
+                    <Text style={styles.fieldCaption}>DATE OF BIRTH</Text>
+                    <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setDatePickerVisible(true)} disabled={!editing}>
+                      <Text style={styles.passportSelectText}>{draft.dateOfBirth || "YYYY-MM-DD"}</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
                 <View style={styles.accountActions}>
@@ -418,20 +391,21 @@ function IdentityPage({
             </View>
             <Text style={styles.authTitle}>Your travel passport</Text>
             <Text style={styles.authIntro}>
-              Complete your details to create your travel passport.
+              {authMode === "code" ? `Enter the code sent to ${draft.email}.` : authMode === "create-account" ? "Complete your passport details." : "Sign in or create your travel passport."}
             </Text>
-            <View style={styles.authField}>
-              <Text style={styles.authCaption}>GIVEN NAME</Text>
-              <TextInput value={draft.name} onChangeText={(name) => setDraft((current) => ({ ...current, name }))} placeholder="First name" placeholderTextColor="#a89378" autoCapitalize="words" style={styles.authInput} />
-            </View>
-            <View style={styles.authField}>
-              <Text style={styles.authCaption}>NATIONALITY</Text>
-              <TouchableOpacity style={styles.authSelect} onPress={() => setCountryPickerVisible(true)}><Text style={styles.authSelectText}>{draft.nationality || "Select country"}</Text><Ionicons name="chevron-down" size={16} color={BrandColors.muted} /></TouchableOpacity>
-            </View>
-            <View style={styles.authPassportRow}>
-              <View style={[styles.authField, styles.authBirthdate]}><Text style={styles.authCaption}>DATE OF BIRTH</Text><TouchableOpacity style={styles.authSelect} onPress={() => setDatePickerVisible(true)}><Text style={styles.authSelectText}>{draft.dateOfBirth || "YYYY-MM-DD"}</Text></TouchableOpacity></View>
-              <View style={styles.authSex}><Text style={styles.authCaption}>SEX</Text><View style={styles.sexOptions}>{(["M", "F"] as const).map((sex) => <TouchableOpacity key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}><Text style={[styles.sexOptionText, draft.sex === sex && styles.sexOptionTextSelected]}>{sex}</Text></TouchableOpacity>)}</View></View>
-            </View>
+            {authMode !== "code" ? <View style={styles.authPassportRow}>
+              <View style={[styles.authField, styles.authBirthdate]}>
+                <Text style={styles.authCaption}>GIVEN NAME</Text>
+                <TextInput value={draft.name} onChangeText={(name) => setDraft((current) => ({ ...current, name }))} placeholder="First name" placeholderTextColor="#a89378" autoCapitalize="words" style={styles.authInput} />
+              </View>
+              {authMode === "create-account" ? <View style={styles.authSex}><Text style={styles.authCaption}>SEX</Text><View style={styles.sexOptions}>{(["M", "F"] as const).map((sex) => <TouchableOpacity key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}><Text style={[styles.sexOptionText, draft.sex === sex && styles.sexOptionTextSelected]}>{sex}</Text></TouchableOpacity>)}</View></View> : null}
+            </View> : null}
+            {authMode === "create-account" ? <>
+              <View style={styles.authPassportRow}>
+                <View style={[styles.authField, styles.authBirthdate]}><Text style={styles.authCaption}>NATIONALITY</Text><TouchableOpacity style={styles.authSelect} onPress={() => setCountryPickerVisible(true)}><Text numberOfLines={1} style={styles.authSelectText}>{draft.nationality || "Select country"}</Text><Ionicons name="chevron-down" size={16} color={BrandColors.muted} /></TouchableOpacity></View>
+                <View style={[styles.authField, styles.authBirthdate]}><Text style={styles.authCaption}>DATE OF BIRTH</Text><TouchableOpacity style={styles.authSelect} onPress={() => setDatePickerVisible(true)}><Text style={styles.authSelectText}>{draft.dateOfBirth || "YYYY-MM-DD"}</Text></TouchableOpacity></View>
+              </View>
+            </> : null}
             <View style={styles.authField}>
               <Text style={styles.authCaption}>EMAIL</Text>
               <TextInput
@@ -447,17 +421,18 @@ function IdentityPage({
                 style={styles.authInput}
               />
             </View>
-            <View style={styles.authField}>
-              <Text style={styles.authCaption}>PASSWORD</Text>
+            {authMode === "code" ? <View style={styles.authField}>
+              <Text style={styles.authCaption}>6-DIGIT VERIFICATION CODE</Text>
               <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
+                value={verificationCode}
+                onChangeText={(value) => setVerificationCode(value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
                 placeholderTextColor="#a89378"
-                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={6}
                 style={styles.authInput}
               />
-            </View>
+            </View> : null}
             <View style={styles.authButtons}>
               <TouchableOpacity
                 disabled={authBusy}
@@ -466,22 +441,22 @@ function IdentityPage({
                   styles.authButton,
                   authBusy && styles.authButtonDisabled,
                 ]}
-                onPress={() => void signIn()}
+                onPress={() => authMode === "code" ? setAuthMode(authPurpose === "create-account" ? "create-account" : "initial") : authMode === "create-account" ? setAuthMode("initial") : void requestCode("sign-in")}
               >
                 <Text style={styles.signInPrimaryText}>
-                  {authBusy ? "PLEASE WAIT" : "SIGN IN"}
+                  {authMode === "code" || authMode === "create-account" ? "BACK" : "SIGN IN"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                disabled={authBusy}
+                disabled={authBusy || (authMode === "code" && verificationCode.length !== 6)}
                 style={[
                   styles.createSecondary,
                   styles.authButton,
-                  authBusy && styles.authButtonDisabled,
+                  (authBusy || (authMode === "code" && verificationCode.length !== 6)) && styles.authButtonDisabled,
                 ]}
-                onPress={() => void signUp()}
+                onPress={() => authMode === "code" ? void verifyCode() : authMode === "create-account" ? void requestCode("create-account") : setAuthMode("create-account")}
               >
-                <Text style={styles.createSecondaryText}>CREATE ACCOUNT</Text>
+                <Text style={styles.createSecondaryText}>{authBusy ? "PLEASE WAIT" : authMode === "code" ? "VERIFY" : authMode === "create-account" ? "SEND CODE" : "CREATE ACCOUNT"}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -999,8 +974,8 @@ const styles = StyleSheet.create({
   passportSelect: { height: 33, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   passportSelectText: { flex: 1, fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(13), color: BrandColors.ink },
   passportFieldRow: { flexDirection: "row", gap: 8 },
-  passportFieldGrow: { flex: 1 },
-  sexField: { width: 72 },
+  passportFieldGrow: { flex: 1, flexBasis: 0, minWidth: 0 },
+  sexField: { flex: 1, flexBasis: 0, minWidth: 0 },
   sexOptions: { height: 32, flexDirection: "row", gap: 4, alignItems: "center" },
   sexOption: { width: 28, height: 28, borderRadius: 4, borderWidth: 1, borderColor: BrandColors.line, alignItems: "center", justifyContent: "center" },
   sexOptionSelected: { backgroundColor: BrandColors.green, borderColor: BrandColors.green },
@@ -1009,8 +984,8 @@ const styles = StyleSheet.create({
   authSelect: { height: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   authSelectText: { flex: 1, fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(14), color: BrandColors.ink },
   authPassportRow: { width: "100%", flexDirection: "row", gap: 12 },
-  authBirthdate: { flex: 1 },
-  authSex: { width: 72 },
+  authBirthdate: { width: "auto", flex: 1, flexBasis: 0, minWidth: 0 },
+  authSex: { width: "auto", flex: 1, flexBasis: 0, minWidth: 0 },
   pickerModalRoot: { flex: 1, justifyContent: "flex-end" },
   countrySheet: { maxHeight: "52%", padding: 16, paddingBottom: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: BrandColors.surface },
   countryPickerHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

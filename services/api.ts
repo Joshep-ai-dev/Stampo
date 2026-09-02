@@ -722,6 +722,28 @@ export const api = {
     await storeAuthToken(session.token);
     return { user: session.user };
   },
+  requestAuthCode: (payload: { email: string; purpose: "sign-in" | "create-account" }) =>
+    request<{ message: string }>("/auth/code/request", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  verifyAuthCode: async (payload: {
+    email: string;
+    code: string;
+    purpose: "sign-in" | "create-account";
+    name?: string;
+    nationality?: string;
+    dateOfBirth?: string;
+    sex?: "M" | "F" | "";
+  }) => {
+    const session = await request<AuthResponse>("/auth/code/verify", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
   restoreSession: async () => {
     const token = await getStoredAuthToken();
     if (!token) return null;
