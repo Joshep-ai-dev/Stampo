@@ -146,6 +146,7 @@ function IdentityPage({
     sex: profile.sex,
   });
   const [authBusy, setAuthBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [authMode, setAuthMode] = useState<"initial" | "create-account" | "code">("initial");
   const [authPurpose, setAuthPurpose] = useState<"sign-in" | "create-account">("sign-in");
   const [verificationCode, setVerificationCode] = useState("");
@@ -272,11 +273,18 @@ function IdentityPage({
     }
   };
   const signOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       await api.signOut();
     } finally {
+      setEditing(false);
+      setAuthMode("initial");
+      setAuthPurpose("sign-in");
+      setVerificationCode("");
       dispatch(signedOut());
       dispatch(dashboardCleared());
+      setSigningOut(false);
     }
   };
   return (
@@ -354,7 +362,7 @@ function IdentityPage({
                   </View>
                 </View>
                 <View style={styles.accountActions}>
-                  {editing ? <><TouchableOpacity style={styles.passwordButton} onPress={() => { setDraft({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth, sex: profile.sex }); setEditing(false); }}><Text style={styles.passwordButtonText}>CANCEL</Text></TouchableOpacity><TouchableOpacity style={styles.savePassportButton} onPress={() => void save()}><Text style={styles.savePassportText}>SAVE</Text></TouchableOpacity></> : <TouchableOpacity style={styles.signOutButton} onPress={() => void signOut()}><Text style={styles.signOutText}>SIGN OUT</Text></TouchableOpacity>}
+                  {editing ? <><TouchableOpacity style={styles.passwordButton} onPress={() => { setDraft({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth, sex: profile.sex }); setEditing(false); }}><Text style={styles.passwordButtonText}>CANCEL</Text></TouchableOpacity><TouchableOpacity style={styles.savePassportButton} onPress={() => void save()}><Text style={styles.savePassportText}>SAVE</Text></TouchableOpacity></> : <TouchableOpacity disabled={signingOut} style={[styles.signOutButton, signingOut && styles.authButtonDisabled]} onPress={() => void signOut()}><Text style={styles.signOutText}>{signingOut ? "SIGNING OUT…" : "SIGN OUT"}</Text></TouchableOpacity>}
                 </View>
               </View>
             </View>

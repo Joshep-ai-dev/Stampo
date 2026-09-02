@@ -54,8 +54,9 @@ const profileSlice = createSlice({
       state.isSignedIn = action.payload.isSignedIn;
       state.userId = action.payload.userId;
     },
-    signedOut() {
-      return initialState;
+    signedOut(state) {
+      state.isSignedIn = false;
+      state.userId = null;
     },
     profileHydrated(_state, action: PayloadAction<ProfileState>) {
       return { ...initialState, ...action.payload };
