@@ -20,11 +20,20 @@ import {
 
 import { BrandColors } from "@/constants/theme";
 
-import { CityRecord, getCities, searchCities } from "@/data/cities";
-import { api } from "@/services/api";
+import type { CityRecord } from "@/data/cities";
+import {
+  api,
+  type AirportOption,
+  type CatalogCitySearchResult,
+} from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { NewVisit, visitReceived, wishlistToggled } from "@/store/travel-slice";
+import {
+  NewVisit,
+  visitAdded,
+  visitReceived,
+  wishlistToggled,
+} from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -52,6 +61,14 @@ function today() {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
+  return {
+    ...city,
+    subcountry: city.subcountry ?? "",
+    searchText: `${city.name} ${city.country} ${city.subcountry ?? ""} ${city.countryCode}`.toLocaleLowerCase(),
+  };
+}
+
 export function CityVisitSearch({
   countryCode,
   countryName,
@@ -68,6 +85,10 @@ export function CityVisitSearch({
   const [selectedCity, setSelectedCity] = useState<CityRecord | null>(null);
   const [visitDate, setVisitDate] = useState(today);
   const [note, setNote] = useState("");
+  const [airports, setAirports] = useState<AirportOption[]>([]);
+  const [airportsLoading, setAirportsLoading] = useState(false);
+  const [airportMenuOpen, setAirportMenuOpen] = useState(false);
+  const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
   const [wishlistPending, setWishlistPending] = useState(false);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
   const selectedWishlistId = selectedCity ? `city:${selectedCity.id}` : null;
@@ -77,6 +98,7 @@ export function CityVisitSearch({
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       if (!countryCode && normalizedQuery.length < 2) {
         setResults([]);
@@ -86,19 +108,16 @@ export function CityVisitSearch({
 
       setLoading(true);
       try {
-        const matches = countryCode
-          ? (await getCities())
-              .filter(
-                (city) =>
-                  city.countryCode === countryCode &&
-                  (!normalizedQuery ||
-                    city.searchText.includes(
-                      normalizedQuery.toLocaleLowerCase(),
-                    )),
-              )
-              .sort((left, right) => left.name.localeCompare(right.name))
-              .slice(0, 40)
-          : await searchCities(normalizedQuery);
+        const matches = (
+          await api
+            .searchCities(normalizedQuery, countryCode ? 40 : 30, {
+              countryCode,
+            }, controller.signal)
+            .catch((error) => {
+              if (error instanceof Error && error.name === "AbortError") return [];
+              return [];
+            })
+        ).map(remoteCityToRecord);
         if (active) setResults(matches);
       } finally {
         if (active) setLoading(false);
@@ -107,6 +126,7 @@ export function CityVisitSearch({
 
     return () => {
       active = false;
+      controller.abort();
       clearTimeout(timer);
     };
   }, [countryCode, normalizedQuery]);
@@ -115,19 +135,20 @@ export function CityVisitSearch({
     setSelectedCity(city);
     setVisitDate(today());
     setNote("");
+    setAirports([]);
+    setSelectedAirport(null);
+    setAirportMenuOpen(false);
+    setAirportsLoading(true);
+    void api.cityAirports(city.id)
+      .then(setAirports)
+      .catch(() => setAirports([]))
+      .finally(() => setAirportsLoading(false));
   };
 
   const closeModal = () => setSelectedCity(null);
 
   const saveVisit = async () => {
     if (!selectedCity) return;
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Create an account or sign in from your passport before saving a visit.",
-      );
-      return;
-    }
     const visit: NewVisit = {
       cityId: selectedCity.id,
       cityName: selectedCity.name,
@@ -137,19 +158,25 @@ export function CityVisitSearch({
       subcountry: selectedCity.subcountry,
       visitedAt: visitDate,
       note,
-      places: [],
+      places: selectedAirport
+        ? [{
+          id: `airport:${selectedAirport.id}`,
+          name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
+          type: "airport",
+        }]
+        : [],
     };
     try {
-      dispatch(visitReceived(await api.createVisit(visit)));
+      if (isSignedIn) dispatch(visitReceived(await api.createVisit(visit)));
+      else dispatch(visitAdded(visit));
       void dispatch(fetchHomeDashboard());
-    } catch (error) {
+    } catch {
+      // Keep the same functionality when the account is temporarily offline.
+      dispatch(visitAdded(visit));
       Alert.alert(
-        "Visit not saved",
-        error instanceof Error
-          ? error.message
-          : "The server could not save this visit. Please try again.",
+        "Saved on this device",
+        "Kroo will sync this visit with your account when the server is available.",
       );
-      return;
     }
     closeModal();
     setQuery("");
@@ -158,25 +185,18 @@ export function CityVisitSearch({
 
   const saveToWishlist = async () => {
     if (!selectedWishlistId || isWishlisted || wishlistPending) return;
-    if (!isSignedIn) {
-      Alert.alert(
-        "Sign in required",
-        "Create an account or sign in from your passport before saving to your wishlist.",
-      );
-      return;
-    }
-
     setWishlistPending(true);
     dispatch(wishlistToggled(selectedWishlistId));
+    if (!isSignedIn) {
+      setWishlistPending(false);
+      return;
+    }
     try {
       await api.setWishlist(selectedWishlistId, true);
-    } catch (error) {
-      dispatch(wishlistToggled(selectedWishlistId));
+    } catch {
       Alert.alert(
-        "Wishlist not updated",
-        error instanceof Error
-          ? error.message
-          : "The server could not save this city. Please try again.",
+        "Saved on this device",
+        "Kroo will sync your wishlist when the server is available.",
       );
     } finally {
       setWishlistPending(false);
@@ -312,7 +332,54 @@ export function CityVisitSearch({
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>Note (optional)</Text>
+                <Text style={styles.fieldLabel}>Airport</Text>
+                <View style={styles.airportDropdownWrap}>
+                  <TouchableOpacity
+                    style={styles.airportSelect}
+                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    disabled={airportsLoading || airports.length === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select airport"
+                  >
+                    {airportsLoading ? (
+                      <ActivityIndicator color={colors.muted} />
+                    ) : (
+                      <Ionicons name="airplane-outline" size={22} color={colors.muted} />
+                    )}
+                    <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>
+                      {selectedAirport
+                        ? `${selectedAirport.name} (${selectedAirport.iataCode})`
+                        : airports.length
+                          ? "Select an airport"
+                          : "No airports listed for this city"}
+                    </Text>
+                    {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
+                  </TouchableOpacity>
+                  {airportMenuOpen ? (
+                    <ScrollView
+                      style={styles.airportMenu}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator
+                    >
+                      <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                        <Text style={styles.airportOptionText}>No airport</Text>
+                      </Pressable>
+                      {airports.map((airport) => (
+                        <Pressable
+                          key={airport.id}
+                          style={styles.airportOption}
+                          onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}
+                        >
+                          <Text style={styles.airportOptionText}>{airport.name}</Text>
+                          <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                </View>
+
+                <Text style={[styles.fieldLabel, styles.noteLabel]}>Note</Text>
                 <TextInput
                   value={note}
                   onChangeText={(value) => setNote(value.slice(0, 140))}
@@ -379,12 +446,12 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: "row", gap: 9 },
   searchInputWrap: {
     flex: 1,
-    height: 50,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -398,9 +465,9 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   searchButton: {
-    width: 52,
-    height: 50,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
@@ -408,7 +475,7 @@ const styles = StyleSheet.create({
   resultsCard: {
     marginTop: 8,
     overflow: "hidden",
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -453,15 +520,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(30,22,17,0.32)",
   },
   sheet: {
-    maxHeight: "91%",
+    maxHeight: "90%",
     minHeight: "75%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     backgroundColor: colors.card,
     overflow: "hidden",
   },
   modalHeader: {
-    height: 76,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -478,19 +545,19 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 74 },
   modalTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(21),
+    fontSize: responsiveFontSize(20),
     color: colors.ink,
     letterSpacing: 1,
   },
   form: { padding: 18, paddingBottom: 38 },
   selectedCard: {
-    minHeight: 105,
-    borderRadius: 18,
+    minHeight: 80,
+    borderRadius: 10,
     backgroundColor: colors.line,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   selectedFlag: { fontSize: responsiveFontSize(40), marginRight: 20 },
   selectedText: { flex: 1 },
@@ -513,12 +580,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   field: {
-    height: 58,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 14,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     marginBottom: 20,
@@ -530,15 +597,75 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   noteInput: {
-    height: 116,
-    borderRadius: 13,
+    height: 96,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     padding: 14,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(16),
-    lineHeight: 23,
     color: colors.ink,
+  },
+  noteLabel: { marginTop: 16 },
+  airportSelect: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  airportDropdownWrap: {
+    position: "relative",
+    zIndex: 20,
+    overflow: "visible",
+  },
+  airportSelectText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(15),
+    color: colors.ink,
+  },
+  airportPlaceholder: { color: "#aa9c8c" },
+  airportMenu: {
+    position: "absolute",
+    top: 54,
+    left: 0,
+    right: 0,
+    maxHeight: 220,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    overflow: "hidden",
+    backgroundColor: colors.card,
+    zIndex: 30,
+    elevation: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  airportOption: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  airportOptionText: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: colors.ink,
+  },
+  airportCode: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    color: colors.brown,
   },
   counter: {
     textAlign: "right",
@@ -547,8 +674,8 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   saveButton: {
-    height: 58,
-    borderRadius: 13,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
@@ -561,8 +688,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   wishlistButton: {
-    height: 56,
-    borderRadius: 13,
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.line,
     flexDirection: "row",

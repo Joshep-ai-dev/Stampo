@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { canUseGpsArrivals } from "@/services/gps-access";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCountryDataList,
@@ -9,19 +10,20 @@ import {
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  InteractionManager,
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   type SharedValue,
@@ -30,7 +32,15 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { G, Path, Text as SvgText } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Mask,
+  Path,
+  Rect,
+  Text as SvgText,
+} from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
@@ -42,8 +52,10 @@ import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
 import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
+import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { nameChanged } from "@/store/profile-slice";
 import {
   travelStateHydrated,
   type Visit,
@@ -52,7 +64,7 @@ import {
 
 const TOTALS: Record<string, number> = {
   AF: 54,
-  AN: 0,
+  AN: 1,
   AS: 48,
   EU: 44,
   NA: 23,
@@ -61,9 +73,11 @@ const TOTALS: Record<string, number> = {
 };
 const CONTINENTS = [
   { code: "AF", name: "Africa" },
+  { code: "AN", name: "Antarctica" },
   { code: "AS", name: "Asia" },
   { code: "EU", name: "Europe" },
   { code: "NA", name: "North America" },
+  { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
 type MapCountry = {
@@ -74,6 +88,7 @@ type MapCountry = {
   centerY: number;
   width: number;
   height: number;
+  polygons: { x: number; y: number }[][];
 };
 
 type CurrentMapLocation = {
@@ -83,6 +98,7 @@ type CurrentMapLocation = {
 };
 
 let cachedMapCountries: MapCountry[] | null = null;
+let cachedMapCountriesPromise: Promise<MapCountry[]> | null = null;
 
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
@@ -200,6 +216,67 @@ function CountryMapLabel({
   );
 }
 
+const SCORE_DISTRESS = [
+  [16, 18, 0.65],
+  [24, 39, 0.8],
+  [34, 25, 0.55],
+  [43, 45, 0.7],
+  [51, 16, 0.6],
+  [59, 34, 0.85],
+  [68, 48, 0.55],
+  [76, 21, 0.75],
+  [84, 41, 0.6],
+  [94, 14, 0.7],
+  [101, 32, 0.55],
+  [108, 47, 0.65],
+] as const;
+
+function StampedScore({ value }: { value: number }) {
+  const label = value.toFixed(1);
+  return (
+    <View
+      style={styles.score}
+      accessible
+      accessibilityLabel={`Kroo Score ${label}`}
+    >
+      <Svg width="100%" height="100%" viewBox="0 0 112 58">
+        <Defs>
+          <Mask id="score-stamp-mask">
+            <Rect width="112" height="58" fill="black" />
+            <SvgText
+              x="56"
+              y="47"
+              fill="white"
+              fontFamily="Lora_600SemiBold"
+              fontSize="46"
+              textAnchor="middle"
+            >
+              {label}
+            </SvgText>
+            {SCORE_DISTRESS.map(([cx, cy, radius], index) => (
+              <Circle
+                key={`${cx}-${cy}-${index}`}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill="black"
+                opacity={index % 3 === 0 ? 0.8 : 1}
+              />
+            ))}
+          </Mask>
+        </Defs>
+        <Rect
+          width="112"
+          height="58"
+          fill={BrandColors.white}
+          opacity={0.96}
+          mask="url(#score-stamp-mask)"
+        />
+      </Svg>
+    </View>
+  );
+}
+
 // This particular map uses a relative `m` followed by implicit relative line
 // coordinates. Calculating its bounds gives us label positions without a
 // second geographic data source.
@@ -219,9 +296,11 @@ function relativePathBounds(path: string) {
   let currentPolygon: { x: number; y: number }[] = [];
   let largestPolygon: { x: number; y: number }[] = [];
   let largestArea = 0;
+  const polygons: { x: number; y: number }[][] = [];
 
   const finishPolygon = () => {
     if (currentPolygon.length < 3) return;
+    polygons.push(currentPolygon);
     let twiceArea = 0;
     for (
       let pointIndex = 0;
@@ -297,7 +376,31 @@ function relativePathBounds(path: string) {
       centerY = weightedY / (3 * twiceArea);
     }
   }
-  return { minX, minY, maxX, maxY, centerX, centerY };
+  return { minX, minY, maxX, maxY, centerX, centerY, polygons };
+}
+
+function polygonContainsPoint(
+  polygon: { x: number; y: number }[],
+  pointX: number,
+  pointY: number,
+) {
+  let inside = false;
+  for (
+    let currentIndex = 0, previousIndex = polygon.length - 1;
+    currentIndex < polygon.length;
+    previousIndex = currentIndex, currentIndex += 1
+  ) {
+    const current = polygon[currentIndex];
+    const previous = polygon[previousIndex];
+    const crossesRay =
+      current.y > pointY !== previous.y > pointY &&
+      pointX <
+      ((previous.x - current.x) * (pointY - current.y)) /
+      (previous.y - current.y) +
+      current.x;
+    if (crossesRay) inside = !inside;
+  }
+  return inside;
 }
 
 function getBundledMapCountries(): MapCountry[] {
@@ -319,10 +422,24 @@ function getBundledMapCountries(): MapCountry[] {
           centerY: bounds.centerY,
           width: bounds.maxX - bounds.minX,
           height: bounds.maxY - bounds.minY,
+          polygons: bounds.polygons,
         },
       ];
     },
   );
+}
+
+function loadBundledMapCountries() {
+  if (cachedMapCountries) return Promise.resolve(cachedMapCountries);
+  if (!cachedMapCountriesPromise) {
+    cachedMapCountriesPromise = new Promise<MapCountry[]>((resolve) => {
+      InteractionManager.runAfterInteractions(() => {
+        cachedMapCountries = getBundledMapCountries();
+        resolve(cachedMapCountries);
+      });
+    });
+  }
+  return cachedMapCountriesPromise;
 }
 
 function WorldMap({
@@ -335,10 +452,12 @@ function WorldMap({
   currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
-  const [countriesOnMap] = useState<MapCountry[]>(() => {
-    if (!cachedMapCountries) cachedMapCountries = getBundledMapCountries();
-    return cachedMapCountries;
-  });
+  const dispatch = useAppDispatch();
+  const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
+  const countryDetailCache = useAppSelector((x) => x.countryDetail.cache);
+  const [countriesOnMap, setCountriesOnMap] = useState<MapCountry[]>(
+    () => cachedMapCountries ?? [],
+  );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [committedOffset, setCommittedOffset] = useState({ x: 0, y: 0 });
   const [mapCanvasWidth, setMapCanvasWidth] = useState(1);
@@ -355,12 +474,83 @@ function WorldMap({
   const pinchStartTranslateY = useSharedValue(0);
   const pinchStartFocalX = useSharedValue(0);
   const pinchStartFocalY = useSharedValue(0);
+  useEffect(() => {
+    if (countriesOnMap.length > 0) return;
+    let active = true;
+    void loadBundledMapCountries().then((countries) => {
+      if (active) setCountriesOnMap(countries);
+    });
+    return () => {
+      active = false;
+    };
+  }, [countriesOnMap.length]);
   const commitMapTransform = useCallback(
     (nextScale: number, x: number, y: number) => {
       setZoomLevel(nextScale);
       setCommittedOffset({ x, y });
     },
     [],
+  );
+  const selectCountryAt = useCallback(
+    (screenX: number, screenY: number) => {
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
+      const fittedOffsetX = (mapCanvasWidth - MAP_WIDTH * fittedScale) / 2;
+      const fittedOffsetY = (250 - MAP_HEIGHT * fittedScale) / 2;
+      const baseX =
+        mapCanvasWidth / 2 +
+        (screenX - mapCanvasWidth / 2 - committedOffset.x) / zoomLevel;
+      const baseY = 125 + (screenY - 125 - committedOffset.y) / zoomLevel;
+      const mapX = (baseX - fittedOffsetX) / fittedScale;
+      const mapY = (baseY - fittedOffsetY) / fittedScale;
+      const country = countriesOnMap.find((candidate) =>
+        candidate.polygons.some((polygon) =>
+          polygonContainsPoint(polygon, mapX, mapY),
+        ),
+      );
+      if (country) setSelectedCountry(country);
+    },
+    [committedOffset, countriesOnMap, mapCanvasWidth, zoomLevel],
+  );
+  const setMapZoom = useCallback(
+    (nextScale: number) => {
+      const clampedScale = Math.min(20, Math.max(1, nextScale));
+      const reset = clampedScale === 1;
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+      const maxX = Math.max(
+        0,
+        (MAP_WIDTH * fittedScale * clampedScale - mapCanvasWidth) / 2,
+      );
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * clampedScale - 250) / 2,
+      );
+      const nextX = reset
+        ? 0
+        : Math.max(-maxX, Math.min(maxX, savedTranslateX.value));
+      const nextY = reset
+        ? 0
+        : Math.max(-maxY, Math.min(maxY, savedTranslateY.value));
+      scale.value = withTiming(clampedScale, { duration: 160 });
+      savedScale.value = clampedScale;
+      translateX.value = reset ? withTiming(0, { duration: 160 }) : nextX;
+      translateY.value = reset ? withTiming(0, { duration: 160 }) : nextY;
+      savedTranslateX.value = nextX;
+      savedTranslateY.value = nextY;
+      commitMapTransform(clampedScale, nextX, nextY);
+    },
+    [
+      commitMapTransform,
+      mapCanvasWidth,
+      savedScale,
+      savedTranslateX,
+      savedTranslateY,
+      scale,
+      translateX,
+      translateY,
+    ],
   );
 
   const pinchGesture = Gesture.Pinch()
@@ -382,16 +572,20 @@ function WorldMap({
         (pinchStartFocalX.value -
           mapCanvasWidth / 2 -
           pinchStartTranslateX.value) *
-          (1 - scaleChange);
+        (1 - scaleChange);
       const nextTranslateY =
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
-          (1 - scaleChange);
+        (1 - scaleChange);
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
       const maxX = Math.max(
         0,
-        (mapCanvasWidth * (nextScale - 1)) / 2 - mapCanvasWidth * 0.15,
+        (MAP_WIDTH * fittedScale * nextScale - mapCanvasWidth) / 2,
       );
-      const maxY = Math.max(0, (250 * (nextScale - 1)) / 2 - 250 * 0.12);
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * nextScale - 250) / 2,
+      );
       translateX.value = Math.max(-maxX, Math.min(maxX, nextTranslateX));
       translateY.value = Math.max(-maxY, Math.min(maxY, nextTranslateY));
     })
@@ -412,15 +606,21 @@ function WorldMap({
       }
     });
   const panGesture = Gesture.Pan()
+    .enabled(zoomLevel > 1)
     .minPointers(1)
     .maxPointers(1)
+    .minDistance(6)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
+      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
       const maxX = Math.max(
         0,
-        (mapCanvasWidth * (scale.value - 1)) / 2 - mapCanvasWidth * 0.15,
+        (MAP_WIDTH * fittedScale * scale.value - mapCanvasWidth) / 2,
       );
-      const maxY = Math.max(0, (250 * (scale.value - 1)) / 2 - 250 * 0.12);
+      const maxY = Math.max(
+        0,
+        (MAP_HEIGHT * fittedScale * scale.value - 250) / 2,
+      );
       translateX.value = Math.max(
         -maxX,
         Math.min(maxX, savedTranslateX.value + event.translationX),
@@ -451,9 +651,16 @@ function WorldMap({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
     });
-  const mapGesture = Gesture.Exclusive(
-    resetGesture,
-    Gesture.Simultaneous(pinchGesture, panGesture),
+  const countryTapGesture = Gesture.Tap()
+    .numberOfTaps(1)
+    .maxDistance(8)
+    .onEnd((event, successful) => {
+      if (successful) runOnJS(selectCountryAt)(event.x, event.y);
+    });
+  const mapGesture = Gesture.Simultaneous(
+    Gesture.Exclusive(resetGesture, countryTapGesture),
+    pinchGesture,
+    panGesture,
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
     const relativeScale = scale.value / zoomLevel;
@@ -472,17 +679,21 @@ function WorldMap({
     transform: [{ scale: scale.value / zoomLevel }],
   }));
   const committedGroupTransform = useMemo(() => {
-    if (zoomLevel === 1 && committedOffset.x === 0 && committedOffset.y === 0)
+    if (
+      zoomLevel === 1 &&
+      committedOffset.x === 0 &&
+      committedOffset.y === 0
+    ) {
       return undefined;
-    const fittedMapScale = Math.min(
-      mapCanvasWidth / MAP_WIDTH,
-      250 / MAP_HEIGHT,
-    );
-    const translateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) + committedOffset.x / fittedMapScale;
-    const translateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) + committedOffset.y / fittedMapScale;
-    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${translateX} ${translateY})`;
+    }
+    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const svgTranslateX =
+      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
+      committedOffset.x / fittedMapScale;
+    const svgTranslateY =
+      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
+      committedOffset.y / fittedMapScale;
+    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${svgTranslateX} ${svgTranslateY})`;
   }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
@@ -493,7 +704,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-                "");
+              "");
         })
         .filter(Boolean),
     );
@@ -508,7 +719,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-                "");
+              "");
         })
         .filter(Boolean),
     );
@@ -525,15 +736,46 @@ function WorldMap({
       return iso2 === selectedCountry.code;
     });
   }, [selectedCountry, visits]);
-  const selectedCityCount = new Set(
-    selectedCountryVisits.map((visit) => visit.cityId),
-  ).size;
-  const selectedSightCount = new Set(
-    selectedCountryVisits.flatMap((visit) =>
-      visit.places
-        .filter((place) => place.type === "sight")
-        .map((place) => place.id || place.name),
-    ),
+  useEffect(() => {
+    if (selectedCountry) void dispatch(fetchCountryDetail(selectedCountry.code));
+  }, [dispatch, selectedCountry]);
+  const selectedCountryDetail = selectedCountry
+    ? countryDetailCache[selectedCountry.code.toUpperCase()]?.data
+    : null;
+  const selectedCityCount = Math.max(
+    selectedCountryDetail?.stats.cities ?? 0,
+    new Set(selectedCountryVisits.map((visit) => visit.cityId)).size,
+  );
+  const selectedSightCount = Math.max(
+    selectedCountryDetail?.stats.sights ?? 0,
+    (() => {
+      const sightIds = new Set(
+        selectedCountryVisits.flatMap((visit) =>
+          visit.places
+            .filter((place) => place.type === "sight")
+            .map((place) => place.id || place.name),
+        ),
+      );
+      selectedCountryDetail?.sights.forEach((sight) => {
+        if (completedSightIds.includes(sight.id)) sightIds.add(sight.id);
+      });
+      return sightIds.size;
+    })(),
+  );
+  const selectedAirportCount = Math.max(
+    selectedCountryDetail?.stats.airports ?? 0,
+    new Set(
+      selectedCountryVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size,
+  );
+  const selectedStateCount = new Set(
+    selectedCountryVisits
+      .map((visit) => visit.subcountry.trim())
+      .filter(Boolean),
   ).size;
   const countryPaths = useMemo(
     () =>
@@ -576,25 +818,34 @@ function WorldMap({
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={mapGesture}>
-          <View style={styles.zoomableMap} collapsable={false}>
+        <View
+          style={styles.zoomableMap}
+          collapsable={false}
+        >
+          <Animated.View
+            style={[styles.zoomableMap, animatedTranslationStyle]}
+            pointerEvents="none"
+          >
             <Animated.View
-              style={[styles.zoomableMap, animatedTranslationStyle]}
+              style={[styles.zoomableMap, animatedScaleStyle]}
+              pointerEvents="none"
+              renderToHardwareTextureAndroid
+              shouldRasterizeIOS
             >
-              <Animated.View style={[styles.zoomableMap, animatedScaleStyle]}>
-                <Svg
-                  width="100%"
-                  height="100%"
-                  viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <G transform={committedGroupTransform}>
-                    {countryPaths}
-                    {countryLabels}
-                  </G>
-                </Svg>
-              </Animated.View>
+              <Svg
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <G transform={committedGroupTransform}>
+                  {countryPaths}
+                  {countryLabels}
+                </G>
+              </Svg>
             </Animated.View>
-          </View>
+          </Animated.View>
+        </View>
       </GestureDetector>
       {currentLocation && mapCanvasWidth > 1 ? (
         <CurrentPositionPin
@@ -606,6 +857,24 @@ function WorldMap({
           translateY={translateY}
         />
       ) : null}
+      <View style={styles.mapControls}>
+        <TouchableOpacity
+          style={styles.mapControlButton}
+          onPress={() => setMapZoom(zoomLevel * 1.7)}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom map in"
+        >
+          <Ionicons name="add" size={22} color={BrandColors.onDark} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.mapControlButton}
+          onPress={() => setMapZoom(zoomLevel / 1.7)}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom map out"
+        >
+          <Ionicons name="remove" size={22} color={BrandColors.onDark} />
+        </TouchableOpacity>
+      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -664,9 +933,12 @@ function WorldMap({
               </View>
               <View style={styles.sheetStats}>
                 {[
+                  ...(selectedCountry.code === "US"
+                    ? [{ value: selectedStateCount, label: "STATES" }]
+                    : []),
                   { value: selectedCityCount, label: "CITIES" },
                   { value: selectedSightCount, label: "SIGHTS" },
-                  { value: selectedCountryVisits.length, label: "VISITS" },
+                  { value: selectedAirportCount, label: "AIRPORTS" },
                 ].map((stat) => (
                   <View key={stat.label} style={styles.sheetStat}>
                     <Text style={styles.sheetStatValue}>{stat.value}</Text>
@@ -707,20 +979,33 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
   const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
+  const wishlistIds = useAppSelector((x) => x.travel.wishlistIds);
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
   const isKrooPlus = useAppSelector((x) => x.subscription.isKrooPlus);
+  const gpsArrivalsAllowed = canUseGpsArrivals(isKrooPlus);
   const dashboard = useAppSelector((x) => x.dashboard);
   const [currentLocation, setCurrentLocation] =
     useState<CurrentMapLocation | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [infoModal, setInfoModal] = useState<{
     title: string;
     body: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon?: keyof typeof Ionicons.glyphMap;
+    bullets?: string[];
+    showKrooLogo?: boolean;
+    eyebrow?: string;
+    footer?: string;
   } | null>(null);
+  const [welcomeName, setWelcomeName] = useState(name);
+  const showWelcome = !name;
+  const saveWelcomeName = useCallback(() => {
+    const trimmed = welcomeName.trim();
+    if (trimmed) dispatch(nameChanged(trimmed));
+  }, [dispatch, welcomeName]);
   const locateUser = useCallback(async () => {
-    if (!isKrooPlus) return;
+    if (!gpsArrivalsAllowed) return;
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) return;
@@ -736,12 +1021,12 @@ export default function HomeScreen() {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-    } catch {}
-  }, [isKrooPlus]);
+    } catch { }
+  }, [gpsArrivalsAllowed]);
   useEffect(() => {
     let active = true;
     let subscription: Location.LocationSubscription | undefined;
-    if (!isKrooPlus) {
+    if (!gpsArrivalsAllowed) {
       setCurrentLocation(null);
       void stopArrivalMonitoring().catch(() => undefined);
       return () => {
@@ -771,11 +1056,11 @@ export default function HomeScreen() {
       active = false;
       subscription?.remove();
     };
-  }, [isKrooPlus, locateUser]);
+  }, [gpsArrivalsAllowed, locateUser]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
-      api.listVisits(),
-      api.travelState(),
+      api.syncVisits(visits),
+      api.syncTravelState({ completedSightIds, wishlistIds }),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));
@@ -783,20 +1068,24 @@ export default function HomeScreen() {
     if (travelStateResult.status === "fulfilled") {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
-  }, [dispatch]);
+  }, [completedSightIds, dispatch, visits, wishlistIds]);
+  const refreshSignedInTravelRef = useRef(refreshSignedInTravel);
+  useEffect(() => {
+    refreshSignedInTravelRef.current = refreshSignedInTravel;
+  }, [refreshSignedInTravel]);
   useFocusEffect(
     useCallback(() => {
       if (!isSignedIn) return;
-      void refreshSignedInTravel();
+      void refreshSignedInTravelRef.current();
       void dispatch(fetchHomeDashboard());
-    }, [dispatch, isSignedIn, refreshSignedInTravel]),
+    }, [dispatch, isSignedIn]),
   );
   const localCountryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
     [visits],
   );
-  const localCityIds = useMemo(
-    () => new Set(visits.map((x) => x.cityId)),
+  const localCities = useMemo(
+    () => new Set(visits.map((visit) => visit.cityId)),
     [visits],
   );
   const localContinentCodes = useMemo(
@@ -813,20 +1102,27 @@ export default function HomeScreen() {
       Object.entries(result).map(([code, countries]) => [code, countries.size]),
     );
   }, [visits]);
-  const recordedSights = visits.reduce(
-    (n, v) => n + v.places.filter((p) => p.type === "sight").length,
-    0,
+  const recordedSightIds = new Set(
+    visits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
   );
-  const airports = visits.reduce(
-    (n, v) => n + v.places.filter((p) => p.type === "airport").length,
-    0,
+  const airportIds = new Set(
+    visits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
+        .map((place) => place.id || place.name),
+    ),
   );
+  completedSightIds.forEach((id) => recordedSightIds.add(id));
   const localScore = calculateKrooScore({
     continents: localContinentCodes.size,
     countries: localCountryCodes.size,
-    cities: localCityIds.size,
-    sights: recordedSights + new Set(completedSightIds).size,
-    airports,
+    cities: localCities.size,
+    sights: recordedSightIds.size,
+    airports: airportIds.size,
     challengePoints,
   });
   const serverHome = isSignedIn ? dashboard.data : null;
@@ -838,26 +1134,43 @@ export default function HomeScreen() {
   const countryCount = serverHome?.counts.countries ?? localCountryCodes.size;
   const continentCount =
     serverHome?.counts.continents ?? localContinentCodes.size;
-  const cityCount = serverHome?.counts.cities ?? localCityIds.size;
+  const cityCount = serverHome?.counts.cities ?? localCities.size;
   const continentCounts = serverHome?.continentCounts ?? localContinentCounts;
   const score = serverHome?.score ?? localScore;
   const worldProgress =
     serverHome?.worldProgress ??
     Math.round((localCountryCodes.size / 195) * 100);
-  const refreshHome = useCallback(() => {
+  const openKrooScore = useCallback(() => {
+    setInfoModal({
+      title: "Kroo Score",
+      body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
+      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
+      showKrooLogo: true,
+      footer: serverHome?.level ?? getKrooLevel(score),
+    });
+  }, [score, serverHome?.level]);
+  const refreshHome = useCallback(async () => {
     if (!isSignedIn) return;
-    void refreshSignedInTravel();
-    void dispatch(fetchHomeDashboard());
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        refreshSignedInTravel(),
+        dispatch(fetchHomeDashboard()).unwrap(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [dispatch, isSignedIn, refreshSignedInTravel]);
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl
-            refreshing={dashboard.status === "loading"}
-            onRefresh={refreshHome}
+            refreshing={refreshing}
+            onRefresh={() => void refreshHome()}
             tintColor={BrandColors.copper}
             colors={[BrandColors.copper]}
           />
@@ -896,20 +1209,14 @@ export default function HomeScreen() {
           />
         </View>
         <View style={styles.scoreCard}>
-          <View style={styles.scoreLine}>
-            <Text style={styles.score}>{Number(score).toFixed(1)}</Text>
+          <TouchableOpacity style={styles.scoreLine} onPress={openKrooScore} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Open Kroo Score details">
+            <StampedScore value={Number(score)} />
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
                 <InfoButton
                   label="About Kroo Score"
-                  onPress={() =>
-                    setInfoModal({
-                      title: "Kroo Score",
-                      body: "Your Kroo Score is out of 100. Continents earn 1 point each, countries 0.25, cities 0.005, airports 0.01, and sights 0.002. Challenges can add up to 6.25 points.",
-                      icon: "compass-outline",
-                    })
-                  }
+                  onPress={openKrooScore}
                 />
               </View>
               <View style={styles.scoreBar}>
@@ -925,7 +1232,7 @@ export default function HomeScreen() {
                 <Text style={styles.worldText}> of the world explored</Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.statsShared}>
             <TravelStats
               items={[
@@ -937,7 +1244,7 @@ export default function HomeScreen() {
                   onInfo: () =>
                     setInfoModal({
                       title: "Countries",
-                      body: "There are 195 widely recognized countries: 193 United Nations member states plus the Holy See and the State of Palestine. Your count increases when you record a visit in a country.",
+                      body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
                       icon: "globe-outline",
                     }),
                 },
@@ -956,7 +1263,7 @@ export default function HomeScreen() {
         <WorldMap
           visited={countryCodes}
           visits={visits}
-          currentLocation={isKrooPlus ? currentLocation : null}
+          currentLocation={gpsArrivalsAllowed ? currentLocation : null}
         />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
@@ -964,31 +1271,22 @@ export default function HomeScreen() {
               Countries visited by continent
             </Text>
           </View>
-          {countryCount === 0 && dashboard.status !== "loading" ? (
-            <Text style={styles.continentEmptyText}>
-              Your visited countries will appear here.
-            </Text>
-          ) : null}
-          {CONTINENTS.filter((item) => continentCounts[item.code]).map(
-            (item) => {
-              const count = continentCounts[item.code] ?? 0;
-              const total = TOTALS[item.code];
-              const pct = total ? (count / total) * 100 : 0;
-              return (
-                <View key={item.code} style={styles.continentRow}>
-                  <Text style={styles.continentName}>{item.name}</Text>
-                  <View style={styles.continentBar}>
-                    <View
-                      style={[styles.continentFill, { width: `${pct}%` }]}
-                    />
-                  </View>
-                  <Text style={styles.continentValue}>
-                    {count}/{total}
-                  </Text>
+          {CONTINENTS.map((item) => {
+            const count = continentCounts[item.code] ?? 0;
+            const total = TOTALS[item.code];
+            const pct = total ? (count / total) * 100 : 0;
+            return (
+              <View key={item.code} style={styles.continentRow}>
+                <Text style={styles.continentName}>{item.name}</Text>
+                <View style={styles.continentBar}>
+                  <View style={[styles.continentFill, { width: `${pct}%` }]} />
                 </View>
-              );
-            },
-          )}
+                <Text style={styles.continentValue}>
+                  {count}/{total}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
       <InfoModal
@@ -996,8 +1294,47 @@ export default function HomeScreen() {
         title={infoModal?.title ?? ""}
         body={infoModal?.body ?? ""}
         icon={infoModal?.icon}
+        bullets={infoModal?.bullets}
+        showKrooLogo={infoModal?.showKrooLogo}
+        eyebrow={infoModal?.eyebrow}
+        footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
+      <Modal visible={showWelcome} transparent animationType="fade">
+        <View style={styles.welcomeOverlay}>
+          <View style={styles.welcomeSheet}>
+            <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
+            <Text style={styles.welcomeBody}>
+              Feel free to look around and try it out no account needed.
+            </Text>
+            <Text style={styles.welcomeBody}>
+              When you&apos;re ready to save your travel progress and kroo score,
+              simply complete your passport profile on the passport page.
+            </Text>
+            <Text style={styles.welcomeQuestion}>
+              What name would you like to use on your passport?
+            </Text>
+            <TextInput
+              value={welcomeName}
+              onChangeText={setWelcomeName}
+              style={styles.welcomeInput}
+              placeholder="First Name"
+              placeholderTextColor={BrandColors.muted}
+              autoCapitalize="words"
+              textAlign="center"
+            />
+            <TouchableOpacity
+              style={styles.welcomeButton}
+              onPress={saveWelcomeName}
+              accessibilityRole="button"
+              accessibilityLabel="Save passport name"
+              disabled={!welcomeName.trim()}
+            >
+              <Text style={styles.welcomeButtonText}>CONTINUE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1024,6 +1361,88 @@ function InfoButton({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 30 },
+  welcomeOverlay: {
+    flex: 1,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.62)",
+  },
+  welcomeSheet: {
+    width: "100%",
+    maxWidth: 430,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  welcomeTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(28),
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeBody: {
+    marginTop: 12,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(15),
+    lineHeight: 22,
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeStrong: {
+    fontFamily: "Lora_700Bold",
+  },
+  welcomeQuestion: {
+    marginTop: 22,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  welcomeInput: {
+    minHeight: 52,
+    marginTop: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.surface,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.ink,
+    textAlign: "center",
+    textAlignVertical: "center",
+    writingDirection: "ltr",
+  },
+  welcomeButton: {
+    minHeight: 54,
+    marginTop: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
+  },
+  welcomeButtonText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    letterSpacing: 1,
+    color: BrandColors.green,
+  },
+  welcomeSecondaryButton: {
+    minHeight: 42,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  welcomeSecondaryText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    letterSpacing: 0.8,
+    color: BrandColors.onDarkMuted,
+  },
   badge: {
     position: "absolute",
     right: -2,
@@ -1092,13 +1511,13 @@ const styles = StyleSheet.create({
   },
   globe: {
     position: "absolute",
-    right: 30,
+    right: 45,
     top: 5,
     width: 210,
     height: 210,
     zIndex: 0,
   },
-  globeCompact: { right: 4, width: 185, height: 185 },
+  globeCompact: { right: 14, width: 185, height: 185 },
   scoreCard: {
     marginTop: -24,
     marginHorizontal: 10,
@@ -1114,13 +1533,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   score: {
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(42),
-    lineHeight: 52,
-    width: 100,
-    color: BrandColors.onDark,
-    includeFontPadding: false,
-    textAlign: "center",
+    width: 112,
+    height: 58,
   },
   scoreDetails: { flex: 1 },
   scoreTitle: {
@@ -1136,12 +1550,13 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   infoButton: {
-    width: 13,
-    height: 13,
+    width: 12,
+    height: 12,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
+    marginTop: 0,
     justifyContent: "center",
   },
   infoButtonText: {
@@ -1182,7 +1597,7 @@ const styles = StyleSheet.create({
   stats: {
     height: 94,
     marginTop: 12,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,0.20)",
@@ -1248,6 +1663,23 @@ const styles = StyleSheet.create({
   zoomableMap: {
     width: "100%",
     height: "100%",
+  },
+  mapControls: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    zIndex: 8,
+    gap: 6,
+  },
+  mapControlButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: "rgba(0, 40, 29, 0.92)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   currentPositionPin: {
     position: "absolute",
@@ -1385,7 +1817,7 @@ const styles = StyleSheet.create({
   },
   continentTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(19),
+    fontSize: responsiveFontSize(18),
     textAlign: "center",
     color: BrandColors.onDark,
   },

@@ -3,18 +3,15 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
+import { api, type NearbyCatalogPlace } from "@/services/api";
 
 export const ARRIVAL_LOCATION_TASK = "stampo-kroo-plus-arrivals";
 const LAST_ARRIVAL_KEY = "stampo:last-arrival";
+const LAST_NEARBY_PLACE_KEY = "stampo:last-nearby-place";
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 async function notificationsModule() {
-  if (isExpoGo) {
-    throw new Error(
-      "GPS arrival notifications require a native development build.",
-    );
-  }
   return import("expo-notifications");
 }
 
@@ -22,16 +19,17 @@ export type ArrivalSuggestion = {
   latitude: number;
   longitude: number;
   city: string;
+  cityCandidates?: string[];
   country: string;
   countryCode: string;
   region: string;
   airport: string;
   detectedAt: string;
+  nearbyPlace?: NearbyCatalogPlace;
 };
 
-if (!isExpoGo) {
-  void notificationsModule().then((Notifications) =>
-    Notifications.setNotificationHandler({
+void notificationsModule().then((Notifications) =>
+  Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldPlaySound: true,
         shouldSetBadge: false,
@@ -39,8 +37,7 @@ if (!isExpoGo) {
         shouldShowList: true,
       }),
     }),
-  );
-}
+);
 
 async function arrivalFromLocation(location: Location.LocationObject) {
   const [address] = await Location.reverseGeocodeAsync({
@@ -53,21 +50,54 @@ async function arrivalFromLocation(location: Location.LocationObject) {
   const airport = /\b(airport|aerodrome|terminal)\b/i.test(placeName)
     ? placeName
     : "";
+  // Reverse geocoders vary by platform and country. A position inside a city
+  // may be returned as its village, district, county, prefecture, or region.
+  const cityCandidates = [
+    address.city,
+    address.subregion,
+    address.district,
+    address.region,
+  ].filter(
+    (value, index, values): value is string =>
+      Boolean(value?.trim()) &&
+      values.findIndex(
+        (candidate) => candidate?.trim().toLocaleLowerCase() === value?.trim().toLocaleLowerCase(),
+      ) === index,
+  );
   return {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
-    city: address.city ?? address.district ?? address.subregion ?? "",
+    city: cityCandidates[0] ?? "",
+    cityCandidates,
     country: address.country ?? address.isoCountryCode,
     countryCode: address.isoCountryCode.toUpperCase(),
     region: address.region ?? "",
     airport,
     detectedAt: new Date().toISOString(),
-  } satisfies ArrivalSuggestion;
+  } as ArrivalSuggestion;
 }
 
 async function notifyForArrival(location: Location.LocationObject) {
   const arrival = await arrivalFromLocation(location);
   if (!arrival?.city) return;
+  const nearbyPlace = await api
+    .nearbyCatalogPlaces(location.coords.latitude, location.coords.longitude)
+    .then((places) => places[0] ?? null)
+    .catch(() => null);
+  if (nearbyPlace) {
+    const previousPlace = await AsyncStorage.getItem(LAST_NEARBY_PLACE_KEY);
+    if (previousPlace !== nearbyPlace.type + ":" + nearbyPlace.id) {
+      await AsyncStorage.setItem(
+        LAST_NEARBY_PLACE_KEY,
+        nearbyPlace.type + ":" + nearbyPlace.id,
+      );
+      arrival.nearbyPlace = nearbyPlace;
+      if (nearbyPlace.type === "airport") {
+        const code = nearbyPlace.iataCode || nearbyPlace.icaoCode;
+        arrival.airport = `${nearbyPlace.name}${code ? ` (${code})` : ""}`;
+      }
+    }
+  }
   const previousRaw = await AsyncStorage.getItem(LAST_ARRIVAL_KEY);
   const previous = previousRaw
     ? (JSON.parse(previousRaw) as ArrivalSuggestion)
@@ -76,15 +106,21 @@ async function notifyForArrival(location: Location.LocationObject) {
     previous?.city === arrival.city &&
     previous?.countryCode === arrival.countryCode &&
     Date.now() - new Date(previous.detectedAt).getTime() < 24 * 60 * 60 * 1000;
-  if (isRecentDuplicate) return;
+  if (isRecentDuplicate && !arrival.nearbyPlace) return;
 
   await AsyncStorage.setItem(LAST_ARRIVAL_KEY, JSON.stringify(arrival));
   const Notifications = await notificationsModule();
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: `Add your arrival in ${arrival.city}?`,
+      title: arrival.nearbyPlace
+        ? arrival.nearbyPlace.type === "airport"
+          ? `Airport arrival: ${arrival.nearbyPlace.name}`
+          : `You're near ${arrival.nearbyPlace.name}`
+        : `Add your arrival in ${arrival.city}?`,
       body: arrival.airport
         ? `${arrival.airport} was detected. Confirm to add the airport, city, country, and continent as GPS verified.`
+        : arrival.nearbyPlace
+          ? `${Math.round(arrival.nearbyPlace.distanceMeters)} m away. Confirm your GPS-verified visit in ${arrival.city}.`
         : `You appear to be in ${arrival.city}, ${arrival.country}. Confirm to add this GPS-verified visit and its nearby airport.`,
       data: { type: "arrival", ...arrival },
       sound: "default",
@@ -93,7 +129,7 @@ async function notifyForArrival(location: Location.LocationObject) {
   });
 }
 
-if (!TaskManager.isTaskDefined(ARRIVAL_LOCATION_TASK)) {
+if (!isExpoGo && !TaskManager.isTaskDefined(ARRIVAL_LOCATION_TASK)) {
   TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
     ARRIVAL_LOCATION_TASK,
     async ({ data, error }) => {
@@ -135,11 +171,6 @@ export async function watchCurrentMapLocation(
 }
 
 export async function startArrivalMonitoring() {
-  if (isExpoGo) {
-    throw new Error(
-      "Background GPS arrivals require a development build and are unavailable in Expo Go.",
-    );
-  }
   const Notifications = await notificationsModule();
   const foreground = await Location.requestForegroundPermissionsAsync();
   if (foreground.status !== Location.PermissionStatus.GRANTED) {
@@ -148,6 +179,13 @@ export async function startArrivalMonitoring() {
   const notifications = await Notifications.requestPermissionsAsync();
   if (notifications.status !== "granted") {
     throw new Error("Notifications are required for arrival suggestions.");
+  }
+  if (isExpoGo) {
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    await notifyForArrival(location);
+    return location;
   }
   const background = await Location.requestBackgroundPermissionsAsync();
   if (background.status !== Location.PermissionStatus.GRANTED) {
@@ -173,7 +211,7 @@ export async function startArrivalMonitoring() {
       activityType: Location.ActivityType.AutomotiveNavigation,
       showsBackgroundLocationIndicator: true,
       foregroundService: {
-        notificationTitle: "Stampo GPS arrivals",
+        notificationTitle: "Kroo GPS arrivals",
         notificationBody: "Watching for a new city or airport arrival.",
         notificationColor: "#D7925F",
       },
@@ -183,10 +221,12 @@ export async function startArrivalMonitoring() {
 }
 
 export async function arrivalMonitoringEnabled() {
+  if (isExpoGo) return false;
   return Location.hasStartedLocationUpdatesAsync(ARRIVAL_LOCATION_TASK);
 }
 
 export async function stopArrivalMonitoring() {
+  if (isExpoGo) return;
   if (await Location.hasStartedLocationUpdatesAsync(ARRIVAL_LOCATION_TASK)) {
     await Location.stopLocationUpdatesAsync(ARRIVAL_LOCATION_TASK);
   }

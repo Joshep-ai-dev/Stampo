@@ -67,6 +67,12 @@ const travelSlice = createSlice({
         verification: action.payload.verification ?? { status: "unverified" },
       });
     },
+    visitUpdated(state, action: PayloadAction<Visit>) {
+      const index = state.visits.findIndex(
+        (visit) => visit.id === action.payload.id,
+      );
+      if (index >= 0) state.visits[index] = action.payload;
+    },
     visitsHydrated(state, action: PayloadAction<Visit[]>) {
       state.visits = action.payload.map((visit) => ({
         ...visit,
@@ -145,6 +151,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitsCleared, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitUpdated, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;

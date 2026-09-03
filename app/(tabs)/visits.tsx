@@ -24,11 +24,11 @@ import { useAppSelector } from "@/store/hooks";
 
 const c = {
   deep: BrandColors.canvas,
-  card: "#123F30",
-  card2: "#164A39",
-  mint: "#3ECF8E",
-  copper: "#C97C54",
-  cream: "#F6F1E4",
+  card: BrandColors.greenDeep,
+  card2: BrandColors.green,
+  mint: BrandColors.progressGreen,
+  copper: BrandColors.copper,
+  cream: BrandColors.onDark,
   muted: "rgba(246,241,228,.58)",
   line: "rgba(246,241,228,.14)",
   error: "#D9694F",
@@ -173,7 +173,8 @@ export default function PlusTabScreen() {
       ),
     [travel],
   );
-  const iq = 47.3 + (phase === "result" ? score * 0.05 : 0);
+  const answeredCount = phase === "result" ? quizRounds.length : index + (answer !== null ? 1 : 0);
+  const iq = answeredCount > 0 ? (score / answeredCount) * 100 : 0;
   if (countryCode)
     return (
       <SafeAreaView style={s.safe} edges={["top"]}>
@@ -213,6 +214,7 @@ export default function PlusTabScreen() {
           contentFit="contain"
           accessibilityLabel="Kroo, Collect the world"
         />
+        {isPlus ? <>
         <View style={s.dailyHead}>
           <View>
             <Text style={s.sectionTitle}>Daily Destination</Text>
@@ -242,9 +244,7 @@ export default function PlusTabScreen() {
                 {score}/{quizRounds.length}
               </Text>
               <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
-              <Text style={s.correct}>
-                +{(score * 0.05).toFixed(2)} added to your Kroo IQ
-              </Text>
+              <Text style={s.correct}>Kroo IQ is your percentage of correct Daily Destination answers.</Text>
               <Button
                 label=" DONE FOR TODAY "
                 onPress={() => {
@@ -267,7 +267,7 @@ export default function PlusTabScreen() {
             </View>
           ) : (
             <View>
-              <Text style={s.kicker}>QUESTION {index + 1} OF 5</Text>
+              <Text style={s.kicker}>QUESTION {index + 1} OF {quizRounds.length}</Text>
               <Text style={s.question}>{round.q}</Text>
               {round.options.map((option, i) => (
                 <TouchableOpacity
@@ -304,6 +304,15 @@ export default function PlusTabScreen() {
             </View>
           )}
         </View>
+        </> : (
+          <View style={s.offerSection}>
+            <Text style={s.offerHeading}>Go further with Kroo+</Text>
+            <KrooPlusOffer
+              onPurchase={() => router.push("/gift-kroo-plus" as never)}
+              onRestore={() => router.push("/kroo-plus" as never)}
+            />
+          </View>
+        )}
         <Text style={s.heading}>Dream Vacation Challenge</Text>
         <Text style={s.intro}>
           Complete 3 requirements as a{" "}
@@ -331,17 +340,7 @@ export default function PlusTabScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        {isPlus ? (
-          <Progress score={krooScore} iq={iq} />
-        ) : (
-          <View style={s.offerSection}>
-            <Text style={s.offerHeading}>Go further with Kroo+</Text>
-            <KrooPlusOffer
-              onPurchase={() => router.push("/gift-kroo-plus" as never)}
-              onRestore={() => router.push("/kroo-plus" as never)}
-            />
-          </View>
-        )}
+        {isPlus ? <Progress score={krooScore} iq={iq} /> : null}
       </ScrollView>
       <Modal
         transparent

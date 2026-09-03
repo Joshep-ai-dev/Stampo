@@ -7,10 +7,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  Modal,
-  Pressable,
   ScrollView,
-  Share,
   type StyleProp,
   StyleSheet,
   Text,
@@ -20,23 +17,35 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DetailModal } from "@/components/detail-modal";
+import { PlaceCollectionList } from "@/components/place-collection-list";
+import { CitiesVisitedSection, type PlaceListItem, StatesSection, TopSightsSection } from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import { api, type SightDetail } from "@/services/api";
+import {
+  api,
+  type SightDetail,
+} from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import { isKrooPlus as customerHasKrooPlus } from "@/services/subscriptions";
-import { fetchHomeDashboard } from "@/store/dashboard-slice";
+import {
+  canUseGpsArrivals,
+  GPS_ARRIVALS_REQUIRE_KROO_PLUS,
+} from "@/services/gps-access";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
   fetchCountryDetail,
 } from "@/store/country-detail-slice";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { subscriptionUpdated } from "@/store/subscription-slice";
-import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
+import {
+  sightCompletionSet,
+  type Visit,
+  visitsHydrated,
+} from "@/store/travel-slice";
 
 export default function CountryScreen() {
   const router = useRouter();
@@ -50,13 +59,6 @@ export default function CountryScreen() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const subscription = useAppSelector((state) => state.subscription);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
-  const [selectedCity, setSelectedCity] = useState<{
-    id: string;
-    name: string;
-    image?: string;
-    description?: string;
-    regionName?: string;
-  } | null>(null);
   useFocusEffect(
     useCallback(() => {
       void dispatch(fetchCountryDetail(code));
@@ -90,15 +92,91 @@ export default function CountryScreen() {
     ? []
     : sights.slice(freeSightLimit);
   const visibleSights = subscription.isKrooPlus ? sights : freeSights;
-  const visitedCities = [...(detail?.visitedCities ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name),
+  const countryVisits = allVisits.filter(
+    (visit) => visit.countryCode.toUpperCase() === normalizedCode,
   );
+  const visitedCityMap = new Map<
+    string,
+    { id: string; name: string; visits: Visit[] }
+  >();
+  countryVisits.forEach((visit) => {
+    const cityKey = `${visit.subcountry.trim().toLocaleLowerCase()}:${visit.cityName.trim().toLocaleLowerCase()}`;
+    const city = visitedCityMap.get(cityKey) ?? {
+      id: visit.cityId,
+      name: visit.cityName,
+      visits: [],
+    };
+    city.visits.push(visit);
+    visitedCityMap.set(cityKey, city);
+  });
+  const visitedCities = [...visitedCityMap.values()]
+    .map((city) => ({
+      ...city,
+      visits: city.visits.sort((left, right) =>
+        right.visitedAt.localeCompare(left.visitedAt),
+      ),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const visitedStates = [...new Set(
+    countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+  )].sort((left, right) => left.localeCompare(right));
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
+  const countryCollectionItems = countryCollections
+    .map((collection) => ({
+      collection,
+      places: collection.places.filter(
+        (place) =>
+          place.country?.trim().toLocaleLowerCase() ===
+          name.trim().toLocaleLowerCase(),
+      ),
+    }))
+    .filter(({ places }) => places.length > 0);
+  const localSightIds = new Set(
+    countryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "sight")
+        .map((place) => place.id || place.name),
+    ),
+  );
+  sights.forEach((sight) => {
+    if (completedSightIds.includes(sight.id)) localSightIds.add(sight.id);
+  });
+  const localAirportIds = new Set(
+    countryVisits.flatMap((visit) =>
+      visit.places
+        .filter((place) => place.type === "airport")
+        .map((place) => place.id || place.name),
+    ),
+  );
+  const displayedStats = {
+    states: new Set(
+      countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+    ).size,
+    cities: Math.max(
+      detail?.stats.cities ?? 0,
+      new Set(countryVisits.map((visit) => visit.cityId)).size,
+    ),
+    sights: Math.max(detail?.stats.sights ?? 0, localSightIds.size),
+    airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
+  };
+  const stateItems: PlaceListItem[] = visitedStates.map((stateName) => {
+    const matchingVisits = countryVisits.filter((visit) => visit.subcountry.trim() === stateName);
+    const sightCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
+    const airportCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
+    const image = detail?.states.find((item) => item.name?.trim().toLocaleLowerCase() === stateName.trim().toLocaleLowerCase())?.imageUrl;
+    return { id: stateName, name: stateName, image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}` };
+  });
+  const cityItems: PlaceListItem[] = visitedCities.map((city) => {
+    const cityDetail = detail?.cities.find((item) => item.id === city.id || item.name.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase());
+    const sightCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
+    const airportCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
+    return { id: city.id, name: city.name, image: cityDetail?.image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}` };
+  });
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
-    if (!subscription.isKrooPlus) {
+    if (!canUseGpsArrivals(subscription.isKrooPlus)) {
       Alert.alert(
         "Kroo+ GPS arrivals",
         "Upgrade to Kroo+ to detect arrivals and create GPS-verified visits.",
@@ -121,15 +199,10 @@ export default function CountryScreen() {
     }
   };
   const toggleSight = async (sightId: string, completed: boolean) => {
-    if (!isSignedIn) {
-      Alert.alert("Sign in required", "Sign in to save completed sights.");
-      return;
-    }
     const next = !completed;
     dispatch(sightCompletionSet({ id: sightId, completed: next }));
-    dispatch(
-      countrySightCompletionSet({ code, sightId, completed: next }),
-    );
+    dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
+    if (!isSignedIn) return;
     try {
       await api.setSightCompleted(sightId, next);
       void api
@@ -140,51 +213,10 @@ export default function CountryScreen() {
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
     } catch {
-      dispatch(sightCompletionSet({ id: sightId, completed }));
-      dispatch(countrySightCompletionSet({ code, sightId, completed }));
-      Alert.alert("Could not update sight", "Please try again.");
-    }
-  };
-
-  const toggleCollectionPlaces = async (
-    collectionId: string,
-    placeIds: string[],
-    completed: boolean,
-  ) => {
-    if (!isSignedIn) {
-      Alert.alert("Sign in required", "Sign in to save collection progress.");
-      return;
-    }
-    const next = !completed;
-    const targetIds = placeIds.map(
-      (placeId) => `collection-${collectionId}-${placeId}`,
-    );
-    targetIds.forEach((id) =>
-      dispatch(sightCompletionSet({ id, completed: next })),
-    );
-    const results = await Promise.allSettled(
-      targetIds.map((id) => api.setSightCompleted(id, next)),
-    );
-    let failed = false;
-    let failureMessage = "Please try again.";
-    results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        failed = true;
-        if (result.reason instanceof Error) failureMessage = result.reason.message;
-        dispatch(sightCompletionSet({ id: targetIds[index], completed }));
-      }
-    });
-    if (failed) {
-      Alert.alert("Could not update collection", failureMessage);
-    }
-    if (results.some((result) => result.status === "fulfilled")) {
-      void api
-        .listVisits()
-        .then((visits) => dispatch(visitsHydrated(visits)))
-        .catch(() => undefined);
-      void dispatch(fetchHomeDashboard());
-      dispatch(countryDetailInvalidated(code));
-      void dispatch(fetchCountryDetail(code));
+      Alert.alert(
+        "Saved on this device",
+        "Kroo will sync this sight when the server is available.",
+      );
     }
   };
 
@@ -215,23 +247,21 @@ export default function CountryScreen() {
           >
             {flag} {name}
           </Text>
-          <TouchableOpacity
-            accessibilityLabel={`Share ${name}`}
-            style={s.iconButton}
-            onPress={() =>
-              void Share.share({ message: `Explore ${name} with Kroo` })
-            }
-          >
-            <Ionicons
-              name="share-outline"
-              size={23}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
+          <View style={s.headerSpacer} />
         </View>
 
         <View style={s.stampHero}>
-          {stamp ? (
+          {!detail ? (
+            <View style={s.heroLoading} />
+          ) : detail.country.coverImage ? (
+            <Image
+              source={{ uri: detail.country.coverImage }}
+              recyclingKey={`country-${code}-${detail.country.coverImage}`}
+              style={s.countryHeroImage}
+              contentFit="cover"
+              contentPosition="center"
+            />
+          ) : stamp ? (
             <Image
               source={stamp}
               style={s.stampImage}
@@ -250,19 +280,28 @@ export default function CountryScreen() {
         <View style={s.statsWrap}>
           <TravelStats
             items={[
+              ...(normalizedCode === "US"
+                ? [
+                  {
+                    icon: "map-outline",
+                    value: displayedStats.states,
+                    label: "STATES",
+                  },
+                ]
+                : []),
               {
                 icon: "business-outline",
-                value: detail?.stats.cities ?? 0,
+                value: displayedStats.cities,
                 label: "CITIES",
               },
               {
                 icon: "camera-outline",
-                value: detail?.stats.sights ?? 0,
+                value: displayedStats.sights,
                 label: "SIGHTS",
               },
               {
                 icon: "airplane-outline",
-                value: detail?.stats.airports ?? 0,
+                value: displayedStats.airports,
                 label: "AIRPORTS",
               },
             ]}
@@ -284,250 +323,20 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <SectionTitle>{`Top Sights in ${name}`}</SectionTitle>
-        {sights.length ? (
-          <View style={s.sightList}>
-            <ScrollView
-              style={s.sightScroller}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={visibleSights.length > 6}
-            >
-              {visibleSights.map((sight) => {
-                const checked =
-                  completedSightIds.includes(sight.id) ||
-                  sight.completed === true;
-                return (
-                  <TouchableOpacity
-                    key={sight.id}
-                    style={s.sightRow}
-                    onPress={() => setSelectedSight(sight)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${sight.name} in ${sight.city}`}
-                  >
-                    <ResolvedPlaceImage
-                      initialUri={sight.image}
-                      placeName={sight.name}
-                      cityName={sight.city}
-                      countryName={name}
-                      style={s.sightImage}
-                      contentFit="cover"
-                    />
-                    <Text numberOfLines={1} style={s.sightName}>
-                      {sight.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => void toggleSight(sight.id, checked)}
-                      hitSlop={10}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                      accessibilityLabel={`${checked ? "Uncheck" : "Check"} ${sight.name}`}
-                    >
-                      <Ionicons
-                        name={checked ? "checkmark-circle" : "ellipse-outline"}
-                        size={28}
-                        color="#57D5A0"
-                      />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-            {lockedSights.length ? (
-              <UpgradeBanner
-                count={lockedSights.length}
-                active={subscription.isKrooPlus}
-                configured={subscription.configured}
-                onCustomerInfo={(customerInfo) =>
-                  dispatch(
-                    subscriptionUpdated({
-                      configured: true,
-                      isKrooPlus: customerHasKrooPlus(customerInfo),
-                    }),
-                  )
-                }
-              />
-            ) : null}
-            {lockedSights.length ? (
-              <View style={s.lockedList}>
-                {lockedSights.map((sight) => (
-                  <View
-                    key={sight.id}
-                    style={[s.sightRow, s.lockedSightRow]}
-                    accessibilityElementsHidden
-                  >
-                    <ResolvedPlaceImage
-                      initialUri={sight.image}
-                      placeName={sight.name}
-                      cityName={sight.city}
-                      countryName={name}
-                      style={s.sightImage}
-                      contentFit="cover"
-                      blurRadius={32}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={[s.sightName, s.lockedSightName]}
-                    >
-                      {sight.name}
-                    </Text>
-                    <View style={s.lockedSightCheck}>
-                      <Ionicons
-                        name={
-                          sight.completed
-                            ? "checkmark-circle"
-                            : "ellipse-outline"
-                        }
-                        size={28}
-                        color={
-                          sight.completed ? "#57D5A0" : BrandColors.onDarkMuted
-                        }
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-          </View>
-        ) : (
-          <Text style={[s.empty, s.sightsEmpty]}>
-            Top sights will appear here.
-          </Text>
-        )}
+        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail?.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
 
-        <SectionTitle>{`Collections in ${name}`}</SectionTitle>
-        {countryCollections.length ? (
-          <View style={s.collectionList}>
-            {countryCollections.map((collection) => {
-              const countryPlaces = collection.places.filter(
-                (place) =>
-                  place.country.toLocaleLowerCase() ===
-                  name.toLocaleLowerCase(),
-              );
-              const accessiblePlaces = subscription.isKrooPlus
-                ? countryPlaces
-                : countryPlaces.filter(
-                    (place) =>
-                      place.access !== "pro" && place.isPremium !== true,
-                  );
-              const locationCount = countryPlaces.length;
-              const completed =
-                accessiblePlaces.length > 0 &&
-                accessiblePlaces.every((place) =>
-                completedSightIds.includes(
-                  `collection-${collection.id}-${place.id}`,
-                ),
-              );
-              return (
-                <TouchableOpacity
-                  key={collection.id}
-                  style={s.sightRow}
-                  activeOpacity={0.82}
-                  onPress={() =>
-                    router.push(`/collection/${collection.id}` as never)
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${collection.title}`}
-                >
-                  <View style={s.collectionImageFrame}>
-                    <ProgressivePlaceImage
-                      uri={collection.imageUrl}
-                      style={s.collectionImage}
-                      contentFit="contain"
-                    />
-                  </View>
-                  <View style={s.collectionText}>
-                    <Text style={s.collectionTitle} numberOfLines={1}>
-                      {collection.title}
-                    </Text>
-                    <Text style={s.collectionDetail}>
-                      {locationCount}{" "}
-                      {locationCount === 1 ? "location" : "locations"} in {name}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      void toggleCollectionPlaces(
-                        collection.id,
-                        accessiblePlaces.map((place) => place.id),
-                        completed,
-                      )
-                    }
-                    hitSlop={10}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: completed }}
-                    disabled={!accessiblePlaces.length}
-                    accessibilityLabel={`${completed ? "Uncheck" : "Check"} accessible ${collection.title} locations in ${name}`}
-                  >
-                    <Ionicons
-                      name={completed ? "checkmark-circle" : "ellipse-outline"}
-                      size={28}
-                      color="#57D5A0"
-                    />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={[s.empty, s.collectionEmpty]}>
-            No collections feature locations in {name} yet.
-          </Text>
-        )}
+        {normalizedCode === "US" ? (
+          <StatesSection showDetail={false} items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
+        ) : null}
 
-        <SectionTitle>{`Cities Visited in ${name}`}</SectionTitle>
-        <ScrollView
-          style={s.cityList}
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={visitedCities.length > 6}
-        >
-          {visitedCities.length ? (
-            visitedCities.map((city) => {
-              const cityDetail = detail?.cities.find(
-                (item) => item.id === city.id,
-              );
-              const recordedVisit = allVisits.find(
-                (visit) => visit.cityId === city.id,
-              );
-              return (
-                <TouchableOpacity
-                  key={city.id}
-                  style={s.sightRow}
-                  onPress={() =>
-                    setSelectedCity({
-                      id: city.id,
-                      name: city.name,
-                      image: cityDetail?.image,
-                      description: cityDetail?.description,
-                      regionName: recordedVisit?.subcountry,
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open details for ${city.name}`}
-                >
-                  <CityThumbnail
-                    cityId={city.id}
-                    cityName={city.name}
-                    countryName={name}
-                    regionName={recordedVisit?.subcountry}
-                    initialUri={cityDetail?.image}
-                    latitude={cityDetail?.latitude}
-                    longitude={cityDetail?.longitude}
-                  />
-                  <Text numberOfLines={1} style={s.sightName}>
-                    {city.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <Text style={s.empty}>Your visited cities will appear here.</Text>
-          )}
-        </ScrollView>
+        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push(`/city/${city.id}` as never)} />
+        <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
+
         <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
           accessibilityRole="button"
-          accessibilityLabel="Enable Kroo+ GPS arrivals"
+          accessibilityLabel="Enable GPS arrivals"
         >
           <Ionicons
             name="location-outline"
@@ -535,8 +344,9 @@ export default function CountryScreen() {
             color={BrandColors.copper}
           />
           <Text style={s.gpsText}>
-            Kroo+ can automatically add visited cities using GPS when you opt
-            in.
+            {GPS_ARRIVALS_REQUIRE_KROO_PLUS
+              ? "Kroo+ can automatically add visited cities using GPS when you opt in."
+              : "Automatically add visited cities using GPS when you opt in. Free during launch."}
           </Text>
           <Ionicons
             name="chevron-forward"
@@ -545,155 +355,28 @@ export default function CountryScreen() {
           />
         </TouchableOpacity>
       </ScrollView>
-      <Modal
-        visible={selectedSight !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setSelectedSight(null)}
-      >
-        <View style={s.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedSight(null)}
-            accessibilityLabel="Close sight details"
-          />
-          {selectedSight ? (
-            <View style={s.sightModal}>
-              <ResolvedPlaceImage
-                initialUri={selectedSight.image}
-                placeName={selectedSight.name}
-                cityName={selectedSight.city}
-                countryName={name}
-                style={s.modalImage}
-                contentFit="cover"
-              />
-              <Text style={s.modalTitle}>{selectedSight.name}</Text>
-              <Text style={s.modalLocation}>{selectedSight.city}</Text>
-              <Text style={s.modalDescription}>
-                {selectedSight.description ||
-                  "A famous attraction ready to explore."}
-              </Text>
-              <TouchableOpacity
-                style={s.modalClose}
-                onPress={() => setSelectedSight(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={30} color={BrandColors.copper} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
-      <Modal
-        visible={selectedCity !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setSelectedCity(null)}
-      >
-        <View style={s.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedCity(null)}
-            accessibilityLabel="Close city details"
-          />
-          {selectedCity ? (
-            <View style={s.sightModal} accessibilityViewIsModal>
-              <ResolvedPlaceImage
-                initialUri={selectedCity.image}
-                placeName={selectedCity.name}
-                cityName={selectedCity.name}
-                countryName={name}
-                style={s.modalImage}
-                contentFit="cover"
-              />
-              <Text style={s.modalTitle}>{selectedCity.name}</Text>
-              <Text style={s.modalLocation}>
-                {[selectedCity.regionName, name].filter(Boolean).join(", ")}
-              </Text>
-              <Text style={s.modalDescription}>
-                {selectedCity.description || `A city you visited in ${name}.`}
-              </Text>
-              <TouchableOpacity
-                style={s.modalClose}
-                onPress={() => setSelectedCity(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={30} color={BrandColors.copper} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
+      {selectedSight ? (
+        <DetailModal
+          visible
+          title={selectedSight.name}
+          location={selectedSight.city}
+          description={
+            selectedSight.description || "A famous attraction ready to explore."
+          }
+          image={
+            <ResolvedPlaceImage
+              initialUri={selectedSight.image}
+              placeName={selectedSight.name}
+              cityName={selectedSight.city}
+              countryName={name}
+              style={s.modalImage}
+              contentFit="cover"
+            />
+          }
+          onClose={() => setSelectedSight(null)}
+        />
+      ) : null}
     </SafeAreaView>
-  );
-}
-
-function SectionTitle({ children }: { children: string }) {
-  return <Text style={s.sectionTitle}>{children}</Text>;
-}
-
-function CityThumbnail({
-  cityId,
-  cityName,
-  countryName,
-  regionName,
-  initialUri,
-  latitude,
-  longitude,
-}: {
-  cityId: string;
-  cityName: string;
-  countryName: string;
-  regionName?: string;
-  initialUri?: string;
-  latitude?: number;
-  longitude?: number;
-}) {
-  const [uri, setUri] = useState(initialUri ?? "");
-
-  useEffect(() => {
-    setUri(initialUri ?? "");
-    if (initialUri) return;
-    let active = true;
-    void (async () => {
-      const cityDetail = await api.cityDetail(cityId).catch(() => null);
-      if (!active) return;
-      if (cityDetail?.image) {
-        setUri(cityDetail.image);
-        return;
-      }
-      const resolved = await api
-        .resolveCityImage({
-          name: cityName,
-          country: countryName,
-          region: regionName,
-          latitude,
-          longitude,
-        })
-        .catch(() => null);
-      if (active && resolved?.image) setUri(resolved.image);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [
-    cityId,
-    cityName,
-    countryName,
-    initialUri,
-    latitude,
-    longitude,
-    regionName,
-  ]);
-
-  return (
-    <View style={s.cityImageFrame}>
-      <ProgressivePlaceImage uri={uri} style={s.cityImage} contentFit="cover" />
-    </View>
   );
 }
 
@@ -773,27 +456,38 @@ const s = StyleSheet.create({
     includeFontPadding: false,
     color: BrandColors.copper,
   },
+  headerSpacer: { width: 42, height: 42 },
   stampHero: {
-    height: 220,
     marginHorizontal: 14,
     marginBottom: 14,
+    padding: 0,
     borderRadius: 16,
-    overflow: "hidden",
     borderWidth: 1,
-    borderColor: BrandColors.copperDark,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
     backgroundColor: BrandColors.surface,
+    overflow: "hidden",
   },
   stampImage: {
     width: "100%",
-    height: "100%",
+    height: undefined,
+    aspectRatio: 1.5,
+    borderRadius: 16,
     transform: [{ scale: 1.2 }],
   },
+  countryHeroImage: {
+    width: "100%",
+    height: undefined,
+    aspectRatio: 1.5,
+    borderRadius: 16,
+  },
+  heroLoading: { flex: 1, backgroundColor: BrandColors.greenPanel },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,
     marginTop: 14,
     padding: 16,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,.2)",
@@ -809,11 +503,12 @@ const s = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 17,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(21),
+    fontSize: responsiveFontSize(18),
     color: BrandColors.onDark,
   },
   sightList: { marginHorizontal: 16 },
-  sightScroller: { maxHeight: 372 },
+  sightScroller: { maxHeight: 186 },
+  categoryScroller: { maxHeight: 186 },
   sightRow: {
     minHeight: 62,
     flexDirection: "row",
@@ -847,17 +542,84 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   lockedSightCheck: { opacity: 0.28 },
-  collectionList: { marginHorizontal: 16 },
-  collectionImageFrame: {
+  stateIcon: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.greenPanel,
   },
+  stateImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  collectionRow: {
+    paddingHorizontal: 16,
+    gap: 10,
+    paddingTop: 5,
+    paddingBottom: 12,
+  },
+  collectionCard: {
+    width: 148,
+    height: 240,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 9,
+    borderRadius: 12,
+    backgroundColor: BrandColors.surface,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#C5A36C",
+  },
+  collectionHeader: {
+    width: "100%",
+    height: 24,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  collectionSeal: {
+    width: 124,
+    height: 174,
+    marginTop: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
   collectionImage: { width: "100%", height: "100%" },
+  collectionCardTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.green,
+    flexShrink: 1,
+  },
+  collectionProgressRow: {
+    width: "100%",
+    marginTop: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  collectionProgressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BrandColors.surfaceSoft,
+    overflow: "hidden",
+  },
+  collectionProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: BrandColors.copper,
+  },
+  collectionPercent: {
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(10),
+    color: BrandColors.muted,
+  },
   collectionText: { flex: 1 },
   collectionTitle: {
     fontFamily: "Lora_600SemiBold",
@@ -877,7 +639,7 @@ const s = StyleSheet.create({
     marginTop: 4,
     marginBottom: -34,
     padding: 11,
-    borderRadius: 13,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -908,7 +670,6 @@ const s = StyleSheet.create({
     color: BrandColors.copperDark,
   },
   cityList: {
-    maxHeight: 372,
     marginHorizontal: 16,
   },
   cityImageFrame: {
@@ -925,7 +686,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     flexDirection: "row",
@@ -940,65 +701,113 @@ const s = StyleSheet.create({
     lineHeight: 18,
     color: BrandColors.onDarkMuted,
   },
-  modalOverlay: {
-    flex: 1,
-    paddingHorizontal: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(3,29,20,.78)",
-  },
-  sightModal: {
-    width: "100%",
-    maxWidth: 390,
-    padding: 18,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.greenPanel,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
-  },
   modalImage: {
     width: "100%",
     height: 190,
     borderRadius: 16,
     backgroundColor: BrandColors.greenDeep,
   },
-  modalTitle: {
-    marginTop: 16,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(25),
-    textAlign: "center",
-    color: BrandColors.copper,
-  },
-  modalLocation: {
-    marginTop: 5,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.onDarkMuted,
-  },
-  modalDescription: {
-    marginTop: 13,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(15),
-    lineHeight: 22,
-    textAlign: "center",
-    color: BrandColors.onDark,
-  },
-  modalClose: {
-    width: 48,
-    height: 48,
-    marginTop: 16,
-    borderRadius: 24,
+  modalImagePlaceholder: {
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
+  },
+  visitRecordCard: {
+    width: "100%",
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.greenDeep,
+    borderColor: BrandColors.paleGreen,
+    backgroundColor: "rgba(10,43,32,.35)",
+  },
+  visitRecordTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(15),
+    color: BrandColors.copper,
+  },
+  visitRecordHeader: {
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  visitHistoryCount: {
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
+  visitItemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  visitItemHeaderDate: {
+    flex: 1,
+    minWidth: 0,
+  },
+  visitItemEditButton: {
+    flexShrink: 0,
+    marginLeft: 12,
+    paddingHorizontal: 3,
+    paddingVertical: 4,
+  },
+  visitEditText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(13),
+    color: "#57D5A0",
+  },
+  visitRecordItem: {
+    paddingVertical: 7,
+    gap: 5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BrandColors.paleGreen,
+  },
+  visitRecordRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 7,
+  },
+  visitRecordText: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    lineHeight: 18,
+    color: BrandColors.onDark,
+  },
+  visitEditForm: { gap: 6 },
+  visitInputLabel: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
+  visitInput: {
+    minHeight: 42,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.onDark,
+  },
+  visitNoteInput: {
+    minHeight: 70,
+    paddingTop: 10,
+    textAlignVertical: "top",
+  },
+  visitSaveButton: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: BrandColors.copper,
+  },
+  visitSaveText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.greenDeep,
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",

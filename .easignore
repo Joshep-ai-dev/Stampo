@@ -8,6 +8,17 @@ web-build/
 android/
 ios/
 .kotlin/
+.gradle/
+.gradle-user-home/
+
+# Local editor and coding-agent metadata.
+.vscode/
+.claude/
+.agents/
+.codex/
+codex.md
+CLAUDE.md
+AGENTS.md
 
 # These are not part of the mobile application bundle.
 Stampo website/
@@ -23,4 +34,6 @@ scripts/
 *.p12
 *.key
 *.mobileprovision
+credentials.json
+upload_certificate.pem
 .DS_Store

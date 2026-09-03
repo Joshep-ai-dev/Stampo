@@ -84,14 +84,13 @@ export default function LeaderboardScreen() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    if (!isSignedIn) return;
     setLoading(true);
     setError("");
     try {
-      const [global, friends] = await Promise.all([
-        api.communityLeaderboard("global"),
-        api.communityLeaderboard("friends"),
-      ]);
+      const global = await api.communityLeaderboard("global");
+      const friends = isSignedIn
+        ? await api.communityLeaderboard("friends")
+        : [];
       setGlobalPeople(global);
       setFriendPeople(friends);
       setSelectedId((current) =>
@@ -132,10 +131,17 @@ export default function LeaderboardScreen() {
           />
         }
       >
-        <Text style={s.title}>LeaderBoard</Text>
-        {!isSignedIn ? (
-          <Message title="Sign in to join the leaderboard" />
-        ) : loading && !globalPeople.length ? (
+        <View style={s.socialHeader}>
+          <View style={s.logoCrop}>
+            <Image
+              source={require("../../assets/images/kroo_logo_text.png")}
+              style={s.wordmark}
+              contentFit="contain"
+              accessibilityLabel="Kroo"
+            />
+          </View>
+        </View>
+        {loading && !globalPeople.length ? (
           <ActivityIndicator style={s.loader} color={c.copper} />
         ) : error ? (
           <Message title={error} />
@@ -154,6 +160,8 @@ export default function LeaderboardScreen() {
                 <LeaderboardRow person={me} index={globalPeople.length} mine />
               )}
             </View>
+            {isSignedIn ? (
+              <>
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Compare with a friend</Text>
             </View>
@@ -225,6 +233,10 @@ export default function LeaderboardScreen() {
                 </TouchableOpacity>
               </View>
             ))}
+              </>
+            ) : (
+              <Message title="Sign in to compare scores and add friends." />
+            )}
           </>
         )}
       </ScrollView>
@@ -295,12 +307,22 @@ function Message({ title }: { title: string }) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.deep },
   content: { paddingBottom: 24 },
-  title: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    color: c.cream,
+  socialHeader: {
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoCrop: {
+    width: 200,
+    height: 60,
+    overflow: "hidden",
+  },
+  wordmark: {
+    position: "absolute",
+    width: 200,
+    height: 75,
+    top: -15,
+    left: 0,
   },
   leaderList: { marginHorizontal: 22, marginTop: 14 },
   lbRow: {

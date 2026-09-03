@@ -3,7 +3,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -14,54 +14,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BrandColors } from "@/constants/theme";
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
-import {
-  getKrooPlusPlanPrices,
-  isKrooPlus as customerHasKrooPlus,
-  restoreKrooPlus,
-} from "@/services/subscriptions";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { subscriptionUpdated } from "@/store/subscription-slice";
+import { useKrooPlusBilling } from "@/components/subscription-provider";
+import { BrandColors } from "@/constants/theme";
 
 export default function KrooPlusScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const subscription = useAppSelector((state) => state.subscription);
+  const billing = useKrooPlusBilling();
   const [busy, setBusy] = useState(false);
-  const [prices, setPrices] = useState({
-    monthly: "$5.99",
-    annual: "$59.99",
-  });
-
-  useEffect(() => {
-    if (!subscription.configured) return;
-    let active = true;
-    void getKrooPlusPlanPrices()
-      .then((storePrices) => {
-        if (!active || !storePrices) return;
-        setPrices((current) => ({
-          monthly: storePrices.monthly ?? current.monthly,
-          annual: storePrices.annual ?? current.annual,
-        }));
-      })
-      .catch(() => {
-        // The purchase action will surface offering errors when the user taps it.
-      });
-    return () => {
-      active = false;
-    };
-  }, [subscription.configured]);
-
-  const updateCustomerInfo = (
-    customerInfo: Awaited<ReturnType<typeof restoreKrooPlus>>,
-  ) =>
-    dispatch(
-      subscriptionUpdated({
-        configured: true,
-        isKrooPlus: customerHasKrooPlus(customerInfo),
-      }),
-    );
   const showError = (error: unknown) =>
     Alert.alert(
       "Kroo+",
@@ -69,7 +29,7 @@ export default function KrooPlusScreen() {
     );
 
   const restore = async () => {
-    if (!subscription.configured) {
+    if (!billing.configured) {
       Alert.alert(
         "Restore purchases",
         "Purchases are unavailable in Expo Go. Use a development or production build.",
@@ -78,13 +38,10 @@ export default function KrooPlusScreen() {
     }
     setBusy(true);
     try {
-      const customerInfo = await restoreKrooPlus();
-      updateCustomerInfo(customerInfo);
+      const active = await billing.restore();
       Alert.alert(
-        customerHasKrooPlus(customerInfo)
-          ? "Kroo+ restored"
-          : "No purchase found",
-        customerHasKrooPlus(customerInfo)
+        active ? "Kroo+ restored" : "No purchase found",
+        active
           ? "Your membership is active again."
           : "No active Kroo+ purchase was found for this store account.",
       );
@@ -124,10 +81,13 @@ export default function KrooPlusScreen() {
 
         <View style={{ width: "100%", marginTop: 28 }}>
           <KrooPlusOffer
-            monthlyPrice={prices.monthly}
-            annualPrice={prices.annual}
+            monthlyPrice={billing.prices.monthly ?? "$5.99"}
+            annualPrice={billing.prices.annual ?? "$59.99"}
             busy={busy}
-            onPurchase={() => router.push("/gift-kroo-plus" as never)}
+            onPurchase={(plan) => {
+              setBusy(true);
+              void billing.purchase(plan).catch(showError).finally(() => setBusy(false));
+            }}
             onRestore={() => void restore()}
           />
         </View>

@@ -107,6 +107,55 @@ export type HomeDashboard = {
   updatedAt: string;
 };
 
+export type CatalogCitySearchResult = {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  continentCode: string;
+  subcountry: string;
+  image?: string;
+  latitude?: number;
+  longitude?: number;
+  population?: number;
+};
+
+export type AirportOption = {
+  id: string;
+  name: string;
+  iataCode: string;
+  icaoCode?: string | null;
+  city?: string;
+  state?: string;
+  countryCode?: string;
+};
+
+export type NearbyCatalogPlace = {
+  id: string;
+  type: "sight" | "collection" | "airport";
+  name: string;
+  city?: string;
+  countryCode?: string;
+  distanceMeters: number;
+  latitude: number;
+  longitude: number;
+  wikipediaTitle?: string;
+  iataCode?: string | null;
+  icaoCode?: string | null;
+};
+
+export type StateDetailResponse = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  country: { id: string; code: string; name: string };
+  cities: CityDetail[];
+  sights: SightDetail[];
+  collections: ManagedCollection[];
+  stats: { cities: number; sights: number; airports: number };
+  visitedCities: { id: string; name: string }[];
+};
+
 export type TravelStateResponse = {
   completedSightIds: string[];
   wishlistIds: string[];
@@ -124,6 +173,7 @@ export type RemoteProfile = {
   plan: "free" | "pro";
   nationality: string;
   dateOfBirth: string;
+  sex?: "M" | "F" | "";
   photoUri: string | null;
 };
 
@@ -142,8 +192,8 @@ export type CollectionProgress = {
 export type ManagedCollectionPlace = {
   id: string;
   name: string;
-  city: string;
-  country: string;
+  city?: string;
+  country?: string;
   location?: string;
   detail?: string;
   access?: "free" | "pro";
@@ -210,6 +260,7 @@ export type CountryDetailResponse = {
     coverImage: string;
   };
   featuredIn: { name: string; icon: string; slug: string }[];
+  states: { id: string; name: string; countryId: string; imageUrl: string }[];
   cities: CityDetail[];
   sights: SightDetail[];
   collections: ManagedCollection[];
@@ -227,6 +278,33 @@ type CountryImportPendingResponse = {
   status: "importing";
   code: string;
   message: string;
+};
+
+const ANTARCTICA_DETAIL: CountryDetailResponse = {
+  isEnriching: false,
+  country: {
+    id: "AQ",
+    code: "AQ",
+    iso3: "ATA",
+    name: "Antarctica",
+    officialName: "Antarctica",
+    flag: "🇦🇶",
+    capital: "",
+    population: 0,
+    languages: [],
+    currencies: [],
+    continent: "Antarctica",
+    region: "Antarctica",
+    description: "The southernmost continent, surrounding the South Pole.",
+    coverImage: "",
+  },
+  featuredIn: [],
+  states: [],
+  cities: [],
+  sights: [],
+  collections: [],
+  stats: { cities: 0, totalCities: 0, sights: 0, totalSights: 0, airports: 0 },
+  visitedCities: [],
 };
 
 export type ImageCredit = {
@@ -255,6 +333,10 @@ export type SightDetail = {
 export type CityDetail = {
   id: string;
   countryId: string;
+  country?: string;
+  countryCode?: string;
+  continentCode?: string;
+  subcountry?: string;
   geonamesId: string | null;
   wikidataId: string | null;
   wikipediaTitle: string | null;
@@ -267,9 +349,16 @@ export type CityDetail = {
   image: string;
   imageCredit: ImageCredit;
   sights?: SightDetail[];
+  collections?: ManagedCollection[];
 };
 
-type BackendSight = Partial<SightDetail> & { imageUrl?: string };
+type BackendSight = Omit<Partial<SightDetail>, "city"> & {
+  city?: string | { id?: string | number; name?: string } | null;
+  cityName?: string;
+  city_name?: string;
+  city_id?: string | number;
+  imageUrl?: string;
+};
 type BackendCity = Partial<CityDetail> & {
   country?: string;
   countryCode?: string;
@@ -279,11 +368,14 @@ type BackendCity = Partial<CityDetail> & {
 };
 
 function normalizeSight(item: BackendSight): SightDetail {
+  const relatedCity = typeof item.city === "object" && item.city ? item.city : null;
   return {
     id: String(item.id ?? ""),
     countryId: String(item.countryId ?? ""),
-    cityId: String(item.cityId ?? ""),
-    city: item.city ?? "",
+    cityId: String(item.cityId ?? item.city_id ?? relatedCity?.id ?? ""),
+    city: typeof item.city === "string"
+      ? item.city
+      : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
     opentripmapXid: item.opentripmapXid ?? null,
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,
@@ -345,6 +437,7 @@ function normalizeCollectionProgress(
 }
 
 function levelForScore(score: number) {
+  if (score >= 100) return "Kroo Legend";
   if (score >= 75) return "Kroo Master";
   if (score >= 50) return "Voyager";
   if (score >= 30) return "Wayfarer";
@@ -354,18 +447,33 @@ function levelForScore(score: number) {
 }
 
 async function countryDetail(code: string): Promise<CountryDetailResponse> {
-  const path = `/catalog/countries/${encodeURIComponent(code)}`;
+  const normalizedCode = code.trim().toUpperCase();
+  const path = `/catalog/countries/${encodeURIComponent(normalizedCode)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
-    const result = await request<
-      CountryDetailResponse | CountryImportPendingResponse
-    >(path);
+    let result: CountryDetailResponse | CountryImportPendingResponse;
+    try {
+      result = await request<CountryDetailResponse | CountryImportPendingResponse>(path);
+    } catch (error) {
+      if (normalizedCode === "AQ" && error instanceof ApiError && error.status === 404) {
+        return ANTARCTICA_DETAIL;
+      }
+      throw error;
+    }
     if ("status" in result) {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
       continue;
     }
     return {
       ...result,
+      country: {
+        ...result.country,
+        coverImage: backendImageUrl(result.country.coverImage),
+      },
       cities: result.cities.map((item) => normalizeCity(item)),
+      states: (result.states ?? []).map((item) => ({
+        ...item,
+        imageUrl: backendImageUrl(item.imageUrl),
+      })),
       sights: result.sights.map((item) => normalizeSight(item)),
       collections: result.collections.map(normalizeCollection),
     };
@@ -378,10 +486,59 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
 
 export const api = {
   countryDetail,
+  stateDetail: (countryCode: string, stateName: string) =>
+    request<
+      Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
+        cities: BackendCity[];
+        sights: BackendSight[];
+      }
+    >(
+      `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
+    ).then(async (result) => {
+      const cities = result.cities.map(normalizeCity);
+      let collections: ManagedCollection[] = [];
+      try {
+        const country = await countryDetail(countryCode);
+        const cityNames = new Set(cities.map((city) => city.name.trim().toLocaleLowerCase()));
+        collections = country.collections.filter((collection) => collection.places.some((place) => cityNames.has(place.city?.trim().toLocaleLowerCase() ?? "")));
+      } catch { /* State details remain usable when collections are unavailable. */ }
+      return { ...result, imageUrl: backendImageUrl(result.imageUrl), cities, sights: result.sights.map(normalizeSight), collections };
+    }),
+  searchCities: (
+    query: string,
+    limit = 20,
+    filters: { countryCode?: string; state?: string } = {},
+    signal?: AbortSignal,
+  ) => {
+    const params = new URLSearchParams({
+      query,
+      limit: String(limit),
+    });
+    if (filters.countryCode) params.set("country", filters.countryCode);
+    if (filters.state) params.set("state", filters.state);
+    return request<CatalogCitySearchResult[]>(`/cities?${params.toString()}`, {
+      signal,
+    });
+  },
   cityDetail: (id: string) =>
-    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(
-      normalizeCity,
-    ),
+    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(async (result) => {
+      const city = normalizeCity(result);
+      let collections: ManagedCollection[] = [];
+      let sights = city.sights ?? [];
+      try {
+        const country = await countryDetail(city.countryCode ?? city.countryId);
+        const cityName = city.name.trim().toLocaleLowerCase();
+        collections = country.collections.filter((collection) => collection.places.some((place) => place.city?.trim().toLocaleLowerCase() === cityName));
+        const countryCitySights = country.sights.filter((sight) =>
+          String(sight.cityId) === String(city.id) ||
+          sight.city?.trim().toLocaleLowerCase() === cityName,
+        );
+        sights = [...sights, ...countryCitySights].filter(
+          (sight, index, all) => all.findIndex((item) => item.id === sight.id) === index,
+        );
+      } catch { /* City details remain usable when collections are unavailable. */ }
+      return { ...city, sights, collections };
+    }),
   resolveCityImage: (_input: {
     name: string;
     country: string;
@@ -398,6 +555,18 @@ export const api = {
     request<BackendSight[]>(
       `/catalog/cities/${encodeURIComponent(id)}/sights`,
     ).then((items) => items.map(normalizeSight)),
+  cityAirports: (id: string) =>
+    request<AirportOption[]>(
+      `/catalog/cities/${encodeURIComponent(id)}/airports`,
+    ),
+  stateAirports: (countryCode: string, state: string) =>
+    request<AirportOption[]>(
+      `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(state)}/airports`,
+    ),
+  nearbyCatalogPlaces: (latitude: number, longitude: number, radius = 3000) =>
+    request<NearbyCatalogPlace[]>(
+      `/catalog/nearby?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&radius=${encodeURIComponent(radius)}`,
+    ),
   sightDetail: (id: string) =>
     request<BackendSight>(`/sights/${encodeURIComponent(id)}`).then(
       normalizeSight,
@@ -405,7 +574,7 @@ export const api = {
   homeDashboard: () => request<HomeDashboard>("/me/home"),
   communityLeaderboard: (scope: "global" | "friends") =>
     request<(Partial<CommunityProfile> & Partial<CommunityProfile["stats"]>)[]>(
-      `/community/leaderboard?scope=${encodeURIComponent(scope)}`,
+      `${scope === "friends" ? "/me/community/leaderboard" : "/community/leaderboard"}?scope=${encodeURIComponent(scope)}`,
     ).then((items) =>
       items.map((item) => {
         const score = Number(item.score ?? 0);
@@ -439,6 +608,19 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
+  syncTravelState: (state: {
+    completedSightIds: string[];
+    wishlistIds: string[];
+  }) =>
+    request<TravelStateResponse>("/me/sync/travel-state", {
+      method: "POST",
+      body: JSON.stringify(state),
+    }),
+  setPlan: (plan: "free" | "pro") =>
+    request<{ plan: "free" | "pro" }>("/me/plan", {
+      method: "PUT",
+      body: JSON.stringify({ plan }),
+    }),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(
       `/me/completions/${encodeURIComponent(sightId)}`,
@@ -463,6 +645,11 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ progress }) },
     ),
   listVisits: () => request<Visit[]>("/visits"),
+  syncVisits: (visits: Visit[]) =>
+    request<Visit[]>("/me/sync/visits", {
+      method: "POST",
+      body: JSON.stringify({ visits }),
+    }),
   createVisit: (visit: NewVisit) =>
     request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
   updateVisit: (visit: Visit) =>
@@ -529,11 +716,33 @@ export const api = {
   signIn: async (payload: { email: string; password: string }) => {
     const session = await request<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ ...payload, deviceName: "Stampo mobile app" }),
+      body: JSON.stringify({ ...payload, deviceName: "Kroo mobile app" }),
     });
     setApiToken(session.token);
     await storeAuthToken(session.token);
     return { user: session.user };
+  },
+  requestAuthCode: (payload: { email: string; purpose: "sign-in" | "create-account" }) =>
+    request<{ message: string }>("/auth/code/request", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  verifyAuthCode: async (payload: {
+    email: string;
+    code: string;
+    purpose: "sign-in" | "create-account";
+    name?: string;
+    nationality?: string;
+    dateOfBirth?: string;
+    sex?: "M" | "F" | "";
+  }) => {
+    const session = await request<AuthResponse>("/auth/code/verify", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
   },
   restoreSession: async () => {
     const token = await getStoredAuthToken();

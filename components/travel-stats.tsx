@@ -24,7 +24,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
           <View style={styles.top}>
             <Ionicons
               name={item.icon as never}
-              size={24}
+              size={20}
               color={BrandColors.copper}
             />
             <View style={styles.numberRow}>
@@ -33,6 +33,17 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
                 <Text style={styles.total}>/{item.total}</Text>
               ) : null}
             </View>
+            {item.onInfo ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`About ${item.label.toLowerCase()}`}
+                hitSlop={8}
+                style={[styles.infoButton, { margin: 4 }]}
+                onPress={item.onInfo}
+              >
+                <Text style={styles.infoText}>i</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
           <View style={styles.labelRow}>
             <Text
@@ -43,17 +54,6 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
             >
               {item.label}
             </Text>
-            {item.onInfo ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`About ${item.label.toLowerCase()}`}
-                hitSlop={8}
-                style={styles.infoButton}
-                onPress={item.onInfo}
-              >
-                <Text style={styles.infoText}>i</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
       ))}
@@ -63,8 +63,8 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
 
 const styles = StyleSheet.create({
   card: {
-    height: 94,
-    borderRadius: 13,
+    height: 80,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
     backgroundColor: "rgba(10,43,32,0.20)",
@@ -102,13 +102,15 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   infoButton: {
-    width: 13,
-    height: 13,
+    width: 11,
+    height: 11,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: -3,
+    transform: [{ translateY: -2 }],
   },
   infoText: {
     marginTop: -1,

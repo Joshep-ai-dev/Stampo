@@ -84,7 +84,7 @@ const profileSections: readonly ProfileSection[] = [
         id: "sign-in",
         label: "Sign in to existing account",
         description:
-          "Use cloud data from your account. Local data on this device will be discarded. Please contact us if you would like to merge local and cloud data.",
+          "Sign in to sync the travel data on this device with your Kroo account.",
       },
     ],
   },
@@ -140,8 +140,6 @@ export default function ProfileScreen() {
   const profile = useAppSelector((state) => state.profile);
   const [activeRow, setActiveRow] = useState<ProfileRow | null>(null);
   const [draft, setDraft] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const sections = useMemo(
     () =>
       profileSections.map((section) => ({
@@ -158,6 +156,10 @@ export default function ProfileScreen() {
   );
 
   const openRow = (row: ProfileRow) => {
+    if (row.id === "sign-up" || row.id === "sign-in") {
+      router.push("/(tabs)/passport" as never);
+      return;
+    }
     if (row.id === "kroo-plus") {
       router.push("/kroo-plus" as never);
       return;
@@ -168,8 +170,6 @@ export default function ProfileScreen() {
     }
     setActiveRow(row);
     setDraft(row.value ?? "");
-    setEmail("");
-    setPassword("");
   };
 
   const closeModal = () => setActiveRow(null);
@@ -198,27 +198,12 @@ export default function ProfileScreen() {
     }
   };
 
-  const socialSignIn = (provider: "Google" | "Apple") => {
-    Alert.alert(
-      `${provider} sign-in`,
-      `${provider} credentials and the secure backend token-exchange endpoint need to be connected before sign-in can go live.`,
-    );
-  };
-
   const saveModal = () => {
     if (!activeRow) return;
     if (activeRow.id === "name") {
       const nextProfile = { ...profile, name: draft.trim() || profile.name };
       dispatch(nameChanged(nextProfile.name));
       void api.updateProfile(nextProfile).catch(() => undefined);
-    }
-    if (activeRow.id === "sign-up") {
-      void api
-        .signUp({ name: profile.name, email, password })
-        .catch(() => undefined);
-    }
-    if (activeRow.id === "sign-in") {
-      void api.signIn({ email, password }).catch(() => undefined);
     }
     closeModal();
   };
@@ -333,50 +318,6 @@ export default function ProfileScreen() {
                   )}
                 </View>
               )}
-              {(activeRow?.id === "sign-up" || activeRow?.id === "sign-in") && (
-                <>
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.googleButton]}
-                    onPress={() => socialSignIn("Google")}
-                  >
-                    <Ionicons name="logo-google" size={21} color={colors.ink} />
-                    <Text style={styles.googleText}>Continue with Google</Text>
-                  </TouchableOpacity>
-                  {Platform.OS === "ios" && (
-                    <TouchableOpacity
-                      style={[styles.socialButton, styles.appleButton]}
-                      onPress={() => socialSignIn("Apple")}
-                    >
-                      <Ionicons
-                        name="logo-apple"
-                        size={22}
-                        color={BrandColors.white}
-                      />
-                      <Text style={styles.appleText}>Continue with Apple</Text>
-                    </TouchableOpacity>
-                  )}
-                  <View style={styles.orRow}>
-                    <View style={styles.orLine} />
-                    <Text style={styles.orText}>or use email</Text>
-                    <View style={styles.orLine} />
-                  </View>
-                  <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    style={styles.input}
-                    placeholder="Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    style={styles.input}
-                    placeholder="Password"
-                    secureTextEntry
-                  />
-                </>
-              )}
               {activeRow &&
                 ["contact", "privacy", "terms"].includes(activeRow.id) && (
                   <Text style={styles.legalText}>
@@ -386,13 +327,13 @@ export default function ProfileScreen() {
                   </Text>
                 )}
               {activeRow &&
-                ["name", "sign-up", "sign-in"].includes(activeRow.id) && (
+                activeRow.id === "name" && (
                   <TouchableOpacity
                     style={styles.saveButton}
                     onPress={saveModal}
                   >
                     <Text style={styles.saveText}>
-                      {activeRow.id === "name" ? "SAVE" : "CONTINUE"}
+                      SAVE
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -529,7 +470,7 @@ const styles = StyleSheet.create({
   modalContent: { padding: 20, gap: 14, paddingBottom: 40 },
   input: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
     paddingHorizontal: 15,
@@ -539,7 +480,7 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -605,7 +546,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     height: 56,
-    borderRadius: 13,
+    borderRadius: 10,
     backgroundColor: BrandColors.copper,
     alignItems: "center",
     justifyContent: "center",

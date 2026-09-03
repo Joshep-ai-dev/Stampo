@@ -56,6 +56,7 @@ export function ProgressivePlaceImage({
       {uri ? (
         <Image
           source={{ uri }}
+          recyclingKey={uri}
           style={StyleSheet.absoluteFill}
           contentFit={contentFit}
           blurRadius={blurRadius}

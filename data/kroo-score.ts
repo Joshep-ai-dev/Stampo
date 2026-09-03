@@ -63,7 +63,8 @@ export function calculateKrooScore(input: KrooScoreInput) {
 }
 
 export const KROO_LEVELS = [
-  { minimum: 75, maximum: 100, name: "Kroo Master" },
+  { minimum: 100, maximum: 100, name: "Kroo Legend" },
+  { minimum: 75, maximum: 99.999, name: "Kroo Master" },
   { minimum: 50, maximum: 74.999, name: "Voyager" },
   { minimum: 30, maximum: 49.999, name: "Wayfarer" },
   { minimum: 15, maximum: 29.999, name: "Explorer" },
@@ -90,13 +91,13 @@ export function calculateKrooScoreFromVisits(
   const continents = new Set(visits.map((visit) => visit.continentCode).filter(Boolean));
   const countries = new Set(visits.map((visit) => visit.countryCode).filter(Boolean));
   const cities = new Set(visits.map((visit) => visit.cityId));
-  let sights = 0;
-  let airports = 0;
+  const sights = new Set(completedSightIds);
+  const airports = new Set<string>();
 
   visits.forEach((visit) => {
     visit.places.forEach((place) => {
-      if (place.type === "sight") sights += 1;
-      if (place.type === "airport") airports += 1;
+      if (place.type === "sight") sights.add(place.id || place.name);
+      if (place.type === "airport") airports.add(place.id || place.name);
     });
   });
 
@@ -104,8 +105,8 @@ export function calculateKrooScoreFromVisits(
     continents: continents.size,
     countries: countries.size,
     cities: cities.size,
-    sights: sights + new Set(completedSightIds).size,
-    airports,
+    sights: sights.size,
+    airports: airports.size,
     challengePoints,
   });
 }

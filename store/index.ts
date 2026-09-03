@@ -56,6 +56,7 @@ export async function hydrateStore() {
   try {
     const user = await api.restoreSession();
     if (user) {
+      const localTravel = store.getState().travel;
       const profile = store.getState().profile;
       const remoteProfile = await api.getProfile().catch(() => null);
       store.dispatch(
@@ -64,14 +65,20 @@ export async function hydrateStore() {
           email: user.email,
           nationality: remoteProfile?.nationality ?? profile.nationality,
           dateOfBirth: remoteProfile?.dateOfBirth ?? profile.dateOfBirth,
+          sex: remoteProfile?.sex ?? profile.sex,
         }),
       );
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-      const [visitsResult, travelStateResult] = await Promise.allSettled([
-        api.listVisits(),
-        api.travelState(),
+      const [visitsResult] = await Promise.allSettled([
+        api.syncVisits(localTravel.visits),
+      ]);
+      const [travelStateResult] = await Promise.allSettled([
+        api.syncTravelState({
+          completedSightIds: localTravel.completedSightIds,
+          wishlistIds: localTravel.wishlistIds,
+        }),
       ]);
       if (visitsResult.status === "fulfilled") {
         store.dispatch(visitsHydrated(visitsResult.value));
@@ -81,8 +88,9 @@ export async function hydrateStore() {
       }
       await store.dispatch(fetchHomeDashboard());
     } else {
-      store.dispatch(signedOut());
-      store.dispatch(visitsCleared());
+      // No server session is normal for guests. Preserve their locally saved
+      // passport name and preferences while clearing authentication state.
+      store.dispatch(authSessionChanged({ isSignedIn: false, userId: null }));
       store.dispatch(dashboardCleared());
     }
   } catch {
@@ -97,11 +105,7 @@ export async function hydrateStore() {
       const state = store.getState();
       void AsyncStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify(
-          state.profile.isSignedIn
-            ? state
-            : { profile: state.profile, travel: { visits: [] } },
-        ),
+        JSON.stringify(state),
       );
     });
   }

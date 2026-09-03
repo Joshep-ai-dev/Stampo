@@ -47,7 +47,7 @@ export const CountryStampCard = memo(function CountryStampCard({
         {stamp ? (
           <Image
             source={stamp}
-            style={[styles.stamp, !isVisited && styles.unvisitedStamp]}
+            style={styles.stamp}
             contentFit="contain"
           />
         ) : (
@@ -109,10 +109,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     transform: [{ scale: 1.2 }],
-  },
-  unvisitedStamp: {
-    opacity: 0.48,
-    filter: [{ grayscale: 1 }],
   },
   placeholder: {
     width: "100%",

@@ -80,6 +80,9 @@ export default function ExploreScreen() {
   const router = useRouter();
   const countryRowRef = useRef<FlatList<CountryRecord>>(null);
   const visits = useAppSelector((state) => state.travel.visits);
+  const completedSightIds = useAppSelector(
+    (state) => state.travel.completedSightIds,
+  );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
@@ -117,22 +120,42 @@ export default function ExploreScreen() {
   }, [visits]);
   useFocusEffect(
     useCallback(() => {
-      if (!isSignedIn) {
-        setCollectionCatalog(publicCollectionCatalog);
-        return;
-      }
       let active = true;
-      void api
-        .listCollections()
-        .then((items) => {
-          if (active)
-            setCollectionCatalog(
-              items.length > 0 ? items : publicCollectionCatalog,
-            );
-        })
-        .catch(() => {
-          if (active) setCollectionCatalog(publicCollectionCatalog);
-        });
+      void (async () => {
+        const serverItems = isSignedIn
+          ? await api.listCollections().catch(() => [])
+          : [];
+        const serverById = new Map(serverItems.map((item) => [item.id, item]));
+        const details = await Promise.all(
+          publicCollectionCatalog.map(async (fallback) => {
+            const detail = await api.collectionDetail(fallback.id).catch(() => null);
+            const server = serverById.get(fallback.id);
+            return {
+              ...fallback,
+              ...server,
+              ...(detail
+                ? {
+                    title: detail.title,
+                    detail: detail.detail,
+                    description: detail.description,
+                    imageUrl: detail.imageUrl,
+                    places: detail.places,
+                  }
+                : {}),
+            };
+          }),
+        );
+        const remoteImages = details.flatMap((collection) => [
+          collection.imageUrl,
+          ...(collection.places?.map((place) => place.imageUrl) ?? []),
+        ]).filter((url): url is string => Boolean(url));
+        if (remoteImages.length > 0) {
+          void Image.prefetch(remoteImages).catch(() => undefined);
+        }
+        if (active) {
+          setCollectionCatalog(details);
+        }
+      })();
       return () => {
         active = false;
       };
@@ -141,18 +164,29 @@ export default function ExploreScreen() {
   const visibleCollections = useMemo(() => {
     // Public collection cards are always available for discovery. Do not let
     // stale authenticated API state leave the signed-out Explore page empty.
-    const source =
-      isSignedIn && collectionCatalog.length > 0
-        ? collectionCatalog
-        : publicCollectionCatalog;
-    if (collectionFilter === "All") return source;
+    const source = collectionCatalog.length > 0
+      ? collectionCatalog
+      : publicCollectionCatalog;
+    const withLocalProgress = source.map((collection) => {
+      const placeIds = collection.places?.map(
+        (place) => `collection-${collection.id}-${place.id}`,
+      ) ?? [];
+      const localCompleted = placeIds.filter((id) =>
+        completedSightIds.includes(id),
+      ).length;
+      const localProgress = placeIds.length
+        ? Math.round((localCompleted / placeIds.length) * 100)
+        : 0;
+      return { ...collection, progress: Math.max(collection.progress, localProgress) };
+    });
+    if (collectionFilter === "All") return withLocalProgress;
     if (collectionFilter === "Active") {
-      return source.filter(
+      return withLocalProgress.filter(
         (collection) => collection.progress > 0 && collection.progress < 100,
       );
     }
-    return source.filter((collection) => collection.progress >= 100);
-  }, [collectionCatalog, collectionFilter, isSignedIn]);
+    return withLocalProgress.filter((collection) => collection.progress >= 100);
+  }, [collectionCatalog, collectionFilter, completedSightIds]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -208,7 +242,10 @@ export default function ExploreScreen() {
               country={country}
               cityCount={visitedCityCounts.get(country.code)?.size ?? 0}
               onPress={() =>
-                router.push(`/country/${country.code}` as never)
+                router.push({
+                  pathname: "/country/[code]",
+                  params: { code: country.code },
+                })
               }
             />
           )}
