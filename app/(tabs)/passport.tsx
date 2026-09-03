@@ -1044,7 +1044,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: BrandColors.green,
   },
-  accountActions: { marginTop: 32, flexDirection: "row", gap: 6 },
+  accountActions: { marginTop: 8, flexDirection: "row", gap: 6 },
   passwordButton: {
     flex: 1.5,
     height: 30,

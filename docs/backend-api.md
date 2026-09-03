@@ -114,6 +114,7 @@ Common statuses:
   "plan": "free",
   "nationality": "United States",
   "dateOfBirth": "1990-05-14",
+  "sex": "F",
   "photoUri": null
 }
 ```
@@ -318,6 +319,7 @@ Accepted properties:
   "language": "English",
   "nationality": "United States",
   "dateOfBirth": "1990-05-14",
+  "sex": "F",
   "photoUri": "file:///local/profile-photo.jpg"
 }
 ```
