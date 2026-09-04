@@ -158,7 +158,6 @@ export type StateDetailResponse = {
 
 export type TravelStateResponse = {
   completedSightIds: string[];
-  wishlistIds: string[];
   rewards: unknown[];
   challengePoints: number;
   collections: CollectionProgress[];
@@ -610,7 +609,6 @@ export const api = {
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   syncTravelState: (state: {
     completedSightIds: string[];
-    wishlistIds: string[];
   }) =>
     request<TravelStateResponse>("/me/sync/travel-state", {
       method: "POST",
@@ -625,11 +623,6 @@ export const api = {
     request<{ sightId: string; completed: boolean }>(
       `/me/completions/${encodeURIComponent(sightId)}`,
       { method: "PUT", body: JSON.stringify({ completed }) },
-    ),
-  setWishlist: (targetId: string, saved: boolean) =>
-    request<{ targetId: string; saved: boolean }>(
-      `/me/wishlist/${encodeURIComponent(targetId)}`,
-      { method: "PUT", body: JSON.stringify({ saved }) },
     ),
   listCollections: (status: "all" | "active" | "completed" = "all") =>
     request<CollectionProgress[]>(

@@ -47,7 +47,7 @@ import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
-import { calculateKrooScore, getKrooLevel } from "@/data/kroo-score";
+import { calculateKrooScore, getKrooLevel, KROO_LEVELS } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
@@ -979,7 +979,6 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
   const completedSightIds = useAppSelector((x) => x.travel.completedSightIds);
-  const wishlistIds = useAppSelector((x) => x.travel.wishlistIds);
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
@@ -1079,7 +1078,7 @@ export default function HomeScreen() {
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.syncVisits(visits),
-      api.syncTravelState({ completedSightIds, wishlistIds }),
+      api.syncTravelState({ completedSightIds }),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));
@@ -1087,7 +1086,7 @@ export default function HomeScreen() {
     if (travelStateResult.status === "fulfilled") {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
-  }, [completedSightIds, dispatch, visits, wishlistIds]);
+  }, [completedSightIds, dispatch, visits]);
   const refreshSignedInTravelRef = useRef(refreshSignedInTravel);
   useEffect(() => {
     refreshSignedInTravelRef.current = refreshSignedInTravel;
@@ -1176,6 +1175,17 @@ export default function HomeScreen() {
       footer: serverHome?.level ?? getKrooLevel(score),
     });
   }, [score, serverHome?.level]);
+  const openKrooLevels = useCallback(() => {
+    setInfoModal({
+      title: "Kroo Levels",
+      body: "Your level is based on your Kroo Score. Keep adding places you have visited to progress through the levels.",
+      bullets: [...KROO_LEVELS].reverse().map((level) =>
+        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "+" : `–${level.maximum.toFixed(1)}`} Kroo Score`,
+      ),
+      showKrooLogo: true,
+      footer: serverHome?.level ?? getKrooLevel(score),
+    });
+  }, [score, serverHome?.level]);
   const refreshHome = useCallback(async () => {
     if (!isSignedIn) return;
     setRefreshing(true);
@@ -1218,7 +1228,13 @@ export default function HomeScreen() {
             >
               {name || "Traveler"}
             </Text>
-            <View style={styles.levelRow}>
+            <TouchableOpacity
+              style={styles.levelRow}
+              onPress={openKrooLevels}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="View Kroo levels and score requirements"
+            >
               <Image
                 source={require("@/assets/images/other/compass.png")}
                 style={styles.levelCompass}
@@ -1227,7 +1243,7 @@ export default function HomeScreen() {
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
@@ -1332,15 +1348,18 @@ export default function HomeScreen() {
           <View style={styles.welcomeSheet}>
             <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
             <Text style={styles.welcomeBody}>
-              Start by adding the cities you’ve already visited, then keep your
-              passport updated as you continue exploring.
+              Feel free to have a look around and try Kroo out for free — no account needed.
             </Text>
+            <Text style={styles.welcomeStrong}>To start we suggest</Text>
+            <View style={styles.bullets}>
+              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>Add a city you have visited — the countries you have visited will automatically update</Text></View>
+              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>View the stamps of the countries you have visited in your passport</Text></View>
+            </View>
             <Text style={styles.welcomeBody}>
-              Your Kroo score rises as you record countries, cities, airports,
-              and sights, and your level reflects how far you&apos;ve traveled.
+              When you&apos;re ready to save your travel progress and Kroo Score, simply complete your passport profile on the Passport page.
             </Text>
             <Text style={styles.welcomeQuestion}>
-              What name would you like on your passport?
+              What name would you like to use on your passport?
             </Text>
             <TextInput
               value={welcomeName}
@@ -1422,13 +1441,14 @@ const styles = StyleSheet.create({
   },
   welcomeStrong: {
     fontFamily: "Lora_700Bold",
+    color: BrandColors.onDark,
+    textAlign: "center",
   },
   welcomeQuestion: {
     marginTop: 22,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
-    textAlign: "center",
   },
   welcomeInput: {
     minHeight: 52,
@@ -1883,4 +1903,9 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
+  bullets: { width: "100%", marginTop: 15, paddingLeft: 5, textAlign: "left" },
+  bulletRow: { marginBottom: 5, flexDirection: "row" },
+  bullet: { width: 15, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
+  bulletText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(15), color: BrandColors.onDark },
+
 });

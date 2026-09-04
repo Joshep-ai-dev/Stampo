@@ -68,6 +68,16 @@ function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
   };
 }
 
+async function airportsForCity(city: CityRecord) {
+  const direct = await api.cityAirports(city.id);
+  if (direct.length || !city.subcountry) return direct;
+  const regional = await api.stateAirports(city.countryCode, city.subcountry);
+  return regional.filter(
+    (airport, index, all) =>
+      all.findIndex((item) => item.id === airport.id) === index,
+  );
+}
+
 export function CityVisitSearch({
   countryCode,
   countryName,
@@ -132,7 +142,7 @@ export function CityVisitSearch({
     setSelectedAirport(null);
     setAirportMenuOpen(false);
     setAirportsLoading(true);
-    void api.cityAirports(city.id)
+    void airportsForCity(city)
       .then(setAirports)
       .catch(() => setAirports([]))
       .finally(() => setAirportsLoading(false));

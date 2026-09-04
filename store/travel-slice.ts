@@ -35,7 +35,6 @@ export type NewVisit = Omit<Visit, "id">;
 export type TravelState = {
   visits: Visit[];
   completedSightIds: string[];
-  wishlistIds: string[];
   challengePoints: number;
   plan: "free" | "pro";
 };
@@ -43,7 +42,6 @@ export type TravelState = {
 const initialState: TravelState = {
   visits: [],
   completedSightIds: [],
-  wishlistIds: [],
   challengePoints: 0,
   plan: "free",
 };
@@ -86,8 +84,6 @@ const travelSlice = createSlice({
     ) {
       if (action.payload.completedSightIds)
         state.completedSightIds = [...new Set(action.payload.completedSightIds)];
-      if (action.payload.wishlistIds)
-        state.wishlistIds = [...new Set(action.payload.wishlistIds)];
       if (action.payload.challengePoints !== undefined)
         state.challengePoints = Math.min(
           Math.max(0, action.payload.challengePoints),
@@ -114,11 +110,6 @@ const travelSlice = createSlice({
       state.completedSightIds = completed
         ? [...new Set([...state.completedSightIds, id])]
         : state.completedSightIds.filter((item) => item !== id);
-    },
-    wishlistToggled(state, action: PayloadAction<string>) {
-      state.wishlistIds = state.wishlistIds.includes(action.payload)
-        ? state.wishlistIds.filter((id) => id !== action.payload)
-        : [...state.wishlistIds, action.payload];
     },
     placeAdded(
       state,
@@ -151,6 +142,6 @@ const travelSlice = createSlice({
   },
 });
 
-export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, wishlistToggled, visitAdded, visitReceived, visitUpdated, visitsCleared, visitsHydrated, visitRemoved } =
+export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, visitAdded, visitReceived, visitUpdated, visitsCleared, visitsHydrated, visitRemoved } =
   travelSlice.actions;
 export default travelSlice.reducer;
