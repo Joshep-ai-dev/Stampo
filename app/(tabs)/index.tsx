@@ -1012,16 +1012,27 @@ export default function HomeScreen() {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      const [address] = await Location.reverseGeocodeAsync(position.coords);
       setCurrentLocation({
-        label:
-          [address?.city || address?.subregion, address?.country]
-            .filter(Boolean)
-            .join(", ") || "Current position",
+        label: "Current position",
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-    } catch { }
+      try {
+        const [address] = await Location.reverseGeocodeAsync(position.coords);
+        setCurrentLocation({
+          label:
+            [address?.city || address?.subregion, address?.country]
+              .filter(Boolean)
+              .join(", ") || "Current position",
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      } catch (error) {
+        console.warn("Could not resolve the current location name.", error);
+      }
+    } catch (error) {
+      console.warn("Could not get the current GPS position.", error);
+    }
   }, [gpsArrivalsAllowed]);
   useEffect(() => {
     let active = true;
@@ -1033,9 +1044,10 @@ export default function HomeScreen() {
         active = false;
       };
     }
-    void Location.getForegroundPermissionsAsync().then(async (permission) => {
+    const startLocation = async () => {
+      await locateUser();
+      const permission = await Location.getForegroundPermissionsAsync();
       if (!active || !permission.granted) return;
-      void locateUser();
       subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -1051,6 +1063,13 @@ export default function HomeScreen() {
           }));
         },
       );
+      if (!active) {
+        subscription.remove();
+        subscription = undefined;
+      }
+    };
+    void startLocation().catch((error) => {
+      console.warn("Could not start foreground location updates.", error);
     });
     return () => {
       active = false;
