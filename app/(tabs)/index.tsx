@@ -1351,10 +1351,10 @@ export default function HomeScreen() {
               Feel free to have a look around and try Kroo out for free — no account needed.
             </Text>
             <Text style={styles.welcomeStrong}>To start we suggest</Text>
-            <Text style={styles.welcomeBody}>
-              • Add a city you have visited — the countries you have visited will automatically update{"\n"}
-              • View the stamps of the countries you have visited in your passport
-            </Text>
+            <View style={styles.bullets}>
+              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>Add a city you have visited — the countries you have visited will automatically update</Text></View>
+              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>View the stamps of the countries you have visited in your passport</Text></View>
+            </View>
             <Text style={styles.welcomeBody}>
               When you&apos;re ready to save your travel progress and Kroo Score, simply complete your passport profile on the Passport page.
             </Text>
@@ -1441,13 +1441,14 @@ const styles = StyleSheet.create({
   },
   welcomeStrong: {
     fontFamily: "Lora_700Bold",
+    color: BrandColors.onDark,
+    textAlign: "center",
   },
   welcomeQuestion: {
     marginTop: 22,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
-    textAlign: "center",
   },
   welcomeInput: {
     minHeight: 52,
@@ -1902,4 +1903,9 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(14),
     color: BrandColors.onDark,
   },
+  bullets: { width: "100%", marginTop: 15, paddingLeft: 5, textAlign: "left" },
+  bulletRow: { marginBottom: 5, flexDirection: "row" },
+  bullet: { width: 15, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
+  bulletText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(15), color: BrandColors.onDark },
+
 });
