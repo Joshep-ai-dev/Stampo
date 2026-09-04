@@ -1,13 +1,16 @@
 {
   "expo": {
     "name": "Kroo",
-    "slug": "Stampo",
+    "slug": "Kroo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "Kroo",
+    "scheme": "kroo",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "NEVER"
+    },
     "ios": {
       "bundleIdentifier": "com.krootravel.app",
       "supportsTablet": true,
@@ -24,6 +27,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "backgroundColor": "#042219"
       },
+      "newArchEnabled": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.krootravel.app",

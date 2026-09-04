@@ -1012,16 +1012,27 @@ export default function HomeScreen() {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      const [address] = await Location.reverseGeocodeAsync(position.coords);
       setCurrentLocation({
-        label:
-          [address?.city || address?.subregion, address?.country]
-            .filter(Boolean)
-            .join(", ") || "Current position",
+        label: "Current position",
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-    } catch { }
+      try {
+        const [address] = await Location.reverseGeocodeAsync(position.coords);
+        setCurrentLocation({
+          label:
+            [address?.city || address?.subregion, address?.country]
+              .filter(Boolean)
+              .join(", ") || "Current position",
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      } catch (error) {
+        console.warn("Could not resolve the current location name.", error);
+      }
+    } catch (error) {
+      console.warn("Could not get the current GPS position.", error);
+    }
   }, [gpsArrivalsAllowed]);
   useEffect(() => {
     let active = true;
@@ -1033,9 +1044,10 @@ export default function HomeScreen() {
         active = false;
       };
     }
-    void Location.getForegroundPermissionsAsync().then(async (permission) => {
+    const startLocation = async () => {
+      await locateUser();
+      const permission = await Location.getForegroundPermissionsAsync();
       if (!active || !permission.granted) return;
-      void locateUser();
       subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -1051,6 +1063,13 @@ export default function HomeScreen() {
           }));
         },
       );
+      if (!active) {
+        subscription.remove();
+        subscription = undefined;
+      }
+    };
+    void startLocation().catch((error) => {
+      console.warn("Could not start foreground location updates.", error);
     });
     return () => {
       active = false;
@@ -1144,7 +1163,15 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Score",
       body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
-      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
+      bullets: [
+        "Wanderer: 0–4.9",
+        "Traveler: 5–14.9",
+        "Explorer: 15–29.9",
+        "Wayfarer: 30–49.9",
+        "Voyager: 50–74.9",
+        "Kroo Master: 75–99.9",
+        "Kroo Legend: 100+",
+      ],
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1305,14 +1332,15 @@ export default function HomeScreen() {
           <View style={styles.welcomeSheet}>
             <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
             <Text style={styles.welcomeBody}>
-              Feel free to look around and try it out no account needed.
+              Start by adding the cities you’ve already visited, then keep your
+              passport updated as you continue exploring.
             </Text>
             <Text style={styles.welcomeBody}>
-              When you&apos;re ready to save your travel progress and kroo score,
-              simply complete your passport profile on the passport page.
+              Your Kroo score rises as you record countries, cities, airports,
+              and sights, and your level reflects how far you&apos;ve traveled.
             </Text>
             <Text style={styles.welcomeQuestion}>
-              What name would you like to use on your passport?
+              What name would you like on your passport?
             </Text>
             <TextInput
               value={welcomeName}
