@@ -137,7 +137,6 @@ function IdentityPage({
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
-  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const [draft, setDraft] = useState({
     name: profile.name,
     email: profile.email,
@@ -224,7 +223,6 @@ function IdentityPage({
     const [travelStateResult] = await Promise.allSettled([
       api.syncTravelState({
         completedSightIds,
-        wishlistIds,
       }),
     ]);
     if (visitsResult.status === "fulfilled") {

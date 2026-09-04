@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
-import { api, type AirportOption } from "@/services/api";
+import { api, type AirportOption, type CatalogCitySearchResult } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { visitRemoved, visitUpdated, type Visit } from "@/store/travel-slice";
@@ -36,17 +36,46 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   const [airportsLoading, setAirportsLoading] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const [editAirport, setEditAirport] = useState<AirportOption | null>(null);
+  const [replacementCity, setReplacementCity] = useState<CatalogCitySearchResult | null>(null);
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityMatches, setCityMatches] = useState<CatalogCitySearchResult[]>([]);
   const [deletingVisitId, setDeletingVisitId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setAirportsLoading(true);
+    const visit = city.visits[0];
     void api.cityAirports(city.id)
-      .then((items) => { if (active) setAirports(items); })
+      .then(async (items) => {
+        if (items.length || !visit?.subcountry) return items;
+        return api.stateAirports(visit.countryCode, visit.subcountry);
+      })
+      .then((items) => {
+        if (!active) return;
+        setAirports(items.filter((airport, index, all) =>
+          all.findIndex((item) => item.id === airport.id) === index,
+        ));
+      })
       .catch(() => { if (active) setAirports([]); })
       .finally(() => { if (active) setAirportsLoading(false); });
     return () => { active = false; };
   }, [city.id]);
+
+  useEffect(() => {
+    if (!editingVisitId || cityQuery.trim().length < 2) {
+      setCityMatches([]);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      void api.searchCities(cityQuery.trim(), 8).then((items) => {
+        if (active) setCityMatches(items);
+      }).catch(() => {
+        if (active) setCityMatches([]);
+      });
+    }, 200);
+    return () => { active = false; clearTimeout(timer); };
+  }, [cityQuery, editingVisitId]);
 
   const airportFromVisit = (visit: Visit): AirportOption | null => {
     const place = visit.places.find((item) => item.type === "airport");
@@ -68,6 +97,14 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     if (!visit) return;
     const updated = {
       ...visit,
+      ...(replacementCity ? {
+        cityId: replacementCity.id,
+        cityName: replacementCity.name,
+        country: replacementCity.country,
+        countryCode: replacementCity.countryCode,
+        continentCode: replacementCity.continentCode,
+        subcountry: replacementCity.subcountry,
+      } : {}),
       visitedAt: editVisitDate,
       note: editVisitNote.trim(),
       places: [
@@ -82,6 +119,8 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     setCurrentVisits((items) => items.map((item) => item.id === updated.id ? updated : item));
     dispatch(visitUpdated(updated));
     setEditingVisitId(null);
+    setReplacementCity(null);
+    setCityQuery("");
     if (!isSignedIn) return;
     try {
       const remote = await api.updateVisit(updated);
@@ -179,6 +218,8 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                         setEditVisitNote(visit.note);
                         setEditAirport(airportFromVisit(visit));
                         setAirportMenuOpen(false);
+                        setReplacementCity(null);
+                        setCityQuery("");
                       }}
                       accessibilityRole="button"
                       accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
@@ -203,6 +244,36 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
             </View>
             {editingVisitId === visit.id ? (
               <View style={s.form}>
+                <Text style={s.label}>City</Text>
+                <TextInput
+                  value={cityQuery}
+                  onChangeText={setCityQuery}
+                  placeholder={replacementCity ? replacementCity.name : `Change ${visit.cityName}`}
+                  placeholderTextColor={BrandColors.onDarkMuted}
+                  style={s.input}
+                  autoCorrect={false}
+                />
+                {cityMatches.map((match) => (
+                  <Pressable
+                    key={match.id}
+                    style={s.cityOption}
+                    onPress={() => {
+                      setReplacementCity(match);
+                      setCityQuery(match.name);
+                      setEditAirport(null);
+                      setAirportMenuOpen(false);
+                      void api.cityAirports(match.id)
+                        .then((items) => items.length || !match.subcountry
+                          ? items
+                          : api.stateAirports(match.countryCode, match.subcountry))
+                        .then(setAirports)
+                        .catch(() => setAirports([]));
+                    }}
+                  >
+                    <Text style={s.cityOptionName}>{match.name}</Text>
+                    <Text style={s.cityOptionDetail}>{[match.subcountry, match.country].filter(Boolean).join(", ")}</Text>
+                  </Pressable>
+                ))}
                 <Text style={s.label}>Visit date</Text>
                 <TextInput value={editVisitDate} onChangeText={setEditVisitDate} placeholder="YYYY-MM-DD" placeholderTextColor={BrandColors.onDarkMuted} style={s.input} maxLength={10} />
                 <Text style={[s.label, s.noteLabel]}>Airport</Text>
@@ -258,6 +329,9 @@ const s = StyleSheet.create({
   title: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
   count: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   item: { paddingVertical: 10, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BrandColors.paleGreen },
+  cityOption: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.08)", gap: 2 },
+  cityOptionName: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(13), color: BrandColors.onDark },
+  cityOptionDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: BrandColors.onDarkMuted },
   itemHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   row: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 8 },
   text: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },

@@ -77,7 +77,6 @@ export async function hydrateStore() {
       const [travelStateResult] = await Promise.allSettled([
         api.syncTravelState({
           completedSightIds: localTravel.completedSightIds,
-          wishlistIds: localTravel.wishlistIds,
         }),
       ]);
       if (visitsResult.status === "fulfilled") {
