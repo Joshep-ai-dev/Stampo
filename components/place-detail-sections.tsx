@@ -80,7 +80,6 @@ function NavigablePlaceSection({ title, items, emptyText, onOpen, showDetail = t
               {item.image ? <ProgressivePlaceImage uri={item.image} style={s.roundImage} contentFit="cover" /> : <View style={s.icon}><Ionicons name="map-outline" size={24} color={BrandColors.copper} /></View>}
               <View style={s.copy}>
                 <Text style={s.itemTitle} numberOfLines={1}>{item.name}</Text>
-                {showDetail ? <Text style={s.detail} numberOfLines={1}>{item.detail}</Text> : null}
               </View>
               <Ionicons name="chevron-forward" size={20} color={BrandColors.onDarkMuted} />
             </TouchableOpacity>
