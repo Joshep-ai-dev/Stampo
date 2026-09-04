@@ -32,7 +32,6 @@ import {
   NewVisit,
   visitAdded,
   visitReceived,
-  wishlistToggled,
 } from "@/store/travel-slice";
 
 const colors = {
@@ -78,7 +77,6 @@ export function CityVisitSearch({
 } = {}) {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
-  const wishlistIds = useAppSelector((state) => state.travel.wishlistIds);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CityRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,12 +87,7 @@ export function CityVisitSearch({
   const [airportsLoading, setAirportsLoading] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
-  const [wishlistPending, setWishlistPending] = useState(false);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
-  const selectedWishlistId = selectedCity ? `city:${selectedCity.id}` : null;
-  const isWishlisted = selectedWishlistId
-    ? wishlistIds.includes(selectedWishlistId)
-    : false;
 
   useEffect(() => {
     let active = true;
@@ -181,26 +174,6 @@ export function CityVisitSearch({
     closeModal();
     setQuery("");
     setResults([]);
-  };
-
-  const saveToWishlist = async () => {
-    if (!selectedWishlistId || isWishlisted || wishlistPending) return;
-    setWishlistPending(true);
-    dispatch(wishlistToggled(selectedWishlistId));
-    if (!isSignedIn) {
-      setWishlistPending(false);
-      return;
-    }
-    try {
-      await api.setWishlist(selectedWishlistId, true);
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync your wishlist when the server is available.",
-      );
-    } finally {
-      setWishlistPending(false);
-    }
   };
 
   return (
@@ -400,32 +373,6 @@ export function CityVisitSearch({
                   <Text style={styles.saveText}>SAVE VISIT</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.wishlistButton,
-                    isWishlisted && styles.wishlistButtonSaved,
-                  ]}
-                  onPress={() => void saveToWishlist()}
-                  activeOpacity={0.8}
-                  disabled={wishlistPending || isWishlisted}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    isWishlisted ? "Saved to wishlist" : "Save to wishlist"
-                  }
-                >
-                  {wishlistPending ? (
-                    <ActivityIndicator color={colors.brown} />
-                  ) : (
-                    <Ionicons
-                      name={isWishlisted ? "heart" : "heart-outline"}
-                      size={21}
-                      color={colors.brown}
-                    />
-                  )}
-                  <Text style={styles.wishlistText}>
-                    {isWishlisted ? "SAVED TO WISHLIST" : "SAVE TO WISHLIST"}
-                  </Text>
-                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
@@ -686,26 +633,5 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(20),
     color: "#fffaf1",
     letterSpacing: 1.4,
-  },
-  wishlistButton: {
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    marginTop: 12,
-    backgroundColor: colors.card,
-  },
-  wishlistButtonSaved: {
-    backgroundColor: colors.panel,
-  },
-  wishlistText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
-    color: colors.brown,
-    letterSpacing: 1,
   },
 });
