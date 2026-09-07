@@ -153,16 +153,16 @@ export default function PlusTabScreen() {
   }, []);
   const quizRounds: QuizRound[] = managedRounds.length
     ? managedRounds.map((item) => ({
-        id: item.id,
-        name: item.name,
-        country: item.country,
-        city: item.city || "Nationwide",
-        icon: item.icon || "🌍",
-        info: item.content,
-        q: item.question,
-        options: item.options,
-        correct: item.correctAnswer,
-      }))
+      id: item.id,
+      name: item.name,
+      country: item.country,
+      city: item.city || "Nationwide",
+      icon: item.icon || "🌍",
+      info: item.content,
+      q: item.question,
+      options: item.options,
+      correct: item.correctAnswer,
+    }))
     : rounds;
   const krooScore = useMemo(
     () =>
@@ -215,95 +215,95 @@ export default function PlusTabScreen() {
           accessibilityLabel="Kroo, Collect the world"
         />
         {isPlus ? <>
-        <View style={s.dailyHead}>
-          <View>
-            <Text style={s.sectionTitle}>Daily Destination</Text>
-            <Text style={s.kicker}>TODAY&apos;S LESSON</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={s.iq}>{iq.toFixed(1)}</Text>
-            <Text style={s.kicker}>KROO IQ</Text>
-          </View>
-        </View>
-        <View style={s.dailyCard}>
-          <View style={s.dots}>
-            {quizRounds.map((item, i) => (
-              <View
-                key={item.id ?? i}
-                style={[
-                  s.dot,
-                  i < index && s.done,
-                  i === index && phase !== "result" && s.current,
-                ]}
-              />
-            ))}
-          </View>
-          {phase === "result" ? (
-            <View style={s.result}>
-              <Text style={s.resultScore}>
-                {score}/{quizRounds.length}
-              </Text>
-              <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
-              <Text style={s.correct}>Kroo IQ is your percentage of correct Daily Destination answers.</Text>
-              <Button
-                label=" DONE FOR TODAY "
-                onPress={() => {
-                  setIndex(0);
-                  setScore(0);
-                  setAnswer(null);
-                  setPhase("info");
-                }}
-              />
-            </View>
-          ) : phase === "info" ? (
+          <View style={s.dailyHead}>
             <View>
-              <Text style={s.lessonTitle}>{round.country}</Text>
-              <Text style={s.kicker}>{round.city.toUpperCase()}</Text>
-              <View style={s.lessonImage}>
-                <Text style={{ fontSize: responsiveFontSize(34) }}>{round.icon}</Text>
-              </View>
-              <Text style={s.body}>{round.info}</Text>
-              <Button label="CONTINUE" onPress={() => setPhase("question")} />
+              <Text style={s.sectionTitle}>Daily Destination</Text>
+              <Text style={s.kicker}>TODAY&apos;S LESSON</Text>
             </View>
-          ) : (
-            <View>
-              <Text style={s.kicker}>QUESTION {index + 1} OF {quizRounds.length}</Text>
-              <Text style={s.question}>{round.q}</Text>
-              {round.options.map((option, i) => (
-                <TouchableOpacity
-                  key={option}
-                  disabled={answer !== null}
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={s.iq}>{iq.toFixed(1)}</Text>
+              <Text style={s.kicker}>KROO IQ</Text>
+            </View>
+          </View>
+          <View style={s.dailyCard}>
+            <View style={s.dots}>
+              {quizRounds.map((item, i) => (
+                <View
+                  key={item.id ?? i}
                   style={[
-                    s.option,
-                    answer !== null && i === round.correct && s.optionCorrect,
-                    answer === i && i !== round.correct && s.optionWrong,
+                    s.dot,
+                    i < index && s.done,
+                    i === index && phase !== "result" && s.current,
                   ]}
-                  onPress={() => {
-                    setAnswer(i);
-                    if (i === round.correct) setScore(score + 1);
-                  }}
-                >
-                  <Text style={s.optionText}>{option}</Text>
-                </TouchableOpacity>
+                />
               ))}
-              {answer !== null && (
-                <>
-                  <Text style={answer === round.correct ? s.correct : s.wrong}>
-                    {answer === round.correct
-                      ? "Correct! Nice work."
-                      : `Not quite — the answer was ${round.options[round.correct]}.`}
-                  </Text>
-                  <Button
-                    label={
-                      index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"
-                    }
-                    onPress={next}
-                  />
-                </>
-              )}
             </View>
-          )}
-        </View>
+            {phase === "result" ? (
+              <View style={s.result}>
+                <Text style={s.resultScore}>
+                  {score}/{quizRounds.length}
+                </Text>
+                <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
+                <Text style={s.correct}>Kroo IQ is your percentage of correct Daily Destination answers.</Text>
+                <Button
+                  label=" DONE FOR TODAY "
+                  onPress={() => {
+                    setIndex(0);
+                    setScore(0);
+                    setAnswer(null);
+                    setPhase("info");
+                  }}
+                />
+              </View>
+            ) : phase === "info" ? (
+              <View>
+                <Text style={s.lessonTitle}>{round.country}</Text>
+                <Text style={s.kicker}>{round.city.toUpperCase()}</Text>
+                <View style={s.lessonImage}>
+                  <Text style={{ fontSize: responsiveFontSize(34) }}>{round.icon}</Text>
+                </View>
+                <Text style={s.body}>{round.info}</Text>
+                <Button label="CONTINUE" onPress={() => setPhase("question")} />
+              </View>
+            ) : (
+              <View>
+                <Text style={s.kicker}>QUESTION {index + 1} OF {quizRounds.length}</Text>
+                <Text style={s.question}>{round.q}</Text>
+                {round.options.map((option, i) => (
+                  <TouchableOpacity
+                    key={option}
+                    disabled={answer !== null}
+                    style={[
+                      s.option,
+                      answer !== null && i === round.correct && s.optionCorrect,
+                      answer === i && i !== round.correct && s.optionWrong,
+                    ]}
+                    onPress={() => {
+                      setAnswer(i);
+                      if (i === round.correct) setScore(score + 1);
+                    }}
+                  >
+                    <Text style={s.optionText}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
+                {answer !== null && (
+                  <>
+                    <Text style={answer === round.correct ? s.correct : s.wrong}>
+                      {answer === round.correct
+                        ? "Correct! Nice work."
+                        : `Not quite — the answer was ${round.options[round.correct]}.`}
+                    </Text>
+                    <Button
+                      label={
+                        index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"
+                      }
+                      onPress={next}
+                    />
+                  </>
+                )}
+              </View>
+            )}
+          </View>
         </> : (
           <View style={s.offerSection}>
             <Text style={s.offerHeading}>Go further with Kroo+</Text>
@@ -737,9 +737,10 @@ const s = StyleSheet.create({
   },
   close: { position: "absolute", right: 20, top: 14, zIndex: 2 },
   modalImage: {
-    height: 130,
+    width: "100%",
     marginTop: 24,
-    borderRadius: 16,
+    aspectRatio: 1.5,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1172,7 +1172,7 @@ export default function HomeScreen() {
       title: "Kroo Levels",
       body: "Your level is based on your Kroo Score. Keep adding places you have visited to progress through the levels.",
       bullets: [...KROO_LEVELS].reverse().map((level) =>
-        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "+" : `–${level.maximum.toFixed(1)}`}`,
+        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
       ),
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
@@ -1220,13 +1220,7 @@ export default function HomeScreen() {
             >
               {name || "Traveler"}
             </Text>
-            <TouchableOpacity
-              style={styles.levelRow}
-              onPress={openKrooLevels}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="View Kroo levels and score requirements"
-            >
+            <View style={styles.levelRow}>
               <Image
                 source={require("@/assets/images/other/compass.png")}
                 style={styles.levelCompass}
@@ -1235,7 +1229,11 @@ export default function HomeScreen() {
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
               </Text>
-            </TouchableOpacity>
+              <InfoButton
+                label="About Kroo Levels"
+                onPress={openKrooLevels}
+              />
+            </View>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}

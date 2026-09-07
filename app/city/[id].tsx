@@ -18,7 +18,19 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sightCompletionSet } from "@/store/travel-slice";
 
 export default function CityScreen() {
-  const { id = "" } = useLocalSearchParams<{ id: string }>();
+  const {
+    id = "",
+    name,
+    country,
+    countryCode,
+    state,
+  } = useLocalSearchParams<{
+    id: string;
+    name?: string;
+    country?: string;
+    countryCode?: string;
+    state?: string;
+  }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visits = useAppSelector((state) => state.travel.visits);
@@ -34,13 +46,13 @@ export default function CityScreen() {
     setLoading(true);
     setError("");
     try {
-      setCity(await api.cityDetail(id));
+      setCity(await api.cityDetail(id, { name, country, countryCode, state }));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load this city.");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [country, countryCode, id, name, state]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -164,7 +176,7 @@ export default function CityScreen() {
         <DetailModal
           visible
           title={selectedSight.name}
-          location={[city?.name || selectedSight.city, regionName, countryName].filter(Boolean).join(", ")}
+          location={city?.name || selectedSight.city}
           description={selectedSight.description || "A famous attraction ready to explore."}
           image={<ProgressivePlaceImage uri={selectedSight.image} style={s.modalImage} contentFit="cover" />}
           onClose={() => setSelectedSight(null)}
@@ -224,5 +236,5 @@ const s = StyleSheet.create({
   meta: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
-  modalImage: { width: "100%", height: 190, borderRadius: 16, backgroundColor: BrandColors.greenDeep },
+  modalImage: { width: "100%", aspectRatio: 1.5, borderRadius: 10, backgroundColor: BrandColors.greenDeep },
 });

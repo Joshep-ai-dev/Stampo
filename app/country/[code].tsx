@@ -329,7 +329,7 @@ export default function CountryScreen() {
           <StatesSection showDetail={false} items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
         ) : null}
 
-        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push(`/city/${city.id}` as never)} />
+        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push({ pathname: "/city/[id]", params: { id: city.id, name: city.name, country: name, countryCode: normalizedCode } })} />
         <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
 
         <TouchableOpacity
@@ -703,8 +703,8 @@ const s = StyleSheet.create({
   },
   modalImage: {
     width: "100%",
-    height: 190,
-    borderRadius: 16,
+    aspectRatio: 1.5,
+    borderRadius: 10,
     backgroundColor: BrandColors.greenDeep,
   },
   modalImagePlaceholder: {
