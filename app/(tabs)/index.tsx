@@ -1162,15 +1162,7 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Score",
       body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
-      bullets: [
-        "Wanderer: 0–4.9",
-        "Traveler: 5–14.9",
-        "Explorer: 15–29.9",
-        "Wayfarer: 30–49.9",
-        "Voyager: 50–74.9",
-        "Kroo Master: 75–99.9",
-        "Kroo Legend: 100+",
-      ],
+      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1180,7 +1172,7 @@ export default function HomeScreen() {
       title: "Kroo Levels",
       body: "Your level is based on your Kroo Score. Keep adding places you have visited to progress through the levels.",
       bullets: [...KROO_LEVELS].reverse().map((level) =>
-        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "+" : `–${level.maximum.toFixed(1)}`} Kroo Score`,
+        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
       ),
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
@@ -1228,13 +1220,7 @@ export default function HomeScreen() {
             >
               {name || "Traveler"}
             </Text>
-            <TouchableOpacity
-              style={styles.levelRow}
-              onPress={openKrooLevels}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="View Kroo levels and score requirements"
-            >
+            <View style={styles.levelRow}>
               <Image
                 source={require("@/assets/images/other/compass.png")}
                 style={styles.levelCompass}
@@ -1243,7 +1229,11 @@ export default function HomeScreen() {
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
               </Text>
-            </TouchableOpacity>
+              <InfoButton
+                label="About Kroo Levels"
+                onPress={openKrooLevels}
+              />
+            </View>
           </View>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}

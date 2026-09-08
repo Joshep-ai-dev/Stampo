@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   eyebrow: { maxWidth: "75%", marginBottom: 8, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), letterSpacing: .6, color: BrandColors.copper },
   title: { marginTop: 17, textAlign: "center", fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(24), color: BrandColors.onDark },
   body: { marginTop: 10, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(15), lineHeight: 23, color: BrandColors.onDarkMuted },
-  bullets: { width: "100%", maxWidth: 220, marginTop: 15, paddingLeft: 40 },
+  bullets: { width: "100%", maxWidth: 220, marginTop: 15, paddingLeft: 30 },
   bulletRow: { minHeight: 27, flexDirection: "row", alignItems: "center" },
   bullet: { width: 22, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: BrandColors.copper },
   bulletText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(15), color: BrandColors.onDark },

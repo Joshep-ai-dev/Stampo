@@ -193,7 +193,7 @@ export default function StateScreen() {
             ]} /></View>
 
             <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
-            <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push(`/city/${city.id}` as never)} />
+            <CitiesVisitedSection items={cityItems} emptyText={`Your visited cities in ${detail.name} will appear here.`} onOpen={(city) => router.push({ pathname: "/city/[id]", params: { id: city.id, name: city.name, country: detail.country.name, countryCode, state: detail.name } })} />
             <PlaceCollectionList collections={detail.collections} completedSightIds={completedSightIds} placeName={detail.name} />
           </>
         ) : null}
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   cityTitle: { flex: 0 },
   cityDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
   empty: { paddingVertical: 20, fontFamily: "Lora_400Regular", color: BrandColors.onDarkMuted },
-  modalImage: { width: "100%", height: 190, borderRadius: 16, backgroundColor: BrandColors.greenDeep },
+  modalImage: { width: "100%", aspectRatio: 1.5, borderRadius: 10, backgroundColor: BrandColors.greenDeep },
   modalPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   visitCard: { width: "100%", marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: BrandColors.greenDeep },
   visitHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },

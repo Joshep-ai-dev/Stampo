@@ -87,7 +87,7 @@ export function KrooPlusOffer({
         onPress={() => onPurchase(plan)}
       >
         <Text style={s.ctaText}>
-          {busy ? "CONNECTING TO GOOGLE PLAY..." : "START 7-DAY FREE TRIAL"}
+          {busy ? "CONNECTING TO REVENUECAT..." : "START 7-DAY FREE TRIAL"}
         </Text>
       </TouchableOpacity>
       <Text style={s.terms}>

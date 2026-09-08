@@ -164,6 +164,14 @@ export type TravelStateResponse = {
   plan: "free" | "pro";
 };
 
+export type SubscriptionEntitlement = {
+  plan: "free" | "pro";
+  isKrooPlus: boolean;
+  productId: string | null;
+  basePlanId: string | null;
+  expiresAt: string | null;
+};
+
 export type RemoteProfile = {
   id: string;
   name: string;
@@ -391,6 +399,10 @@ function normalizeCity(item: BackendCity): CityDetail {
   return {
     id: String(item.id ?? ""),
     countryId: String(item.countryId ?? item.countryCode ?? ""),
+    country: item.country,
+    countryCode: item.countryCode ?? item.countryId,
+    continentCode: item.continentCode,
+    subcountry: item.subcountry,
     geonamesId: item.geonamesId ?? (String(item.id ?? "") || null),
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,
@@ -483,8 +495,89 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
   );
 }
 
+async function cityDetail(
+  id: string,
+  fallback: {
+    name?: string;
+    country?: string;
+    countryCode?: string;
+    state?: string;
+  } = {},
+): Promise<CityDetail> {
+  let result: BackendCity;
+  try {
+    result = await request<BackendCity>(
+      `/catalog/cities/${encodeURIComponent(id)}`,
+    );
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status < 500) throw error;
+
+    // Older backend deployments compare readable admin city IDs (for
+    // example, "Moab") with a numeric database key and return a 500. Use the
+    // city-search representation until the fixed endpoint is deployed.
+    const params = new URLSearchParams({
+      query: fallback.name?.trim() || id,
+      limit: "20",
+    });
+    if (fallback.countryCode) params.set("country", fallback.countryCode);
+    const matches = await request<CatalogCitySearchResult[]>(
+      `/cities?${params.toString()}`,
+    );
+    const normalizedId = id.trim().toLocaleLowerCase();
+    const normalizedName = fallback.name?.trim().toLocaleLowerCase();
+    const match = matches.find(
+      (item) => String(item.id).toLocaleLowerCase() === normalizedId,
+    ) ?? matches.find((item) =>
+      item.name.trim().toLocaleLowerCase() === (normalizedName || normalizedId),
+    );
+    if (match) {
+      result = {
+        ...match,
+        countryId: match.countryCode,
+        image: match.image ?? "",
+      };
+    } else if (fallback.name && fallback.countryCode) {
+      result = {
+        id,
+        name: fallback.name,
+        country: fallback.country ?? fallback.countryCode,
+        countryId: fallback.countryCode,
+        countryCode: fallback.countryCode,
+        subcountry: fallback.state,
+      };
+    } else {
+      throw error;
+    }
+  }
+
+  const city = normalizeCity(result);
+  let collections: ManagedCollection[] = [];
+  let sights = city.sights ?? [];
+  try {
+    const country = await countryDetail(city.countryCode ?? city.countryId);
+    const cityName = city.name.trim().toLocaleLowerCase();
+    collections = country.collections.filter((collection) =>
+      collection.places.some(
+        (place) => place.city?.trim().toLocaleLowerCase() === cityName,
+      ),
+    );
+    const countryCitySights = country.sights.filter((sight) =>
+      String(sight.cityId) === String(city.id) ||
+      sight.city?.trim().toLocaleLowerCase() === cityName,
+    );
+    sights = [...sights, ...countryCitySights].filter(
+      (sight, index, all) =>
+        all.findIndex((item) => item.id === sight.id) === index,
+    );
+  } catch {
+    // City details remain usable when related content is unavailable.
+  }
+  return { ...city, sights, collections };
+}
+
 export const api = {
   countryDetail,
+  cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
     request<
       Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
@@ -519,25 +612,6 @@ export const api = {
       signal,
     });
   },
-  cityDetail: (id: string) =>
-    request<BackendCity>(`/catalog/cities/${encodeURIComponent(id)}`).then(async (result) => {
-      const city = normalizeCity(result);
-      let collections: ManagedCollection[] = [];
-      let sights = city.sights ?? [];
-      try {
-        const country = await countryDetail(city.countryCode ?? city.countryId);
-        const cityName = city.name.trim().toLocaleLowerCase();
-        collections = country.collections.filter((collection) => collection.places.some((place) => place.city?.trim().toLocaleLowerCase() === cityName));
-        const countryCitySights = country.sights.filter((sight) =>
-          String(sight.cityId) === String(city.id) ||
-          sight.city?.trim().toLocaleLowerCase() === cityName,
-        );
-        sights = [...sights, ...countryCitySights].filter(
-          (sight, index, all) => all.findIndex((item) => item.id === sight.id) === index,
-        );
-      } catch { /* City details remain usable when collections are unavailable. */ }
-      return { ...city, sights, collections };
-    }),
   resolveCityImage: (_input: {
     name: string;
     country: string;
@@ -614,10 +688,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(state),
     }),
-  setPlan: (plan: "free" | "pro") =>
-    request<{ plan: "free" | "pro" }>("/me/plan", {
-      method: "PUT",
-      body: JSON.stringify({ plan }),
+  subscriptionStatus: () =>
+    request<SubscriptionEntitlement>("/me/subscription"),
+  syncRevenueCatSubscription: () =>
+    request<SubscriptionEntitlement>("/me/subscription/revenuecat/sync", {
+      method: "POST",
     }),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(

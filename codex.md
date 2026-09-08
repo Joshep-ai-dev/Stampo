@@ -18,7 +18,7 @@ Important naming that has not yet been normalized:
 
 - Product/UI name: `Kroo`
 - GitHub repository and Expo slug: `Stampo`
-- iOS bundle ID and Android package: `com.darkhorse9372.Stampo`
+- iOS bundle ID and Android package: `com.krootravel.app`
 - Redux persistence key: `stampo.app-state.v1`
 
 ## Current technology baseline
@@ -227,8 +227,8 @@ For a physical phone, `localhost` means the phone itself. Use a backend URL/IP r
 The Git clone alone does not transfer account access. Confirm access to:
 
 - Expo/EAS project `46f28005-a7f2-4ebd-8725-c96863062837`
-- Apple Developer / App Store Connect for `com.darkhorse9372.Stampo`
-- Google Play Console for `com.darkhorse9372.Stampo`
+- Apple Developer / App Store Connect for `com.krootravel.app`
+- Google Play Console for `com.krootravel.app`
 - RevenueCat project, entitlement `kroo_plus`, offering, products, and Customer Center
 - deployed API/domain and the separate Laravel backend repository
 - backend database, storage, queue/scheduler, and any provider credentials

@@ -21,6 +21,7 @@ import { BrandColors } from "@/constants/theme";
 
 const DEFAULT_NOTE =
   "Thought of you and all our future trips together - go add your first stamp!";
+const GIFT_CHECKOUT_URL = process.env.EXPO_PUBLIC_GIFT_CHECKOUT_URL?.trim();
 
 export default function GiftKrooPlusScreen() {
   const router = useRouter();
@@ -32,18 +33,10 @@ export default function GiftKrooPlusScreen() {
   const [busy, setBusy] = useState(false);
 
   const continueToPurchase = async () => {
-    if (busy) return;
-    const checkoutUrl = process.env.EXPO_PUBLIC_GIFT_CHECKOUT_URL;
-    if (!checkoutUrl) {
-      Alert.alert(
-        "Gift checkout setup required",
-        "Add EXPO_PUBLIC_GIFT_CHECKOUT_URL for the hosted Kroo+ gift checkout. A normal app-store subscription cannot be transferred to another person.",
-      );
-      return;
-    }
+    if (busy || !GIFT_CHECKOUT_URL) return;
     setBusy(true);
     try {
-      const url = new URL(checkoutUrl);
+      const url = new URL(GIFT_CHECKOUT_URL);
       url.searchParams.set("plan", plan);
       if (note.trim()) url.searchParams.set("note", note.trim());
       await WebBrowser.openBrowserAsync(url.toString());
@@ -120,14 +113,23 @@ export default function GiftKrooPlusScreen() {
             textAlignVertical="top"
           />
           <TouchableOpacity
-            style={[styles.cta, busy && styles.disabled]}
-            disabled={busy}
+            style={[styles.cta, (busy || !GIFT_CHECKOUT_URL) && styles.disabled]}
+            disabled={busy || !GIFT_CHECKOUT_URL}
             onPress={() => void continueToPurchase()}
           >
             <Text style={styles.ctaText}>
-              {busy ? "OPENING CHECKOUT..." : "CONTINUE TO PURCHASE"}
+              {busy
+                ? "OPENING CHECKOUT..."
+                : GIFT_CHECKOUT_URL
+                  ? "CONTINUE TO PURCHASE"
+                  : "GIFT CHECKOUT COMING SOON"}
             </Text>
           </TouchableOpacity>
+          {!GIFT_CHECKOUT_URL ? (
+            <Text style={styles.checkoutUnavailable}>
+              Gift purchases are not available yet.
+            </Text>
+          ) : null}
 
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />
@@ -246,6 +248,13 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.copper,
   },
   disabled: { opacity: 0.65 },
+  checkoutUnavailable: {
+    marginTop: 10,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
   ctaText: {
     paddingHorizontal: 12,
     textAlign: "center",

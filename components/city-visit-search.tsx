@@ -69,9 +69,11 @@ function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
 }
 
 async function airportsForCity(city: CityRecord) {
-  const direct = await api.cityAirports(city.id);
+  const direct = await api.cityAirports(city.id).catch(() => []);
   if (direct.length || !city.subcountry) return direct;
-  const regional = await api.stateAirports(city.countryCode, city.subcountry);
+  const regional = await api
+    .stateAirports(city.countryCode, city.subcountry)
+    .catch(() => []);
   return regional.filter(
     (airport, index, all) =>
       all.findIndex((item) => item.id === airport.id) === index,
@@ -285,6 +287,8 @@ export function CityVisitSearch({
                 contentContainerStyle={styles.form}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                scrollEnabled={!airportMenuOpen}
+                nestedScrollEnabled
               >
                 <View style={styles.selectedCard}>
                   <Text style={styles.selectedFlag}>
@@ -349,11 +353,7 @@ export function CityVisitSearch({
                         <Text style={styles.airportOptionText}>No airport</Text>
                       </Pressable>
                       {airports.map((airport) => (
-                        <Pressable
-                          key={airport.id}
-                          style={styles.airportOption}
-                          onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}
-                        >
+                        <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
                           <Text style={styles.airportOptionText}>{airport.name}</Text>
                           <Text style={styles.airportCode}>{airport.iataCode}</Text>
                         </Pressable>
@@ -586,24 +586,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   airportPlaceholder: { color: "#aa9c8c" },
-  airportMenu: {
-    position: "absolute",
-    top: 54,
-    left: 0,
-    right: 0,
-    maxHeight: 220,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    overflow: "hidden",
-    backgroundColor: colors.card,
-    zIndex: 30,
-    elevation: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
+  airportMenu: { height: 200, marginTop: 6, borderRadius: 10, borderWidth: 1, borderColor: colors.divider, overflow: "hidden", backgroundColor: colors.card },
   airportOption: {
     minHeight: 48,
     flexDirection: "row",

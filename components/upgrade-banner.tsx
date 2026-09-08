@@ -16,7 +16,7 @@ type UpgradeBannerProps = {
 export function UpgradeBanner({
   active,
   configured,
-  text = "Unlock all top sights with Kroo+",
+  text = "Tap to unlock all top sights with Kroo+",
 }: UpgradeBannerProps) {
   const router = useRouter();
   const billing = useKrooPlusBilling();

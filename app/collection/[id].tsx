@@ -220,7 +220,7 @@ export default function CollectionScreen() {
               <UpgradeBanner
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
-                text="Unlock collections with Kroo+"
+                text="Tap to unlock collections with Kroo+"
               />
             </View>
             <View style={s.lockedList}>  {premiumPlacePreviews.map((place) => {
@@ -292,7 +292,7 @@ export default function CollectionScreen() {
               <UpgradeBanner
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
-                text="Unlock this place with Kroo+"
+                text="Tap to unlock this place with Kroo+"
               />
             }
             onClose={() => setSelectedPlace(null)}

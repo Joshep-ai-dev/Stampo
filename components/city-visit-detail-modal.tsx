@@ -1,7 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
@@ -36,19 +36,32 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   const [airportsLoading, setAirportsLoading] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const [editAirport, setEditAirport] = useState<AirportOption | null>(null);
+  const [airportQuery, setAirportQuery] = useState("");
   const [replacementCity, setReplacementCity] = useState<CatalogCitySearchResult | null>(null);
   const [cityQuery, setCityQuery] = useState("");
   const [cityMatches, setCityMatches] = useState<CatalogCitySearchResult[]>([]);
   const [deletingVisitId, setDeletingVisitId] = useState<string | null>(null);
+  const filteredAirports = useMemo(() => {
+    const search = airportQuery.trim().toLocaleLowerCase();
+    if (!search) return airports;
+    return airports.filter((airport) =>
+      [airport.name, airport.iataCode, airport.icaoCode]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase().includes(search)),
+    );
+  }, [airportQuery, airports]);
 
   useEffect(() => {
     let active = true;
     setAirportsLoading(true);
     const visit = city.visits[0];
     void api.cityAirports(city.id)
+      .catch(() => [])
       .then(async (items) => {
         if (items.length || !visit?.subcountry) return items;
-        return api.stateAirports(visit.countryCode, visit.subcountry);
+        return api
+          .stateAirports(visit.countryCode, visit.subcountry)
+          .catch(() => []);
       })
       .then((items) => {
         if (!active) return;
@@ -218,6 +231,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                         setEditVisitNote(visit.note);
                         setEditAirport(airportFromVisit(visit));
                         setAirportMenuOpen(false);
+                        setAirportQuery("");
                         setReplacementCity(null);
                         setCityQuery("");
                       }}
@@ -263,9 +277,10 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       setEditAirport(null);
                       setAirportMenuOpen(false);
                       void api.cityAirports(match.id)
+                        .catch(() => [])
                         .then((items) => items.length || !match.subcountry
                           ? items
-                          : api.stateAirports(match.countryCode, match.subcountry))
+                          : api.stateAirports(match.countryCode, match.subcountry).catch(() => []))
                         .then(setAirports)
                         .catch(() => setAirports([]));
                     }}
@@ -280,7 +295,10 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                 <View style={s.airportWrap}>
                   <TouchableOpacity
                     style={s.airportSelect}
-                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    onPress={() => {
+                      setAirportMenuOpen((open) => !open);
+                      setAirportQuery("");
+                    }}
                     disabled={airportsLoading}
                     accessibilityRole="button"
                     accessibilityLabel="Edit airport"
@@ -293,15 +311,29 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                   </TouchableOpacity>
                   {airportMenuOpen ? (
                     <ScrollView style={s.airportMenu} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      <View style={s.airportSearchWrap}>
+                        <Ionicons name="search" size={16} color={BrandColors.onDarkMuted} />
+                        <TextInput
+                          value={airportQuery}
+                          onChangeText={setAirportQuery}
+                          placeholder="Search airports or code"
+                          placeholderTextColor={BrandColors.onDarkMuted}
+                          style={s.airportSearchInput}
+                          autoCorrect={false}
+                          autoCapitalize="characters"
+                          accessibilityLabel="Search airports"
+                        />
+                      </View>
                       <Pressable style={s.airportOption} onPress={() => { setEditAirport(null); setAirportMenuOpen(false); }}>
                         <Text style={s.airportOptionName}>No airport</Text>
                       </Pressable>
-                      {airports.map((airport) => (
+                      {filteredAirports.map((airport) => (
                         <Pressable key={airport.id} style={s.airportOption} onPress={() => { setEditAirport(airport); setAirportMenuOpen(false); }}>
                           <Text style={s.airportOptionName}>{airport.name}</Text>
                           <Text style={s.airportCode}>{airport.iataCode}</Text>
                         </Pressable>
                       ))}
+                      {filteredAirports.length === 0 ? <Text style={s.noAirportResults}>No airports found</Text> : null}
                     </ScrollView>
                   ) : null}
                 </View>
@@ -322,7 +354,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
 }
 
 const s = StyleSheet.create({
-  modalImage: { width: "100%", height: 190, borderRadius: 14, backgroundColor: BrandColors.greenPanel },
+  modalImage: { width: "100%", aspectRatio: 1.5, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
   placeholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
   card: { width: "100%", marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: BrandColors.greenDeep },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
@@ -347,7 +379,10 @@ const s = StyleSheet.create({
   airportValue: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: BrandColors.onDark },
   airportPlaceholder: { color: BrandColors.onDarkMuted },
   airportMenu: { position: "absolute", top: 46, left: 0, right: 0, maxHeight: 190, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.copper, backgroundColor: BrandColors.greenPanel, zIndex: 30, elevation: 14 },
+  airportSearchWrap: { minHeight: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
+  airportSearchInput: { flex: 1, paddingVertical: 0, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
   airportOption: { minHeight: 44, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
   airportOptionName: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
   airportCode: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
+  noAirportResults: { padding: 12, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
 });

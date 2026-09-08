@@ -32,7 +32,7 @@ export default function KrooPlusScreen() {
     if (!billing.configured) {
       Alert.alert(
         "Restore purchases",
-        "Purchases are unavailable in Expo Go. Use a development or production build.",
+        "RevenueCat is not configured in this build. Add the platform public SDK key and rebuild Kroo.",
       );
       return;
     }
@@ -83,7 +83,7 @@ export default function KrooPlusScreen() {
           <KrooPlusOffer
             monthlyPrice={billing.prices.monthly ?? "$5.99"}
             annualPrice={billing.prices.annual ?? "$59.99"}
-            busy={busy}
+            busy={busy || !billing.ready}
             onPurchase={(plan) => {
               setBusy(true);
               void billing.purchase(plan).catch(showError).finally(() => setBusy(false));
