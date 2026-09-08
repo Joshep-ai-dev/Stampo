@@ -32,7 +32,7 @@ export default function KrooPlusScreen() {
     if (!billing.configured) {
       Alert.alert(
         "Restore purchases",
-        "Purchases are unavailable in Expo Go. Use a development or production build.",
+        "RevenueCat is not configured in this build. Add the platform public SDK key and rebuild Kroo.",
       );
       return;
     }

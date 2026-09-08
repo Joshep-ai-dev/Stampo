@@ -164,6 +164,14 @@ export type TravelStateResponse = {
   plan: "free" | "pro";
 };
 
+export type SubscriptionEntitlement = {
+  plan: "free" | "pro";
+  isKrooPlus: boolean;
+  productId: string | null;
+  basePlanId: string | null;
+  expiresAt: string | null;
+};
+
 export type RemoteProfile = {
   id: string;
   name: string;
@@ -680,10 +688,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(state),
     }),
-  setPlan: (plan: "free" | "pro") =>
-    request<{ plan: "free" | "pro" }>("/me/plan", {
-      method: "PUT",
-      body: JSON.stringify({ plan }),
+  subscriptionStatus: () =>
+    request<SubscriptionEntitlement>("/me/subscription"),
+  syncRevenueCatSubscription: () =>
+    request<SubscriptionEntitlement>("/me/subscription/revenuecat/sync", {
+      method: "POST",
     }),
   setSightCompleted: (sightId: string, completed: boolean) =>
     request<{ sightId: string; completed: boolean }>(
