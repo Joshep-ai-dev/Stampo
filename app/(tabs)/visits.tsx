@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
+import { useKrooPlusBilling } from "@/components/subscription-provider";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
 import { api, type DailyDestination } from "@/services/api";
@@ -133,6 +135,7 @@ type Destination = (typeof destinations)[number];
 
 export default function PlusTabScreen() {
   const router = useRouter();
+  const billing = useKrooPlusBilling();
   const { countryCode, countryName } = useLocalSearchParams<{
     countryCode?: string;
     countryName?: string;
@@ -145,6 +148,36 @@ export default function PlusTabScreen() {
     [answer, setAnswer] = useState<number | null>(null),
     [selected, setSelected] = useState<Destination | null>(null);
   const [managedRounds, setManagedRounds] = useState<DailyDestination[]>([]);
+  const [purchaseBusy, setPurchaseBusy] = useState(false);
+
+  const showPurchaseError = (error: unknown) => {
+    Alert.alert(
+      "Kroo+",
+      error instanceof Error ? error.message : "Please try again.",
+    );
+  };
+
+  const purchaseKrooPlus = (plan: "monthly" | "annual") => {
+    setPurchaseBusy(true);
+    void billing.purchase(plan)
+      .catch(showPurchaseError)
+      .finally(() => setPurchaseBusy(false));
+  };
+
+  const restoreKrooPlus = () => {
+    setPurchaseBusy(true);
+    void billing.restore()
+      .then((active) => {
+        Alert.alert(
+          active ? "Kroo+ restored" : "No purchase found",
+          active
+            ? "Your membership is active again."
+            : "No active Kroo+ purchase was found for this store account.",
+        );
+      })
+      .catch(showPurchaseError)
+      .finally(() => setPurchaseBusy(false));
+  };
   useEffect(() => {
     void api
       .dailyDestinations()
@@ -308,8 +341,11 @@ export default function PlusTabScreen() {
           <View style={s.offerSection}>
             <Text style={s.offerHeading}>Go further with Kroo+</Text>
             <KrooPlusOffer
-              onPurchase={() => router.push("/gift-kroo-plus" as never)}
-              onRestore={() => router.push("/kroo-plus" as never)}
+              monthlyPrice={billing.prices.monthly ?? "$5.99"}
+              annualPrice={billing.prices.annual ?? "$59.99"}
+              busy={purchaseBusy || !billing.ready}
+              onPurchase={purchaseKrooPlus}
+              onRestore={restoreKrooPlus}
             />
           </View>
         )}
