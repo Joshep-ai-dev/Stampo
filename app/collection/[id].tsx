@@ -223,39 +223,40 @@ export default function CollectionScreen() {
                 text="Tap to unlock collections with Kroo+"
               />
             </View>
-            <View style={s.lockedList}>  {premiumPlacePreviews.map((place) => {
-              const targetId = `collection-${collection.id}-${place.id}`;
-              const checked = completedSightIds.includes(targetId);
-              return (
-                <TouchableOpacity
-                  key={place.id}
-                  style={[s.placeRow, s.lockedPlaceRow]}
-                  onPress={() => handlePlaceTap(place)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open locked ${place.name}`}
-                >
-                  <PlaceImage place={place} blurRadius={32} />
-                  <View style={s.placeCopy}>
-                    <Text
-                      style={[s.placeName, s.lockedPlaceName]}
-                      numberOfLines={1}
-                    >
-                      {place.name}
-                    </Text>
-                    <Text style={s.placeLocation} numberOfLines={1}>
-                      {place.location || [place.city, place.country].filter(Boolean).join(", ")}
-                    </Text>
-                  </View>
-                  <View style={s.lockedCheckIcon}>
-                    <Ionicons
-                      name={checked ? "checkmark-circle" : "ellipse-outline"}
-                      size={25}
-                      color={BrandColors.onDarkMuted}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            <View style={s.lockedList}>
+              {premiumPlacePreviews.map((place) => {
+                const targetId = `collection-${collection.id}-${place.id}`;
+                const checked = completedSightIds.includes(targetId);
+                return (
+                  <TouchableOpacity
+                    key={place.id}
+                    style={[s.placeRow, s.lockedPlaceRow]}
+                    onPress={() => handlePlaceTap(place)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open locked ${place.name}`}
+                  >
+                    <PlaceImage place={place} blurRadius={32} />
+                    <View style={s.placeCopy}>
+                      <Text
+                        style={[s.placeName, s.lockedPlaceName]}
+                        numberOfLines={1}
+                      >
+                        {place.name}
+                      </Text>
+                      <Text style={s.placeLocation} numberOfLines={1}>
+                        {place.location || [place.city, place.country].filter(Boolean).join(", ")}
+                      </Text>
+                    </View>
+                    <View style={s.lockedCheckIcon}>
+                      <Ionicons
+                        name={checked ? "checkmark-circle" : "ellipse-outline"}
+                        size={25}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </>
         ) : null}
@@ -448,7 +449,7 @@ const s = StyleSheet.create({
   lockedCheckIcon: { marginLeft: 8, opacity: 0.28 },
   modalPlaceImage: {
     width: "100%",
-    height: 190,
+    aspectRatio: 1.5,
     borderRadius: 16,
     backgroundColor: BrandColors.greenPanel,
   },

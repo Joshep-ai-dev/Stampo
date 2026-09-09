@@ -89,6 +89,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const userId = useAppSelector((state) => state.profile.userId);
   const apiKey = revenueCatApiKey();
   const [ready, setReady] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [expirationAt, setExpirationAt] = useState<number | null>(null);
   const customerInfoRef = useRef<CustomerInfo | null>(null);
@@ -133,6 +134,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     dispatch(subscriptionLoading());
     setReady(false);
+    setInitializationError(null);
     const initialize = async () => {
       if (!await Purchases.isConfigured()) {
         Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
@@ -164,6 +166,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     void initialize().catch((error: unknown) => {
       if (cancelled) return;
       setReady(false);
+      setInitializationError(messageFrom(error));
       dispatch(subscriptionFailed(messageFrom(error)));
     });
     return () => { cancelled = true; };
@@ -218,7 +221,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const purchase = useCallback(async (plan: KrooPlusPlan) => {
     if (!userId) throw new Error("Sign in before purchasing Kroo+.");
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
-    if (!ready) throw new Error("Kroo+ is still connecting. Please try again in a moment.");
+    if (!ready) throw new Error(initializationError || "Kroo+ billing is unavailable. Please try again later.");
     const selectedPackage: PurchasesPackage | null = packageForPlan(offering, plan);
     if (!selectedPackage) {
       throw new Error(`The Kroo+ ${plan} package is missing from the RevenueCat offering.`);
@@ -237,7 +240,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
-  }, [apiKey, applyCustomerInfo, applyServerEntitlement, offering, ready, userId]);
+  }, [apiKey, applyCustomerInfo, applyServerEntitlement, initializationError, offering, ready, userId]);
 
   const restore = useCallback(async () => {
     if (!userId) throw new Error("Sign in before restoring Kroo+.");

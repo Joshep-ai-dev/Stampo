@@ -343,7 +343,7 @@ export default function PlusTabScreen() {
             <KrooPlusOffer
               monthlyPrice={billing.prices.monthly ?? "$5.99"}
               annualPrice={billing.prices.annual ?? "$59.99"}
-              busy={purchaseBusy || !billing.ready}
+              busy={purchaseBusy}
               onPurchase={purchaseKrooPlus}
               onRestore={restoreKrooPlus}
             />

@@ -83,7 +83,7 @@ export default function KrooPlusScreen() {
           <KrooPlusOffer
             monthlyPrice={billing.prices.monthly ?? "$5.99"}
             annualPrice={billing.prices.annual ?? "$59.99"}
-            busy={busy || !billing.ready}
+            busy={busy}
             onPurchase={(plan) => {
               setBusy(true);
               void billing.purchase(plan).catch(showError).finally(() => setBusy(false));
