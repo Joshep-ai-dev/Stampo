@@ -1,7 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -98,6 +98,30 @@ export function CityVisitSearch({
   const [airports, setAirports] = useState<AirportOption[]>([]);
   const [airportsLoading, setAirportsLoading] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
+  const sheetRef = useRef<View>(null);
+  const airportFieldRef = useRef<View>(null);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const [airportMenuLayout, setAirportMenuLayout] = useState({ left: 0, top: 0, width: 0, height: 200 });
+
+  const toggleAirportMenu = () => {
+    if (airportMenuOpen) {
+      setAirportMenuOpen(false);
+      return;
+    }
+    Keyboard.dismiss();
+    if (!sheetRef.current) return;
+    sheetRef.current.measureInWindow((sheetX, sheetY) => {
+      airportFieldRef.current?.measureInWindow((fieldX, fieldY, width, height) => {
+      const left = fieldX - sheetX;
+      const top = fieldY - sheetY;
+      const below = sheetHeight - top - height - 14;
+      const openAbove = below < 150 && top - 52 > below;
+      const menuHeight = Math.min(200, Math.max(0, openAbove ? top - 52 : below));
+      setAirportMenuLayout({ left, width, height: menuHeight, top: openAbove ? top - menuHeight - 6 : top + height + 6 });
+      setAirportMenuOpen(true);
+      });
+    });
+  };
   const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
 
@@ -150,7 +174,10 @@ export function CityVisitSearch({
       .finally(() => setAirportsLoading(false));
   };
 
-  const closeModal = () => setSelectedCity(null);
+  const closeModal = () => {
+    setAirportMenuOpen(false);
+    setSelectedCity(null);
+  };
 
   const saveVisit = async () => {
     if (!selectedCity) return;
@@ -273,7 +300,7 @@ export function CityVisitSearch({
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />
-          <View style={styles.sheet}>
+          <View ref={sheetRef} collapsable={false} style={styles.sheet} onLayout={(event) => { setSheetHeight(event.nativeEvent.layout.height); setAirportMenuOpen(false); }}>
             <View style={styles.modalHeader}>
               <Pressable onPress={closeModal} hitSlop={10}>
                 <Text style={styles.headerAction}>Cancel</Text>
@@ -320,13 +347,14 @@ export function CityVisitSearch({
                 </View>
 
                 <Text style={styles.fieldLabel}>Airport</Text>
-                <View style={styles.airportDropdownWrap}>
+                <View ref={airportFieldRef} collapsable={false} style={styles.airportDropdownWrap}>
                   <TouchableOpacity
                     style={styles.airportSelect}
-                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    onPress={toggleAirportMenu}
                     disabled={airportsLoading || airports.length === 0}
                     accessibilityRole="button"
                     accessibilityLabel="Select airport"
+                    accessibilityState={{ expanded: airportMenuOpen }}
                   >
                     {airportsLoading ? (
                       <ActivityIndicator color={colors.muted} />
@@ -342,24 +370,7 @@ export function CityVisitSearch({
                     </Text>
                     {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
                   </TouchableOpacity>
-                  {airportMenuOpen ? (
-                    <ScrollView
-                      style={styles.airportMenu}
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator
-                    >
-                      <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
-                        <Text style={styles.airportOptionText}>No airport</Text>
-                      </Pressable>
-                      {airports.map((airport) => (
-                        <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
-                          <Text style={styles.airportOptionText}>{airport.name}</Text>
-                          <Text style={styles.airportCode}>{airport.iataCode}</Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  ) : null}
+
                 </View>
 
                 <Text style={[styles.fieldLabel, styles.noteLabel]}>Note</Text>
@@ -385,6 +396,27 @@ export function CityVisitSearch({
 
               </ScrollView>
             )}
+            {airportMenuOpen ? (
+              <>
+                <Pressable style={StyleSheet.absoluteFill} onPress={() => setAirportMenuOpen(false)} accessibilityLabel="Close airport dropdown" />
+                    <ScrollView
+                      style={[styles.airportMenu, airportMenuLayout]}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator
+                    >
+                      <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                        <Text style={styles.airportOptionText}>No airport</Text>
+                      </Pressable>
+                      {airports.map((airport) => (
+                        <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
+                          <Text style={styles.airportOptionText}>{airport.name}</Text>
+                          <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+              </>
+            ) : null}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -586,7 +618,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   airportPlaceholder: { color: "#aa9c8c" },
-  airportMenu: { height: 200, marginTop: 6, borderRadius: 10, borderWidth: 1, borderColor: colors.divider, overflow: "hidden", backgroundColor: colors.card },
+  airportMenu: { position: "absolute", zIndex: 30, elevation: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.divider, overflow: "hidden", backgroundColor: colors.card },
   airportOption: {
     minHeight: 48,
     flexDirection: "row",
