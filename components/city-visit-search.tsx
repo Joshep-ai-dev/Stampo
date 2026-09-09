@@ -112,13 +112,13 @@ export function CityVisitSearch({
     if (!sheetRef.current) return;
     sheetRef.current.measureInWindow((sheetX, sheetY) => {
       airportFieldRef.current?.measureInWindow((fieldX, fieldY, width, height) => {
-      const left = fieldX - sheetX;
-      const top = fieldY - sheetY;
-      const below = sheetHeight - top - height - 14;
-      const openAbove = below < 150 && top - 52 > below;
-      const menuHeight = Math.min(200, Math.max(0, openAbove ? top - 52 : below));
-      setAirportMenuLayout({ left, width, height: menuHeight, top: openAbove ? top - menuHeight - 6 : top + height + 6 });
-      setAirportMenuOpen(true);
+        const left = fieldX - sheetX;
+        const top = fieldY - sheetY;
+        const below = sheetHeight - top - height - 14;
+        const openAbove = below < 150 && top - 52 > below;
+        const menuHeight = Math.min(200, Math.max(0, openAbove ? top - 52 : below));
+        setAirportMenuLayout({ left, width, height: menuHeight, top: openAbove ? top - menuHeight - 6 : top + height + 6 });
+        setAirportMenuOpen(true);
       });
     });
   };
@@ -399,22 +399,22 @@ export function CityVisitSearch({
             {airportMenuOpen ? (
               <>
                 <Pressable style={StyleSheet.absoluteFill} onPress={() => setAirportMenuOpen(false)} accessibilityLabel="Close airport dropdown" />
-                    <ScrollView
-                      style={[styles.airportMenu, airportMenuLayout]}
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator
-                    >
-                      <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
-                        <Text style={styles.airportOptionText}>No airport</Text>
-                      </Pressable>
-                      {airports.map((airport) => (
-                        <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
-                          <Text style={styles.airportOptionText}>{airport.name}</Text>
-                          <Text style={styles.airportCode}>{airport.iataCode}</Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
+                <ScrollView
+                  style={[styles.airportMenu, airportMenuLayout]}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator
+                >
+                  <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                    <Text style={styles.airportOptionText}>No airport</Text>
+                  </Pressable>
+                  {airports.map((airport) => (
+                    <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
+                      <Text style={styles.airportOptionText}>{airport.name}</Text>
+                      <Text style={styles.airportCode}>{airport.iataCode}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
               </>
             ) : null}
           </View>
