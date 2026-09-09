@@ -632,6 +632,11 @@ export const api = {
     request<AirportOption[]>(
       `/catalog/cities/${encodeURIComponent(id)}/airports`,
     ),
+  searchAirports: (query: string, signal?: AbortSignal) =>
+    request<AirportOption[]>(
+      `/catalog/airports?query=${encodeURIComponent(query)}&limit=50`,
+      { signal },
+    ),
   stateAirports: (countryCode: string, state: string) =>
     request<AirportOption[]>(
       `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(state)}/airports`,

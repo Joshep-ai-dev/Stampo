@@ -68,18 +68,6 @@ function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
   };
 }
 
-async function airportsForCity(city: CityRecord) {
-  const direct = await api.cityAirports(city.id).catch(() => []);
-  if (direct.length || !city.subcountry) return direct;
-  const regional = await api
-    .stateAirports(city.countryCode, city.subcountry)
-    .catch(() => []);
-  return regional.filter(
-    (airport, index, all) =>
-      all.findIndex((item) => item.id === airport.id) === index,
-  );
-}
-
 export function CityVisitSearch({
   countryCode,
   countryName,
@@ -97,31 +85,25 @@ export function CityVisitSearch({
   const [note, setNote] = useState("");
   const [airports, setAirports] = useState<AirportOption[]>([]);
   const [airportsLoading, setAirportsLoading] = useState(false);
+  const [airportError, setAirportError] = useState(false);
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const sheetRef = useRef<View>(null);
   const airportFieldRef = useRef<View>(null);
   const [sheetHeight, setSheetHeight] = useState(0);
   const [airportMenuLayout, setAirportMenuLayout] = useState({ left: 0, top: 0, width: 0, height: 200 });
 
-  const toggleAirportMenu = () => {
-    if (airportMenuOpen) {
-      setAirportMenuOpen(false);
-      return;
-    }
-    Keyboard.dismiss();
-    if (!sheetRef.current) return;
-    sheetRef.current.measureInWindow((sheetX, sheetY) => {
+  useEffect(() => {
+    if (!airportMenuOpen) return;
+    sheetRef.current?.measureInWindow((sheetX, sheetY) => {
       airportFieldRef.current?.measureInWindow((fieldX, fieldY, width, height) => {
-        const left = fieldX - sheetX;
         const top = fieldY - sheetY;
-        const below = sheetHeight - top - height - 14;
-        const openAbove = below < 150 && top - 52 > below;
-        const menuHeight = Math.min(200, Math.max(0, openAbove ? top - 52 : below));
-        setAirportMenuLayout({ left, width, height: menuHeight, top: openAbove ? top - menuHeight - 6 : top + height + 6 });
-        setAirportMenuOpen(true);
+        const below = Math.max(0, sheetHeight - top - height - 14);
+        const menuHeight = Math.min(200, below || 200);
+        setAirportMenuLayout({ left: fieldX - sheetX, top: top + height + 6, width, height: menuHeight });
       });
     });
-  };
+  }, [airportMenuOpen, sheetHeight]);
+
   const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
   const normalizedQuery = useMemo(() => query.trim(), [query]);
 
@@ -160,6 +142,29 @@ export function CityVisitSearch({
     };
   }, [countryCode, normalizedQuery]);
 
+  useEffect(() => {
+    if (!selectedCity || selectedCity.name.trim().length < 2) {
+      setAirports([]);
+      setAirportsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setAirportsLoading(true);
+      setAirportError(false);
+      void api.searchAirports(selectedCity.name.trim(), controller.signal)
+        .then(setAirports)
+        .catch((error) => {
+          if (!(error instanceof Error && error.name === "AbortError")) {
+            setAirports([]);
+            setAirportError(true);
+          }
+        })
+        .finally(() => setAirportsLoading(false));
+    }, 250);
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [selectedCity]);
+
   const selectCity = (city: CityRecord) => {
     setSelectedCity(city);
     setVisitDate(today());
@@ -167,11 +172,7 @@ export function CityVisitSearch({
     setAirports([]);
     setSelectedAirport(null);
     setAirportMenuOpen(false);
-    setAirportsLoading(true);
-    void airportsForCity(city)
-      .then(setAirports)
-      .catch(() => setAirports([]))
-      .finally(() => setAirportsLoading(false));
+    setAirportError(false);
   };
 
   const closeModal = () => {
@@ -348,29 +349,12 @@ export function CityVisitSearch({
 
                 <Text style={styles.fieldLabel}>Airport</Text>
                 <View ref={airportFieldRef} collapsable={false} style={styles.airportDropdownWrap}>
-                  <TouchableOpacity
-                    style={styles.airportSelect}
-                    onPress={toggleAirportMenu}
-                    disabled={airportsLoading || airports.length === 0}
-                    accessibilityRole="button"
-                    accessibilityLabel="Select airport"
-                    accessibilityState={{ expanded: airportMenuOpen }}
-                  >
-                    {airportsLoading ? (
-                      <ActivityIndicator color={colors.muted} />
-                    ) : (
-                      <Ionicons name="airplane-outline" size={22} color={colors.muted} />
-                    )}
-                    <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>
-                      {selectedAirport
-                        ? `${selectedAirport.name} (${selectedAirport.iataCode})`
-                        : airports.length
-                          ? "Select an airport"
-                          : "No airports listed for this city"}
-                    </Text>
-                    {airports.length ? <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} /> : null}
+                  <TouchableOpacity style={styles.airportSelect} onPress={() => setAirportMenuOpen((open) => !open)} accessibilityRole="button" accessibilityLabel="Select airport" accessibilityState={{ expanded: airportMenuOpen }}>
+                    <Ionicons name="airplane-outline" size={22} color={colors.muted} />
+                    <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>{selectedAirport ? `${selectedAirport.name} (${selectedAirport.iataCode || selectedAirport.icaoCode || ""})` : airportsLoading ? "Finding airports…" : "Select an airport"}</Text>
+                    {airportsLoading ? <ActivityIndicator color={colors.muted} /> : null}
+                    <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} />
                   </TouchableOpacity>
-
                 </View>
 
                 <Text style={[styles.fieldLabel, styles.noteLabel]}>Note</Text>
@@ -398,13 +382,14 @@ export function CityVisitSearch({
             )}
             {airportMenuOpen ? (
               <>
-                <Pressable style={StyleSheet.absoluteFill} onPress={() => setAirportMenuOpen(false)} accessibilityLabel="Close airport dropdown" />
                 <ScrollView
                   style={[styles.airportMenu, airportMenuLayout]}
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator
                 >
+                  {airportError ? <Text style={styles.airportOptionText}>Could not load airports. Try again.</Text> : null}
+                  {!airportsLoading && !airportError && airports.length === 0 ? <Text style={styles.airportOptionText}>No airports found for this city</Text> : null}
                   <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
                     <Text style={styles.airportOptionText}>No airport</Text>
                   </Pressable>
