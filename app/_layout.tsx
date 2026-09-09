@@ -53,9 +53,7 @@ function LoadingSplash() {
 
   return (
     <View style={styles.loadingSplash}>
-      <Animated.Image
-        source={require("@/assets/images/icon.png")}
-        resizeMode="contain"
+      <Animated.View
         style={[
           styles.loadingCoin,
           {
@@ -70,7 +68,18 @@ function LoadingSplash() {
             ],
           },
         ]}
-      />
+      >
+        <Animated.Image
+          source={require("@/assets/images/icon.png")}
+          resizeMode="contain"
+          style={styles.loadingCoinFace}
+        />
+        <Animated.Image
+          source={require("@/assets/images/icon.png")}
+          resizeMode="contain"
+          style={[styles.loadingCoinFace, styles.loadingCoinBack]}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -131,8 +140,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#042219",
   },
-  loadingCoin: {
+  loadingCoin: { width: 300, height: 300 },
+  loadingCoinFace: {
+    ...StyleSheet.absoluteFillObject,
     width: 300,
     height: 300,
+    backfaceVisibility: "hidden",
+  },
+  loadingCoinBack: {
+    transform: [{ rotateY: "180deg" }],
   },
 });
