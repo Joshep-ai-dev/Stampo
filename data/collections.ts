@@ -2,6 +2,7 @@ export type CollectionPlace = {
   id: string;
   name: string;
   city?: string;
+  state?: string;
   country?: string;
   location?: string;
   detail?: string;

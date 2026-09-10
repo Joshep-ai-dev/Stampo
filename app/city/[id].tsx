@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
 import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   PlaceSectionTitle,
   TopSightsSection,
@@ -132,23 +133,10 @@ export default function CityScreen() {
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={s.header}>
-          <TouchableOpacity
-            style={s.back}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
-          <Text style={s.title} numberOfLines={1}>
-            {city?.name ?? "City"}
-          </Text>
-          <View style={s.headerSpacer} />
-        </View>
+        <PlaceDetailHeader
+          title={city?.name ?? "City"}
+          onBack={() => router.back()}
+        />
 
         {loading && !city ? (
           <ActivityIndicator
@@ -217,7 +205,7 @@ export default function CityScreen() {
               onToggle={(sightId, checked) =>
                 void toggleSight(sightId, checked)
               }
-              locationForSight={(sight) => sight.city || city.name}
+              locationForSight={(sight) => [sight.city || city.name, city.subcountry].filter(Boolean).join(", ")}
             />
 
             <PlaceSectionTitle>Airports Visited</PlaceSectionTitle>
@@ -319,30 +307,6 @@ export default function CityScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 48 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  back: {
-    width: 42,
-    height: 42,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.paleGreen,
-  },
-  headerSpacer: { width: 50 },
-  title: {
-    flex: 1,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(25),
-    color: BrandColors.copper,
-  },
   loader: { marginTop: 80 },
   message: {
     padding: 24,
@@ -414,6 +378,7 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.greenDeep,
   },
   heroWrap: {
-    margin: 16,
+    margin: 12,
+    marginTop: 0,
   },
 });

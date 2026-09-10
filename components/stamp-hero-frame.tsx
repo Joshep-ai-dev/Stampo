@@ -1,10 +1,19 @@
+import { Image } from "expo-image";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { BrandColors } from "@/constants/theme";
-
 export function StampHeroFrame({ children }: { children: ReactNode }) {
-  return <View style={styles.frame}>{children}</View>;
+  return (
+    <View style={styles.frame}>
+      {children}
+      <Image
+        source={require("@/assets/images/other/border.webp")}
+        style={styles.borderImage}
+        contentFit="fill"
+        pointerEvents="none"
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -12,9 +21,9 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1.5,
     overflow: "hidden",
-    borderWidth: 4.5,
-    borderRadius: 12,
-    borderStyle: "dotted",
-    borderColor: BrandColors.surface,
+  },
+  borderImage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
 });

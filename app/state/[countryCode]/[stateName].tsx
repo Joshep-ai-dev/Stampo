@@ -1,6 +1,5 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -17,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   CitiesVisitedSection,
   TopSightsSection,
@@ -217,31 +217,12 @@ export default function StateScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.back}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="chevron-back"
-              size={25}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
-          <View style={styles.titleRow}>
-            <Image
-              source={{ uri: stateFlagUrl }}
-              style={styles.stateFlag}
-              contentFit="cover"
-              accessibilityLabel={`${detail?.name ?? stateName} flag`}
-            />
-            <Text style={styles.title} numberOfLines={1}>
-              {detail?.name ?? stateName}
-            </Text>
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
+        <PlaceDetailHeader
+          title={detail?.name ?? stateName}
+          flagUri={stateFlagUrl}
+          flagLabel={`${detail?.name ?? stateName} flag`}
+          onBack={() => router.back()}
+        />
 
         {loading && !detail ? (
           <ActivityIndicator
@@ -307,13 +288,7 @@ export default function StateScreen() {
               completedSightIds={completedSightIds}
               onOpen={setSelectedSight}
               onToggle={(id, checked) => void toggleSight(id, checked)}
-              locationForSight={(sight) =>
-                sight.city ||
-                detail.cities.find(
-                  (city) => String(city.id) === String(sight.cityId),
-                )?.name ||
-                ""
-              }
+              locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""}
               upgrade={
                 lockedSights.length ? (
                   <UpgradeBanner
@@ -373,45 +348,6 @@ export default function StateScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 44 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  back: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(49,87,73,.56)",
-  },
-  headerSpacer: { width: 42, height: 42 },
-  titleRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-  },
-  stateFlag: {
-    width: 32,
-    height: 24,
-    borderRadius: 2,
-    backgroundColor: BrandColors.greenPanel,
-  },
-  title: {
-    flexShrink: 1,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    lineHeight: 34,
-    color: BrandColors.copper,
-  },
   heroImage: {
     width: "100%",
     height: "100%",
@@ -574,6 +510,7 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
   },
   heroWrap: {
-    margin: 16,
+    margin: 12,
+    marginTop: 0,
   },
 });

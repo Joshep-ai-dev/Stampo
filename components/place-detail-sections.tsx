@@ -57,7 +57,7 @@ export function TopSightsSection({
   upgrade?: ReactNode;
 }) {
   const cityLabel = (sight: SightDetail) =>
-    (locationForSight?.(sight) ?? sight.city).split(",")[0]?.trim() ?? "";
+    (locationForSight?.(sight) ?? sight.city).trim();
   if (!sights.length && !lockedSights.length)
     return (
       <>
@@ -93,9 +93,10 @@ export function TopSightsSection({
                     {sight.name}
                   </Text>
                   {city ? (
-                    <Text style={s.sightLocation} numberOfLines={1}>
-                      {city}
-                    </Text>
+                    <View style={s.locationRow}>
+                      <Ionicons name="location" size={13} color={BrandColors.onDarkMuted} />
+                      <Text style={s.sightLocation} numberOfLines={1}>{city}</Text>
+                    </View>
                   ) : null}
                 </View>
                 <TouchableOpacity
@@ -249,11 +250,12 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   sightLocation: {
-    marginTop: 3,
+    flexShrink: 1,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },
+  locationRow: { marginTop: 3, flexDirection: "row", alignItems: "center", gap: 3 },
   copy: { flex: 1 },
   itemTitle: {
     fontFamily: "Lora_600SemiBold",

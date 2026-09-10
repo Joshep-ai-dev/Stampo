@@ -200,6 +200,7 @@ export type ManagedCollectionPlace = {
   id: string;
   name: string;
   city?: string;
+  state?: string;
   country?: string;
   location?: string;
   detail?: string;
@@ -327,6 +328,7 @@ export type SightDetail = {
   countryId: string;
   cityId: string;
   city: string;
+  state?: string;
   opentripmapXid: string | null;
   wikidataId: string | null;
   wikipediaTitle: string | null;
@@ -383,6 +385,7 @@ function normalizeSight(item: BackendSight): SightDetail {
     city: typeof item.city === "string"
       ? item.city
       : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
+    state: item.state,
     opentripmapXid: item.opentripmapXid ?? null,
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,

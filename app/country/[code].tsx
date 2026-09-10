@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   CitiesVisitedSection,
   type PlaceListItem,
@@ -277,28 +278,11 @@ export default function CountryScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
-        <View style={s.header}>
-          <TouchableOpacity
-            accessibilityLabel="Go back"
-            style={s.iconButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={25}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
-          <Text
-            style={s.title}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.68}
-          >
-            {flag} {name}
-          </Text>
-          <View style={s.headerSpacer} />
-        </View>
+        <PlaceDetailHeader
+          title={name}
+          flagEmoji={flag}
+          onBack={() => router.back()}
+        />
 
         <View style={s.heroWrap}>
           <StampHeroFrame>
@@ -380,13 +364,15 @@ export default function CountryScreen() {
           completedSightIds={completedSightIds}
           onOpen={setSelectedSight}
           onToggle={(id, checked) => void toggleSight(id, checked)}
-          locationForSight={(sight) =>
-            sight.city ||
-            detail?.cities.find(
-              (city) => String(city.id) === String(sight.cityId),
-            )?.name ||
-            ""
-          }
+          locationForSight={(sight) => {
+            const city = detail?.cities.find(
+              (item) => String(item.id) === String(sight.cityId),
+            );
+            const cityName = sight.city || city?.name || "";
+            return [cityName, sight.state || city?.subcountry]
+              .filter(Boolean)
+              .join(", ");
+          }}
           upgrade={
             lockedSights.length ? (
               <UpgradeBanner
@@ -535,32 +521,6 @@ function ResolvedPlaceImage({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 44 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(49,87,73,.56)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    flex: 1,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    lineHeight: 34,
-    includeFontPadding: false,
-    color: BrandColors.copper,
-  },
-  headerSpacer: { width: 42, height: 42 },
   stampImage: {
     width: "100%",
     height: "100%",
@@ -909,6 +869,7 @@ const s = StyleSheet.create({
   },
   sightsEmpty: { marginHorizontal: 16 },
   heroWrap: {
-    margin: 16,
+    margin: 12,
+    marginTop: 0,
   },
 });

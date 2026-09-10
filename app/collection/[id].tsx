@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { UpgradeBanner } from "@/components/upgrade-banner";
@@ -43,6 +44,22 @@ function PlaceImage({
       blurRadius={blurRadius}
     />
   );
+}
+
+function placeLocation(place: CollectionPlace) {
+  if (place.state)
+    return [place.city, place.state, place.country].filter(Boolean).join(", ");
+  if (place.location) {
+    const includesCountry =
+      place.country &&
+      place.location
+        .toLocaleLowerCase()
+        .includes(place.country.toLocaleLowerCase());
+    return [place.location, includesCountry ? undefined : place.country]
+      .filter(Boolean)
+      .join(", ");
+  }
+  return [place.city, place.country].filter(Boolean).join(", ");
 }
 
 export default function CollectionScreen() {
@@ -154,19 +171,10 @@ export default function CollectionScreen() {
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content} nestedScrollEnabled>
-        <View style={s.header}>
-          <TouchableOpacity style={s.iconButton} onPress={() => router.back()}>
-            <Ionicons
-              name="chevron-back"
-              size={25}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
-          <Text style={s.title} numberOfLines={2}>
-            {collection.title}
-          </Text>
-          <View style={s.headerSpacer} />
-        </View>
+        <PlaceDetailHeader
+          title={collection.title}
+          onBack={() => router.back()}
+        />
         <View style={s.heroWrap}>
           <StampHeroFrame>
             <ProgressivePlaceImage
@@ -197,10 +205,16 @@ export default function CollectionScreen() {
                   <Text style={s.placeName} numberOfLines={1}>
                     {place.name}
                   </Text>
-                  <Text style={s.placeLocation} numberOfLines={1}>
-                    {place.location ||
-                      [place.city, place.country].filter(Boolean).join(", ")}
-                  </Text>
+                  <View style={s.locationRow}>
+                    <Ionicons
+                      name="location"
+                      size={13}
+                      color={BrandColors.onDarkMuted}
+                    />
+                    <Text style={s.placeLocation} numberOfLines={1}>
+                      {placeLocation(place)}
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => void toggleCompleted(place)}
@@ -224,6 +238,7 @@ export default function CollectionScreen() {
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
                 text="Tap to unlock collections with Kroo+"
+                supportingText="Get full access to collections, exclusive content, and more."
               />
             </View>
             <View style={s.lockedList}>
@@ -246,12 +261,16 @@ export default function CollectionScreen() {
                       >
                         {place.name}
                       </Text>
-                      <Text style={s.placeLocation} numberOfLines={1}>
-                        {place.location ||
-                          [place.city, place.country]
-                            .filter(Boolean)
-                            .join(", ")}
-                      </Text>
+                      <View style={s.locationRow}>
+                        <Ionicons
+                          name="location"
+                          size={13}
+                          color={BrandColors.onDarkMuted}
+                        />
+                        <Text style={s.placeLocation} numberOfLines={1}>
+                          {placeLocation(place)}
+                        </Text>
+                      </View>
                     </View>
                     <View style={s.lockedCheckIcon}>
                       <Ionicons
@@ -272,12 +291,7 @@ export default function CollectionScreen() {
         <DetailModal
           visible
           title={selectedPlace.name}
-          location={
-            selectedPlace.location ||
-            [selectedPlace.city, selectedPlace.country]
-              .filter(Boolean)
-              .join(", ")
-          }
+          location={placeLocation(selectedPlace)}
           description={
             selectedPlace.content ||
             selectedPlace.detail ||
@@ -311,22 +325,6 @@ export default function CollectionScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 40 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(49,87,73,.56)",
-  },
-  headerSpacer: { width: 42, height: 42 },
   title: {
     flex: 1,
     textAlign: "center",
@@ -407,10 +405,16 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   placeLocation: {
-    marginTop: 2,
+    flexShrink: 1,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(10),
     color: BrandColors.onDarkMuted,
+  },
+  locationRow: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   progressHeader: {
     flexDirection: "row",
@@ -448,5 +452,6 @@ const s = StyleSheet.create({
   },
   heroWrap: {
     margin: 12,
+    marginTop: 0,
   },
 });

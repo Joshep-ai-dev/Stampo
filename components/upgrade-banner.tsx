@@ -11,12 +11,14 @@ type UpgradeBannerProps = {
   configured: boolean;
   text?: string;
   count?: number;
+  supportingText?: string;
 };
 
 export function UpgradeBanner({
   active,
   configured,
   text = "Tap to unlock all top sights with Kroo+",
+  supportingText = "Get full access to top sights, exclusive content, and more.",
 }: UpgradeBannerProps) {
   const router = useRouter();
   const billing = useKrooPlusBilling();
@@ -42,7 +44,8 @@ export function UpgradeBanner({
   };
 
   return (
-    <TouchableOpacity
+    <View style={s.wrapper}>
+      <TouchableOpacity
       style={s.upgradeCard}
       onPress={openPurchaseOptions}
       accessibilityRole="button"
@@ -53,22 +56,21 @@ export function UpgradeBanner({
             : "Kroo+ setup required"
           : "View Kroo+ plans"
       }
-    >
-      <View style={s.upgradeCopy}>
-        <Ionicons
-          name={active ? "checkmark-circle" : "lock-closed"}
-          size={20}
-          color={BrandColors.white}
-        />
-        <Text style={s.upgradeText}>{active ? "Kroo+ is active" : text}</Text>
-      </View>
-    </TouchableOpacity>
+      >
+        <View style={s.upgradeCopy}>
+          <Ionicons name={active ? "checkmark-circle" : "lock-closed"} size={20} color={BrandColors.white} />
+          <Text style={s.upgradeText}>{active ? "Kroo+ is active" : text}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={BrandColors.white} />
+      </TouchableOpacity>
+      {!active && supportingText ? <Text style={s.supportingText}>{supportingText}</Text> : null}
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  wrapper: { marginVertical: 12 },
   upgradeCard: {
-    marginVertical: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: "row",
@@ -87,8 +89,10 @@ const s = StyleSheet.create({
     gap: 8,
   },
   upgradeText: {
+    flex: 1,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(13),
     color: BrandColors.white,
   },
+  supportingText: { marginTop: 7, paddingHorizontal: 8, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: BrandColors.onDarkMuted },
 });
