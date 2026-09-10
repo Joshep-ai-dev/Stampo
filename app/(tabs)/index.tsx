@@ -1356,10 +1356,14 @@ export default function HomeScreen() {
         footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
-      <Modal visible={showWelcome} transparent animationType="fade">
+      <Modal visible={true} transparent animationType="fade">
         <View style={styles.welcomeOverlay}>
-          <View style={styles.welcomeSheet}>
-            <View style={styles.welcomeInnerBorder}>
+          <ImageBackground
+            source={require("@/assets/images/other/welcome_border_image.webp")}
+            resizeMode="stretch"
+            style={styles.welcomeSheet}
+          >
+            <View style={styles.welcomeSheetContent}>
               <ScrollView
                 bounces={false}
                 showsVerticalScrollIndicator={false}
@@ -1460,11 +1464,12 @@ export default function HomeScreen() {
                 <ImageBackground
                   source={require("@/assets/images/other/modal.webp")}
                   resizeMode="cover"
+                  imageStyle={{ borderRadius: 12 }}
                   style={styles.welcomeLandscape}
                 />
               </ScrollView>
             </View>
-          </View>
+          </ImageBackground>
         </View>
       </Modal>
     </SafeAreaView>
@@ -1525,21 +1530,10 @@ const styles = StyleSheet.create({
     maxWidth: 430,
     maxHeight: "96%",
     overflow: "hidden",
-    borderRadius: 8,
-    borderWidth: 5,
-    borderStyle: "dotted",
-    borderColor: BrandColors.green,
-    backgroundColor: "#F5E8C9",
-    padding: 8,
-  },
-  welcomeInnerBorder: {
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: BrandColors.green,
   },
   welcomeContent: {
-    paddingTop: 28,
-    paddingHorizontal: 25,
+    paddingHorizontal: 10,
+    paddingTop: 14,
     alignItems: "stretch",
   },
   welcomeTitle: {
@@ -1548,6 +1542,7 @@ const styles = StyleSheet.create({
     lineHeight: responsiveFontSize(40),
     color: BrandColors.green,
     textAlign: "center",
+    marginHorizontal: 30,
   },
   welcomeBody: {
     marginTop: 4,
@@ -1556,6 +1551,7 @@ const styles = StyleSheet.create({
     lineHeight: responsiveFontSize(21),
     color: BrandColors.green,
     textAlign: "center",
+    marginHorizontal: 30,
   },
   welcomeOrnament: {
     marginTop: 14,
@@ -1564,7 +1560,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
-  ornamentLine: { width: 88, height: 1, backgroundColor: "#78907F" },
+  ornamentLine: {
+    width: 88,
+    height: 1,
+    backgroundColor: "#78907F",
+  },
   welcomeFeatures: {
     marginTop: 12,
     flexDirection: "row",
@@ -1618,6 +1618,7 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(17),
     color: BrandColors.green,
+    marginHorizontal: 30,
   },
   welcomeQuestion: {
     marginTop: 18,
@@ -1626,6 +1627,7 @@ const styles = StyleSheet.create({
     lineHeight: responsiveFontSize(21),
     color: BrandColors.green,
     textAlign: "center",
+    marginHorizontal: 30,
   },
   welcomeInputWrap: {
     minHeight: 42,
@@ -1637,6 +1639,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BrandColors.copperDark,
     backgroundColor: "rgba(255,250,235,.72)",
+    marginHorizontal: 30,
   },
   welcomeInput: {
     flex: 1,
@@ -1657,6 +1660,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.copper,
+    marginHorizontal: 30,
   },
   welcomeButtonDisabled: { opacity: 0.55 },
   welcomeButtonText: {
@@ -1665,7 +1669,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: BrandColors.green,
   },
-  welcomeLandscape: { height: 165, marginTop: 12, marginHorizontal: -25 },
+  welcomeLandscape: { height: 165, borderRadius: 12, marginTop: 16 },
   welcomeSecondaryButton: {
     minHeight: 42,
     marginTop: 8,
@@ -2104,5 +2108,10 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(15),
     color: BrandColors.onDark,
+  },
+  welcomeSheetContent: {
+    marginVertical: 7,
+    borderRadius: 10,
+    overflow: "hidden",
   },
 });
