@@ -12,6 +12,7 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ImageBackground,
   InteractionManager,
   Modal,
   Pressable,
@@ -23,7 +24,11 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  ScrollView,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   type SharedValue,
@@ -47,7 +52,11 @@ import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
-import { calculateKrooScore, getKrooLevel, KROO_LEVELS } from "@/data/kroo-score";
+import {
+  calculateKrooScore,
+  getKrooLevel,
+  KROO_LEVELS,
+} from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
@@ -395,9 +404,9 @@ function polygonContainsPoint(
     const crossesRay =
       current.y > pointY !== previous.y > pointY &&
       pointX <
-      ((previous.x - current.x) * (pointY - current.y)) /
-      (previous.y - current.y) +
-      current.x;
+        ((previous.x - current.x) * (pointY - current.y)) /
+          (previous.y - current.y) +
+          current.x;
     if (crossesRay) inside = !inside;
   }
   return inside;
@@ -518,7 +527,10 @@ function WorldMap({
     (nextScale: number) => {
       const clampedScale = Math.min(20, Math.max(1, nextScale));
       const reset = clampedScale === 1;
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
       const maxX = Math.max(
         0,
         (MAP_WIDTH * fittedScale * clampedScale - mapCanvasWidth) / 2,
@@ -572,12 +584,15 @@ function WorldMap({
         (pinchStartFocalX.value -
           mapCanvasWidth / 2 -
           pinchStartTranslateX.value) *
-        (1 - scaleChange);
+          (1 - scaleChange);
       const nextTranslateY =
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
-        (1 - scaleChange);
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+          (1 - scaleChange);
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
       const maxX = Math.max(
         0,
         (MAP_WIDTH * fittedScale * nextScale - mapCanvasWidth) / 2,
@@ -612,7 +627,10 @@ function WorldMap({
     .minDistance(6)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
       const maxX = Math.max(
         0,
         (MAP_WIDTH * fittedScale * scale.value - mapCanvasWidth) / 2,
@@ -679,20 +697,17 @@ function WorldMap({
     transform: [{ scale: scale.value / zoomLevel }],
   }));
   const committedGroupTransform = useMemo(() => {
-    if (
-      zoomLevel === 1 &&
-      committedOffset.x === 0 &&
-      committedOffset.y === 0
-    ) {
+    if (zoomLevel === 1 && committedOffset.x === 0 && committedOffset.y === 0) {
       return undefined;
     }
-    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const fittedMapScale = Math.min(
+      mapCanvasWidth / MAP_WIDTH,
+      250 / MAP_HEIGHT,
+    );
     const svgTranslateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
-      committedOffset.x / fittedMapScale;
+      MAP_WIDTH * 0.5 * (1 - zoomLevel) + committedOffset.x / fittedMapScale;
     const svgTranslateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
-      committedOffset.y / fittedMapScale;
+      MAP_HEIGHT * 0.5 * (1 - zoomLevel) + committedOffset.y / fittedMapScale;
     return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${svgTranslateX} ${svgTranslateY})`;
   }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
@@ -704,7 +719,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-              "");
+                "");
         })
         .filter(Boolean),
     );
@@ -719,7 +734,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-              "");
+                "");
         })
         .filter(Boolean),
     );
@@ -737,7 +752,8 @@ function WorldMap({
     });
   }, [selectedCountry, visits]);
   useEffect(() => {
-    if (selectedCountry) void dispatch(fetchCountryDetail(selectedCountry.code));
+    if (selectedCountry)
+      void dispatch(fetchCountryDetail(selectedCountry.code));
   }, [dispatch, selectedCountry]);
   const selectedCountryDetail = selectedCountry
     ? countryDetailCache[selectedCountry.code.toUpperCase()]?.data
@@ -818,10 +834,7 @@ function WorldMap({
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={mapGesture}>
-        <View
-          style={styles.zoomableMap}
-          collapsable={false}
-        >
+        <View style={styles.zoomableMap} collapsable={false}>
           <Animated.View
             style={[styles.zoomableMap, animatedTranslationStyle]}
             pointerEvents="none"
@@ -1162,7 +1175,14 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Score",
       body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
-      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
+      bullets: [
+        "Continents",
+        "Countries",
+        "Cities",
+        "Airports",
+        "Sights",
+        "Challenges",
+      ],
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1171,9 +1191,12 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Levels",
       body: "Your level is based on your Kroo Score. Keep adding places you have visited to progress through the levels.",
-      bullets: [...KROO_LEVELS].reverse().map((level) =>
-        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
-      ),
+      bullets: [...KROO_LEVELS]
+        .reverse()
+        .map(
+          (level) =>
+            `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
+        ),
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1229,10 +1252,7 @@ export default function HomeScreen() {
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
               </Text>
-              <InfoButton
-                label="About Kroo Levels"
-                onPress={openKrooLevels}
-              />
+              <InfoButton label="About Kroo Levels" onPress={openKrooLevels} />
             </View>
           </View>
           <Image
@@ -1242,15 +1262,18 @@ export default function HomeScreen() {
           />
         </View>
         <View style={styles.scoreCard}>
-          <TouchableOpacity style={styles.scoreLine} onPress={openKrooScore} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Open Kroo Score details">
+          <TouchableOpacity
+            style={styles.scoreLine}
+            onPress={openKrooScore}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Open Kroo Score details"
+          >
             <StampedScore value={Number(score)} />
             <View style={styles.scoreDetails}>
               <View style={styles.infoTitleRow}>
                 <Text style={styles.scoreTitle}>KROO SCORE</Text>
-                <InfoButton
-                  label="About Kroo Score"
-                  onPress={openKrooScore}
-                />
+                <InfoButton label="About Kroo Score" onPress={openKrooScore} />
               </View>
               <View style={styles.scoreBar}>
                 <View
@@ -1336,39 +1359,111 @@ export default function HomeScreen() {
       <Modal visible={showWelcome} transparent animationType="fade">
         <View style={styles.welcomeOverlay}>
           <View style={styles.welcomeSheet}>
-            <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
-            <Text style={styles.welcomeBody}>
-              Feel free to have a look around and try Kroo out for free — no account needed.
-            </Text>
-            <Text style={styles.welcomeStrong}>To start we suggest</Text>
-            <View style={styles.bullets}>
-              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>Add a city you have visited — the countries you have visited will automatically update</Text></View>
-              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>View the stamps of the countries you have visited in your passport</Text></View>
+            <View style={styles.welcomeInnerBorder}>
+              <ScrollView
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.welcomeContent}
+              >
+                <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
+                <Text style={styles.welcomeBody}>
+                  Track your travels. Collect the world.{"\n"}No account needed.
+                </Text>
+                <View style={styles.welcomeOrnament}>
+                  <View style={styles.ornamentLine} />
+                  <Ionicons
+                    name="compass-outline"
+                    size={20}
+                    color={BrandColors.green}
+                  />
+                  <View style={styles.ornamentLine} />
+                </View>
+                <View style={styles.welcomeFeatures}>
+                  <View style={styles.welcomeFeature}>
+                    <View style={styles.featureIconCircle}>
+                      <Ionicons
+                        name="location"
+                        size={44}
+                        color={BrandColors.copper}
+                      />
+                    </View>
+                    <Text style={styles.featureTitle}>
+                      Add a city{"\n"}you’ve visited
+                    </Text>
+                    <Text style={styles.featureCopy}>
+                      Countries update{"\n"}automatically.
+                    </Text>
+                  </View>
+                  <View style={styles.featureDivider} />
+                  <View style={styles.welcomeFeature}>
+                    <View style={styles.featureIconCircle}>
+                      <Ionicons
+                        name="book-outline"
+                        size={42}
+                        color={BrandColors.copper}
+                      />
+                    </View>
+                    <Text style={styles.featureTitle}>
+                      Collect{"\n"}passport stamps
+                    </Text>
+                    <Text style={styles.featureCopy}>
+                      See every country{"\n"}you’ve visited.
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.saveProgressRow}>
+                  <SaveProgressIcon />
+                  <View style={styles.saveProgressCopy}>
+                    <Text style={styles.saveProgressTitle}>
+                      Want to save your progress?
+                    </Text>
+                    <Text style={styles.saveProgressBody}>
+                      Create your passport anytime{"\n"}on the Passport page.
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.welcomeQuestion}>
+                  What name would you like to use{"\n"}on your passport?
+                </Text>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="person"
+                    size={22}
+                    color={BrandColors.copperDark}
+                  />
+                  <TextInput
+                    value={welcomeName}
+                    onChangeText={setWelcomeName}
+                    style={styles.welcomeInput}
+                    placeholder="First Name"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="words"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.welcomeButton,
+                    !welcomeName.trim() && styles.welcomeButtonDisabled,
+                  ]}
+                  onPress={saveWelcomeName}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save passport name"
+                  disabled={!welcomeName.trim()}
+                >
+                  <Text style={styles.welcomeButtonText}>CONTINUE</Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={26}
+                    color={BrandColors.green}
+                  />
+                </TouchableOpacity>
+                <ImageBackground
+                  source={require("@/assets/images/other/modal.webp")}
+                  resizeMode="cover"
+                  style={styles.welcomeLandscape}
+                />
+              </ScrollView>
             </View>
-            <Text style={styles.welcomeBody}>
-              When you&apos;re ready to save your travel progress and Kroo Score, simply complete your passport profile on the Passport page.
-            </Text>
-            <Text style={styles.welcomeQuestion}>
-              What name would you like to use on your passport?
-            </Text>
-            <TextInput
-              value={welcomeName}
-              onChangeText={setWelcomeName}
-              style={styles.welcomeInput}
-              placeholder="First Name"
-              placeholderTextColor={BrandColors.muted}
-              autoCapitalize="words"
-              textAlign="center"
-            />
-            <TouchableOpacity
-              style={styles.welcomeButton}
-              onPress={saveWelcomeName}
-              accessibilityRole="button"
-              accessibilityLabel="Save passport name"
-              disabled={!welcomeName.trim()}
-            >
-              <Text style={styles.welcomeButtonText}>CONTINUE</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1395,12 +1490,32 @@ function InfoButton({
   );
 }
 
+function SaveProgressIcon() {
+  return (
+    <Svg width={48} height={55} viewBox="0 0 80 92" fill="none">
+      <G
+        stroke="#985b3b"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <Path d="M18 7.5C31 5.6 48.2 5 62.5 6.5c2.6.3 4.2 2.2 4.3 4.7l2.1 55.9c.1 2.7-1.5 4.8-4 5.3L20.5 78c-2.6.3-4.6-1.3-4.8-3.9L13.2 13c-.1-2.8 1.6-5 4.8-5.5Z" />
+        <Path d="M17 69.5c14.4-1.2 33.6-2.7 50.8-3.8M21 78l39 7.5c2.5.5 4.6-1.3 4.6-4.2v-8.4" />
+        <Circle cx={41} cy={34.5} r={16} />
+        <Path d="M25.4 34.5h31.2M41 18.5v32M30.5 22.8c4.5 4.1 16.6 4.1 21 0M30.5 46.2c4.5-4.1 16.6-4.1 21 0M41 18.5c-5 4.5-7.4 9.8-7.4 16S36 46 41 50.5M41 18.5c5 4.5 7.4 9.8 7.4 16S46 46 41 50.5" />
+        <Path d="M30 58.5h22" />
+      </G>
+    </Svg>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 30 },
   welcomeOverlay: {
     flex: 1,
-    paddingHorizontal: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.62)",
@@ -1408,70 +1523,153 @@ const styles = StyleSheet.create({
   welcomeSheet: {
     width: "100%",
     maxWidth: 430,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
-    borderRadius: 18,
+    maxHeight: "96%",
+    overflow: "hidden",
+    borderRadius: 8,
+    borderWidth: 5,
+    borderStyle: "dotted",
+    borderColor: BrandColors.green,
+    backgroundColor: "#F5E8C9",
+    padding: 8,
+  },
+  welcomeInnerBorder: {
     borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.greenPanel,
+    borderRadius: 8,
+    borderColor: BrandColors.green,
+  },
+  welcomeContent: {
+    paddingTop: 28,
+    paddingHorizontal: 25,
+    alignItems: "stretch",
   },
   welcomeTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    color: BrandColors.onDark,
+    fontSize: responsiveFontSize(34),
+    lineHeight: responsiveFontSize(40),
+    color: BrandColors.green,
     textAlign: "center",
   },
   welcomeBody: {
-    marginTop: 12,
+    marginTop: 4,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(15),
-    lineHeight: 22,
-    color: BrandColors.onDark,
+    lineHeight: responsiveFontSize(21),
+    color: BrandColors.green,
     textAlign: "center",
   },
-  welcomeStrong: {
+  welcomeOrnament: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  ornamentLine: { width: 88, height: 1, backgroundColor: "#78907F" },
+  welcomeFeatures: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  welcomeFeature: { flex: 1, alignItems: "center", paddingHorizontal: 5 },
+  featureDivider: { width: 1, backgroundColor: "#8E9B8B" },
+  featureIconCircle: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.green,
+  },
+  featureTitle: {
+    marginTop: 8,
     fontFamily: "Lora_700Bold",
-    color: BrandColors.onDark,
+    fontSize: responsiveFontSize(17),
+    lineHeight: responsiveFontSize(19),
+    color: BrandColors.green,
     textAlign: "center",
+  },
+  featureCopy: {
+    marginTop: 4,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(16),
+    color: BrandColors.green,
+    textAlign: "center",
+  },
+  saveProgressRow: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#8E9B8B",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 18,
+  },
+  saveProgressCopy: { flexShrink: 1 },
+  saveProgressTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.green,
+  },
+  saveProgressBody: {
+    marginTop: 2,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(17),
+    color: BrandColors.green,
   },
   welcomeQuestion: {
-    marginTop: 22,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
-    color: BrandColors.onDark,
+    marginTop: 18,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(17),
+    lineHeight: responsiveFontSize(21),
+    color: BrandColors.green,
+    textAlign: "center",
+  },
+  welcomeInputWrap: {
+    minHeight: 42,
+    marginTop: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: BrandColors.copperDark,
+    backgroundColor: "rgba(255,250,235,.72)",
   },
   welcomeInput: {
-    minHeight: 52,
-    marginTop: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.surface,
+    flex: 1,
+    minHeight: 42,
+    paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
-    textAlign: "center",
     textAlignVertical: "center",
     writingDirection: "ltr",
   },
   welcomeButton: {
-    minHeight: 54,
+    minHeight: 42,
     marginTop: 16,
     borderRadius: 14,
+    flexDirection: "row",
+    gap: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.copper,
   },
+  welcomeButtonDisabled: { opacity: 0.55 },
   welcomeButtonText: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(14),
     letterSpacing: 1,
     color: BrandColors.green,
   },
+  welcomeLandscape: { height: 165, marginTop: 12, marginHorizontal: -25 },
   welcomeSecondaryButton: {
     minHeight: 42,
     marginTop: 8,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1895,7 +2093,16 @@ const styles = StyleSheet.create({
   },
   bullets: { width: "100%", marginTop: 15, paddingLeft: 5, textAlign: "left" },
   bulletRow: { marginBottom: 5, flexDirection: "row" },
-  bullet: { width: 15, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
-  bulletText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(15), color: BrandColors.onDark },
-
+  bullet: {
+    width: 15,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(17),
+    color: BrandColors.onDark,
+  },
+  bulletText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(15),
+    color: BrandColors.onDark,
+  },
 });

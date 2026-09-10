@@ -19,16 +19,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
 import { PlaceCollectionList } from "@/components/place-collection-list";
-import { CitiesVisitedSection, type PlaceListItem, StatesSection, TopSightsSection } from "@/components/place-detail-sections";
+import {
+  CitiesVisitedSection,
+  type PlaceListItem,
+  StatesSection,
+  TopSightsSection,
+} from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { stampAssets } from "@/data/stamps";
-import {
-  api,
-  type SightDetail,
-} from "@/services/api";
+import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import {
   canUseGpsArrivals,
@@ -117,9 +120,11 @@ export default function CountryScreen() {
       ),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
-  const visitedStates = [...new Set(
-    countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
-  )].sort((left, right) => left.localeCompare(right));
+  const visitedStates = [
+    ...new Set(
+      countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
@@ -162,17 +167,62 @@ export default function CountryScreen() {
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
   const stateItems: PlaceListItem[] = visitedStates.map((stateName) => {
-    const matchingVisits = countryVisits.filter((visit) => visit.subcountry.trim() === stateName);
-    const sightCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
-    const airportCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
-    const image = detail?.states.find((item) => item.name?.trim().toLocaleLowerCase() === stateName.trim().toLocaleLowerCase())?.imageUrl;
-    return { id: stateName, name: stateName, image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}` };
+    const matchingVisits = countryVisits.filter(
+      (visit) => visit.subcountry.trim() === stateName,
+    );
+    const sightCount = new Set(
+      matchingVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "sight")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const airportCount = new Set(
+      matchingVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const image = detail?.states.find(
+      (item) =>
+        item.name?.trim().toLocaleLowerCase() ===
+        stateName.trim().toLocaleLowerCase(),
+    )?.imageUrl;
+    return {
+      id: stateName,
+      name: stateName,
+      image,
+      detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}`,
+    };
   });
   const cityItems: PlaceListItem[] = visitedCities.map((city) => {
-    const cityDetail = detail?.cities.find((item) => item.id === city.id || item.name.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase());
-    const sightCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
-    const airportCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
-    return { id: city.id, name: city.name, image: cityDetail?.image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}` };
+    const cityDetail = detail?.cities.find(
+      (item) =>
+        item.id === city.id ||
+        item.name.trim().toLocaleLowerCase() ===
+          city.name.trim().toLocaleLowerCase(),
+    );
+    const sightCount = new Set(
+      city.visits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "sight")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const airportCount = new Set(
+      city.visits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    return {
+      id: city.id,
+      name: city.name,
+      image: cityDetail?.image,
+      detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}`,
+    };
   });
   const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
@@ -250,44 +300,45 @@ export default function CountryScreen() {
           <View style={s.headerSpacer} />
         </View>
 
-        <View style={s.stampHero}>
-          {!detail ? (
-            <View style={s.heroLoading} />
-          ) : detail.country.coverImage ? (
-            <Image
-              source={{ uri: detail.country.coverImage }}
-              recyclingKey={`country-${code}-${detail.country.coverImage}`}
-              style={s.countryHeroImage}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : stamp ? (
-            <Image
-              source={stamp}
-              style={s.stampImage}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : (
-            <Image
-              source={require("@/assets/images/other/globe-airplane.png")}
-              style={s.stampImage}
-              contentFit="cover"
-            />
-          )}
+        <View style={s.heroWrap}>
+          <StampHeroFrame>
+            {!detail ? (
+              <View style={s.heroLoading} />
+            ) : detail.country.coverImage ? (
+              <Image
+                source={{ uri: detail.country.coverImage }}
+                recyclingKey={`country-${code}-${detail.country.coverImage}`}
+                style={s.countryHeroImage}
+                contentFit="cover"
+                contentPosition="center"
+              />
+            ) : stamp ? (
+              <Image
+                source={stamp}
+                style={s.stampImage}
+                contentFit="cover"
+                contentPosition="center"
+              />
+            ) : (
+              <Image
+                source={require("@/assets/images/other/globe-airplane.png")}
+                style={s.stampImage}
+                contentFit="cover"
+              />
+            )}
+          </StampHeroFrame>
         </View>
-
         <View style={s.statsWrap}>
           <TravelStats
             items={[
               ...(normalizedCode === "US"
                 ? [
-                  {
-                    icon: "map-outline",
-                    value: displayedStats.states,
-                    label: "STATES",
-                  },
-                ]
+                    {
+                      icon: "map-outline",
+                      value: displayedStats.states,
+                      label: "STATES",
+                    },
+                  ]
                 : []),
               {
                 icon: "business-outline",
@@ -323,14 +374,67 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail?.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
+        <TopSightsSection
+          sights={visibleSights}
+          lockedSights={lockedSights}
+          completedSightIds={completedSightIds}
+          onOpen={setSelectedSight}
+          onToggle={(id, checked) => void toggleSight(id, checked)}
+          locationForSight={(sight) =>
+            sight.city ||
+            detail?.cities.find(
+              (city) => String(city.id) === String(sight.cityId),
+            )?.name ||
+            ""
+          }
+          upgrade={
+            lockedSights.length ? (
+              <UpgradeBanner
+                count={lockedSights.length}
+                active={subscription.isKrooPlus}
+                configured={subscription.configured}
+              />
+            ) : null
+          }
+        />
 
         {normalizedCode === "US" ? (
-          <StatesSection showDetail={false} items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
+          <StatesSection
+            showDetail={false}
+            items={stateItems}
+            emptyText="Your visited states will appear here."
+            onOpen={(state) =>
+              router.push({
+                pathname: "/state/[countryCode]/[stateName]",
+                params: { countryCode: "US", stateName: state.name },
+              })
+            }
+          />
         ) : null}
 
-        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push({ pathname: "/city/[id]", params: { id: city.id, name: city.name, country: name, countryCode: normalizedCode } })} />
-        <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
+        <CitiesVisitedSection
+          showDetail={normalizedCode !== "US"}
+          items={cityItems}
+          emptyText="Your visited cities will appear here."
+          onOpen={(city) =>
+            router.push({
+              pathname: "/city/[id]",
+              params: {
+                id: city.id,
+                name: city.name,
+                country: name,
+                countryCode: normalizedCode,
+              },
+            })
+          }
+        />
+        <PlaceCollectionList
+          collections={countryCollectionItems.map(
+            ({ collection }) => collection,
+          )}
+          completedSightIds={completedSightIds}
+          placeName={name}
+        />
 
         <TouchableOpacity
           style={s.gpsCard}
@@ -457,31 +561,20 @@ const s = StyleSheet.create({
     color: BrandColors.copper,
   },
   headerSpacer: { width: 42, height: 42 },
-  stampHero: {
-    marginHorizontal: 14,
-    marginBottom: 14,
-    padding: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.surface,
-    overflow: "hidden",
-  },
   stampImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
+    height: "100%",
     transform: [{ scale: 1.2 }],
   },
   countryHeroImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
+    height: "100%",
   },
-  heroLoading: { flex: 1, backgroundColor: BrandColors.greenPanel },
+  heroLoading: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: BrandColors.greenPanel,
+  },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,
@@ -815,4 +908,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   sightsEmpty: { marginHorizontal: 16 },
+  heroWrap: {
+    margin: 16,
+  },
 });
