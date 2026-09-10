@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import {
@@ -25,10 +26,7 @@ import {
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  sightCompletionSet,
-  visitsHydrated,
-} from "@/store/travel-slice";
+import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
 
 function PlaceImage({
   place,
@@ -69,7 +67,9 @@ export default function CollectionScreen() {
     setCollection(null);
     setCollectionLoading(true);
     const cacheKey = `kroo.collection.${id}.v1`;
-    const applyCollection = (item: Awaited<ReturnType<typeof api.collectionDetail>>) => {
+    const applyCollection = (
+      item: Awaited<ReturnType<typeof api.collectionDetail>>,
+    ) => {
       if (!active) return;
       setCollection({
         id: item.id,
@@ -79,9 +79,11 @@ export default function CollectionScreen() {
         places: item.places,
       });
     };
-    void AsyncStorage.getItem(cacheKey).then((cached) => {
-      if (cached && active) applyCollection(JSON.parse(cached));
-    }).catch(() => undefined);
+    void AsyncStorage.getItem(cacheKey)
+      .then((cached) => {
+        if (cached && active) applyCollection(JSON.parse(cached));
+      })
+      .catch(() => undefined);
     void api
       .collectionDetail(id)
       .then((item) => {
@@ -165,15 +167,15 @@ export default function CollectionScreen() {
           </Text>
           <View style={s.headerSpacer} />
         </View>
-
-        <View style={s.hero}>
-          <ProgressivePlaceImage
-            uri={collection.imageUrl}
-            style={s.heroImage}
-            contentFit={"cover"}
-          />
+        <View style={s.heroWrap}>
+          <StampHeroFrame>
+            <ProgressivePlaceImage
+              uri={collection.imageUrl}
+              style={s.heroImage}
+              contentFit={"cover"}
+            />
+          </StampHeroFrame>
         </View>
-
         <View style={s.progressHeader}>
           <Text style={s.sectionTitle}>Collection Checklist</Text>
           <Text style={s.progressText}>
@@ -196,7 +198,8 @@ export default function CollectionScreen() {
                     {place.name}
                   </Text>
                   <Text style={s.placeLocation} numberOfLines={1}>
-                    {place.location || [place.city, place.country].filter(Boolean).join(", ")}
+                    {place.location ||
+                      [place.city, place.country].filter(Boolean).join(", ")}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -244,7 +247,10 @@ export default function CollectionScreen() {
                         {place.name}
                       </Text>
                       <Text style={s.placeLocation} numberOfLines={1}>
-                        {place.location || [place.city, place.country].filter(Boolean).join(", ")}
+                        {place.location ||
+                          [place.city, place.country]
+                            .filter(Boolean)
+                            .join(", ")}
                       </Text>
                     </View>
                     <View style={s.lockedCheckIcon}>
@@ -262,45 +268,43 @@ export default function CollectionScreen() {
         ) : null}
       </ScrollView>
 
-      {
-        selectedPlace ? (
-          <DetailModal
-            visible
-            title={selectedPlace.name}
-            location={
-              selectedPlace.location ||
-              [selectedPlace.city, selectedPlace.country]
-                .filter(Boolean)
-                .join(", ")
-            }
-            description={
-              selectedPlace.content ||
-              selectedPlace.detail ||
-              "A memorable place in this collection."
-            }
-            image={
-              <ProgressivePlaceImage
-                uri={selectedPlace.imageUrl}
-                style={s.modalPlaceImage}
-                contentFit="cover"
-              />
-            }
-            locked={
-              !subscription.isKrooPlus &&
-              premiumPlaces.some((place) => place.id === selectedPlace.id)
-            }
-            unlockContent={
-              <UpgradeBanner
-                active={subscription.isKrooPlus}
-                configured={subscription.configured}
-                text="Tap to unlock this place with Kroo+"
-              />
-            }
-            onClose={() => setSelectedPlace(null)}
-          />
-        ) : null
-      }
-    </SafeAreaView >
+      {selectedPlace ? (
+        <DetailModal
+          visible
+          title={selectedPlace.name}
+          location={
+            selectedPlace.location ||
+            [selectedPlace.city, selectedPlace.country]
+              .filter(Boolean)
+              .join(", ")
+          }
+          description={
+            selectedPlace.content ||
+            selectedPlace.detail ||
+            "A memorable place in this collection."
+          }
+          image={
+            <ProgressivePlaceImage
+              uri={selectedPlace.imageUrl}
+              style={s.modalPlaceImage}
+              contentFit="cover"
+            />
+          }
+          locked={
+            !subscription.isKrooPlus &&
+            premiumPlaces.some((place) => place.id === selectedPlace.id)
+          }
+          unlockContent={
+            <UpgradeBanner
+              active={subscription.isKrooPlus}
+              configured={subscription.configured}
+              text="Tap to unlock this place with Kroo+"
+            />
+          }
+          onClose={() => setSelectedPlace(null)}
+        />
+      ) : null}
+    </SafeAreaView>
   );
 }
 
@@ -330,20 +334,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(22),
     color: BrandColors.copper,
   },
-  hero: {
-    marginHorizontal: 14,
-    padding: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.surface,
-  },
   heroImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
+    height: "100%",
   },
   subtitle: {
     marginTop: 5,
@@ -405,7 +398,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   upgradeBannerWrapper: {
-    marginHorizontal: 16
+    marginHorizontal: 16,
   },
   lockedPlaceName: {
     color: "rgba(248,234,212,.4)",
@@ -452,5 +445,8 @@ const s = StyleSheet.create({
     aspectRatio: 1.5,
     borderRadius: 16,
     backgroundColor: BrandColors.greenPanel,
+  },
+  heroWrap: {
+    margin: 12,
   },
 });
