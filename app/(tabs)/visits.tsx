@@ -226,11 +226,13 @@ export default function PlusScreen() {
               value={`${krooScore.toFixed(1)} / 5.0`}
               amount={krooScore / 5}
             />
+            <View style={s.vr} />
             <Progress
               label="Kroo IQ"
               value={`${krooIq} / 80`}
               amount={krooIq / 80}
             />
+            <View style={s.vr} />
             <Progress
               label="Referrals"
               value={`${referrals} / 5`}
@@ -488,7 +490,7 @@ const s = StyleSheet.create({
     gap: 7,
   },
   heroTitleSection: {
-    marginBottom: 12,
+    marginBottom: 48,
   },
   heroTitle: {
     textAlign: "center",
@@ -503,7 +505,7 @@ const s = StyleSheet.create({
   heroSubtitle: {
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
@@ -595,6 +597,8 @@ const s = StyleSheet.create({
   progressItem: {
     flex: 1,
     paddingHorizontal: 12,
+  },
+  vr: {
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: BrandColors.paleGreen,
   },
@@ -697,8 +701,9 @@ const s = StyleSheet.create({
   benefits: { padding: 12, flexDirection: "row", gap: 6 },
   benefit: {
     flex: 1,
-    minHeight: 125,
-    padding: 12,
+    minHeight: 110,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "flex-start",
     borderWidth: 1,
