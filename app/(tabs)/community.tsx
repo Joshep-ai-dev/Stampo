@@ -162,77 +162,77 @@ export default function LeaderboardScreen() {
             </View>
             {isSignedIn ? (
               <>
-            <View style={s.sectionHead}>
-              <Text style={s.sectionTitle}>Compare with a friend</Text>
-            </View>
-            {me && selected ? (
-              <View style={s.compareCard}>
-                <View style={s.comparePeople}>
-                  <CompareSide person={me} label="You" side="me" />
-                  <Text style={s.vs}>VS</Text>
-                  <CompareSide
-                    person={selected}
-                    label={selected.name}
-                    side="friend"
-                  />
+                <View style={s.sectionHead}>
+                  <Text style={s.sectionTitle}>Compare with a friend</Text>
                 </View>
-                <View style={s.compareStats}>
-                  {(
-                    [
-                      "countries",
-                      "continents",
-                      "cities",
-                      "collections",
-                    ] as const
-                  ).map((key) => {
-                    const leftWins = me.stats[key] > selected.stats[key];
-                    const rightWins = selected.stats[key] > me.stats[key];
-                    return (
-                      <View key={key} style={s.statRow}>
-                        <Text style={[s.statLeft, leftWins && s.statWin]}>
-                          {me.stats[key]}
-                        </Text>
-                        <Text style={s.statLabel}>
-                          {key === "collections"
-                            ? "LISTS DONE"
-                            : key.toUpperCase()}
-                        </Text>
-                        <Text style={[s.statRight, rightWins && s.statWin]}>
-                          {selected.stats[key]}
-                        </Text>
-                      </View>
-                    );
-                  })}
+                {me && selected ? (
+                  <View style={s.compareCard}>
+                    <View style={s.comparePeople}>
+                      <CompareSide person={me} label="You" side="me" />
+                      <Text style={s.vs}>VS</Text>
+                      <CompareSide
+                        person={selected}
+                        label={selected.name}
+                        side="friend"
+                      />
+                    </View>
+                    <View style={s.compareStats}>
+                      {(
+                        [
+                          "countries",
+                          "continents",
+                          "cities",
+                          "collections",
+                        ] as const
+                      ).map((key) => {
+                        const leftWins = me.stats[key] > selected.stats[key];
+                        const rightWins = selected.stats[key] > me.stats[key];
+                        return (
+                          <View key={key} style={s.statRow}>
+                            <Text style={[s.statLeft, leftWins && s.statWin]}>
+                              {me.stats[key]}
+                            </Text>
+                            <Text style={s.statLabel}>
+                              {key === "collections"
+                                ? "LISTS DONE"
+                                : key.toUpperCase()}
+                            </Text>
+                            <Text style={[s.statRight, rightWins && s.statWin]}>
+                              {selected.stats[key]}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : (
+                  <Message title="Add a friend by QR code to compare scores." />
+                )}
+                <View style={s.sectionHead}>
+                  <Text style={s.sectionTitle}>Friends ({friends.length})</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push("/add-friends" as never)}
+                  >
+                    <Text style={s.addFriend}>+ Invite friend</Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            ) : (
-              <Message title="Add a friend by QR code to compare scores." />
-            )}
-            <View style={s.sectionHead}>
-              <Text style={s.sectionTitle}>Friends ({friends.length})</Text>
-              <TouchableOpacity
-                onPress={() => router.push("/add-friends" as never)}
-              >
-                <Text style={s.addFriend}>+ Invite friend</Text>
-              </TouchableOpacity>
-            </View>
-            {friends.map((friend) => (
-              <View key={friend.id} style={s.friendRow}>
-                <Avatar person={friend} />
-                <View style={s.friendInfo}>
-                  <Text style={s.friendName}>{friend.name}</Text>
-                  <Text style={s.friendScore}>
-                    {friend.score.toFixed(1)} · {friend.level}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={s.compareButton}
-                  onPress={() => setSelectedId(friend.id)}
-                >
-                  <Text style={s.compareButtonText}>COMPARE</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+                {friends.map((friend) => (
+                  <View key={friend.id} style={s.friendRow}>
+                    <Avatar person={friend} />
+                    <View style={s.friendInfo}>
+                      <Text style={s.friendName}>{friend.name}</Text>
+                      <Text style={s.friendScore}>
+                        {friend.score.toFixed(1)} · {friend.level}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={s.compareButton}
+                      onPress={() => setSelectedId(friend.id)}
+                    >
+                      <Text style={s.compareButtonText}>COMPARE</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </>
             ) : (
               <Message title="Sign in to compare scores and add friends." />
@@ -362,12 +362,28 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   avatarImage: { width: "100%", height: "100%" },
-  initials: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(13), color: c.cream },
+  initials: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: c.cream,
+  },
   medal: { fontSize: responsiveFontSize(16) },
   lbName: { flex: 1 },
-  personName: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(15), color: c.cream },
-  personLevel: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: c.muted },
-  lbScore: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: c.mint },
+  personName: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(15),
+    color: c.cream,
+  },
+  personLevel: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: c.muted,
+  },
+  lbScore: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(17),
+    color: c.mint,
+  },
   sectionHead: {
     paddingHorizontal: 22,
     paddingTop: 22,
@@ -381,7 +397,11 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(18),
     color: c.cream,
   },
-  addFriend: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: c.mint },
+  addFriend: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: c.mint,
+  },
   compareCard: {
     marginHorizontal: 22,
     padding: 18,
@@ -407,7 +427,11 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(15),
     color: c.cream,
   },
-  compareScore: { marginTop: 4, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(25) },
+  compareScore: {
+    marginTop: 4,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(25),
+  },
   scoreMint: { color: c.mint },
   scoreCopper: { color: c.copper },
   vs: {
@@ -453,8 +477,16 @@ const s = StyleSheet.create({
     backgroundColor: c.surface,
   },
   friendInfo: { flex: 1 },
-  friendName: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(15), color: c.cream },
-  friendScore: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: c.muted },
+  friendName: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(15),
+    color: c.cream,
+  },
+  friendScore: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    color: c.muted,
+  },
   compareButton: {
     paddingHorizontal: 12,
     height: 34,

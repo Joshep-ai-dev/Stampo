@@ -81,7 +81,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="visits"
         options={{
-          title: "Add",
+          title: "Kroo+",
           tabBarLabel: "",
           tabBarIcon: () => (
             <View style={styles.add}>
@@ -93,15 +93,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Social",
+          title: "Kroo IQ",
           tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
             <Icon
               focused={focused}
               color={color}
-              on="people"
-              off="people-outline"
+              on="bulb"
+              off="bulb-outline"
             />
           ),
         }}

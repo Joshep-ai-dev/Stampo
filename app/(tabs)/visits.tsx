@@ -1,9 +1,7 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
-
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import { Image, ImageBackground } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Modal,
@@ -17,186 +15,53 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
-import { KrooPlusOffer } from "@/components/kroo-plus-offer";
 import { useKrooPlusBilling } from "@/components/subscription-provider";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
-import { api, type DailyDestination } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
-const c = {
-  deep: BrandColors.canvas,
-  card: BrandColors.greenDeep,
-  card2: BrandColors.green,
-  mint: BrandColors.progressGreen,
-  copper: BrandColors.copper,
-  cream: BrandColors.onDark,
-  muted: "rgba(246,241,228,.58)",
-  line: "rgba(246,241,228,.14)",
-  error: "#D9694F",
-};
-type QuizRound = {
-  id?: string;
-  name?: string;
-  country: string;
-  icon: string;
-  city: string;
-  info: string;
-  q: string;
-  options: readonly string[];
-  correct: number;
-};
-const rounds: QuizRound[] = [
-  {
-    icon: "🖼️",
-    country: "France",
-    city: "Paris",
-    info: "The Louvre in Paris is the most visited art museum on Earth, drawing millions of visitors every year.",
-    q: "Which museum in Paris is the most visited art museum in the world?",
-    options: ["The Louvre", "The Uffizi", "The British Museum", "The Prado"],
-    correct: 0,
-  },
-  {
-    icon: "🗼",
-    country: "France",
-    city: "Paris",
-    info: "The Eiffel Tower was built as a temporary entrance arch for the 1889 World's Fair.",
-    q: "In what year was the Eiffel Tower completed?",
-    options: ["1875", "1889", "1901", "1920"],
-    correct: 1,
-  },
-  {
-    icon: "🌍",
-    country: "France",
-    city: "Nationwide",
-    info: "France is the world's most visited country by international tourist arrivals.",
-    q: "France is the world's ___ most visited country.",
-    options: ["1st", "3rd", "5th", "10th"],
-    correct: 0,
-  },
-  {
-    icon: "🍷",
-    country: "France",
-    city: "Nationwide",
-    info: "The gastronomic meal of the French is recognized as Intangible Cultural Heritage.",
-    q: "Which organization granted that recognition?",
-    options: ["UNESCO", "WHO", "UNICEF", "WTO"],
-    correct: 0,
-  },
-  {
-    icon: "🗺️",
-    country: "France",
-    city: "Nationwide",
-    info: "Mainland France shares borders with more neighbors than most Western European countries.",
-    q: "Roughly how many countries border mainland France?",
-    options: ["2", "4", "8", "12"],
-    correct: 2,
-  },
-];
+const HERO = require("@/assets/images/other/top image.webp");
 const destinations = [
   {
     name: "Bali Bliss Escape",
     place: "Bali, Indonesia",
-    nights: 6,
-    cost: "$3,800",
-    icon: "🌋",
-    color: "#2D5A3D",
-    desc: "A private rice-terrace villa and a sunrise trek up an active volcano.",
+    value: "$3,800 value",
+    icon: "leaf-outline",
   },
   {
-    name: "Caldera Dreams",
+    name: "Santorini Escape",
     place: "Santorini, Greece",
-    nights: 5,
-    cost: "$5,200",
-    icon: "🏛️",
-    color: "#315E75",
-    desc: "Wake up to caldera views, then sail the Aegean at sunset.",
+    value: "$5,200 value",
+    icon: "boat-outline",
   },
   {
-    name: "Escape to Paradise",
+    name: "Japan Discovery",
+    place: "Japan",
+    value: "$6,500 value",
+    icon: "flower-outline",
+  },
+  {
+    name: "Maldives Retreat",
     place: "Maldives",
-    nights: 4,
-    cost: "$7,000",
-    icon: "🏝️",
-    color: "#21687A",
-    desc: "An overwater bungalow reached by private seaplane.",
-  },
-  {
-    name: "Pura Vida Adventure",
-    place: "Costa Rica",
-    nights: 6,
-    cost: "$2,900",
-    icon: "🌿",
-    color: "#35633A",
-    desc: "A rainforest lodge, treetop zip-lines, and volcanic hot springs.",
+    value: "$7,000 value",
+    icon: "sunny-outline",
   },
 ] as const;
 type Destination = (typeof destinations)[number];
 
-export default function PlusTabScreen() {
+export default function PlusScreen() {
   const router = useRouter();
   const billing = useKrooPlusBilling();
   const { countryCode, countryName } = useLocalSearchParams<{
     countryCode?: string;
     countryName?: string;
   }>();
-  const travel = useAppSelector((x) => x.travel);
-  const isPlus = useAppSelector((x) => x.subscription.isKrooPlus);
-  const [index, setIndex] = useState(0),
-    [phase, setPhase] = useState<"info" | "question" | "result">("info"),
-    [score, setScore] = useState(0),
-    [answer, setAnswer] = useState<number | null>(null),
-    [selected, setSelected] = useState<Destination | null>(null);
-  const [managedRounds, setManagedRounds] = useState<DailyDestination[]>([]);
-  const [purchaseBusy, setPurchaseBusy] = useState(false);
-
-  const showPurchaseError = (error: unknown) => {
-    Alert.alert(
-      "Kroo+",
-      error instanceof Error ? error.message : "Please try again.",
-    );
-  };
-
-  const purchaseKrooPlus = (plan: "monthly" | "annual") => {
-    setPurchaseBusy(true);
-    void billing.purchase(plan)
-      .catch(showPurchaseError)
-      .finally(() => setPurchaseBusy(false));
-  };
-
-  const restoreKrooPlus = () => {
-    setPurchaseBusy(true);
-    void billing.restore()
-      .then((active) => {
-        Alert.alert(
-          active ? "Kroo+ restored" : "No purchase found",
-          active
-            ? "Your membership is active again."
-            : "No active Kroo+ purchase was found for this store account.",
-        );
-      })
-      .catch(showPurchaseError)
-      .finally(() => setPurchaseBusy(false));
-  };
-  useEffect(() => {
-    void api
-      .dailyDestinations()
-      .then(setManagedRounds)
-      .catch(() => undefined);
-  }, []);
-  const quizRounds: QuizRound[] = managedRounds.length
-    ? managedRounds.map((item) => ({
-      id: item.id,
-      name: item.name,
-      country: item.country,
-      city: item.city || "Nationwide",
-      icon: item.icon || "🌍",
-      info: item.content,
-      q: item.question,
-      options: item.options,
-      correct: item.correctAnswer,
-    }))
-    : rounds;
+  const travel = useAppSelector((state) => state.travel);
+  const isPlus = useAppSelector((state) => state.subscription.isKrooPlus);
+  const [plan, setPlan] = useState<"monthly" | "annual">("annual");
+  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Destination | null>(null);
   const krooScore = useMemo(
     () =>
       calculateKrooScoreFromVisits(
@@ -206,23 +71,28 @@ export default function PlusTabScreen() {
       ),
     [travel],
   );
-  const answeredCount = phase === "result" ? quizRounds.length : index + (answer !== null ? 1 : 0);
-  const iq = answeredCount > 0 ? (score / answeredCount) * 100 : 0;
+  const krooIq = 76;
+  const referrals = 3;
+
   if (countryCode)
     return (
       <SafeAreaView style={s.safe} edges={["top"]}>
-        <View style={s.countryHead}>
-          <TouchableOpacity style={s.back} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={c.cream} />
+        <View style={s.visitHead}>
+          <TouchableOpacity style={s.backButton} onPress={() => router.back()}>
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={BrandColors.onDark}
+            />
           </TouchableOpacity>
           <View>
-            <Text style={s.countryTitle}>Add a Visit</Text>
+            <Text style={s.visitTitle}>Add a Visit</Text>
             <Text style={s.muted}>
               Choose a city in {countryName ?? countryCode}
             </Text>
           </View>
         </View>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView contentContainerStyle={s.visitContent}>
           <CityVisitSearch
             countryCode={countryCode}
             countryName={countryName ?? countryCode}
@@ -230,158 +100,275 @@ export default function PlusTabScreen() {
         </ScrollView>
       </SafeAreaView>
     );
-  const round = quizRounds[Math.min(index, quizRounds.length - 1)];
-  const next = () =>
-    index === quizRounds.length - 1
-      ? setPhase("result")
-      : (setIndex(index + 1), setPhase("info"), setAnswer(null));
+
+  const purchase = () => {
+    setBusy(true);
+    void billing
+      .purchase(plan)
+      .catch((error) =>
+        Alert.alert(
+          "Kroo+",
+          error instanceof Error ? error.message : "Please try again.",
+        ),
+      )
+      .finally(() => setBusy(false));
+  };
+  const restore = () => {
+    setBusy(true);
+    void billing
+      .restore()
+      .then((active) =>
+        Alert.alert(
+          active ? "Kroo+ restored" : "No purchase found",
+          active
+            ? "Your membership is active again."
+            : "No active Kroo+ purchase was found.",
+        ),
+      )
+      .catch((error) =>
+        Alert.alert(
+          "Kroo+",
+          error instanceof Error ? error.message : "Please try again.",
+        ),
+      )
+      .finally(() => setBusy(false));
+  };
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
-        contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.content}
       >
-        <Image
-          source={require("@/assets/images/kroo_logo_text.png")}
-          style={s.wordmark}
-          contentFit="contain"
-          accessibilityLabel="Kroo, Collect the world"
-        />
-        {isPlus ? <>
-          <View style={s.dailyHead}>
-            <View>
-              <Text style={s.sectionTitle}>Daily Destination</Text>
-              <Text style={s.kicker}>TODAY&apos;S LESSON</Text>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={s.iq}>{iq.toFixed(1)}</Text>
-              <Text style={s.kicker}>KROO IQ</Text>
-            </View>
-          </View>
-          <View style={s.dailyCard}>
-            <View style={s.dots}>
-              {quizRounds.map((item, i) => (
-                <View
-                  key={item.id ?? i}
-                  style={[
-                    s.dot,
-                    i < index && s.done,
-                    i === index && phase !== "result" && s.current,
-                  ]}
-                />
-              ))}
-            </View>
-            {phase === "result" ? (
-              <View style={s.result}>
-                <Text style={s.resultScore}>
-                  {score}/{quizRounds.length}
-                </Text>
-                <Text style={s.kicker}>TODAY&apos;S SCORE</Text>
-                <Text style={s.correct}>Kroo IQ is your percentage of correct Daily Destination answers.</Text>
-                <Button
-                  label=" DONE FOR TODAY "
-                  onPress={() => {
-                    setIndex(0);
-                    setScore(0);
-                    setAnswer(null);
-                    setPhase("info");
-                  }}
-                />
-              </View>
-            ) : phase === "info" ? (
-              <View>
-                <Text style={s.lessonTitle}>{round.country}</Text>
-                <Text style={s.kicker}>{round.city.toUpperCase()}</Text>
-                <View style={s.lessonImage}>
-                  <Text style={{ fontSize: responsiveFontSize(34) }}>{round.icon}</Text>
-                </View>
-                <Text style={s.body}>{round.info}</Text>
-                <Button label="CONTINUE" onPress={() => setPhase("question")} />
-              </View>
-            ) : (
-              <View>
-                <Text style={s.kicker}>QUESTION {index + 1} OF {quizRounds.length}</Text>
-                <Text style={s.question}>{round.q}</Text>
-                {round.options.map((option, i) => (
-                  <TouchableOpacity
-                    key={option}
-                    disabled={answer !== null}
-                    style={[
-                      s.option,
-                      answer !== null && i === round.correct && s.optionCorrect,
-                      answer === i && i !== round.correct && s.optionWrong,
-                    ]}
-                    onPress={() => {
-                      setAnswer(i);
-                      if (i === round.correct) setScore(score + 1);
-                    }}
-                  >
-                    <Text style={s.optionText}>{option}</Text>
-                  </TouchableOpacity>
-                ))}
-                {answer !== null && (
-                  <>
-                    <Text style={answer === round.correct ? s.correct : s.wrong}>
-                      {answer === round.correct
-                        ? "Correct! Nice work."
-                        : `Not quite — the answer was ${round.options[round.correct]}.`}
-                    </Text>
-                    <Button
-                      label={
-                        index < quizRounds.length - 1 ? "NEXT" : "SEE YOUR SCORE"
-                      }
-                      onPress={next}
-                    />
-                  </>
-                )}
-              </View>
-            )}
-          </View>
-        </> : (
-          <View style={s.offerSection}>
-            <Text style={s.offerHeading}>Go further with Kroo+</Text>
-            <KrooPlusOffer
-              monthlyPrice={billing.prices.monthly ?? "$5.99"}
-              annualPrice={billing.prices.annual ?? "$59.99"}
-              busy={purchaseBusy}
-              onPurchase={purchaseKrooPlus}
-              onRestore={restoreKrooPlus}
+        <ImageBackground source={HERO} style={s.hero} contentFit="cover">
+          <View style={s.heroShade} />
+          <View style={s.brandRow}>
+            <Image
+              source={require("../../assets/images/kroo_logo_text.png")}
+              style={s.wordmark}
+              contentFit="contain"
+              accessibilityLabel="Kroo"
             />
           </View>
-        )}
-        <Text style={s.heading}>Dream Vacation Challenge</Text>
-        <Text style={s.intro}>
-          Complete 3 requirements as a{" "}
-          <Text style={{ color: c.cream }}>Kroo+ member</Text> and we&apos;ll
-          send you on the dream vacation you choose below.
-        </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.destRow}
-        >
-          {destinations.map((d) => (
-            <TouchableOpacity
-              key={d.name}
-              style={s.destCard}
-              onPress={() => setSelected(d)}
-            >
-              <View style={[s.destImage, { backgroundColor: d.color }]}>
-                <Text style={{ fontSize: responsiveFontSize(28) }}>{d.icon}</Text>
-              </View>
-              <View style={{ padding: 10 }}>
-                <Text style={s.destName}>{d.name}</Text>
-                <Text style={s.destCost}>{d.cost}</Text>
+          {!isPlus && (
+            <View style={s.heroTitleSection}>
+              <Text style={s.heroTitle}>Join Kroo+</Text>
+              <Text style={[s.heroTitle, { color: BrandColors.onDarkMuted }]}>
+                Win Your Dream Vacation.
+              </Text>
+              <Text style={s.heroSubtitle}>
+                Complete the 3 steps below and your next vacation is on us.
+              </Text>
+            </View>
+          )}
+          {isPlus && (
+            <>
+              <Text style={s.heroTitle}>
+                Your Dream Vacation{`\n`}Challenge
+              </Text>
+              <Text style={s.heroSubtitle}>
+                Keep building your score to qualify for your chosen escape.
+              </Text>
+            </>
+          )}
+          <View style={s.location}>
+            <Ionicons name="location" size={16} color="#fff" />
+            <Text style={s.locationText}>Phi Phi Islands, Thailand</Text>
+          </View>
+        </ImageBackground>
+
+        <View style={s.steps}>
+          {[
+            {
+              n: "1",
+              icon: "stats-chart",
+              title: "Reach a Kroo Score of 5.0+",
+              copy: "Explore the world and build your score.",
+              action: () => router.navigate("/(tabs)/passport" as never),
+            },
+            {
+              n: "2",
+              icon: "bulb",
+              title: "Achieve a Kroo IQ Score of 80+",
+              copy: "Show off your travel knowledge.",
+              action: () => router.navigate("/(tabs)/community" as never),
+            },
+            {
+              n: "3",
+              icon: "people",
+              title: "Refer 5 others to join Kroo+",
+              copy: "Share the adventure with family and friends.",
+              action: () => router.push("/add-friends" as never),
+            },
+          ].map((step) => (
+            <TouchableOpacity key={step.n} style={s.step} onPress={step.action}>
+              <View style={s.stepArc}>
+                <View style={s.number}>
+                  <Text style={s.numberText}>{step.n}</Text>
+                </View>
+                <Ionicons
+                  name={step.icon as never}
+                  size={30}
+                  color={BrandColors.copper}
+                />
+                <Text style={s.stepTitle}>{step.title}</Text>
+                <Text style={s.stepCopy}>{step.copy}</Text>
               </View>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-        {isPlus ? <Progress score={krooScore} iq={iq} /> : null}
+        </View>
+
+        <View style={s.progressPanel}>
+          <Text style={s.progressHeading}>YOUR PROGRESS</Text>
+          <View style={s.progressItems}>
+            <Progress
+              label="Kroo Score"
+              value={`${krooScore.toFixed(1)} / 5.0`}
+              amount={krooScore / 5}
+            />
+            <Progress
+              label="Kroo IQ"
+              value={`${krooIq} / 80`}
+              amount={krooIq / 80}
+            />
+            <Progress
+              label="Referrals"
+              value={`${referrals} / 5`}
+              amount={referrals / 5}
+              dots
+            />
+          </View>
+          <Text style={s.progressNote}>
+            You&apos;re already 2 steps away from qualifying!
+          </Text>
+        </View>
+
+        <View style={s.vacations}>
+          <View style={s.sectionRow}>
+            <Text style={s.lightHeading}>Choose Your Dream Vacation</Text>
+            <Text style={s.viewAll}>View All Destinations →</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.destinationRow}
+          >
+            {destinations.map((item) => (
+              <TouchableOpacity
+                key={item.name}
+                style={s.destinationCard}
+                onPress={() => setSelected(item)}
+              >
+                <Image
+                  source={HERO}
+                  style={s.destinationImage}
+                  contentFit="cover"
+                />
+                <View style={s.destinationShade} />
+                <View style={s.destinationText}>
+                  <Text style={s.destinationName}>{item.name}</Text>
+                  <Text style={s.destinationValue}>{item.value}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {!isPlus && (
+          <>
+            <Text style={s.darkHeading}>Everything You Get with Kroo+</Text>
+            <View style={s.benefits}>
+              {[
+                [
+                  "trophy",
+                  "Participate in Dream Vacation Challenge",
+                  "Qualify for your dream trip.",
+                ],
+                ["bulb", "Access to Kroo IQ", "Test your travel knowledge."],
+                [
+                  "business",
+                  "Full access to all top Sights",
+                  "Explore more. Discover more.",
+                ],
+                [
+                  "star",
+                  "Exclusive challenges and events",
+                  "Unique member experiences.",
+                ],
+              ].map(([icon, title, copy]) => (
+                <View key={title} style={s.benefit}>
+                  <Ionicons
+                    name={icon as never}
+                    size={30}
+                    color={BrandColors.copper}
+                  />
+                  <Text style={s.benefitTitle}>{title}</Text>
+                  <Text style={s.benefitCopy}>{copy}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={s.plans}>
+              <Plan
+                selected={plan === "monthly"}
+                label="MONTHLY"
+                price={billing.prices.monthly ?? "$9.99"}
+                suffix="/mo"
+                onPress={() => setPlan("monthly")}
+              />
+              <Plan
+                selected={plan === "annual"}
+                label="ANNUAL"
+                price={billing.prices.annual ?? "$99.99"}
+                suffix="/yr"
+                badge="SAVE 17%"
+                onPress={() => setPlan("annual")}
+              />
+            </View>
+            <TouchableOpacity
+              style={[s.cta, busy && s.disabled]}
+              disabled={busy}
+              onPress={purchase}
+            >
+              <Text style={s.ctaText}>
+                {busy ? "PLEASE WAIT…" : "START 3-DAY FREE TRIAL"}
+              </Text>
+            </TouchableOpacity>
+            <Text style={s.terms}>
+              Then {billing.prices.annual ?? "$99.99"}/year. Cancel anytime
+              before trial ends. No risk.
+            </Text>
+            {/* <TouchableOpacity onPress={restore}>
+              <Text style={s.restore}>Restore purchases</Text>
+            </TouchableOpacity> */}
+            <View style={s.assurances}>
+              {[
+                ["shield-checkmark", "Cancel anytime"],
+                ["lock-closed", "Secure payment"],
+                ["card", "Apple Pay / Google Pay"],
+                ["globe", "Available worldwide"],
+              ].map(([icon, label]) => (
+                <View key={label} style={s.assurance}>
+                  <Ionicons
+                    name={icon as never}
+                    size={25}
+                    color={BrandColors.copper}
+                  />
+                  <Text style={s.assuranceText}>{label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={s.legal}>
+              By continuing, you agree to our{" "}
+              <Text style={s.underline}>Terms & Conditions</Text> and{" "}
+              <Text style={s.underline}>Privacy Policy</Text>.
+            </Text>
+          </>
+        )}
       </ScrollView>
       <Modal
         transparent
         animationType="slide"
-        visible={!!selected}
+        visible={Boolean(selected)}
         onRequestClose={() => setSelected(null)}
       >
         <View style={s.modalRoot}>
@@ -393,24 +380,22 @@ export default function PlusTabScreen() {
                   style={s.close}
                   onPress={() => setSelected(null)}
                 >
-                  <Ionicons name="close" size={20} color={c.cream} />
+                  <Ionicons
+                    name="close"
+                    size={22}
+                    color={BrandColors.onDark}
+                  />{" "}
                 </TouchableOpacity>
-                <View
-                  style={[s.modalImage, { backgroundColor: selected.color }]}
-                >
-                  <Text style={{ fontSize: responsiveFontSize(48) }}>{selected.icon}</Text>
-                </View>
-                <Text style={s.modalTitle}>{selected.name}</Text>
-                <Text style={s.kicker}>{selected.place.toUpperCase()}</Text>
-                <Text style={s.body}>{selected.desc}</Text>
-                <View style={s.stats}>
-                  <Stat value={`${selected.nights}`} label="NIGHTS" />
-                  <Stat value={selected.cost} label="EST. VALUE" />
-                </View>
-                <Button
-                  label="SELECT THIS DESTINATION"
+                <Image source={HERO} style={s.sheetImage} contentFit="cover" />
+                <Text style={s.sheetTitle}>{selected.name}</Text>
+                <Text style={s.sheetPlace}>{selected.place}</Text>
+                <Text style={s.sheetValue}>{selected.value}</Text>
+                <TouchableOpacity
+                  style={s.cta}
                   onPress={() => setSelected(null)}
-                />
+                >
+                  <Text style={s.ctaText}>SELECT THIS DESTINATION</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -420,399 +405,476 @@ export default function PlusTabScreen() {
   );
 }
 
-function Button({ label, onPress }: { label: string; onPress: () => void }) {
+function Progress({
+  label,
+  value,
+  amount,
+  dots,
+}: {
+  label: string;
+  value: string;
+  amount: number;
+  dots?: boolean;
+}) {
   return (
-    <TouchableOpacity style={s.button} onPress={onPress}>
-      <Text style={s.buttonText}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-function Progress({ score, iq }: { score: number; iq: number }) {
-  const items = [
-    {
-      title: "Refer 10 friends",
-      value: "0 / 10",
-      p: 0,
-      detail: "Counted once they join Kroo and verify their first country.",
-    },
-    {
-      title: "Kroo Score 5.5+",
-      value: `${score.toFixed(1)} / 5.5`,
-      p: score / 5.5,
-      detail: "Verified countries, continents, cities & sights only.",
-    },
-    {
-      title: "Kroo IQ 85+",
-      value: `${iq.toFixed(1)} / 85`,
-      p: iq / 85,
-      detail: "Keep your Daily Destination streak going to close the gap.",
-    },
-  ];
-  return (
-    <View>
-      <View style={s.progressHead}>
-        <Text style={s.heading}>Your Challenge Progress</Text>
-        <Text style={s.complete}>
-          {items.filter((x) => x.p >= 1).length}/3 complete
-        </Text>
-      </View>
-      {items.map((x) => (
-        <View style={s.progressCard} key={x.title}>
-          <View style={s.progressTop}>
-            <Text style={s.progressTitle}>{x.title}</Text>
-            <Text style={s.progressValue}>{x.value}</Text>
-          </View>
-          <View style={s.track}>
-            <View style={[s.fill, { width: `${Math.min(x.p, 1) * 100}%` }]} />
-          </View>
-          <Text style={s.muted}>{x.detail}</Text>
+    <View style={s.progressItem}>
+      <Text style={s.progressLabel}>{label}</Text>
+      <Text style={s.progressValue}>{value}</Text>
+      {dots ? (
+        <View style={s.dots}>
+          {[0, 1, 2, 3, 4].map((dot) => (
+            <View
+              key={dot}
+              style={[s.dot, dot < Math.round(amount * 5) && s.dotFilled]}
+            />
+          ))}
         </View>
-      ))}
-      <Text style={s.note}>
-        12 months from your Kroo+ start date · Active subscription required
-      </Text>
+      ) : (
+        <View style={s.track}>
+          <View style={[s.fill, { width: `${Math.min(1, amount) * 100}%` }]} />
+        </View>
+      )}
     </View>
   );
 }
-function Stat({ value, label }: { value: string; label: string }) {
+function Plan({
+  selected,
+  label,
+  price,
+  suffix,
+  badge,
+  onPress,
+}: {
+  selected: boolean;
+  label: string;
+  price: string;
+  suffix: string;
+  badge?: string;
+  onPress: () => void;
+}) {
   return (
-    <View style={s.stat}>
-      <Text style={s.statValue}>{value}</Text>
-      <Text style={s.kicker}>{label}</Text>
-    </View>
+    <TouchableOpacity
+      style={[s.plan, selected && s.planSelected]}
+      onPress={onPress}
+    >
+      {badge && (
+        <View style={s.badge}>
+          <Text style={s.badgeText}>{badge}</Text>
+        </View>
+      )}
+      <Text style={s.planLabel}>{label}</Text>
+      <Text style={s.planPrice}>
+        {price}
+        <Text style={s.planSuffix}>{suffix}</Text>
+      </Text>
+    </TouchableOpacity>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: c.deep },
-  content: { paddingTop: 6, paddingBottom: 36 },
-  wordmark: { width: 210, height: 78, alignSelf: "center" },
-  dailyHead: {
-    marginTop: 20,
-    paddingHorizontal: 22,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+  safe: { flex: 1, backgroundColor: BrandColors.canvas },
+  content: { paddingBottom: 26 },
+  hero: { height: 260, justifyContent: "flex-end", padding: 22, gap: 0 },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,20,14,.22)",
   },
-  sectionTitle: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(21),
-    color: c.cream,
-  },
-  kicker: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
-    letterSpacing: 0.8,
-    color: c.mint,
-  },
-  iq: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(32), color: c.cream },
-  dailyCard: {
-    minHeight: 300,
-    margin: 22,
-    marginBottom: 0,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 20,
-    backgroundColor: c.card,
-  },
-  dots: {
-    alignSelf: "flex-end",
-    flexDirection: "row",
-    gap: 5,
-    marginBottom: 8,
-  },
-  dot: { width: 16, height: 4, borderRadius: 2, backgroundColor: c.line },
-  done: { backgroundColor: c.mint },
-  current: { backgroundColor: c.copper },
-  lessonTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(21), color: c.cream },
-  lessonImage: {
-    height: 90,
-    marginTop: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.line,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: c.card2,
-  },
-  body: {
-    marginTop: 12,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(15),
-    lineHeight: 22,
-    color: c.cream,
-  },
-  button: {
-    minHeight: 48,
-    marginTop: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: c.copper,
-  },
-  buttonText: {
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(13),
-    color: c.deep,
-  },
-  question: {
-    marginVertical: 12,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(17),
-    lineHeight: 24,
-    color: c.cream,
-  },
-  option: {
-    minHeight: 43,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 10,
-    backgroundColor: c.card2,
-  },
-  optionCorrect: { borderColor: c.mint },
-  optionWrong: { borderColor: c.error },
-  optionText: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: c.cream },
-  correct: {
-    marginTop: 8,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    color: c.mint,
-  },
-  wrong: {
-    marginTop: 8,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    color: c.error,
-  },
-  result: { paddingTop: 30, alignItems: "center" },
-  resultScore: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(46),
-    color: c.copper,
-  },
-  heading: {
-    marginTop: 27,
-    marginHorizontal: 22,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(20),
-    color: c.cream,
-  },
-  offerSection: { paddingHorizontal: 22, paddingBottom: 8 },
-  offerHeading: {
-    marginTop: 27,
-    marginBottom: 12,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(20),
-    color: c.cream,
-  },
-  intro: {
-    margin: 22,
-    marginTop: 8,
-    marginBottom: 0,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(14),
-    lineHeight: 21,
-    color: c.muted,
-  },
-  destRow: { padding: 22, paddingBottom: 4, gap: 12 },
-  destCard: {
-    width: 128,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 14,
-    backgroundColor: c.card,
-  },
-  destImage: { height: 72, alignItems: "center", justifyContent: "center" },
-  destName: {
-    minHeight: 30,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
-    color: c.cream,
-  },
-  destCost: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(13), color: c.mint },
-  table: {
-    margin: 22,
-    marginTop: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 16,
-  },
-  row: {
-    minHeight: 48,
-    paddingHorizontal: 13,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.line,
-  },
-  feature: {
-    flex: 1,
-    paddingVertical: 7,
-    paddingRight: 5,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(14),
-    color: c.cream,
-  },
-  colHead: {
-    width: 55,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(12),
-    color: c.muted,
-  },
-  value: {
-    width: 55,
-    textAlign: "center",
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
-    color: c.muted,
-  },
-  check: { color: c.mint },
-  plans: { marginHorizontal: 22, flexDirection: "row", gap: 10 },
-  plan: {
-    flex: 1,
-    height: 110,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 9,
-    backgroundColor: c.card,
-  },
-  planLabel: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: c.copper },
-  price: {
-    marginTop: 12,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(23),
-    color: c.cream,
-  },
-  save: {
+  brandRow: {
     position: "absolute",
-    top: -13,
-    padding: 6,
-    borderRadius: 12,
-    backgroundColor: c.copper,
+    top: 15,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
   },
-  saveText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(11), color: c.deep },
-  terms: {
-    marginTop: 10,
+  heroTitleSection: {
+    marginBottom: 12,
+  },
+  heroTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(26),
+    lineHeight: responsiveFontSize(26),
+    color: BrandColors.white,
+    textShadowColor: "rgba(0,0,0,1)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 24,
+  },
+  heroSubtitle: {
+    textAlign: "center",
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.white,
+    textShadowColor: "rgba(0,0,0,1)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  location: {
+    marginTop: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  locationText: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.white,
+    textShadowColor: "rgba(0,0,0,1)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+    marginBottom: 10,
+  },
+  steps: {
+    marginTop: -32,
+    paddingHorizontal: 2,
+    paddingTop: 27,
+    flexDirection: "row",
+    gap: 2,
+  },
+  step: { flex: 1, minHeight: 165, alignItems: "center", paddingHorizontal: 2 },
+  stepArc: {
+    width: "100%",
+    maxWidth: 145,
+    height: 130,
+    paddingTop: 27,
+    paddingHorizontal: 7,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    borderBottomColor: "transparent",
+    borderRadius: 80,
+  },
+  number: {
+    position: "absolute",
+    top: -16,
+    alignSelf: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
+  },
+  numberText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(17),
+    color: BrandColors.green,
+  },
+  stepTitle: {
+    marginTop: 7,
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(17),
+    color: BrandColors.onDark,
+  },
+  stepCopy: {
+    position: "absolute",
+    top: 110,
+    maxWidth: 90,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(13),
-    color: c.muted,
+    fontSize: responsiveFontSize(11),
+    lineHeight: responsiveFontSize(14),
+    color: BrandColors.onDarkMuted,
   },
-  progressHead: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-  },
-  complete: {
-    marginRight: 22,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(13),
-    color: c.mint,
-  },
-  progressCard: {
-    marginHorizontal: 22,
-    marginTop: 14,
-    padding: 16,
+  progressPanel: {
+    margin: 14,
+    marginTop: 0,
+    padding: 12,
     borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 18,
-    backgroundColor: c.card,
+    borderColor: BrandColors.mapGreen,
+    borderRadius: 12,
   },
-  progressTop: { flexDirection: "row", justifyContent: "space-between" },
-  progressTitle: {
+  progressHeading: {
+    textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(18),
-    color: c.cream,
+    color: BrandColors.onDark,
+  },
+  progressItems: { marginTop: 7, flexDirection: "row" },
+  progressItem: {
+    flex: 1,
+    paddingHorizontal: 12,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: BrandColors.paleGreen,
+  },
+  progressLabel: {
+    textAlign: "center",
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.onDark,
   },
   progressValue: {
+    textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
-    color: c.copper,
+    fontSize: responsiveFontSize(17),
+    color: BrandColors.onDark,
   },
   track: {
-    height: 8,
-    marginVertical: 12,
-    borderRadius: 4,
-    backgroundColor: c.card2,
+    height: 7,
+    marginTop: 8,
+    borderRadius: 5,
+    backgroundColor: BrandColors.paleGreen,
   },
-  fill: { height: 8, borderRadius: 4, backgroundColor: c.mint },
-  muted: {
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(13),
-    lineHeight: 19,
-    color: c.muted,
+  fill: { height: 7, borderRadius: 5, backgroundColor: "#35DA8A" },
+  dots: {
+    marginTop: 4,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 4,
   },
-  note: {
-    margin: 25,
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BrandColors.onDark,
+  },
+  dotFilled: { backgroundColor: "#35DA8A", borderColor: "#35DA8A" },
+  progressNote: {
+    marginTop: 9,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(12),
-    color: c.muted,
+    color: BrandColors.onDarkMuted,
   },
+  vacations: {
+    paddingTop: 10,
+    paddingBottom: 13,
+    backgroundColor: "#F7EFE1",
+  },
+  sectionRow: {
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  lightHeading: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.ink,
+  },
+  viewAll: {
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.muted,
+  },
+  destinationRow: { paddingHorizontal: 14, paddingTop: 9, gap: 9 },
+  destinationCard: {
+    width: 150,
+    height: 120,
+    overflow: "hidden",
+    borderRadius: 8,
+    backgroundColor: BrandColors.green,
+  },
+  destinationImage: { ...StyleSheet.absoluteFillObject },
+  destinationShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,35,24,.24)",
+  },
+  destinationText: {
+    marginTop: "auto",
+    padding: 4,
+    backgroundColor: "rgba(0,35,24,.67)",
+  },
+  destinationName: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: "#fff",
+  },
+  destinationValue: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: "#35DA8A",
+  },
+  darkHeading: {
+    marginTop: 16,
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(20),
+    color: BrandColors.onDark,
+  },
+  benefits: { padding: 12, flexDirection: "row", gap: 6 },
+  benefit: {
+    flex: 1,
+    minHeight: 125,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    borderRadius: 8,
+  },
+  benefitTitle: {
+    marginTop: 6,
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(11),
+    lineHeight: responsiveFontSize(13),
+    color: BrandColors.onDark,
+  },
+  benefitCopy: {
+    marginTop: 4,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(9),
+    color: BrandColors.onDarkMuted,
+  },
+  plans: {
+    marginVertical: 12,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    gap: 16,
+  },
+  plan: {
+    flex: 1,
+    height: 80,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.mapGreen,
+    borderRadius: 8,
+  },
+  planSelected: { borderColor: BrandColors.copper, borderWidth: 2 },
+  badge: {
+    position: "absolute",
+    top: -10,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: BrandColors.copper,
+  },
+  badgeText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(10),
+    color: BrandColors.green,
+  },
+  planLabel: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDark,
+  },
+  planPrice: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(20),
+    color: BrandColors.onDark,
+  },
+  planSuffix: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(10),
+  },
+  cta: {
+    minHeight: 48,
+    marginHorizontal: 12,
+    marginTop: 10,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.copper,
+  },
+  ctaText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.green,
+  },
+  disabled: { opacity: 0.6 },
+  terms: {
+    margin: 10,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.onDarkMuted,
+  },
+  restore: {
+    margin: 10,
+    textAlign: "center",
+    textDecorationLine: "underline",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.onDarkMuted,
+  },
+  assurances: {
+    margin: 14,
+    paddingTop: 13,
+    flexDirection: "row",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BrandColors.paleGreen,
+  },
+  assurance: { flex: 1, alignItems: "center", gap: 5 },
+  assuranceText: {
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.onDark,
+  },
+  legal: {
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.onDarkMuted,
+  },
+  underline: { textDecorationLine: "underline" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,.6)",
+    backgroundColor: "rgba(0,0,0,.65)",
   },
   sheet: {
     padding: 22,
     paddingBottom: 34,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    backgroundColor: c.card,
+    backgroundColor: BrandColors.greenDeep,
   },
-  close: { position: "absolute", right: 20, top: 14, zIndex: 2 },
-  modalImage: {
-    width: "100%",
-    marginTop: 24,
-    aspectRatio: 1.5,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalTitle: {
+  close: { alignSelf: "flex-end", padding: 6 },
+  sheetImage: { width: "100%", height: 190, borderRadius: 14 },
+  sheetTitle: {
     marginTop: 16,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(24),
-    color: c.cream,
+    color: BrandColors.onDark,
   },
-  stats: { marginTop: 16, flexDirection: "row", gap: 10 },
-  stat: {
-    flex: 1,
-    padding: 11,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: c.card2,
+  sheetPlace: {
+    marginTop: 3,
+    fontFamily: "Lora_400Regular",
+    color: BrandColors.onDarkMuted,
   },
-  statValue: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: c.cream },
-  countryHead: {
+  sheetValue: {
+    marginTop: 8,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(18),
+    color: "#35DA8A",
+  },
+  visitHead: {
     padding: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  back: {
+  backButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
     borderWidth: 1,
-    borderColor: c.line,
+    borderColor: BrandColors.paleGreen,
     alignItems: "center",
     justifyContent: "center",
   },
-  countryTitle: {
+  visitTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(26),
-    color: c.cream,
+    fontSize: responsiveFontSize(25),
+    color: BrandColors.onDark,
+  },
+  muted: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDarkMuted,
+  },
+  visitContent: { paddingBottom: 40 },
+  wordmark: {
+    width: 200,
+    height: 75,
+    top: -25,
+    left: 0,
   },
 });
