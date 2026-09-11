@@ -260,8 +260,9 @@ export type KrooIqAttempt = {
 export type KrooIqQuiz = {
   date: string;
   destination: { name: string; region: string; content: string; imageUrl: string };
-  questions: { id: string; prompt: string; answers: string[] }[];
+  questions: { id: string; prompt: string; answers: string[]; imageUrl: string }[];
   attempt: KrooIqAttempt;
+  isPreview: boolean;
 };
 
 export type KrooIqAnswerResult = {
@@ -772,6 +773,10 @@ export const api = {
         ...quiz.destination,
         imageUrl: backendImageUrl(quiz.destination.imageUrl),
       },
+      questions: quiz.questions.map((question) => ({
+        ...question,
+        imageUrl: backendImageUrl(question.imageUrl),
+      })),
     })),
   submitKrooIqAnswer: (questionId: string, selectedAnswer: number) =>
     request<KrooIqAnswerResult>("/me/kroo-iq/answer", {

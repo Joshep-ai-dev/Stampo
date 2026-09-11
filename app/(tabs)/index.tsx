@@ -1377,7 +1377,7 @@ export default function HomeScreen() {
                   <View style={styles.ornamentLine} />
                   <Ionicons
                     name="compass-outline"
-                    size={20}
+                    size={24}
                     color={BrandColors.green}
                   />
                   <View style={styles.ornamentLine} />
@@ -1387,7 +1387,7 @@ export default function HomeScreen() {
                     <View style={styles.featureIconCircle}>
                       <Ionicons
                         name="location"
-                        size={44}
+                        size={32}
                         color={BrandColors.copper}
                       />
                     </View>
@@ -1403,7 +1403,7 @@ export default function HomeScreen() {
                     <View style={styles.featureIconCircle}>
                       <Ionicons
                         name="book-outline"
-                        size={42}
+                        size={32}
                         color={BrandColors.copper}
                       />
                     </View>
@@ -1461,12 +1461,6 @@ export default function HomeScreen() {
                     color={BrandColors.green}
                   />
                 </TouchableOpacity>
-                <ImageBackground
-                  source={require("@/assets/images/other/modal.webp")}
-                  resizeMode="cover"
-                  imageStyle={{ borderRadius: 12 }}
-                  style={styles.welcomeLandscape}
-                />
               </ScrollView>
             </View>
           </ImageBackground>
@@ -1533,7 +1527,7 @@ const styles = StyleSheet.create({
   },
   welcomeContent: {
     paddingHorizontal: 10,
-    paddingTop: 14,
+    paddingVertical: 14,
     alignItems: "stretch",
   },
   welcomeTitle: {
@@ -1546,7 +1540,7 @@ const styles = StyleSheet.create({
   },
   welcomeBody: {
     marginTop: 4,
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(15),
     lineHeight: responsiveFontSize(21),
     color: BrandColors.green,
@@ -1554,28 +1548,28 @@ const styles = StyleSheet.create({
     marginHorizontal: 30,
   },
   welcomeOrnament: {
-    marginTop: 14,
+    marginTop: 4,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
   ornamentLine: {
-    width: 88,
+    width: "35%",
     height: 1,
     backgroundColor: "#78907F",
   },
   welcomeFeatures: {
-    marginTop: 12,
+    marginTop: 4,
     flexDirection: "row",
     alignItems: "stretch",
   },
   welcomeFeature: { flex: 1, alignItems: "center", paddingHorizontal: 5 },
   featureDivider: { width: 1, backgroundColor: "#8E9B8B" },
   featureIconCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.green,
@@ -1590,7 +1584,7 @@ const styles = StyleSheet.create({
   },
   featureCopy: {
     marginTop: 4,
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(16),
     color: BrandColors.green,
@@ -1614,11 +1608,11 @@ const styles = StyleSheet.create({
   },
   saveProgressBody: {
     marginTop: 2,
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(17),
     color: BrandColors.green,
-    marginHorizontal: 30,
+    marginHorizontal: 4,
   },
   welcomeQuestion: {
     marginTop: 18,
@@ -1669,7 +1663,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: BrandColors.green,
   },
-  welcomeLandscape: { height: 165, borderRadius: 12, marginTop: 16 },
+
   welcomeSecondaryButton: {
     minHeight: 42,
     marginTop: 8,
