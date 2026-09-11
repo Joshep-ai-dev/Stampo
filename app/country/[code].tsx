@@ -2,7 +2,6 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
-import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -286,30 +285,11 @@ export default function CountryScreen() {
 
         <View style={s.heroWrap}>
           <StampHeroFrame>
-            {!detail ? (
-              <View style={s.heroLoading} />
-            ) : detail.country.coverImage ? (
-              <Image
-                source={{ uri: detail.country.coverImage }}
-                recyclingKey={`country-${code}-${detail.country.coverImage}`}
-                style={s.countryHeroImage}
-                contentFit="cover"
-                contentPosition="center"
-              />
-            ) : stamp ? (
-              <Image
-                source={stamp}
-                style={s.stampImage}
-                contentFit="cover"
-                contentPosition="center"
-              />
-            ) : (
-              <Image
-                source={require("@/assets/images/other/globe-airplane.png")}
-                style={s.stampImage}
-                contentFit="cover"
-              />
-            )}
+            <ProgressivePlaceImage
+              uri={detail.country.coverImage}
+              style={s.stampImage}
+              contentFit={"contain"}
+            />
           </StampHeroFrame>
         </View>
         <View style={s.statsWrap}>
@@ -524,7 +504,6 @@ const s = StyleSheet.create({
   stampImage: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.2 }],
   },
   countryHeroImage: {
     width: "100%",

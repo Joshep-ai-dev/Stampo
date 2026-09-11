@@ -1356,7 +1356,7 @@ export default function HomeScreen() {
         footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
-      <Modal visible={true} transparent animationType="fade">
+      <Modal visible={showWelcome} transparent animationType="fade">
         <View style={styles.welcomeOverlay}>
           <ImageBackground
             source={require("@/assets/images/other/welcome_border_image.webp")}
@@ -1830,7 +1830,7 @@ const styles = StyleSheet.create({
     color: BrandColors.progressGreen,
   },
   worldText: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
@@ -1849,7 +1849,7 @@ const styles = StyleSheet.create({
   statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   statNumberRow: { flexDirection: "row", alignItems: "baseline" },
   statValue: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(23),
     color: BrandColors.onDark,
   },
@@ -1929,7 +1929,7 @@ const styles = StyleSheet.create({
   },
   currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },

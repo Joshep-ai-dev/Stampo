@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   StyleSheet,
-  type StyleProp,
   View,
+  type StyleProp,
   type ViewStyle,
 } from "react-native";
 

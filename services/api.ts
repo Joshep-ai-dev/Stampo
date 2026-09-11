@@ -249,6 +249,28 @@ export type DailyDestination = {
   displayOrder: number;
 };
 
+export type KrooIqAttempt = {
+  answers: { questionId: string; selectedAnswer: number; correct: boolean }[];
+  correctCount: number;
+  scoreBefore: number;
+  scoreAfter: number;
+  completed: boolean;
+};
+
+export type KrooIqQuiz = {
+  date: string;
+  destination: { name: string; region: string; content: string; imageUrl: string };
+  questions: { id: string; prompt: string; answers: string[] }[];
+  attempt: KrooIqAttempt;
+};
+
+export type KrooIqAnswerResult = {
+  correct: boolean;
+  correctAnswer: number;
+  explanation: string;
+  attempt: KrooIqAttempt;
+};
+
 export type CountryDetailResponse = {
   isEnriching: boolean;
   country: {
@@ -742,7 +764,20 @@ export const api = {
     request<RemoteProfile>("/profile").then((profile) => ({
       ...profile,
       photoUri: profile.photoUri ? backendImageUrl(profile.photoUri) : null,
+      })),
+  krooIqToday: () =>
+    request<KrooIqQuiz>("/me/kroo-iq/today").then((quiz) => ({
+      ...quiz,
+      destination: {
+        ...quiz.destination,
+        imageUrl: backendImageUrl(quiz.destination.imageUrl),
+      },
     })),
+  submitKrooIqAnswer: (questionId: string, selectedAnswer: number) =>
+    request<KrooIqAnswerResult>("/me/kroo-iq/answer", {
+      method: "POST",
+      body: JSON.stringify({ questionId, selectedAnswer }),
+    }),
   uploadProfileImage: async (asset: {
     uri: string;
     fileName?: string | null;
