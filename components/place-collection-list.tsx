@@ -7,26 +7,6 @@ import { BrandColors } from "@/constants/theme";
 import type { ManagedCollection } from "@/services/api";
 import { PlaceSectionTitle } from "./place-detail-sections";
 
-const collectionArtwork: Record<string, number> = {
-  wonders: require("@/assets/images/collection/Seven Wonders.png"),
-  seas: require("@/assets/images/collection/Seven Seas.png"),
-  unesco: require("@/assets/images/collection/UNESCO Explorer.png"),
-  parks: require("@/assets/images/collection/National Parks Collector.png"),
-  usa: require("@/assets/images/collection/United States Explorer.png"),
-};
-
-function artworkFor(collection: ManagedCollection) {
-  const id = collection.id.toLocaleLowerCase();
-  const title = collection.title.toLocaleLowerCase();
-  if (collectionArtwork[id]) return collectionArtwork[id];
-  if (title.includes("seven wonder")) return collectionArtwork.wonders;
-  if (title.includes("seven sea")) return collectionArtwork.seas;
-  if (title.includes("unesco")) return collectionArtwork.unesco;
-  if (title.includes("national park")) return collectionArtwork.parks;
-  if (title.includes("united states") || title.includes("usa")) return collectionArtwork.usa;
-  return collection.imageUrl ? { uri: collection.imageUrl } : require("@/assets/images/other/globe-airplane.png");
-}
-
 export function PlaceCollectionList({ collections, completedSightIds, placeName }: {
   collections: ManagedCollection[];
   completedSightIds: string[];
@@ -50,7 +30,9 @@ export function PlaceCollectionList({ collections, completedSightIds, placeName 
           >
             <Text style={s.title} numberOfLines={1}>{collection.title}</Text>
             <View style={s.seal}>
-              <Image source={artworkFor(collection)} style={s.image} contentFit="contain" />
+              {collection.explorerImageUrl ? (
+                <Image source={{ uri: collection.explorerImageUrl }} style={s.image} contentFit="contain" />
+              ) : null}
             </View>
             {progress > 0 ? <View style={s.progressRow}><View style={s.track}><View style={[s.fill, { width: `${progress}%` }]} /></View><Text style={s.percent}>{progress}%</Text></View> : null}
           </TouchableOpacity>
@@ -62,9 +44,9 @@ export function PlaceCollectionList({ collections, completedSightIds, placeName 
 
 const s = StyleSheet.create({
   row: { paddingHorizontal: 16, gap: 10, paddingTop: 5, paddingBottom: 12 },
-  card: { width: 148, height: 240, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 9, borderRadius: 12, backgroundColor: BrandColors.surface, alignItems: "center", borderWidth: 2, borderColor: "#C5A36C" },
+  card: { width: 180, minHeight: 166, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 9, borderRadius: 12, backgroundColor: BrandColors.surface, alignItems: "center", borderWidth: 2, borderColor: "#C5A36C" },
   title: { width: "100%", height: 24, textAlign: "center", fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(14), color: BrandColors.green },
-  seal: { width: 124, height: 174, marginTop: 3, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  seal: { width: 156, aspectRatio: 1.5, marginTop: 3, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   image: { width: "100%", height: "100%" },
   progressRow: { width: "100%", marginTop: 7, flexDirection: "row", alignItems: "center", gap: 5 },
   track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: BrandColors.surfaceSoft, overflow: "hidden" },

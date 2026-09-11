@@ -32,50 +32,6 @@ const countryFilters = [
   "South America",
 ];
 const collectionFilters = ["All", "Active", "Completed"] as const;
-const collectionImages: Record<string, number> = {
-  wonders: require("../../assets/images/collection/Seven Wonders.png"),
-  seas: require("../../assets/images/collection/Seven Seas.png"),
-  unesco: require("../../assets/images/collection/UNESCO Explorer.png"),
-  parks: require("../../assets/images/collection/National Parks Collector.png"),
-  usa: require("../../assets/images/collection/United States Explorer.png"),
-};
-const publicCollectionCatalog: CollectionProgress[] = [
-  {
-    id: "wonders",
-    title: "Seven Wonders",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "seas",
-    title: "Seven Seas",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "unesco",
-    title: "UNESCO Explorer",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "parks",
-    title: "National Parks Collector",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "usa",
-    title: "United States Explorer",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-];
 export default function ExploreScreen() {
   const router = useRouter();
   const countryRowRef = useRef<FlatList<CountryRecord>>(null);
@@ -122,33 +78,24 @@ export default function ExploreScreen() {
     useCallback(() => {
       let active = true;
       void (async () => {
-        const serverItems = isSignedIn
+        const progressItems = isSignedIn
           ? await api.listCollections().catch(() => [])
           : [];
-        const serverById = new Map(serverItems.map((item) => [item.id, item]));
-        const details = await Promise.all(
-          publicCollectionCatalog.map(async (fallback) => {
-            const detail = await api.collectionDetail(fallback.id).catch(() => null);
-            const server = serverById.get(fallback.id);
-            return {
-              ...fallback,
-              ...server,
-              ...(detail
-                ? {
-                    title: detail.title,
-                    detail: detail.detail,
-                    description: detail.description,
-                    imageUrl: detail.imageUrl,
-                    places: detail.places,
-                  }
-                : {}),
-            };
-          }),
+        const kinds = await api.collectionKinds().catch(() => []);
+        const progressById = new Map(
+          progressItems.map((item) => [item.id, item]),
         );
-        const remoteImages = details.flatMap((collection) => [
-          collection.imageUrl,
-          ...(collection.places?.map((place) => place.imageUrl) ?? []),
-        ]).filter((url): url is string => Boolean(url));
+        const details: CollectionProgress[] = kinds.map((kind) => ({
+          ...kind,
+          progress: progressById.get(kind.id)?.progress ?? 0,
+          status: progressById.get(kind.id)?.status ?? "inactive",
+        }));
+        const remoteImages = details
+          .flatMap((collection) => [
+            collection.imageUrl,
+            ...(collection.places?.map((place) => place.imageUrl) ?? []),
+          ])
+          .filter((url): url is string => Boolean(url));
         if (remoteImages.length > 0) {
           void Image.prefetch(remoteImages).catch(() => undefined);
         }
@@ -162,22 +109,21 @@ export default function ExploreScreen() {
     }, [isSignedIn]),
   );
   const visibleCollections = useMemo(() => {
-    // Public collection cards are always available for discovery. Do not let
-    // stale authenticated API state leave the signed-out Explore page empty.
-    const source = collectionCatalog.length > 0
-      ? collectionCatalog
-      : publicCollectionCatalog;
-    const withLocalProgress = source.map((collection) => {
-      const placeIds = collection.places?.map(
-        (place) => `collection-${collection.id}-${place.id}`,
-      ) ?? [];
+    const withLocalProgress = collectionCatalog.map((collection) => {
+      const placeIds =
+        collection.places?.map(
+          (place) => `collection-${collection.id}-${place.id}`,
+        ) ?? [];
       const localCompleted = placeIds.filter((id) =>
         completedSightIds.includes(id),
       ).length;
       const localProgress = placeIds.length
         ? Math.round((localCompleted / placeIds.length) * 100)
         : 0;
-      return { ...collection, progress: Math.max(collection.progress, localProgress) };
+      return {
+        ...collection,
+        progress: Math.max(collection.progress, localProgress),
+      };
     });
     if (collectionFilter === "All") return withLocalProgress;
     if (collectionFilter === "Active") {
@@ -296,16 +242,13 @@ export default function ExploreScreen() {
                   </Text>
                 </View>
                 <View style={s.challengeSeal}>
-                  <Image
-                    source={
-                      collectionImages[collection.id] ??
-                      (collection.imageUrl
-                        ? { uri: collection.imageUrl }
-                        : require("@/assets/images/other/globe-airplane.png"))
-                    }
-                    style={s.collectionImage}
-                    contentFit="contain"
-                  />
+                  {collection.explorerImageUrl ? (
+                    <Image
+                      source={{ uri: collection.explorerImageUrl }}
+                      style={s.collectionImage}
+                      contentFit="contain"
+                    />
+                  ) : null}
                 </View>
                 {collection.progress > 0 ? (
                   <View style={s.collectionProgressRow}>
@@ -451,7 +394,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  collectionImage: { width: "100%", height: "100%" },
+  collectionImage: { height: "100%", width: 400 },
   collectionProgressRow: {
     width: "100%",
     marginTop: 7,

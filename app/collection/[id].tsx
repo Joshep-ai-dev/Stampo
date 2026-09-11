@@ -92,7 +92,7 @@ export default function CollectionScreen() {
         id: item.id,
         title: item.title,
         subtitle: item.description || item.detail,
-        imageUrl: item.imageUrl,
+        imageUrl: item.heroImageUrl,
         places: item.places,
       });
     };

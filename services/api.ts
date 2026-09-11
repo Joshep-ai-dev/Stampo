@@ -193,6 +193,8 @@ export type CollectionProgress = {
   updatedAt?: string;
   description?: string;
   imageUrl?: string;
+  heroImageUrl?: string;
+  explorerImageUrl?: string;
   places?: ManagedCollectionPlace[];
 };
 
@@ -216,6 +218,8 @@ export type ManagedCollection = {
   detail: string;
   description: string;
   imageUrl: string;
+  heroImageUrl: string;
+  explorerImageUrl: string;
   places: ManagedCollectionPlace[];
 };
 
@@ -449,6 +453,8 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     ...item,
     description: item.description ?? item.detail ?? "",
     imageUrl: backendImageUrl(item.imageUrl),
+    heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
+    explorerImageUrl: backendImageUrl(item.explorerImageUrl),
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
@@ -464,6 +470,8 @@ function normalizeCollectionProgress(
   return {
     ...item,
     imageUrl: backendImageUrl(item.imageUrl),
+    heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
+    explorerImageUrl: backendImageUrl(item.explorerImageUrl),
     places: item.places?.map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
@@ -734,6 +742,10 @@ export const api = {
     request<CollectionProgress[]>(
       `/collections?status=${encodeURIComponent(status)}`,
     ).then((items) => items.map(normalizeCollectionProgress)),
+  collectionKinds: () =>
+    request<ManagedCollection[]>("/collection-kinds").then((items) =>
+      items.map(normalizeCollection),
+    ),
   collectionDetail: (id: string) =>
     request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
       normalizeCollection,
