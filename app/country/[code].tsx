@@ -30,7 +30,6 @@ import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
-import { stampAssets } from "@/data/stamps";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import {
@@ -224,7 +223,6 @@ export default function CountryScreen() {
       detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}`,
     };
   });
-  const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!canUseGpsArrivals(subscription.isKrooPlus)) {
       Alert.alert(
@@ -283,15 +281,17 @@ export default function CountryScreen() {
           onBack={() => router.back()}
         />
 
-        <View style={s.heroWrap}>
-          <StampHeroFrame>
-            <ProgressivePlaceImage
-              uri={detail.country.coverImage}
-              style={s.stampImage}
-              contentFit={"contain"}
-            />
-          </StampHeroFrame>
-        </View>
+        {detail ? (
+          <View style={s.heroWrap}>
+            <StampHeroFrame>
+              <ProgressivePlaceImage
+                uri={detail.country.coverImage}
+                style={s.stampImage}
+                contentFit={"contain"}
+              />
+            </StampHeroFrame>
+          </View>
+        ) : null}
         <View style={s.statsWrap}>
           <TravelStats
             items={[
@@ -349,6 +349,9 @@ export default function CountryScreen() {
               (item) => String(item.id) === String(sight.cityId),
             );
             const cityName = sight.city || city?.name || "";
+            if (sight?.countryId !== "US") {
+              return cityName;
+            }
             return [cityName, sight.state || city?.subcountry]
               .filter(Boolean)
               .join(", ");

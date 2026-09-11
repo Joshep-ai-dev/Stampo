@@ -47,8 +47,9 @@ function PlaceImage({
 }
 
 function placeLocation(place: CollectionPlace) {
-  if (place.state)
+  if (place.state && place.state !== place.city) {
     return [place.city, place.state, place.country].filter(Boolean).join(", ");
+  }
   if (place.location) {
     const includesCountry =
       place.country &&

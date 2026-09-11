@@ -94,8 +94,14 @@ export function TopSightsSection({
                   </Text>
                   {city ? (
                     <View style={s.locationRow}>
-                      <Ionicons name="location" size={13} color={BrandColors.onDarkMuted} />
-                      <Text style={s.sightLocation} numberOfLines={1}>{city}</Text>
+                      <Ionicons
+                        name="location"
+                        size={13}
+                        color={BrandColors.onDarkMuted}
+                      />
+                      <Text style={s.sightLocation} numberOfLines={1}>
+                        {city}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
@@ -255,7 +261,12 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },
-  locationRow: { marginTop: 3, flexDirection: "row", alignItems: "center", gap: 3 },
+  locationRow: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
   copy: { flex: 1 },
   itemTitle: {
     fontFamily: "Lora_600SemiBold",

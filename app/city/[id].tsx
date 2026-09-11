@@ -205,7 +205,14 @@ export default function CityScreen() {
               onToggle={(sightId, checked) =>
                 void toggleSight(sightId, checked)
               }
-              locationForSight={(sight) => [sight.city || city.name, city.subcountry].filter(Boolean).join(", ")}
+              locationForSight={(sight) => {
+                if (sight?.countryId !== "US") {
+                  return sight.city || city.name;
+                } else
+                  return [sight.city || city.name, city.subcountry]
+                    .filter(Boolean)
+                    .join(", ");
+              }}
             />
 
             <PlaceSectionTitle>Airports Visited</PlaceSectionTitle>

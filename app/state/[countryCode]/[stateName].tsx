@@ -139,7 +139,7 @@ export default function StateScreen() {
     ...new Map(
       stateVisits.map((visit) => [
         visit.cityName.trim().toLocaleLowerCase(),
-        { id: visit.cityId, name: visit.cityName },
+        { id: visit.cityId, name: visit.cityName, image: visit.image },
       ]),
     ).values(),
   ].sort((left, right) => left.name.localeCompare(right.name));
@@ -288,7 +288,13 @@ export default function StateScreen() {
               completedSightIds={completedSightIds}
               onOpen={setSelectedSight}
               onToggle={(id, checked) => void toggleSight(id, checked)}
-              locationForSight={(sight) => sight.city || detail.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""}
+              locationForSight={(sight) =>
+                sight.city ||
+                detail.cities.find(
+                  (city) => String(city.id) === String(sight.cityId),
+                )?.name ||
+                ""
+              }
               upgrade={
                 lockedSights.length ? (
                   <UpgradeBanner

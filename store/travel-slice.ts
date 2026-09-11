@@ -10,6 +10,7 @@ export type Visit = {
   subcountry: string;
   visitedAt: string;
   note: string;
+  image: string;
   verification?: VisitVerification;
   places: VisitedPlace[];
 };
@@ -83,7 +84,9 @@ const travelSlice = createSlice({
       action: PayloadAction<Partial<Omit<TravelState, "visits">>>,
     ) {
       if (action.payload.completedSightIds)
-        state.completedSightIds = [...new Set(action.payload.completedSightIds)];
+        state.completedSightIds = [
+          ...new Set(action.payload.completedSightIds),
+        ];
       if (action.payload.challengePoints !== undefined)
         state.challengePoints = Math.min(
           Math.max(0, action.payload.challengePoints),
@@ -92,7 +95,9 @@ const travelSlice = createSlice({
       if (action.payload.plan) state.plan = action.payload.plan;
     },
     visitRemoved(state, action: PayloadAction<string>) {
-      state.visits = state.visits.filter((visit) => visit.id !== action.payload);
+      state.visits = state.visits.filter(
+        (visit) => visit.id !== action.payload,
+      );
     },
     visitsCleared(state) {
       state.visits = [];
@@ -115,7 +120,9 @@ const travelSlice = createSlice({
       state,
       action: PayloadAction<{ visitId: string; name: string; type: PlaceType }>,
     ) {
-      const visit = state.visits.find((item) => item.id === action.payload.visitId);
+      const visit = state.visits.find(
+        (item) => item.id === action.payload.visitId,
+      );
       if (!visit) return;
       const normalized = action.payload.name.trim();
       if (!normalized) return;
@@ -136,12 +143,28 @@ const travelSlice = createSlice({
       state,
       action: PayloadAction<{ visitId: string; placeId: string }>,
     ) {
-      const visit = state.visits.find((item) => item.id === action.payload.visitId);
-      if (visit) visit.places = visit.places.filter((place) => place.id !== action.payload.placeId);
+      const visit = state.visits.find(
+        (item) => item.id === action.payload.visitId,
+      );
+      if (visit)
+        visit.places = visit.places.filter(
+          (place) => place.id !== action.payload.placeId,
+        );
     },
   },
 });
 
-export const { placeAdded, placeRemoved, sightCompletionSet, sightToggled, travelStateHydrated, visitAdded, visitReceived, visitUpdated, visitsCleared, visitsHydrated, visitRemoved } =
-  travelSlice.actions;
+export const {
+  placeAdded,
+  placeRemoved,
+  sightCompletionSet,
+  sightToggled,
+  travelStateHydrated,
+  visitAdded,
+  visitReceived,
+  visitUpdated,
+  visitsCleared,
+  visitsHydrated,
+  visitRemoved,
+} = travelSlice.actions;
 export default travelSlice.reducer;

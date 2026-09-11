@@ -153,7 +153,7 @@ export type StateDetailResponse = {
   sights: SightDetail[];
   collections: ManagedCollection[];
   stats: { cities: number; sights: number; airports: number };
-  visitedCities: { id: string; name: string }[];
+  visitedCities: { id: string; name: string; image?: string }[];
 };
 
 export type TravelStateResponse = {
@@ -263,8 +263,18 @@ export type KrooIqAttempt = {
 
 export type KrooIqQuiz = {
   date: string;
-  destination: { name: string; region: string; content: string; imageUrl: string };
-  questions: { id: string; prompt: string; answers: string[]; imageUrl: string }[];
+  destination: {
+    name: string;
+    region: string;
+    content: string;
+    imageUrl: string;
+  };
+  questions: {
+    id: string;
+    prompt: string;
+    answers: string[];
+    imageUrl: string;
+  }[];
   attempt: KrooIqAttempt;
   isPreview: boolean;
 };
@@ -306,7 +316,7 @@ export type CountryDetailResponse = {
     totalSights: number;
     airports: number;
   };
-  visitedCities: { id: string; name: string }[];
+  visitedCities: { id: string; name: string; image?: string }[];
 };
 
 type CountryImportPendingResponse = {
@@ -404,14 +414,16 @@ type BackendCity = Partial<CityDetail> & {
 };
 
 function normalizeSight(item: BackendSight): SightDetail {
-  const relatedCity = typeof item.city === "object" && item.city ? item.city : null;
+  const relatedCity =
+    typeof item.city === "object" && item.city ? item.city : null;
   return {
     id: String(item.id ?? ""),
     countryId: String(item.countryId ?? ""),
     cityId: String(item.cityId ?? item.city_id ?? relatedCity?.id ?? ""),
-    city: typeof item.city === "string"
-      ? item.city
-      : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
+    city:
+      typeof item.city === "string"
+        ? item.city
+        : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
     state: item.state,
     opentripmapXid: item.opentripmapXid ?? null,
     wikidataId: item.wikidataId ?? null,
@@ -497,12 +509,21 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
   for (let attempt = 0; attempt < 90; attempt += 1) {
     let result: CountryDetailResponse | CountryImportPendingResponse;
     try {
-      result = await request<CountryDetailResponse | CountryImportPendingResponse>(path);
+      result = await request<
+        CountryDetailResponse | CountryImportPendingResponse
+      >(path);
     } catch (error) {
-      if (normalizedCode === "AQ" && error instanceof ApiError && error.status === 404) {
+      if (
+        normalizedCode === "AQ" &&
+        error instanceof ApiError &&
+        error.status === 404
+      ) {
         return ANTARCTICA_DETAIL;
       }
       throw error;
+    }
+    if (!result || typeof result !== "object") {
+      throw new ApiError(502, "The country guide returned an empty response.");
     }
     if ("status" in result) {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -559,11 +580,15 @@ async function cityDetail(
     );
     const normalizedId = id.trim().toLocaleLowerCase();
     const normalizedName = fallback.name?.trim().toLocaleLowerCase();
-    const match = matches.find(
-      (item) => String(item.id).toLocaleLowerCase() === normalizedId,
-    ) ?? matches.find((item) =>
-      item.name.trim().toLocaleLowerCase() === (normalizedName || normalizedId),
-    );
+    const match =
+      matches.find(
+        (item) => String(item.id).toLocaleLowerCase() === normalizedId,
+      ) ??
+      matches.find(
+        (item) =>
+          item.name.trim().toLocaleLowerCase() ===
+          (normalizedName || normalizedId),
+      );
     if (match) {
       result = {
         ...match,
@@ -595,9 +620,10 @@ async function cityDetail(
         (place) => place.city?.trim().toLocaleLowerCase() === cityName,
       ),
     );
-    const countryCitySights = country.sights.filter((sight) =>
-      String(sight.cityId) === String(city.id) ||
-      sight.city?.trim().toLocaleLowerCase() === cityName,
+    const countryCitySights = country.sights.filter(
+      (sight) =>
+        String(sight.cityId) === String(city.id) ||
+        sight.city?.trim().toLocaleLowerCase() === cityName,
     );
     sights = [...sights, ...countryCitySights].filter(
       (sight, index, all) =>
@@ -625,10 +651,24 @@ export const api = {
       let collections: ManagedCollection[] = [];
       try {
         const country = await countryDetail(countryCode);
-        const cityNames = new Set(cities.map((city) => city.name.trim().toLocaleLowerCase()));
-        collections = country.collections.filter((collection) => collection.places.some((place) => cityNames.has(place.city?.trim().toLocaleLowerCase() ?? "")));
-      } catch { /* State details remain usable when collections are unavailable. */ }
-      return { ...result, imageUrl: backendImageUrl(result.imageUrl), cities, sights: result.sights.map(normalizeSight), collections };
+        const cityNames = new Set(
+          cities.map((city) => city.name.trim().toLocaleLowerCase()),
+        );
+        collections = country.collections.filter((collection) =>
+          collection.places.some((place) =>
+            cityNames.has(place.city?.trim().toLocaleLowerCase() ?? ""),
+          ),
+        );
+      } catch {
+        /* State details remain usable when collections are unavailable. */
+      }
+      return {
+        ...result,
+        imageUrl: backendImageUrl(result.imageUrl),
+        cities,
+        sights: result.sights.map(normalizeSight),
+        collections,
+      };
     }),
   searchCities: (
     query: string,
@@ -712,7 +752,8 @@ export const api = {
       items.map((item) => ({
         ...item,
         imageUrl: backendImageUrl(item.imageUrl),
-      }))),
+      })),
+    ),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
@@ -720,9 +761,7 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
-  syncTravelState: (state: {
-    completedSightIds: string[];
-  }) =>
+  syncTravelState: (state: { completedSightIds: string[] }) =>
     request<TravelStateResponse>("/me/sync/travel-state", {
       method: "POST",
       body: JSON.stringify(state),
@@ -777,7 +816,7 @@ export const api = {
     request<RemoteProfile>("/profile").then((profile) => ({
       ...profile,
       photoUri: profile.photoUri ? backendImageUrl(profile.photoUri) : null,
-      })),
+    })),
   krooIqToday: () =>
     request<KrooIqQuiz>("/me/kroo-iq/today").then((quiz) => ({
       ...quiz,
@@ -801,14 +840,11 @@ export const api = {
     mimeType?: string;
   }) => {
     const body = new FormData();
-    body.append(
-      "image",
-      {
-        uri: asset.uri,
-        name: asset.fileName ?? `profile-${Date.now()}.jpg`,
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob,
-    );
+    body.append("image", {
+      uri: asset.uri,
+      name: asset.fileName ?? `profile-${Date.now()}.jpg`,
+      type: asset.mimeType ?? "image/jpeg",
+    } as unknown as Blob);
     const result = await request<{ photoUri: string }>("/profile/image", {
       method: "POST",
       body,
@@ -850,7 +886,10 @@ export const api = {
     await storeAuthToken(session.token);
     return { user: session.user };
   },
-  requestAuthCode: (payload: { email: string; purpose: "sign-in" | "create-account" }) =>
+  requestAuthCode: (payload: {
+    email: string;
+    purpose: "sign-in" | "create-account";
+  }) =>
     request<{ message: string }>("/auth/code/request", {
       method: "POST",
       body: JSON.stringify(payload),
