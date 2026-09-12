@@ -410,6 +410,7 @@ type BackendCity = Partial<CityDetail> & {
   countryCode?: string;
   continentCode?: string;
   subcountry?: string;
+  imageUrl?: string;
   sights?: BackendSight[];
 };
 
@@ -454,9 +455,20 @@ function normalizeCity(item: BackendCity): CityDetail {
     population: Number(item.population ?? 0),
     latitude: Number(item.latitude ?? 0),
     longitude: Number(item.longitude ?? 0),
-    image: backendImageUrl(item.image),
+    // Catalog endpoints use `image`, while the admin and legacy endpoints
+    // expose the same field as `imageUrl`.
+    image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     sights: item.sights?.map(normalizeSight),
+  };
+}
+
+function normalizeVisit(item: Visit): Visit {
+  return {
+    ...item,
+    image: backendImageUrl(item.image),
+    note: item.note ?? "",
+    places: item.places ?? [],
   };
 }
 
@@ -684,7 +696,12 @@ export const api = {
     if (filters.state) params.set("state", filters.state);
     return request<CatalogCitySearchResult[]>(`/cities?${params.toString()}`, {
       signal,
-    });
+    }).then((items) =>
+      items.map((item) => ({
+        ...item,
+        image: backendImageUrl(item.image),
+      })),
+    );
   },
   resolveCityImage: (_input: {
     name: string;
@@ -794,19 +811,24 @@ export const api = {
       `/me/collections/${encodeURIComponent(collectionId)}`,
       { method: "PUT", body: JSON.stringify({ progress }) },
     ),
-  listVisits: () => request<Visit[]>("/visits"),
+  listVisits: () => request<Visit[]>("/visits").then((items) =>
+    items.map(normalizeVisit),
+  ),
   syncVisits: (visits: Visit[]) =>
     request<Visit[]>("/me/sync/visits", {
       method: "POST",
       body: JSON.stringify({ visits }),
-    }),
+    }).then((items) => items.map(normalizeVisit)),
   createVisit: (visit: NewVisit) =>
-    request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
+    request<Visit>("/visits", {
+      method: "POST",
+      body: JSON.stringify(visit),
+    }).then(normalizeVisit),
   updateVisit: (visit: Visit) =>
     request<Visit>(`/visits/${encodeURIComponent(visit.id)}`, {
       method: "PUT",
       body: JSON.stringify(visit),
-    }),
+    }).then(normalizeVisit),
   deleteVisit: (visitId: string) =>
     request<void>(`/visits/${encodeURIComponent(visitId)}`, {
       method: "DELETE",

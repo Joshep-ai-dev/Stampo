@@ -129,6 +129,7 @@ export function ArrivalSuggestionPrompt() {
         countryCode: city.countryCode,
         continentCode: city.continentCode,
         subcountry: city.subcountry,
+        image: city.image ?? "",
         visitedAt: suggestion.detectedAt.slice(0, 10),
         note: "Added from a GPS arrival.",
         places: [

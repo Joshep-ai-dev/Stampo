@@ -189,6 +189,9 @@ export function CityVisitSearch({
       countryCode: selectedCity.countryCode,
       continentCode: selectedCity.continentCode,
       subcountry: selectedCity.subcountry,
+      // Keep the catalog thumbnail on local visits. The server remains the
+      // authority for this field after sign-in and sync.
+      image: selectedCity.image ?? "",
       visitedAt: visitDate,
       note,
       places: selectedAirport

@@ -181,7 +181,9 @@ export default function StateScreen() {
     return {
       id: city.id,
       name: city.name,
-      image: catalogCity?.image,
+      // A synced/local visit can have an image even if the catalog response
+      // is paginated or has not been enriched yet.
+      image: catalogCity?.image || city.image,
       detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}`,
     };
   });

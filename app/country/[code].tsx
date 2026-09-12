@@ -219,7 +219,10 @@ export default function CountryScreen() {
     return {
       id: city.id,
       name: city.name,
-      image: cityDetail?.image,
+      // Prefer the catalog image, but retain the thumbnail stored with an
+      // existing visit when this country response does not include the city.
+      image:
+        cityDetail?.image || city.visits.find((visit) => visit.image)?.image,
       detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}`,
     };
   });
