@@ -163,11 +163,11 @@ function NavigablePlaceSection({
                 {item.image ? (
                   <ProgressivePlaceImage
                     uri={item.image}
-                    style={s.roundImage}
+                    style={s.image}
                     contentFit="cover"
                   />
                 ) : (
-                  <View style={s.icon}>
+                  <View style={[s.image, s.icon]}>
                     <Ionicons
                       name="map-outline"
                       size={24}
@@ -235,19 +235,9 @@ const s = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: BrandColors.greenPanel,
   },
-  roundImage: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: BrandColors.greenPanel,
-  },
   icon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: BrandColors.greenPanel,
   },
   sightCopy: { flex: 1, minWidth: 0 },
   name: {
