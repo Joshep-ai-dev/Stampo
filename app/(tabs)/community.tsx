@@ -369,15 +369,6 @@ function Feedback({
     </View>
   );
 }
-function Dots({ progress }: { progress: number }) {
-  return (
-    <View style={s.pageDots}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} style={[s.pageDot, i < progress && s.done]} />
-      ))}
-    </View>
-  );
-}
 function Result({
   correct,
   total,
@@ -615,20 +606,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(17),
-  },
-  pageDots: {
-    height: 36,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-  },
-  pageDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: c.cream,
   },
   action: {
     minHeight: 42,

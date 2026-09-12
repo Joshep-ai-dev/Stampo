@@ -1577,7 +1577,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     marginTop: 8,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(17),
+    fontSize: responsiveFontSize(19),
     lineHeight: responsiveFontSize(19),
     color: BrandColors.green,
     textAlign: "center",
@@ -1603,7 +1603,7 @@ const styles = StyleSheet.create({
   saveProgressCopy: { flexShrink: 1 },
   saveProgressTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(16),
+    fontSize: responsiveFontSize(18),
     color: BrandColors.green,
   },
   saveProgressBody: {
@@ -1617,8 +1617,8 @@ const styles = StyleSheet.create({
   welcomeQuestion: {
     marginTop: 18,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(17),
-    lineHeight: responsiveFontSize(21),
+    fontSize: responsiveFontSize(19),
+    lineHeight: responsiveFontSize(23),
     color: BrandColors.green,
     textAlign: "center",
     marginHorizontal: 30,
