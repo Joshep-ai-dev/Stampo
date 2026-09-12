@@ -71,9 +71,11 @@ function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
 export function CityVisitSearch({
   countryCode,
   countryName,
+  home = false,
 }: {
   countryCode?: string;
   countryName?: string;
+  home?: boolean;
 } = {}) {
   const dispatch = useAppDispatch();
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
@@ -222,7 +224,8 @@ export function CityVisitSearch({
   return (
     <View style={styles.wrapper}>
       <View style={styles.searchRow}>
-        <View style={styles.searchInputWrap}>
+        <View style={[styles.searchInputWrap, home && styles.homeInputWrap]}>
+          {home && <Ionicons name="search-outline" size={22} color={colors.ink} />}
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -234,7 +237,7 @@ export function CityVisitSearch({
             placeholderTextColor="#aa9c8c"
             returnKeyType="search"
             autoCorrect={false}
-            style={styles.searchInput}
+            style={[styles.searchInput, home && styles.homeInput]}
             accessibilityLabel="Search cities"
           />
           {query.length > 0 && (
@@ -248,7 +251,7 @@ export function CityVisitSearch({
           )}
         </View>
         <TouchableOpacity
-          style={styles.searchButton}
+          style={[styles.searchButton, home && styles.homeButton]}
           activeOpacity={0.75}
           onPress={Keyboard.dismiss}
           accessibilityRole="button"
@@ -413,6 +416,9 @@ export function CityVisitSearch({
 }
 
 const styles = StyleSheet.create({
+  homeInputWrap: { height: 48, borderRadius: 12, paddingHorizontal: 12 },
+  homeInput: { textAlign: "left", fontSize: responsiveFontSize(15) },
+  homeButton: { width: 48, height: 48, borderRadius: 12 },
   wrapper: { marginTop: 20, paddingHorizontal: 10, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",

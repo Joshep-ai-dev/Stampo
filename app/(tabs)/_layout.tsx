@@ -2,6 +2,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
@@ -20,12 +21,14 @@ function Icon({
 }) {
   return (
     <View style={styles.iconWrap}>
-      <Ionicons name={(focused ? on : off) as never} size={25} color={color} />
+      <Ionicons name={(focused ? on : off) as never} size={28} color={color} />
+      {focused && <View style={styles.activeIndicator} />}
     </View>
   );
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       initialRouteName="index"
@@ -37,16 +40,16 @@ export default function TabLayout() {
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
           fontSize: responsiveFontSize(11),
-          fontWeight: "600",
+          fontFamily: "Lora_500Medium",
           marginTop: 1,
         },
         tabBarStyle: {
-          backgroundColor: BrandColors.greenDeep,
+          backgroundColor: "#00271C",
           borderTopColor: BrandColors.line,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 72,
+          height: 68 + Math.max(insets.bottom, 8),
           paddingTop: 7,
-          paddingBottom: 7,
+          paddingBottom: Math.max(insets.bottom, 8),
         },
       }}
     >
@@ -93,15 +96,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Kroo IQ",
+          title: "Social",
           tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
             <Icon
               focused={focused}
               color={color}
-              on="bulb"
-              off="bulb-outline"
+              on="people"
+              off="people-outline"
             />
           ),
         }}
@@ -125,6 +128,14 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  activeIndicator: {
+    position: "absolute",
+    bottom: -24,
+    width: 42,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: BrandColors.copper,
+  },
   iconWrap: {
     width: 40,
     height: 28,
@@ -132,10 +143,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   add: {
-    width: 58,
-    height: 58,
+    width: 68,
+    height: 68,
     marginTop: -20,
-    borderRadius: 29,
+    borderRadius: 34,
     backgroundColor: BrandColors.mapGreen,
     borderWidth: 4,
     borderColor: BrandColors.greenDeep,

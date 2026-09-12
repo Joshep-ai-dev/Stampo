@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     zIndex: 4,
   },
-  logo: { width: 132, height: 52 },
+  logo: { width: 155, height: 56 },
   bell: {
     width: 34,
     height: 40,

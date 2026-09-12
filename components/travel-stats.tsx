@@ -13,13 +13,13 @@ export type TravelStatItem = {
   onInfo?: () => void;
 };
 
-export function TravelStats({ items }: { items: TravelStatItem[] }) {
+export function TravelStats({ items, separate = false }: { items: TravelStatItem[]; separate?: boolean }) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, separate && styles.separateCard]}>
       {items.map((item, index) => (
         <View
           key={item.label}
-          style={[styles.stat, index < items.length - 1 && styles.border]}
+          style={[styles.stat, !separate && index < items.length - 1 && styles.border, separate && styles.separateStat]}
         >
           <View style={styles.top}>
             <Ionicons
@@ -50,7 +50,7 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.72}
-              style={styles.label}
+              style={[styles.label, separate && styles.separateLabel]}
             >
               {item.label}
             </Text>
@@ -62,6 +62,9 @@ export function TravelStats({ items }: { items: TravelStatItem[] }) {
 }
 
 const styles = StyleSheet.create({
+  separateCard: { height: 74, borderWidth: 0, backgroundColor: "transparent", gap: 8, alignItems: "stretch" },
+  separateStat: { borderWidth: 1, borderColor: "#3B6552", borderRadius: 8, justifyContent: "center", backgroundColor: "rgba(10,43,32,0.3)" },
+  separateLabel: { fontSize: responsiveFontSize(10), letterSpacing: 1.5 },
   card: {
     height: 80,
     borderRadius: 10,

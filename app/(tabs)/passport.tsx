@@ -146,19 +146,28 @@ function IdentityPage({
   });
   const [authBusy, setAuthBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [authMode, setAuthMode] = useState<"initial" | "create-account" | "code">("initial");
-  const [authPurpose, setAuthPurpose] = useState<"sign-in" | "create-account">("sign-in");
+  const [authMode, setAuthMode] = useState<
+    "initial" | "create-account" | "code"
+  >("initial");
+  const [authPurpose, setAuthPurpose] = useState<"sign-in" | "create-account">(
+    "sign-in",
+  );
   const [verificationCode, setVerificationCode] = useState("");
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editing, setEditing] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
   const countries = useMemo(
-    () => getCountryDataList().sort((left, right) => left.name.localeCompare(right.name)),
+    () =>
+      getCountryDataList().sort((left, right) =>
+        left.name.localeCompare(right.name),
+      ),
     [],
   );
   const filteredCountries = countries.filter((country) =>
-    `${country.name} ${country.iso2} ${country.iso3}`.toLocaleLowerCase().includes(countryQuery.trim().toLocaleLowerCase()),
+    `${country.name} ${country.iso2} ${country.iso3}`
+      .toLocaleLowerCase()
+      .includes(countryQuery.trim().toLocaleLowerCase()),
   );
   const pickPhoto = async () => {
     if (!profile.isSignedIn) {
@@ -193,7 +202,10 @@ function IdentityPage({
     try {
       await api.updateProfile({ ...profile, ...draft });
     } catch {
-      Alert.alert("Saved on this device", "Your passport will sync when the server is available.");
+      Alert.alert(
+        "Saved on this device",
+        "Your passport will sync when the server is available.",
+      );
     }
   };
   const finishAuthentication = async (user: {
@@ -235,7 +247,10 @@ function IdentityPage({
     await dispatch(fetchHomeDashboard());
   };
   const requestCode = async (purpose: "sign-in" | "create-account") => {
-    if (!draft.email.trim() || (purpose === "create-account" && !draft.name.trim())) {
+    if (
+      !draft.email.trim() ||
+      (purpose === "create-account" && !draft.name.trim())
+    ) {
       Alert.alert("Check your details", "Enter your name and email.");
       return;
     }
@@ -246,7 +261,10 @@ function IdentityPage({
       setVerificationCode("");
       setAuthMode("code");
     } catch (error) {
-      Alert.alert("Code not sent", error instanceof Error ? error.message : "Please try again.");
+      Alert.alert(
+        "Code not sent",
+        error instanceof Error ? error.message : "Please try again.",
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -256,12 +274,17 @@ function IdentityPage({
     try {
       setAuthBusy(true);
       const user = await api.verifyAuthCode({
-        email: draft.email.trim(), code: verificationCode, purpose: authPurpose,
+        email: draft.email.trim(),
+        code: verificationCode,
+        purpose: authPurpose,
         ...(authPurpose === "create-account" ? draft : {}),
       });
       await finishAuthentication(user);
     } catch (error) {
-      Alert.alert("Code not verified", error instanceof Error ? error.message : "Please try again.");
+      Alert.alert(
+        "Code not verified",
+        error instanceof Error ? error.message : "Please try again.",
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -292,71 +315,306 @@ function IdentityPage({
         >
           <Text style={styles.identityCountry}>TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>EXPLORE · LEARN · BELONG</Text>
-          <Text style={styles.identityMotto}>A MORE{`\n`}CURIOUS YOU</Text>
-          {profile.isSignedIn && !editing ? <TouchableOpacity style={styles.editPassportButton} onPress={() => setEditing(true)}><Ionicons name="create-outline" size={15} color={BrandColors.green} /><Text style={styles.editPassportText}>EDIT</Text></TouchableOpacity> : null}
+          <Text style={styles.identityMotto}>
+            A MORE{`\n`}CURIOUS{`\n`}YOU
+          </Text>
+          {profile.isSignedIn && !editing ? (
+            <TouchableOpacity
+              style={styles.editPassportButton}
+              onPress={() => setEditing(true)}
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                color={BrandColors.green}
+              />
+              <Text style={styles.editPassportText}>EDIT</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
         {profile.isSignedIn ? (
           <>
             <View style={styles.passportHero}>
-              <TouchableOpacity style={styles.photoBox} onPress={() => editing && void pickPhoto()} disabled={!editing}>
-                {profile.photoUri ? <Image source={{ uri: profile.photoUri }} style={styles.identityPhoto} contentFit="cover" /> : <><Ionicons name="person" size={48} color={BrandColors.muted} /><Text style={styles.addPhoto}>ADD{`\n`}PHOTO</Text><Ionicons name="camera-outline" size={15} color={BrandColors.muted} /></>}
+              <TouchableOpacity
+                style={styles.photoBox}
+                onPress={() => editing && void pickPhoto()}
+                disabled={!editing}
+              >
+                {profile.photoUri ? (
+                  <Image
+                    source={{ uri: profile.photoUri }}
+                    style={styles.identityPhoto}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="person"
+                      size={48}
+                      color={BrandColors.muted}
+                    />
+                    <Text style={styles.addPhoto}>ADD{`\n`}PHOTO</Text>
+                    <Ionicons
+                      name="camera-outline"
+                      size={15}
+                      color={BrandColors.muted}
+                    />
+                  </>
+                )}
               </TouchableOpacity>
               <View style={styles.passportBrandRow}>
-                <View style={styles.passportSeal}><Image source={require("@/assets/images/favicon.png")} style={styles.passportSealImage} contentFit="contain" /></View>
-                <Text style={styles.passportBrandName}>KROO</Text>
-                <Text style={styles.passportBrandSubline}>COLLECT THE WORLD</Text>
-                <Text style={styles.passportBrandTagline}>Every place{`\n`}adds a new page.</Text>
+                <View style={styles.passportSeal}>
+                  <Image
+                    source={require("@/assets/images/favicon.png")}
+                    style={styles.passportSealImage}
+                    contentFit="contain"
+                  />
+                </View>
+
+                <Text style={styles.passportBrandTagline}>
+                  Every place{`\n`}adds a new page.
+                </Text>
               </View>
-              <View style={styles.travelStamp}><Ionicons name="airplane" size={22} color={BrandColors.muted} /><Text style={styles.travelStampText}>CURIOSITY{`\n`}NO BORDERS</Text></View>
+              <View style={styles.travelStamp}>
+                <Ionicons name="airplane" size={22} color={BrandColors.muted} />
+                <Text style={styles.travelStampText}>
+                  CURIOSITY{`\n`}NO BORDERS
+                </Text>
+              </View>
             </View>
             <View style={styles.passportSectionHeading}>
-              <Text style={styles.passportSectionTitle}>PERSONAL INFORMATION</Text>
-              <Ionicons name="compass-outline" size={17} color={BrandColors.copperDark} />
+              <Text style={styles.passportSectionTitle}>
+                PERSONAL INFORMATION
+              </Text>
+              <Ionicons
+                name="compass-outline"
+                size={17}
+                color={BrandColors.copperDark}
+              />
             </View>
             <View style={styles.identityBody}>
               <View style={styles.identityFields}>
                 <View style={styles.passportFieldRow}>
-                  <View style={[styles.identityField, styles.passportFieldGrow]}>
+                  <View
+                    style={[styles.identityField, styles.passportFieldGrow]}
+                  >
                     <Text style={styles.fieldCaption}>GIVEN NAME *</Text>
-                    <View style={styles.fieldControl}><Ionicons name="person-outline" size={14} color={BrandColors.green} />{editing ? <TextInput value={draft.name} onChangeText={(name) => setDraft((current) => ({ ...current, name }))} placeholder="Your name" placeholderTextColor="#a89378" style={styles.identityInput} /> : <Text style={styles.identityValue}>{draft.name || "—"}</Text>}</View>
+                    <View style={styles.fieldControl}>
+                      <Ionicons
+                        name="person-outline"
+                        size={14}
+                        color={BrandColors.green}
+                      />
+                      {editing ? (
+                        <TextInput
+                          value={draft.name}
+                          onChangeText={(name) =>
+                            setDraft((current) => ({ ...current, name }))
+                          }
+                          placeholder="Your name"
+                          placeholderTextColor="#a89378"
+                          style={styles.identityInput}
+                        />
+                      ) : (
+                        <Text style={styles.identityValue}>
+                          {draft.name || "—"}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.sexField}>
                     <Text style={styles.fieldCaption}>SEX</Text>
-                    {editing ? <View style={styles.sexOptions}>
-                      {(["M", "F"] as const).map((sex) => (
-                        <TouchableOpacity key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}>
-                          <Text style={[styles.sexOptionText, draft.sex === sex && styles.sexOptionTextSelected]}>{sex}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View> : <View style={styles.fieldControl}><Ionicons name="person-circle-outline" size={14} color={BrandColors.green} /><Text style={styles.identityValue}>{draft.sex || "—"}</Text></View>}
+                    {editing ? (
+                      <View style={styles.sexOptions}>
+                        {(["M", "F"] as const).map((sex) => (
+                          <TouchableOpacity
+                            key={sex}
+                            style={[
+                              styles.sexOption,
+                              draft.sex === sex && styles.sexOptionSelected,
+                            ]}
+                            onPress={() =>
+                              setDraft((current) => ({ ...current, sex }))
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.sexOptionText,
+                                draft.sex === sex &&
+                                  styles.sexOptionTextSelected,
+                              ]}
+                            >
+                              {sex}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.fieldControl}>
+                        <Ionicons
+                          name="person-circle-outline"
+                          size={14}
+                          color={BrandColors.green}
+                        />
+                        <Text style={styles.identityValue}>
+                          {draft.sex || "—"}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
                 <View style={styles.identityField}>
                   <Text style={styles.fieldCaption}>EMAIL ADDRESS *</Text>
-                  <View style={styles.fieldControl}><Ionicons name="mail-outline" size={15} color={BrandColors.green} />{editing ? <TextInput value={draft.email} onChangeText={(email) => setDraft((current) => ({ ...current, email }))} placeholder="you@example.com" placeholderTextColor="#a89378" keyboardType="email-address" autoCapitalize="none" style={styles.identityInput} /> : <Text numberOfLines={1} style={styles.identityValue}>{draft.email || "—"}</Text>}</View>
+                  <View style={styles.fieldControl}>
+                    <Ionicons
+                      name="mail-outline"
+                      size={15}
+                      color={BrandColors.green}
+                    />
+                    {editing ? (
+                      <TextInput
+                        value={draft.email}
+                        onChangeText={(email) =>
+                          setDraft((current) => ({ ...current, email }))
+                        }
+                        placeholder="you@example.com"
+                        placeholderTextColor="#a89378"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={styles.identityInput}
+                      />
+                    ) : (
+                      <Text numberOfLines={1} style={styles.identityValue}>
+                        {draft.email || "—"}
+                      </Text>
+                    )}
+                  </View>
                 </View>
                 <View style={styles.passportFieldRow}>
-                  <View style={[styles.identityField, styles.passportFieldGrow]}>
+                  <View
+                    style={[styles.identityField, styles.passportFieldGrow]}
+                  >
                     <Text style={styles.fieldCaption}>DATE OF BIRTH *</Text>
-                    <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setDatePickerVisible(true)} disabled={!editing}><Ionicons name="calendar-outline" size={15} color={BrandColors.green} /><Text style={styles.passportSelectText}>{draft.dateOfBirth || "DD / MM / YYYY"}</Text></TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.passportSelect}
+                      onPress={() => editing && setDatePickerVisible(true)}
+                      disabled={!editing}
+                    >
+                      <Ionicons
+                        name="calendar-outline"
+                        size={15}
+                        color={BrandColors.green}
+                      />
+                      <Text style={styles.passportSelectText}>
+                        {draft.dateOfBirth || "DD / MM / YYYY"}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={[styles.identityField, styles.passportFieldGrow]}>
+                  <View
+                    style={[styles.identityField, styles.passportFieldGrow]}
+                  >
                     <Text style={styles.fieldCaption}>NATIONALITY</Text>
-                    <TouchableOpacity style={styles.passportSelect} onPress={() => editing && setCountryPickerVisible(true)} disabled={!editing}><Ionicons name="globe-outline" size={15} color={BrandColors.green} /><Text numberOfLines={1} style={styles.passportSelectText}>{draft.nationality || "Select nationality"}</Text>{editing ? <Ionicons name="chevron-down" size={14} color={BrandColors.muted} /> : null}</TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.passportSelect}
+                      onPress={() => editing && setCountryPickerVisible(true)}
+                      disabled={!editing}
+                    >
+                      <Ionicons
+                        name="globe-outline"
+                        size={15}
+                        color={BrandColors.green}
+                      />
+                      <Text numberOfLines={1} style={styles.passportSelectText}>
+                        {draft.nationality || "Select nationality"}
+                      </Text>
+                      {editing ? (
+                        <Ionicons
+                          name="chevron-down"
+                          size={14}
+                          color={BrandColors.muted}
+                        />
+                      ) : null}
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
             </View>
-            <View style={styles.passportSectionHeading}><Text style={styles.passportSectionTitle}>PREFERENCES</Text></View>
-            <View style={styles.preferenceRow}>
-              <View style={[styles.identityField, styles.preferenceLanguage]}><Text style={styles.fieldCaption}>LANGUAGE</Text><View style={styles.fieldControl}><Ionicons name="globe-outline" size={15} color={BrandColors.green} /><Text style={styles.passportSelectText}>{profile.language}</Text></View></View>
-              <View style={styles.emailPreference}><Text style={styles.fieldCaption}>EMAIL PREFERENCES</Text><View style={styles.preferenceCopy}><Ionicons name="checkbox" size={18} color={BrandColors.green} /><Text style={styles.preferenceText}>Receive updates, travel tips{`\n`}and special offers</Text></View></View>
+            <View style={styles.passportSectionHeading}>
+              <Text style={styles.passportSectionTitle}>PREFERENCES</Text>
             </View>
-            <View style={styles.accountActions}>{editing ? <><TouchableOpacity style={styles.passwordButton} onPress={() => { setDraft({ name: profile.name, email: profile.email, nationality: profile.nationality, dateOfBirth: profile.dateOfBirth, sex: profile.sex }); setEditing(false); }}><Text style={styles.passwordButtonText}>CANCEL</Text></TouchableOpacity><TouchableOpacity style={styles.savePassportButton} onPress={() => void save()}><Text style={styles.savePassportText}>SAVE PASSPORT</Text></TouchableOpacity></> : <TouchableOpacity style={styles.savePassportButton} onPress={() => setEditing(true)}><Text style={styles.savePassportText}>EDIT PASSPORT</Text></TouchableOpacity>}</View>
+            <View style={styles.preferenceRow}>
+              <View style={[styles.identityField, styles.preferenceLanguage]}>
+                <Text style={styles.fieldCaption}>LANGUAGE</Text>
+                <View style={styles.fieldControl}>
+                  <Ionicons
+                    name="globe-outline"
+                    size={15}
+                    color={BrandColors.green}
+                  />
+                  <Text style={styles.passportSelectText}>
+                    {profile.language}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.emailPreference}>
+                <Text style={styles.fieldCaption}>EMAIL PREFERENCES</Text>
+                <View style={styles.preferenceCopy}>
+                  <Ionicons
+                    name="checkbox"
+                    size={18}
+                    color={BrandColors.green}
+                  />
+                  <Text style={styles.preferenceText}>
+                    Receive updates, travel tips{`\n`}and special offers
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.accountActions}>
+              {editing ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.passwordButton}
+                    onPress={() => {
+                      setDraft({
+                        name: profile.name,
+                        email: profile.email,
+                        nationality: profile.nationality,
+                        dateOfBirth: profile.dateOfBirth,
+                        sex: profile.sex,
+                      });
+                      setEditing(false);
+                    }}
+                  >
+                    <Text style={styles.passwordButtonText}>CANCEL</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.savePassportButton}
+                    onPress={() => void save()}
+                  >
+                    <Text style={styles.savePassportText}>SAVE PASSPORT</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.savePassportButton}
+                  onPress={() => setEditing(true)}
+                >
+                  <Text style={styles.savePassportText}>EDIT PASSPORT</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.numberRow}>
               <Text style={styles.numberLabel}>KROO NUMBER</Text>
               <Text style={styles.passportNumber}>{krooNumber}</Text>
-              <TouchableOpacity disabled={signingOut} onPress={() => void signOut()}><Text style={styles.signOutLink}>{signingOut ? "SIGNING OUT…" : "SIGN OUT"}</Text></TouchableOpacity>
+              <TouchableOpacity
+                disabled={signingOut}
+                onPress={() => void signOut()}
+              >
+                <Text style={styles.signOutLink}>
+                  {signingOut ? "SIGNING OUT…" : "SIGN OUT"}
+                </Text>
+              </TouchableOpacity>
             </View>
           </>
         ) : (
@@ -381,21 +639,90 @@ function IdentityPage({
             </View>
             <Text style={styles.authTitle}>Your travel passport</Text>
             <Text style={styles.authIntro}>
-              {authMode === "code" ? `Enter the code sent to ${draft.email}.` : authMode === "create-account" ? "Complete your passport details." : "Sign in or create your travel passport."}
+              {authMode === "code"
+                ? `Enter the code sent to ${draft.email}.`
+                : authMode === "create-account"
+                  ? "Complete your passport details."
+                  : "Sign in or create your travel passport."}
             </Text>
-            {authMode !== "code" ? <View style={styles.authPassportRow}>
-              <View style={[styles.authField, styles.authBirthdate]}>
-                <Text style={styles.authCaption}>GIVEN NAME</Text>
-                <TextInput value={draft.name} onChangeText={(name) => setDraft((current) => ({ ...current, name }))} placeholder="First name" placeholderTextColor="#a89378" autoCapitalize="words" style={styles.authInput} />
-              </View>
-              {authMode === "create-account" ? <View style={styles.authSex}><Text style={styles.authCaption}>SEX</Text><View style={styles.sexOptions}>{(["M", "F"] as const).map((sex) => <TouchableOpacity key={sex} style={[styles.sexOption, draft.sex === sex && styles.sexOptionSelected]} onPress={() => setDraft((current) => ({ ...current, sex }))}><Text style={[styles.sexOptionText, draft.sex === sex && styles.sexOptionTextSelected]}>{sex}</Text></TouchableOpacity>)}</View></View> : null}
-            </View> : null}
-            {authMode === "create-account" ? <>
+            {authMode !== "code" ? (
               <View style={styles.authPassportRow}>
-                <View style={[styles.authField, styles.authBirthdate]}><Text style={styles.authCaption}>NATIONALITY</Text><TouchableOpacity style={styles.authSelect} onPress={() => setCountryPickerVisible(true)}><Text numberOfLines={1} style={styles.authSelectText}>{draft.nationality || "Select country"}</Text><Ionicons name="chevron-down" size={16} color={BrandColors.muted} /></TouchableOpacity></View>
-                <View style={[styles.authField, styles.authBirthdate]}><Text style={styles.authCaption}>DATE OF BIRTH</Text><TouchableOpacity style={styles.authSelect} onPress={() => setDatePickerVisible(true)}><Text style={styles.authSelectText}>{draft.dateOfBirth || "YYYY-MM-DD"}</Text></TouchableOpacity></View>
+                <View style={[styles.authField, styles.authBirthdate]}>
+                  <Text style={styles.authCaption}>GIVEN NAME</Text>
+                  <TextInput
+                    value={draft.name}
+                    onChangeText={(name) =>
+                      setDraft((current) => ({ ...current, name }))
+                    }
+                    placeholder="First name"
+                    placeholderTextColor="#a89378"
+                    autoCapitalize="words"
+                    style={styles.authInput}
+                  />
+                </View>
+                {authMode === "create-account" ? (
+                  <View style={styles.authSex}>
+                    <Text style={styles.authCaption}>SEX</Text>
+                    <View style={styles.sexOptions}>
+                      {(["M", "F"] as const).map((sex) => (
+                        <TouchableOpacity
+                          key={sex}
+                          style={[
+                            styles.sexOption,
+                            draft.sex === sex && styles.sexOptionSelected,
+                          ]}
+                          onPress={() =>
+                            setDraft((current) => ({ ...current, sex }))
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.sexOptionText,
+                              draft.sex === sex && styles.sexOptionTextSelected,
+                            ]}
+                          >
+                            {sex}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
               </View>
-            </> : null}
+            ) : null}
+            {authMode === "create-account" ? (
+              <>
+                <View style={styles.authPassportRow}>
+                  <View style={[styles.authField, styles.authBirthdate]}>
+                    <Text style={styles.authCaption}>NATIONALITY</Text>
+                    <TouchableOpacity
+                      style={styles.authSelect}
+                      onPress={() => setCountryPickerVisible(true)}
+                    >
+                      <Text numberOfLines={1} style={styles.authSelectText}>
+                        {draft.nationality || "Select country"}
+                      </Text>
+                      <Ionicons
+                        name="chevron-down"
+                        size={16}
+                        color={BrandColors.muted}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={[styles.authField, styles.authBirthdate]}>
+                    <Text style={styles.authCaption}>DATE OF BIRTH</Text>
+                    <TouchableOpacity
+                      style={styles.authSelect}
+                      onPress={() => setDatePickerVisible(true)}
+                    >
+                      <Text style={styles.authSelectText}>
+                        {draft.dateOfBirth || "YYYY-MM-DD"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            ) : null}
             <View style={styles.authField}>
               <Text style={styles.authCaption}>EMAIL</Text>
               <TextInput
@@ -411,18 +738,24 @@ function IdentityPage({
                 style={styles.authInput}
               />
             </View>
-            {authMode === "code" ? <View style={styles.authField}>
-              <Text style={styles.authCaption}>6-DIGIT VERIFICATION CODE</Text>
-              <TextInput
-                value={verificationCode}
-                onChangeText={(value) => setVerificationCode(value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                placeholderTextColor="#a89378"
-                keyboardType="number-pad"
-                maxLength={6}
-                style={styles.authInput}
-              />
-            </View> : null}
+            {authMode === "code" ? (
+              <View style={styles.authField}>
+                <Text style={styles.authCaption}>
+                  6-DIGIT VERIFICATION CODE
+                </Text>
+                <TextInput
+                  value={verificationCode}
+                  onChangeText={(value) =>
+                    setVerificationCode(value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder="000000"
+                  placeholderTextColor="#a89378"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  style={styles.authInput}
+                />
+              </View>
+            ) : null}
             <View style={styles.authButtons}>
               <TouchableOpacity
                 disabled={authBusy}
@@ -431,30 +764,131 @@ function IdentityPage({
                   styles.authButton,
                   authBusy && styles.authButtonDisabled,
                 ]}
-                onPress={() => authMode === "code" ? setAuthMode(authPurpose === "create-account" ? "create-account" : "initial") : authMode === "create-account" ? setAuthMode("initial") : void requestCode("sign-in")}
+                onPress={() =>
+                  authMode === "code"
+                    ? setAuthMode(
+                        authPurpose === "create-account"
+                          ? "create-account"
+                          : "initial",
+                      )
+                    : authMode === "create-account"
+                      ? setAuthMode("initial")
+                      : void requestCode("sign-in")
+                }
               >
                 <Text style={styles.signInPrimaryText}>
-                  {authMode === "code" || authMode === "create-account" ? "BACK" : "SIGN IN"}
+                  {authMode === "code" || authMode === "create-account"
+                    ? "BACK"
+                    : "SIGN IN"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                disabled={authBusy || (authMode === "code" && verificationCode.length !== 6)}
+                disabled={
+                  authBusy ||
+                  (authMode === "code" && verificationCode.length !== 6)
+                }
                 style={[
                   styles.createSecondary,
                   styles.authButton,
-                  (authBusy || (authMode === "code" && verificationCode.length !== 6)) && styles.authButtonDisabled,
+                  (authBusy ||
+                    (authMode === "code" && verificationCode.length !== 6)) &&
+                    styles.authButtonDisabled,
                 ]}
-                onPress={() => authMode === "code" ? void verifyCode() : authMode === "create-account" ? void requestCode("create-account") : setAuthMode("create-account")}
+                onPress={() =>
+                  authMode === "code"
+                    ? void verifyCode()
+                    : authMode === "create-account"
+                      ? void requestCode("create-account")
+                      : setAuthMode("create-account")
+                }
               >
-                <Text style={styles.createSecondaryText}>{authBusy ? "PLEASE WAIT" : authMode === "code" ? "VERIFY" : authMode === "create-account" ? "SEND CODE" : "CREATE ACCOUNT"}</Text>
+                <Text style={styles.createSecondaryText}>
+                  {authBusy
+                    ? "PLEASE WAIT"
+                    : authMode === "code"
+                      ? "VERIFY"
+                      : authMode === "create-account"
+                        ? "SEND CODE"
+                        : "CREATE ACCOUNT"}
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         )}
       </View>
-      {datePickerVisible ? <DateTimePicker value={draft.dateOfBirth ? new Date(`${draft.dateOfBirth}T12:00:00`) : new Date(2000, 0, 1)} mode="date" maximumDate={new Date()} onChange={(_, date) => { setDatePickerVisible(Platform.OS === "ios"); if (date) setDraft((current) => ({ ...current, dateOfBirth: date.toISOString().slice(0, 10) })); }} /> : null}
-      <Modal transparent animationType="slide" visible={countryPickerVisible} onRequestClose={() => setCountryPickerVisible(false)}>
-        <View style={styles.pickerModalRoot}><Pressable style={styles.passwordBackdrop} onPress={() => setCountryPickerVisible(false)} /><View style={styles.countrySheet}><View style={styles.countryPickerHeading}><Text style={styles.passwordTitle}>Nationality</Text><TouchableOpacity onPress={() => setCountryPickerVisible(false)}><Ionicons name="close" size={22} color={BrandColors.green} /></TouchableOpacity></View><TextInput value={countryQuery} onChangeText={setCountryQuery} placeholder="Search countries" placeholderTextColor={BrandColors.muted} autoCapitalize="words" style={styles.countrySearch} /><ScrollView keyboardShouldPersistTaps="handled">{filteredCountries.map((country) => <TouchableOpacity key={country.iso2} style={styles.countryOption} onPress={() => { setDraft((current) => ({ ...current, nationality: country.name })); setCountryQuery(""); setCountryPickerVisible(false); }}><Text style={styles.countryOptionCode}>{country.iso3}</Text><Text style={styles.countryOptionText}>{country.name}</Text>{draft.nationality === country.name ? <Ionicons name="checkmark" size={18} color={BrandColors.green} /> : null}</TouchableOpacity>)}</ScrollView></View></View>
+      {datePickerVisible ? (
+        <DateTimePicker
+          value={
+            draft.dateOfBirth
+              ? new Date(`${draft.dateOfBirth}T12:00:00`)
+              : new Date(2000, 0, 1)
+          }
+          mode="date"
+          maximumDate={new Date()}
+          onChange={(_, date) => {
+            setDatePickerVisible(Platform.OS === "ios");
+            if (date)
+              setDraft((current) => ({
+                ...current,
+                dateOfBirth: date.toISOString().slice(0, 10),
+              }));
+          }}
+        />
+      ) : null}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={countryPickerVisible}
+        onRequestClose={() => setCountryPickerVisible(false)}
+      >
+        <View style={styles.pickerModalRoot}>
+          <Pressable
+            style={styles.passwordBackdrop}
+            onPress={() => setCountryPickerVisible(false)}
+          />
+          <View style={styles.countrySheet}>
+            <View style={styles.countryPickerHeading}>
+              <Text style={styles.passwordTitle}>Nationality</Text>
+              <TouchableOpacity onPress={() => setCountryPickerVisible(false)}>
+                <Ionicons name="close" size={22} color={BrandColors.green} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              value={countryQuery}
+              onChangeText={setCountryQuery}
+              placeholder="Search countries"
+              placeholderTextColor={BrandColors.muted}
+              autoCapitalize="words"
+              style={styles.countrySearch}
+            />
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {filteredCountries.map((country) => (
+                <TouchableOpacity
+                  key={country.iso2}
+                  style={styles.countryOption}
+                  onPress={() => {
+                    setDraft((current) => ({
+                      ...current,
+                      nationality: country.name,
+                    }));
+                    setCountryQuery("");
+                    setCountryPickerVisible(false);
+                  }}
+                >
+                  <Text style={styles.countryOptionCode}>{country.iso3}</Text>
+                  <Text style={styles.countryOptionText}>{country.name}</Text>
+                  {draft.nationality === country.name ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={BrandColors.green}
+                    />
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -518,7 +952,9 @@ export default function PassportScreen() {
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
-  const challengePoints = useAppSelector((state) => state.travel.challengePoints);
+  const challengePoints = useAppSelector(
+    (state) => state.travel.challengePoints,
+  );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const compactPassport = screenWidth < 380 || screenHeight < 720;
   const [activePage, setActivePage] = useState(1);
@@ -542,11 +978,15 @@ export default function PassportScreen() {
     : screenHeight - (compactPassport ? 178 : 218);
   const pageHeight = Math.min(availablePageHeight, pageWidth * 1.48);
   const krooScore = useMemo(
-    () => calculateKrooScoreFromVisits(visits, completedSightIds, challengePoints),
+    () =>
+      calculateKrooScoreFromVisits(visits, completedSightIds, challengePoints),
     [challengePoints, completedSightIds, visits],
   );
   const krooNumber = useMemo(() => formatKrooNumber(krooScore), [krooScore]);
-  const krooLevel = useMemo(() => getKrooLevel(krooScore).toUpperCase(), [krooScore]);
+  const krooLevel = useMemo(
+    () => getKrooLevel(krooScore).toUpperCase(),
+    [krooScore],
+  );
 
   const passportPages = useMemo(() => {
     const countryMap = new Map<string, Stamp>();
@@ -611,7 +1051,7 @@ export default function PassportScreen() {
             Math.min(
               passportPages.length - 1,
               activePageValue.value +
-              (shouldAdvance ? 1 : shouldGoBack ? -1 : 0),
+                (shouldAdvance ? 1 : shouldGoBack ? -1 : 0),
             ),
           );
           bookPosition.value = withTiming(
@@ -846,12 +1286,8 @@ const styles = StyleSheet.create({
   },
   identityHeading: {
     position: "relative",
-    borderBottomWidth: 1,
-    borderBottomColor: BrandColors.line,
-    paddingBottom: 7,
-    borderRadius: 18,
   },
-  identityHeadingCompact: { paddingBottom: 6 },
+  identityHeadingCompact: { paddingBottom: 4 },
   identityCountry: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(19),
@@ -867,7 +1303,7 @@ const styles = StyleSheet.create({
   },
   identityMotto: {
     position: "absolute",
-    right: 48,
+    right: 0,
     top: 4,
     textAlign: "right",
     fontFamily: "Lora_700Bold",
@@ -886,33 +1322,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 8,
+    marginTop: 8,
   },
   passportSeal: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 1.5,
-    borderColor: BrandColors.copperDark,
+    width: 96,
+    height: 96,
     alignItems: "center",
     justifyContent: "center",
   },
-  passportSealImage: { width: 48, height: 48 },
-  passportBrandName: {
-    fontFamily: "Lora_700Bold",
-    marginTop: 2,
-    fontSize: responsiveFontSize(20),
-    letterSpacing: 2.4,
-    color: BrandColors.green,
-  },
-  passportBrandSubline: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(6),
-    letterSpacing: 1.1,
-    color: BrandColors.muted,
-  },
+  passportSealImage: { width: "100%", height: "100%" },
   passportBrandTagline: {
-    marginTop: 7,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(9),
     lineHeight: responsiveFontSize(12),
@@ -944,9 +1363,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 8,
     borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: BrandColors.line,
+    borderTopColor: BrandColors.line,
   },
   passportSectionTitle: {
     fontFamily: "Lora_700Bold",
@@ -1065,34 +1484,155 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
-  identityValue: { flex: 1, height: 27, textAlignVertical: "center", fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.ink },
-  editPassportButton: { position: "absolute", right: 0, top: 0, height: 30, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 15, borderWidth: 1, borderColor: BrandColors.green },
-  editPassportText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(9), letterSpacing: 0.7, color: BrandColors.green },
-  savePassportButton: { flex: 1.6, height: 34, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.green },
-  savePassportText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(9), letterSpacing: 0.8, color: BrandColors.white },
-  passportSelect: { height: 27, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
-  passportSelectText: { flex: 1, fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(11), color: BrandColors.ink },
-  fieldControl: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7 },
+  identityValue: {
+    flex: 1,
+    height: 27,
+    textAlignVertical: "center",
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.ink,
+  },
+  editPassportButton: {
+    position: "absolute",
+    right: 60,
+    top: 0,
+    height: 30,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: BrandColors.green,
+  },
+  editPassportText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(9),
+    letterSpacing: 0.7,
+    color: BrandColors.green,
+  },
+  savePassportButton: {
+    flex: 1.6,
+    height: 34,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.green,
+  },
+  savePassportText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(9),
+    letterSpacing: 0.8,
+    color: BrandColors.white,
+  },
+  passportSelect: {
+    height: 27,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  passportSelectText: {
+    flex: 1,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.ink,
+  },
+  fieldControl: {
+    minHeight: 27,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
   passportFieldRow: { flexDirection: "row", gap: 8 },
   passportFieldGrow: { flex: 1, flexBasis: 0, minWidth: 0 },
   sexField: { flex: 1, flexBasis: 0, minWidth: 0 },
-  sexOptions: { height: 32, flexDirection: "row", gap: 4, alignItems: "center" },
-  sexOption: { width: 28, height: 28, borderRadius: 4, borderWidth: 1, borderColor: BrandColors.line, alignItems: "center", justifyContent: "center" },
-  sexOptionSelected: { backgroundColor: BrandColors.green, borderColor: BrandColors.green },
-  sexOptionText: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(11), color: BrandColors.green },
+  sexOptions: {
+    height: 32,
+    flexDirection: "row",
+    gap: 4,
+    alignItems: "center",
+  },
+  sexOption: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: BrandColors.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sexOptionSelected: {
+    backgroundColor: BrandColors.green,
+    borderColor: BrandColors.green,
+  },
+  sexOptionText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.green,
+  },
   sexOptionTextSelected: { color: BrandColors.white },
-  authSelect: { height: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  authSelectText: { flex: 1, fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(14), color: BrandColors.ink },
+  authSelect: {
+    height: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  authSelectText: {
+    flex: 1,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.ink,
+  },
   authPassportRow: { width: "100%", flexDirection: "row", gap: 12 },
   authBirthdate: { width: "auto", flex: 1, flexBasis: 0, minWidth: 0 },
   authSex: { width: "auto", flex: 1, flexBasis: 0, minWidth: 0 },
   pickerModalRoot: { flex: 1, justifyContent: "flex-end" },
-  countrySheet: { maxHeight: "52%", padding: 16, paddingBottom: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: BrandColors.surface },
-  countryPickerHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  countrySearch: { height: 42, marginBottom: 8, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.line, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(14), color: BrandColors.ink },
-  countryOption: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.line },
-  countryOptionCode: { width: 34, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(10), letterSpacing: 0.8, color: BrandColors.copperDark },
-  countryOptionText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(14), color: BrandColors.ink },
+  countrySheet: {
+    maxHeight: "52%",
+    padding: 16,
+    paddingBottom: 22,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: BrandColors.surface,
+  },
+  countryPickerHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  countrySearch: {
+    height: 42,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BrandColors.line,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.ink,
+  },
+  countryOption: {
+    minHeight: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BrandColors.line,
+  },
+  countryOptionCode: {
+    width: 34,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(10),
+    letterSpacing: 0.8,
+    color: BrandColors.copperDark,
+  },
+  countryOptionText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.ink,
+  },
   accountButton: {
     height: 30,
     borderRadius: 7,
@@ -1140,8 +1680,19 @@ const styles = StyleSheet.create({
   preferenceRow: { flexDirection: "row", gap: 8, paddingTop: 7 },
   preferenceLanguage: { flex: 1 },
   emailPreference: { flex: 1, paddingTop: 3 },
-  preferenceCopy: { minHeight: 30, flexDirection: "row", alignItems: "center", gap: 5 },
-  preferenceText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(8), lineHeight: responsiveFontSize(10), color: BrandColors.ink },
+  preferenceCopy: {
+    minHeight: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  preferenceText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(8),
+    lineHeight: responsiveFontSize(10),
+    color: BrandColors.ink,
+  },
   passwordButton: {
     flex: 1.5,
     height: 34,
@@ -1268,7 +1819,12 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(17),
     color: BrandColors.green,
   },
-  signOutLink: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(7), letterSpacing: 0.7, color: BrandColors.copperDark },
+  signOutLink: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(7),
+    letterSpacing: 0.7,
+    color: BrandColors.copperDark,
+  },
   machineCode: {
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(11),

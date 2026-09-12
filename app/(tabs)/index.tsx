@@ -1238,7 +1238,8 @@ export default function HomeScreen() {
                 compact && styles.nameCompact,
                 (name || "Traveler").length > 12 && styles.nameLong,
               ]}
-              numberOfLines={2}
+              numberOfLines={1}
+              adjustsFontSizeToFit
               ellipsizeMode="tail"
             >
               {name || "Traveler"}
@@ -1254,7 +1255,9 @@ export default function HomeScreen() {
               </Text>
               <InfoButton label="About Kroo Levels" onPress={openKrooLevels} />
             </View>
+            <Text style={styles.heroMotto}>EXPLORE · DISCOVER · BELONG</Text>
           </View>
+          <Text style={styles.heroTagline}>A more curious you.</Text>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
             style={[styles.globe, compact && styles.globeCompact]}
@@ -1269,58 +1272,97 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Open Kroo Score details"
           >
-            <StampedScore value={Number(score)} />
-            <View style={styles.scoreDetails}>
-              <View style={styles.infoTitleRow}>
-                <Text style={styles.scoreTitle}>KROO SCORE</Text>
-                <InfoButton label="About Kroo Score" onPress={openKrooScore} />
-              </View>
-              <View style={styles.scoreBar}>
-                <View
-                  style={[
-                    styles.scoreFill,
-                    { width: `${Math.min(score, 100)}%` },
-                  ]}
-                />
-              </View>
-              <View style={styles.worldTextRow}>
-                <Text style={styles.worldPercent}>{worldProgress}%</Text>
-                <Text style={styles.worldText}> of the world explored</Text>
-              </View>
+            <View style={styles.infoTitleRow}>
+              <Text style={styles.scoreTitle}>KROO SCORE</Text>
+              <Ionicons
+                name="information-circle-outline"
+                size={17}
+                color={BrandColors.copper}
+              />
+            </View>
+            <View style={styles.scoreCenter}>
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={styles.laurel}
+                contentFit="contain"
+              />
+              <StampedScore value={Number(score)} />
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={[styles.laurel, { transform: [{ scaleX: -1 }] }]}
+                contentFit="contain"
+              />
+            </View>
+            <View style={styles.scoreBar}>
+              <View
+                style={[
+                  styles.scoreFill,
+                  { width: `${Math.max(0, Math.min(score, 100))}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.worldTextRow}>
+              <Text style={styles.worldPercent}>{worldProgress}%</Text>
+              <Text style={styles.worldText}> of the world explored</Text>
             </View>
           </TouchableOpacity>
-          <View style={styles.statsShared}>
-            <TravelStats
-              items={[
-                {
-                  icon: "globe-outline",
-                  value: countryCount,
-                  total: 195,
-                  label: "COUNTRIES",
-                  onInfo: () =>
-                    setInfoModal({
-                      title: "Countries",
-                      body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
-                      icon: "globe-outline",
-                    }),
-                },
-                {
-                  icon: "flag-outline",
-                  value: continentCount,
-                  total: 7,
-                  label: "CONTINENTS",
-                },
-                { icon: "business-outline", value: cityCount, label: "CITIES" },
-              ]}
+        </View>
+        <View style={styles.statsShared}>
+          <TravelStats
+            separate
+            items={[
+              {
+                icon: "globe-outline",
+                value: countryCount,
+                total: 195,
+                label: "COUNTRIES",
+                onInfo: () =>
+                  setInfoModal({
+                    title: "Countries",
+                    body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
+                    icon: "globe-outline",
+                  }),
+              },
+              {
+                icon: "flag-outline",
+                value: continentCount,
+                total: 7,
+                label: "CONTINENTS",
+                onInfo: () =>
+                  setInfoModal({
+                    title: "Continents",
+                    body: "Explore all seven continents. Each continent with a visited city counts toward your total.",
+                  }),
+              },
+              {
+                icon: "business-outline",
+                value: cityCount,
+                label: "CITIES",
+                onInfo: () =>
+                  setInfoModal({
+                    title: "Cities",
+                    body: "Your total counts unique visited cities. Use the search below to add your travels.",
+                  }),
+              },
+            ]}
+          />
+        </View>
+        <CityVisitSearch home />
+        <View>
+          <WorldMap
+            visited={countryCodes}
+            visits={visits}
+            currentLocation={gpsArrivalsAllowed ? currentLocation : null}
+          />
+          <View pointerEvents="none" style={styles.collectWorld}>
+            <Image
+              source={require("@/assets/images/other/compass.png")}
+              style={{ width: 38, height: 38 }}
+              contentFit="contain"
             />
+            <Text style={styles.collectText}>{"COLLECT\nTHE WORLD"}</Text>
           </View>
         </View>
-        <CityVisitSearch />
-        <WorldMap
-          visited={countryCodes}
-          visits={visits}
-          currentLocation={gpsArrivalsAllowed ? currentLocation : null}
-        />
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
             <Text style={styles.continentTitle}>
@@ -1509,8 +1551,13 @@ function SaveProgressIcon() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BrandColors.green },
-  content: { paddingBottom: 30 },
+  safe: { flex: 1, backgroundColor: "#00271C" },
+  content: {
+    paddingBottom: 30,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+  },
   welcomeOverlay: {
     flex: 1,
     paddingHorizontal: 14,
@@ -1693,13 +1740,50 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(8),
     color: BrandColors.white,
   },
+  heroMotto: {
+    marginLeft: 42,
+    fontFamily: "Lora_500Medium",
+    fontSize: 6,
+    letterSpacing: 1.5,
+    color: "#91A58A",
+  },
+  heroTagline: {
+    position: "absolute",
+    right: 30,
+    bottom: 26,
+    fontFamily: "Lora_400Regular_Italic",
+    fontSize: responsiveFontSize(15),
+    color: "#79A783",
+    transform: [{ rotate: "-7deg" }],
+  },
+  scoreCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  laurel: { width: 60, height: 90 },
+  collectWorld: {
+    position: "absolute",
+    left: 18,
+    bottom: 3,
+    alignItems: "center",
+  },
+  collectText: {
+    marginTop: 4,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 7,
+    letterSpacing: 2,
+    lineHeight: 11,
+    textAlign: "center",
+    color: "#99AC8C",
+  },
   hero: {
-    height: 205,
-    paddingHorizontal: 10,
+    height: 210,
+    paddingHorizontal: 18,
     paddingTop: 0,
     overflow: "hidden",
   },
-  heroCompact: { height: 190, paddingHorizontal: 10 },
+  heroCompact: { height: 190, paddingHorizontal: 14 },
   welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
@@ -1712,7 +1796,7 @@ const styles = StyleSheet.create({
   name: {
     position: "relative",
     zIndex: 2,
-    maxWidth: "80%",
+    maxWidth: "55%",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(48),
     lineHeight: 56,
@@ -1729,7 +1813,6 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   levelRow: {
-    marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -1745,37 +1828,29 @@ const styles = StyleSheet.create({
   },
   globe: {
     position: "absolute",
-    right: 45,
-    top: 5,
-    width: 210,
-    height: 210,
+    right: 16,
+    top: 25,
+    width: 170,
+    height: 170,
     zIndex: 0,
   },
-  globeCompact: { right: 14, width: 185, height: 185 },
+  globeCompact: { right: 10, top: 35, width: 150, height: 150 },
   scoreCard: {
-    marginTop: -24,
-    marginHorizontal: 10,
-    paddingTop: 4,
-    paddingBottom: 13,
-    backgroundColor: "transparent",
+    marginHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#AC8B60",
+    backgroundColor: "rgba(10,43,32,0.3)",
   },
-  statsShared: { marginTop: 12 },
-  scoreLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    paddingHorizontal: 14,
-  },
-  score: {
-    width: 112,
-    height: 58,
-  },
-  scoreDetails: { flex: 1 },
+  statsShared: { marginTop: 10, marginHorizontal: 12 },
+  scoreLine: { alignItems: "center", paddingHorizontal: 18 },
+  score: { width: 140, height: 78 },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(18),
-    letterSpacing: 0.3,
-    color: BrandColors.onDark,
+    fontSize: responsiveFontSize(16),
+    letterSpacing: 3,
+    color: BrandColors.onDarkMuted,
   },
   infoTitleRow: {
     flexDirection: "row",
@@ -1800,8 +1875,10 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    width: "100%",
-    height: 5,
+    width: "72%",
+    height: 8,
+    borderWidth: 1,
+    borderColor: "#315749",
     marginTop: 5,
     borderRadius: 4,
     backgroundColor: "rgba(120,166,110,.24)",
