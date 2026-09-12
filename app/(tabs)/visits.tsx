@@ -208,7 +208,7 @@ export default function PlusScreen() {
                 </View>
                 <Ionicons
                   name={step.icon as never}
-                  size={30}
+                  size={28}
                   color={BrandColors.copper}
                 />
                 <Text style={s.stepTitle}>{step.title}</Text>
@@ -529,16 +529,16 @@ const s = StyleSheet.create({
   steps: {
     marginTop: -32,
     paddingHorizontal: 2,
-    paddingTop: 27,
+    paddingTop: 20,
     flexDirection: "row",
     gap: 2,
   },
-  step: { flex: 1, minHeight: 165, alignItems: "center", paddingHorizontal: 2 },
+  step: { flex: 1, minHeight: 144, alignItems: "center", paddingHorizontal: 2 },
   stepArc: {
     width: "100%",
     maxWidth: 145,
-    height: 130,
-    paddingTop: 27,
+    minHeight: 120,
+    paddingTop: 24,
     paddingHorizontal: 7,
     alignItems: "center",
     borderWidth: 2,
@@ -548,10 +548,10 @@ const s = StyleSheet.create({
   },
   number: {
     position: "absolute",
-    top: -16,
+    top: -14,
     alignSelf: "center",
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -572,8 +572,8 @@ const s = StyleSheet.create({
   },
   stepCopy: {
     position: "absolute",
-    top: 110,
-    maxWidth: 90,
+    top: 100,
+    maxWidth: 86,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(11),
