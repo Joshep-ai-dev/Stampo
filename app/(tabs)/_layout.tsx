@@ -48,9 +48,7 @@ export default function TabLayout() {
           backgroundColor: "#00271C",
           borderTopColor: BrandColors.line,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 68 + Math.max(insets.bottom, 8),
-          paddingTop: 7,
-          paddingBottom: Math.max(insets.bottom, 8),
+          height: 44 + Math.max(insets.bottom, 8),
         },
       }}
     >

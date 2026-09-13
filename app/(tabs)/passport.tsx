@@ -1868,7 +1868,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
   },
-  pagination: { height: 45, alignItems: "center" },
+  pagination: { height: 50, alignItems: "center" },
   dots: {
     flexDirection: "row",
     alignItems: "center",
