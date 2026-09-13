@@ -20,7 +20,6 @@ import { useAppSelector } from "@/store/hooks";
 const c = {
   green: BrandColors.greenDeep,
   cream: BrandColors.line,
-  paper: BrandColors.surface,
   ink: BrandColors.ink,
   copper: BrandColors.copper,
   copperDark: BrandColors.copperDark,
@@ -34,6 +33,24 @@ type Question = {
   imageUrl?: string;
 };
 type Stage = "intro" | "question" | "answer" | "result";
+
+function PaperBorder({ wide = false }: { wide?: boolean }) {
+  return (
+    <Image
+      pointerEvents="none"
+      source={
+        wide
+          ? require("@/assets/images/other/border_2.webp")
+          : require("@/assets/images/other/border_1.webp")
+      }
+      style={StyleSheet.absoluteFillObject}
+      contentFit="fill"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
+}
+
 export default function KrooIqScreen() {
   const router = useRouter();
   const { status: subscriptionStatus } = useAppSelector(
@@ -241,6 +258,7 @@ function Destination({
 }) {
   return (
     <View style={[s.paper, s.destination]}>
+      <PaperBorder wide />
       <View style={s.destinationTop}>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>TODAY&apos;S DESTINATION</Text>
@@ -278,6 +296,7 @@ function Destination({
 function Intro({ destination }: { destination?: KrooIqQuiz["destination"] }) {
   return (
     <View style={[s.paper, s.lesson]}>
+      <PaperBorder />
       <Text style={s.eyebrow}>1. MEET THE COUNTRY</Text>
       {destination?.imageUrl ? (
         <Image
@@ -303,6 +322,7 @@ function Quiz({
 }) {
   return (
     <View style={[s.paper, s.quiz]}>
+      <PaperBorder />
       <Text style={s.eyebrow}>{index + 1}. QUESTION</Text>
       <Text style={s.question}>{question.prompt}</Text>
       {question.imageUrl ? (
@@ -343,6 +363,7 @@ function Feedback({
   const correct = result.correct;
   return (
     <View style={[s.paper, s.feedback]}>
+      <PaperBorder />
       <View style={s.feedbackHead}>
         <Ionicons
           name={correct ? "checkmark-circle" : "close-circle"}
@@ -388,6 +409,7 @@ function Result({
 }) {
   return (
     <View style={[s.paper, s.result]}>
+      <PaperBorder />
       <Text style={s.resultEyebrow}>TODAY&apos;S KROO IQ</Text>
       <Text style={s.resultNumber}>
         {correct} / {total}
@@ -420,6 +442,7 @@ function Result({
 function Locked({ onPress }: { onPress: () => void }) {
   return (
     <View style={[s.paper, s.locked]}>
+      <PaperBorder />
       <View style={s.lockIcon}>
         <Ionicons name="bulb" size={39} color={c.copper} />
       </View>
@@ -435,6 +458,7 @@ function Locked({ onPress }: { onPress: () => void }) {
 function Message({ text, onRetry }: { text: string; onRetry: () => void }) {
   return (
     <View style={[s.paper, s.messageCard]}>
+      <PaperBorder />
       <Ionicons name="cloud-offline-outline" size={36} color={c.copperDark} />
       <Text style={s.messageText}>{text}</Text>
       <Action label="Try Again" onPress={onRetry} />
@@ -526,10 +550,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(16),
   },
   paper: {
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: BrandColors.line,
-    borderRadius: 8,
+    position: "relative",
+    backgroundColor: "transparent",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
