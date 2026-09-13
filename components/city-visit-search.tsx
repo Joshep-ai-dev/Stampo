@@ -501,10 +501,10 @@ export function CityVisitSearch({
 }
 
 const styles = StyleSheet.create({
-  homeInputWrap: { height: 42, borderRadius: 12, paddingHorizontal: 12 },
+  homeInputWrap: { height: 42, borderRadius: 8, paddingHorizontal: 12 },
   homeInput: { textAlign: "left", fontSize: responsiveFontSize(15) },
-  homeButton: { width: 42, height: 42, borderRadius: 12 },
-  wrapper: { marginTop: 20, paddingHorizontal: 10, zIndex: 4 },
+  homeButton: { width: 42, height: 42, borderRadius: 8 },
+  wrapper: { marginTop: 20, paddingHorizontal: 14, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(24),
