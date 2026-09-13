@@ -1,5 +1,6 @@
 export type CollectionPlace = {
   id: string;
+  sightId?: string;
   name: string;
   city?: string;
   state?: string;

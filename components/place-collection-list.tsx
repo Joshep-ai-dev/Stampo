@@ -1,16 +1,11 @@
-import {
-  Image } from "expo-image";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/app-text";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
+import { collectionPlaceCompletionId } from "@/data/sight-completion";
 import type { ManagedCollection } from "@/services/api";
 import { PlaceSectionTitle } from "./place-detail-sections";
 import { StampCardBackground } from "./stamp-card-background";
@@ -45,7 +40,7 @@ export function PlaceCollectionList({
         {collections.map((collection) => {
           const completed = collection.places.filter((place) =>
             completedSightIds.includes(
-              `collection-${collection.id}-${place.id}`,
+              collectionPlaceCompletionId(collection.id, place),
             ),
           ).length;
           const progress = collection.places.length

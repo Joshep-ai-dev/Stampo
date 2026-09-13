@@ -209,6 +209,7 @@ export type CollectionProgress = {
 
 export type ManagedCollectionPlace = {
   id: string;
+  sightId?: string;
   name: string;
   city?: string;
   state?: string;

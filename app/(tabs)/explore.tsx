@@ -1,13 +1,8 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Image } from "expo-image";
-import { useFocusEffect,
-  useRouter } from "expo-router";
-import { useCallback,
-  useMemo,
-  useRef,
-  useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   ScrollView,
@@ -23,6 +18,7 @@ import { FilterBubble } from "@/components/filter-bubble";
 import { StampCardBackground } from "@/components/stamp-card-background";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
+import { collectionPlaceCompletionId } from "@/data/sight-completion";
 import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
@@ -117,8 +113,8 @@ export default function ExploreScreen() {
   const visibleCollections = useMemo(() => {
     const withLocalProgress = collectionCatalog.map((collection) => {
       const placeIds =
-        collection.places?.map(
-          (place) => `collection-${collection.id}-${place.id}`,
+        collection.places?.map((place) =>
+          collectionPlaceCompletionId(collection.id, place),
         ) ?? [];
       const localCompleted = placeIds.filter((id) =>
         completedSightIds.includes(id),

@@ -662,7 +662,7 @@ const s = StyleSheet.create({
   },
   answers: { marginTop: 24, gap: 10 },
   answer: {
-    paddingVertical: 4,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#8D775F",
@@ -677,8 +677,8 @@ const s = StyleSheet.create({
     borderWidth: 2,
   },
   letter: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#8D775F",
