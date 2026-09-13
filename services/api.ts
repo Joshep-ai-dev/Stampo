@@ -175,12 +175,18 @@ export type SubscriptionEntitlement = {
 export type RemoteProfile = {
   id: string;
   name: string;
+  familyName?: string;
   email: string;
+  phoneNumber?: string;
   language: string;
   plan: "free" | "pro";
   nationality: string;
   dateOfBirth: string;
-  sex?: "M" | "F" | "";
+  address?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country?: string;
   photoUri: string | null;
 };
 
@@ -921,9 +927,15 @@ export const api = {
     code: string;
     purpose: "sign-in" | "create-account";
     name?: string;
+    familyName?: string;
+    phoneNumber?: string;
     nationality?: string;
     dateOfBirth?: string;
-    sex?: "M" | "F" | "";
+    address?: string;
+    city?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
   }) => {
     const session = await request<AuthResponse>("/auth/code/verify", {
       method: "POST",

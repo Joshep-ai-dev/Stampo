@@ -62,10 +62,16 @@ export async function hydrateStore() {
       store.dispatch(
         profileDetailsChanged({
           name: user.name,
+          familyName: remoteProfile?.familyName ?? profile.familyName,
           email: user.email,
+          phoneNumber: remoteProfile?.phoneNumber ?? profile.phoneNumber,
           nationality: remoteProfile?.nationality ?? profile.nationality,
           dateOfBirth: remoteProfile?.dateOfBirth ?? profile.dateOfBirth,
-          sex: remoteProfile?.sex ?? profile.sex,
+          address: remoteProfile?.address ?? profile.address,
+          city: remoteProfile?.city ?? profile.city,
+          stateProvince: remoteProfile?.stateProvince ?? profile.stateProvince,
+          postalCode: remoteProfile?.postalCode ?? profile.postalCode,
+          country: remoteProfile?.country ?? profile.country,
         }),
       );
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));

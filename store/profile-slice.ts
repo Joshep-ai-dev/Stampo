@@ -2,10 +2,16 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type ProfileState = {
   name: string;
+  familyName: string;
   email: string;
+  phoneNumber: string;
   nationality: string;
   dateOfBirth: string;
-  sex: "M" | "F" | "";
+  address: string;
+  city: string;
+  stateProvince: string;
+  postalCode: string;
+  country: string;
   krooNumber: number;
   isSignedIn: boolean;
   userId: string | null;
@@ -15,10 +21,16 @@ export type ProfileState = {
 
 const initialState: ProfileState = {
   name: "",
+  familyName: "",
   email: "",
+  phoneNumber: "",
   nationality: "",
   dateOfBirth: "",
-  sex: "",
+  address: "",
+  city: "",
+  stateProvince: "",
+  postalCode: "",
+  country: "",
   krooNumber: 0,
   isSignedIn: false,
   userId: null,
@@ -36,7 +48,20 @@ const profileSlice = createSlice({
     profileDetailsChanged(
       state,
       action: PayloadAction<
-        Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth" | "sex">
+        Pick<
+          ProfileState,
+          | "name"
+          | "familyName"
+          | "email"
+          | "phoneNumber"
+          | "nationality"
+          | "dateOfBirth"
+          | "address"
+          | "city"
+          | "stateProvince"
+          | "postalCode"
+          | "country"
+        >
       >,
     ) {
       Object.assign(state, action.payload);
