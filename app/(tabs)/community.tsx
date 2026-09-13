@@ -1,10 +1,8 @@
-import {
-  Ionicons } from "@expo/vector-icons";
+import { Text } from "@/components/app-text";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useFocusEffect,
-  useRouter } from "expo-router";
-import { useCallback,
-  useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -12,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
@@ -464,7 +461,7 @@ function Action({
     >
       <Text style={s.actionText}>{label}</Text>
       {arrow && (
-        <Ionicons name="chevron-forward" size={20} color={BrandColors.white} />
+        <Ionicons name="chevron-forward" size={12} color={BrandColors.white} />
       )}
     </TouchableOpacity>
   );
@@ -512,19 +509,19 @@ const s = StyleSheet.create({
   scoreCenter: { flex: 1, alignItems: "center" },
   iqRow: { flexDirection: "row", alignItems: "center", gap: 9 },
   iqLabel: {
-    color: c.cream,
+    color: BrandColors.white,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(22),
     letterSpacing: 4,
   },
   score: {
-    color: "#FFF9E9",
+    color: BrandColors.white,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(54),
     lineHeight: responsiveFontSize(60),
   },
   scoreCaption: {
-    color: c.cream,
+    color: BrandColors.white,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
   },
@@ -580,7 +577,7 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     justifyContent: "center",
-    gap: 5,
+    gap: 3,
   },
   smallDot: {
     width: 12,
@@ -611,22 +608,20 @@ const s = StyleSheet.create({
     lineHeight: responsiveFontSize(17),
   },
   action: {
-    minHeight: 42,
-    marginHorizontal: 28,
+    minHeight: 36,
     paddingHorizontal: 22,
-    borderRadius: 9,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.copperDark,
     backgroundColor: BrandColors.copper,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
   },
   actionText: {
     color: BrandColors.white,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
+    fontSize: responsiveFontSize(14),
   },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {
@@ -644,14 +639,14 @@ const s = StyleSheet.create({
   },
   answers: { marginTop: 24, gap: 10 },
   answer: {
-    minHeight: 53,
+    paddingVertical: 4,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#8D775F",
     borderRadius: 9,
     flexDirection: "row",
     alignItems: "center",
-    gap: 13,
+    gap: 8,
   },
   answerSelected: {
     backgroundColor: "rgba(65,151,98,.22)",
@@ -659,9 +654,9 @@ const s = StyleSheet.create({
     borderWidth: 2,
   },
   letter: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#8D775F",
     alignItems: "center",

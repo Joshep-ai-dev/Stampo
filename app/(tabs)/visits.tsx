@@ -157,7 +157,7 @@ export default function PlusScreen() {
             />
           </View>
           {!isPlus && (
-            <View style={s.heroTitleSection}>
+            <>
               <Text style={s.heroTitle}>Join Kroo+</Text>
               <Text style={[s.heroTitle, { color: BrandColors.onDarkMuted }]}>
                 Win Your Dream Vacation.
@@ -165,7 +165,7 @@ export default function PlusScreen() {
               <Text style={s.heroSubtitle}>
                 Complete the 3 steps below and your next vacation is on us.
               </Text>
-            </View>
+            </>
           )}
           {isPlus && (
             <>
@@ -487,9 +487,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  heroTitleSection: {
-    marginBottom: 12,
-  },
+
   heroTitle: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
@@ -501,7 +499,6 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   heroSubtitle: {
-    marginTop: 6,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(13),

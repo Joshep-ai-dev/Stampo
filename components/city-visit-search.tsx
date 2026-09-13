@@ -1,11 +1,8 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect,
-  useMemo,
-  useRef,
-  useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text, TextInput } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -31,11 +27,7 @@ import {
 } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  NewVisit,
-  visitAdded,
-  visitReceived,
-} from "@/store/travel-slice";
+import { NewVisit, visitAdded, visitReceived } from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -67,7 +59,8 @@ function remoteCityToRecord(city: CatalogCitySearchResult): CityRecord {
   return {
     ...city,
     subcountry: city.subcountry ?? "",
-    searchText: `${city.name} ${city.country} ${city.subcountry ?? ""} ${city.countryCode}`.toLocaleLowerCase(),
+    searchText:
+      `${city.name} ${city.country} ${city.subcountry ?? ""} ${city.countryCode}`.toLocaleLowerCase(),
   };
 }
 
@@ -95,21 +88,35 @@ export function CityVisitSearch({
   const sheetRef = useRef<View>(null);
   const airportFieldRef = useRef<View>(null);
   const [sheetHeight, setSheetHeight] = useState(0);
-  const [airportMenuLayout, setAirportMenuLayout] = useState({ left: 0, top: 0, width: 0, height: 200 });
+  const [airportMenuLayout, setAirportMenuLayout] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 200,
+  });
 
   useEffect(() => {
     if (!airportMenuOpen) return;
     sheetRef.current?.measureInWindow((sheetX, sheetY) => {
-      airportFieldRef.current?.measureInWindow((fieldX, fieldY, width, height) => {
-        const top = fieldY - sheetY;
-        const below = Math.max(0, sheetHeight - top - height - 14);
-        const menuHeight = Math.min(200, below || 200);
-        setAirportMenuLayout({ left: fieldX - sheetX, top: top + height + 6, width, height: menuHeight });
-      });
+      airportFieldRef.current?.measureInWindow(
+        (fieldX, fieldY, width, height) => {
+          const top = fieldY - sheetY;
+          const below = Math.max(0, sheetHeight - top - height - 14);
+          const menuHeight = Math.min(200, below || 200);
+          setAirportMenuLayout({
+            left: fieldX - sheetX,
+            top: top + height + 6,
+            width,
+            height: menuHeight,
+          });
+        },
+      );
     });
   }, [airportMenuOpen, sheetHeight]);
 
-  const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(null);
+  const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(
+    null,
+  );
   const normalizedQuery = useMemo(() => query.trim(), [query]);
 
   useEffect(() => {
@@ -126,11 +133,17 @@ export function CityVisitSearch({
       try {
         const matches = (
           await api
-            .searchCities(normalizedQuery, countryCode ? 40 : 30, {
-              countryCode,
-            }, controller.signal)
+            .searchCities(
+              normalizedQuery,
+              countryCode ? 40 : 30,
+              {
+                countryCode,
+              },
+              controller.signal,
+            )
             .catch((error) => {
-              if (error instanceof Error && error.name === "AbortError") return [];
+              if (error instanceof Error && error.name === "AbortError")
+                return [];
               return [];
             })
         ).map(remoteCityToRecord);
@@ -157,7 +170,8 @@ export function CityVisitSearch({
     const timer = setTimeout(() => {
       setAirportsLoading(true);
       setAirportError(false);
-      void api.searchAirports(selectedCity.name.trim(), controller.signal)
+      void api
+        .searchAirports(selectedCity.name.trim(), controller.signal)
         .then(setAirports)
         .catch((error) => {
           if (!(error instanceof Error && error.name === "AbortError")) {
@@ -167,7 +181,10 @@ export function CityVisitSearch({
         })
         .finally(() => setAirportsLoading(false));
     }, 250);
-    return () => { controller.abort(); clearTimeout(timer); };
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [selectedCity]);
 
   const selectCity = (city: CityRecord) => {
@@ -200,11 +217,13 @@ export function CityVisitSearch({
       visitedAt: visitDate,
       note,
       places: selectedAirport
-        ? [{
-          id: `airport:${selectedAirport.id}`,
-          name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
-          type: "airport",
-        }]
+        ? [
+            {
+              id: `airport:${selectedAirport.id}`,
+              name: `${selectedAirport.name} (${selectedAirport.iataCode})`,
+              type: "airport",
+            },
+          ]
         : [],
     };
     try {
@@ -228,7 +247,6 @@ export function CityVisitSearch({
     <View style={styles.wrapper}>
       <View style={styles.searchRow}>
         <View style={[styles.searchInputWrap, home && styles.homeInputWrap]}>
-          {home && <Ionicons name="search-outline" size={22} color={colors.ink} />}
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -249,7 +267,7 @@ export function CityVisitSearch({
               hitSlop={10}
               accessibilityLabel="Clear search"
             >
-              <Ionicons name="close-circle" size={20} color="#b4a796" />
+              <Ionicons name="close-circle" size={16} color="#b4a796" />
             </Pressable>
           )}
         </View>
@@ -263,7 +281,7 @@ export function CityVisitSearch({
           {loading ? (
             <ActivityIndicator color={colors.ink} />
           ) : (
-            <Ionicons name="search" size={23} color={colors.ink} />
+            <Ionicons name="search" size={20} color={colors.ink} />
           )}
         </TouchableOpacity>
       </View>
@@ -289,7 +307,7 @@ export function CityVisitSearch({
                     {[city.subcountry, city.country].filter(Boolean).join(", ")}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#b3a795" />
+                <Ionicons name="chevron-forward" size={16} color="#b3a795" />
                 {index < results.length - 1 && (
                   <View style={styles.resultDivider} />
                 )}
@@ -310,7 +328,15 @@ export function CityVisitSearch({
           style={styles.modalRoot}
         >
           <Pressable style={styles.backdrop} onPress={closeModal} />
-          <View ref={sheetRef} collapsable={false} style={styles.sheet} onLayout={(event) => { setSheetHeight(event.nativeEvent.layout.height); setAirportMenuOpen(false); }}>
+          <View
+            ref={sheetRef}
+            collapsable={false}
+            style={styles.sheet}
+            onLayout={(event) => {
+              setSheetHeight(event.nativeEvent.layout.height);
+              setAirportMenuOpen(false);
+            }}
+          >
             <View style={styles.modalHeader}>
               <Pressable onPress={closeModal} hitSlop={10}>
                 <Text style={styles.headerAction}>Cancel</Text>
@@ -343,7 +369,7 @@ export function CityVisitSearch({
                 <View style={styles.field}>
                   <Ionicons
                     name="calendar-outline"
-                    size={22}
+                    size={16}
                     color={colors.muted}
                   />
                   <TextInput
@@ -357,12 +383,44 @@ export function CityVisitSearch({
                 </View>
 
                 <Text style={styles.fieldLabel}>Airport</Text>
-                <View ref={airportFieldRef} collapsable={false} style={styles.airportDropdownWrap}>
-                  <TouchableOpacity style={styles.airportSelect} onPress={() => setAirportMenuOpen((open) => !open)} accessibilityRole="button" accessibilityLabel="Select airport" accessibilityState={{ expanded: airportMenuOpen }}>
-                    <Ionicons name="airplane-outline" size={22} color={colors.muted} />
-                    <Text style={[styles.airportSelectText, !selectedAirport && styles.airportPlaceholder]} numberOfLines={1}>{selectedAirport ? `${selectedAirport.name} (${selectedAirport.iataCode || selectedAirport.icaoCode || ""})` : airportsLoading ? "Finding airports…" : "Select an airport"}</Text>
-                    {airportsLoading ? <ActivityIndicator color={colors.muted} /> : null}
-                    <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} />
+                <View
+                  ref={airportFieldRef}
+                  collapsable={false}
+                  style={styles.airportDropdownWrap}
+                >
+                  <TouchableOpacity
+                    style={styles.airportSelect}
+                    onPress={() => setAirportMenuOpen((open) => !open)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select airport"
+                    accessibilityState={{ expanded: airportMenuOpen }}
+                  >
+                    <Ionicons
+                      name="airplane-outline"
+                      size={16}
+                      color={colors.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.airportSelectText,
+                        !selectedAirport && styles.airportPlaceholder,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {selectedAirport
+                        ? `${selectedAirport.name} (${selectedAirport.iataCode || selectedAirport.icaoCode || ""})`
+                        : airportsLoading
+                          ? "Finding airports…"
+                          : "Select an airport"}
+                    </Text>
+                    {airportsLoading ? (
+                      <ActivityIndicator color={colors.muted} />
+                    ) : null}
+                    <Ionicons
+                      name={airportMenuOpen ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={colors.muted}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -386,7 +444,6 @@ export function CityVisitSearch({
                 >
                   <Text style={styles.saveText}>SAVE VISIT</Text>
                 </TouchableOpacity>
-
               </ScrollView>
             )}
             {airportMenuOpen ? (
@@ -397,14 +454,39 @@ export function CityVisitSearch({
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator
                 >
-                  {airportError ? <Text style={styles.airportOptionText}>Could not load airports. Try again.</Text> : null}
-                  {!airportsLoading && !airportError && airports.length === 0 ? <Text style={styles.airportOptionText}>No airports found for this city</Text> : null}
-                  <Pressable style={styles.airportOption} onPress={() => { setSelectedAirport(null); setAirportMenuOpen(false); }}>
+                  {airportError ? (
+                    <Text style={styles.airportOptionText}>
+                      Could not load airports. Try again.
+                    </Text>
+                  ) : null}
+                  {!airportsLoading &&
+                  !airportError &&
+                  airports.length === 0 ? (
+                    <Text style={styles.airportOptionText}>
+                      No airports found for this city
+                    </Text>
+                  ) : null}
+                  <Pressable
+                    style={styles.airportOption}
+                    onPress={() => {
+                      setSelectedAirport(null);
+                      setAirportMenuOpen(false);
+                    }}
+                  >
                     <Text style={styles.airportOptionText}>No airport</Text>
                   </Pressable>
                   {airports.map((airport) => (
-                    <Pressable key={airport.id} style={styles.airportOption} onPress={() => { setSelectedAirport(airport); setAirportMenuOpen(false); }}>
-                      <Text style={styles.airportOptionText}>{airport.name}</Text>
+                    <Pressable
+                      key={airport.id}
+                      style={styles.airportOption}
+                      onPress={() => {
+                        setSelectedAirport(airport);
+                        setAirportMenuOpen(false);
+                      }}
+                    >
+                      <Text style={styles.airportOptionText}>
+                        {airport.name}
+                      </Text>
                       <Text style={styles.airportCode}>{airport.iataCode}</Text>
                     </Pressable>
                   ))}
@@ -419,9 +501,9 @@ export function CityVisitSearch({
 }
 
 const styles = StyleSheet.create({
-  homeInputWrap: { height: 48, borderRadius: 12, paddingHorizontal: 12 },
+  homeInputWrap: { height: 42, borderRadius: 12, paddingHorizontal: 12 },
   homeInput: { textAlign: "left", fontSize: responsiveFontSize(15) },
-  homeButton: { width: 48, height: 48, borderRadius: 12 },
+  homeButton: { width: 42, height: 42, borderRadius: 12 },
   wrapper: { marginTop: 20, paddingHorizontal: 10, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
@@ -432,12 +514,12 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: "row", gap: 9 },
   searchInputWrap: {
     flex: 1,
-    height: 44,
+    height: 42,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -451,9 +533,9 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   searchButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
@@ -467,7 +549,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   resultRow: {
-    minHeight: 62,
+    minHeight: 50,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 13,
@@ -506,8 +588,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(30,22,17,0.32)",
   },
   sheet: {
-    maxHeight: "90%",
-    minHeight: "75%",
+    maxHeight: "65%",
+    minHeight: "55%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     backgroundColor: colors.card,
@@ -525,7 +607,7 @@ const styles = StyleSheet.create({
   headerAction: {
     width: 74,
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(17),
+    fontSize: responsiveFontSize(16),
     color: colors.ink,
   },
   headerSpacer: { width: 74 },
@@ -537,13 +619,13 @@ const styles = StyleSheet.create({
   },
   form: { padding: 18, paddingBottom: 38 },
   selectedCard: {
-    minHeight: 80,
-    borderRadius: 10,
+    minHeight: 60,
+    borderRadius: 12,
     backgroundColor: colors.line,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   selectedFlag: { fontSize: responsiveFontSize(40), marginRight: 20 },
   selectedText: { flex: 1 },
@@ -555,18 +637,17 @@ const styles = StyleSheet.create({
   },
   selectedName: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(27),
+    fontSize: responsiveFontSize(24),
     color: "#fffdf8",
-    marginTop: 2,
   },
   fieldLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(17),
+    fontSize: responsiveFontSize(15),
     color: colors.ink,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   field: {
-    height: 44,
+    height: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -574,27 +655,27 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   fieldInput: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(17),
+    fontSize: responsiveFontSize(14),
     color: colors.ink,
   },
   noteInput: {
-    height: 96,
+    height: 70,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.divider,
-    padding: 14,
+    padding: 8,
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(16),
+    fontSize: responsiveFontSize(14),
     color: colors.ink,
   },
-  noteLabel: { marginTop: 16 },
+  noteLabel: { marginTop: 8 },
   airportSelect: {
-    minHeight: 48,
+    minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -611,13 +692,22 @@ const styles = StyleSheet.create({
   airportSelectText: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(15),
+    fontSize: responsiveFontSize(14),
     color: colors.ink,
   },
   airportPlaceholder: { color: "#aa9c8c" },
-  airportMenu: { position: "absolute", zIndex: 30, elevation: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.divider, overflow: "hidden", backgroundColor: colors.card },
+  airportMenu: {
+    position: "absolute",
+    zIndex: 30,
+    elevation: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    overflow: "hidden",
+    backgroundColor: colors.card,
+  },
   airportOption: {
-    minHeight: 48,
+    minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -641,18 +731,19 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontFamily: "Lora_400Regular",
     color: colors.muted,
+    fontSize: responsiveFontSize(12),
   },
   saveButton: {
-    height: 44,
+    height: 42,
     borderRadius: 10,
     backgroundColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 24,
+    marginTop: 8,
   },
   saveText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(20),
+    fontSize: responsiveFontSize(14),
     color: "#fffaf1",
     letterSpacing: 1.4,
   },

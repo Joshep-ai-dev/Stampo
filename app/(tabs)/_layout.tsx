@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   add: {
     width: 56,
     height: 56,
-    marginTop: -24,
+    marginTop: -8,
     borderRadius: 34,
     backgroundColor: BrandColors.mapGreen,
     borderWidth: 4,

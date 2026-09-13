@@ -1474,7 +1474,7 @@ export default function HomeScreen() {
                 <View style={styles.welcomeInputWrap}>
                   <Ionicons
                     name="person"
-                    size={22}
+                    size={16}
                     color={BrandColors.copperDark}
                   />
                   <TextInput
@@ -1499,8 +1499,8 @@ export default function HomeScreen() {
                   <Text style={styles.welcomeButtonText}>CONTINUE</Text>
                   <Ionicons
                     name="arrow-forward"
-                    size={18}
-                    color={BrandColors.green}
+                    size={16}
+                    color={BrandColors.white}
                   />
                 </TouchableOpacity>
                 <View style={{ marginBottom: 100 }} />
@@ -1672,12 +1672,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 30,
   },
   welcomeInputWrap: {
-    minHeight: 42,
+    minHeight: 32,
     marginTop: 10,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 13,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.copperDark,
     backgroundColor: "rgba(255,250,235,.72)",
@@ -1685,7 +1685,7 @@ const styles = StyleSheet.create({
   },
   welcomeInput: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 32,
     paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(14),
@@ -1696,9 +1696,9 @@ const styles = StyleSheet.create({
   welcomeButton: {
     minHeight: 40,
     marginTop: 16,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: "row",
-    gap: 12,
+    gap: 4,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.copper,
@@ -1707,9 +1707,9 @@ const styles = StyleSheet.create({
   welcomeButtonDisabled: { opacity: 0.7 },
   welcomeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(12),
     letterSpacing: 1,
-    color: BrandColors.green,
+    color: BrandColors.white,
   },
 
   welcomeSecondaryButton: {

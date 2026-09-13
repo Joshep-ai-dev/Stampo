@@ -19,6 +19,21 @@ export type ProfileState = {
   photoUri: string | null;
 };
 
+export type ProfileDetails = Pick<
+  ProfileState,
+  | "name"
+  | "familyName"
+  | "email"
+  | "phoneNumber"
+  | "nationality"
+  | "dateOfBirth"
+  | "address"
+  | "city"
+  | "stateProvince"
+  | "postalCode"
+  | "country"
+>;
+
 const initialState: ProfileState = {
   name: "",
   familyName: "",
@@ -47,22 +62,7 @@ const profileSlice = createSlice({
     },
     profileDetailsChanged(
       state,
-      action: PayloadAction<
-        Pick<
-          ProfileState,
-          | "name"
-          | "familyName"
-          | "email"
-          | "phoneNumber"
-          | "nationality"
-          | "dateOfBirth"
-          | "address"
-          | "city"
-          | "stateProvince"
-          | "postalCode"
-          | "country"
-        >
-      >,
+      action: PayloadAction<ProfileDetails>,
     ) {
       Object.assign(state, action.payload);
     },

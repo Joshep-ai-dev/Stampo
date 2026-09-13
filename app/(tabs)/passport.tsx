@@ -16,7 +16,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
@@ -203,7 +202,7 @@ function IdentityPage({
     dispatch(profileDetailsChanged(draft));
     setEditing(false);
     try {
-      await api.updateProfile({ ...profile, ...draft });
+      await api.updateProfile(draft);
     } catch {
       Alert.alert(
         "Saved on this device",
@@ -987,12 +986,12 @@ function IdentityPage({
       >
         <View style={styles.pickerModalRoot}>
           <Pressable
-            style={styles.passwordBackdrop}
+            style={styles.Backdrop}
             onPress={() => setCountryPickerVisible(false)}
           />
           <View style={styles.countrySheet}>
             <View style={styles.countryPickerHeading}>
-              <Text style={styles.passwordTitle}>
+              <Text>
                 {countryPickerTarget === "nationality"
                   ? "Nationality"
                   : "Country"}
@@ -1297,23 +1296,6 @@ export default function PassportScreen() {
                 </BookSheet>
               ))}
             </View>
-            <TouchableOpacity
-              style={[
-                styles.shareButton,
-                compactPassport && styles.shareButtonCompact,
-              ]}
-              onPress={() =>
-                void Share.share({
-                  message: `My Kroo passport — ${Math.max(0, passportPages.length - 2)} stamp pages.`,
-                })
-              }
-            >
-              <Ionicons
-                name="arrow-redo-sharp"
-                size={compactPassport ? 24 : 30}
-                color={colors.ink}
-              />
-            </TouchableOpacity>
           </View>
         </GestureDetector>
         <View style={styles.pagination}>
@@ -1553,8 +1535,6 @@ const styles = StyleSheet.create({
   authField: {
     width: "100%",
     marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: BrandColors.line,
   },
   photoBox: {
     width: 90,
@@ -1633,7 +1613,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     borderWidth: 1,
     borderColor: "rgba(132,110,91,.55)",
-    borderRadius: 4,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
@@ -1697,7 +1677,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     minWidth: 0,
     height: 34,
-    borderRadius: 18,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1729,69 +1709,9 @@ const styles = StyleSheet.create({
     lineHeight: responsiveFontSize(10),
     color: BrandColors.ink,
   },
-  passwordModalRoot: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 22,
-  },
-  passwordBackdrop: {
+  Backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(3,29,20,.72)",
-  },
-  passwordSheet: {
-    width: "100%",
-    maxWidth: 420,
-    padding: 22,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.surface,
-  },
-  passwordTitle: {
-    marginBottom: 14,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(23),
-    color: BrandColors.green,
-  },
-  passwordInput: {
-    height: 50,
-    marginTop: 9,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.line,
-    borderRadius: 9,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.ink,
-  },
-  passwordActions: { marginTop: 16, flexDirection: "row", gap: 9 },
-  passwordCancel: {
-    flex: 1,
-    height: 44,
-    borderWidth: 1,
-    borderColor: BrandColors.green,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  passwordCancelText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    color: BrandColors.green,
-  },
-  passwordSave: {
-    flex: 1,
-    height: 44,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.green,
-  },
-  passwordSaveText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    color: BrandColors.white,
   },
   machineCode: {
     fontFamily: "Lora_500Medium",
@@ -1847,26 +1767,6 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(12),
     textAlign: "center",
     color: BrandColors.copperDark,
-  },
-  shareButton: {
-    position: "absolute",
-    top: 24,
-    right: 14,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: BrandColors.greenDeep,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shareButtonCompact: {
-    top: 17,
-    right: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
   },
   pagination: { height: 50, alignItems: "center" },
   dots: {

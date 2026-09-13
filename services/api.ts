@@ -1,4 +1,4 @@
-import type { ProfileState } from "@/store/profile-slice";
+import type { ProfileDetails, ProfileState } from "@/store/profile-slice";
 import type { NewVisit, Visit } from "@/store/travel-slice";
 import {
   deleteStoredAuthToken,
@@ -189,6 +189,9 @@ export type RemoteProfile = {
   country?: string;
   photoUri: string | null;
 };
+
+type ProfileUpdate = ProfileDetails &
+  Partial<Pick<ProfileState, "language" | "photoUri">>;
 
 export type CollectionProgress = {
   id: string;
@@ -884,8 +887,8 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(payload),
     }),
-  updateProfile: (profile: ProfileState) =>
-    request<ProfileState>("/profile", {
+  updateProfile: (profile: ProfileUpdate) =>
+    request<RemoteProfile>("/profile", {
       method: "PUT",
       body: JSON.stringify(profile),
     }),
