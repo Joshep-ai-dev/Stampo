@@ -1,8 +1,19 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect,
+  useMemo,
+  useState } from "react";
+import { ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Text, TextInput } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 import { api, type AirportOption, type CatalogCitySearchResult } from "@/services/api";

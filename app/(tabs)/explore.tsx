@@ -1,16 +1,21 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Image } from "expo-image";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useFocusEffect,
+  useRouter } from "expo-router";
+import { useCallback,
+  useMemo,
+  useRef,
+  useState } from "react";
 import {
   FlatList,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CountryStampCard } from "@/components/country-stamp-card";

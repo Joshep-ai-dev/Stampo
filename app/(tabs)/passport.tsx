@@ -1,12 +1,18 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getCountryDataList } from "countries-list";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect, useRouter } from "expo-router";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { useFocusEffect,
+  useRouter } from "expo-router";
+import { type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,12 +23,11 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
+import { Text, TextInput } from "@/components/app-text";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Reanimated, {
   Extrapolation,

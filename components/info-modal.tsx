@@ -1,8 +1,14 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 

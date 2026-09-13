@@ -34,6 +34,7 @@ export default function TabLayout() {
       initialRouteName="index"
       screenOptions={{
         tabBarHideOnKeyboard: true,
+        tabBarAllowFontScaling: false,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarActiveTintColor: BrandColors.white,

@@ -1,19 +1,23 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { BrandColors } from "@/constants/theme";
-import { api, type SightDetail } from "@/services/api";
+import { api,
+  type SightDetail } from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useLocalSearchParams,
+  useRouter } from "expo-router";
+import { useEffect,
+  useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 export default function SightScreen() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();

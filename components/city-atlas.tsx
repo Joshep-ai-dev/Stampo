@@ -1,13 +1,13 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { useEffect, useMemo, useState } from "react";
+import { Text } from "@/components/app-text";
 import alpha2To3 from "countries-list/minimal/countries.2to3.min.json";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   LayoutChangeEvent,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -65,10 +65,15 @@ function polygonsOf(geometry: Geometry) {
 function pointInRing(point: Position, ring: Position[]) {
   const [x, y] = point;
   let inside = false;
-  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index++) {
+  for (
+    let index = 0, previous = ring.length - 1;
+    index < ring.length;
+    previous = index++
+  ) {
     const [xi, yi] = ring[index];
     const [xj, yj] = ring[previous];
-    const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    const intersects =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
     if (intersects) inside = !inside;
   }
   return inside;
@@ -76,7 +81,9 @@ function pointInRing(point: Position, ring: Position[]) {
 
 function geometryContainsCity(geometry: Geometry, city: CityPoint) {
   const cityPoint: Position = [city.longitude, city.latitude];
-  return polygonsOf(geometry).some((polygon) => pointInRing(cityPoint, polygon[0] ?? []));
+  return polygonsOf(geometry).some((polygon) =>
+    pointInRing(cityPoint, polygon[0] ?? []),
+  );
 }
 
 function buildAtlasData(features: Feature[], cities: CityPoint[]): AtlasData {
@@ -105,7 +112,9 @@ function buildAtlasData(features: Feature[], cities: CityPoint[]): AtlasData {
       );
       return {
         paths,
-        highlighted: cities.some((city) => geometryContainsCity(feature.geometry, city)),
+        highlighted: cities.some((city) =>
+          geometryContainsCity(feature.geometry, city),
+        ),
       };
     });
 
@@ -125,7 +134,11 @@ function buildAtlasData(features: Feature[], cities: CityPoint[]): AtlasData {
   };
 }
 
-function centeredViewBox(map: AtlasData, canvasWidth: number, canvasHeight: number) {
+function centeredViewBox(
+  map: AtlasData,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
   const canvasAspect = canvasWidth / canvasHeight;
   const mapAspect = map.bounds.width / map.bounds.height;
   if (mapAspect < canvasAspect) {
@@ -206,7 +219,9 @@ export function CityAtlas({
             <Text style={styles.title}>{name}</Text>
           </View>
           <Text style={styles.hint}>
-            {cities.length > 0 ? `${cities.length} cities mapped` : "Live regions"}
+            {cities.length > 0
+              ? `${cities.length} cities mapped`
+              : "Live regions"}
           </Text>
         </View>
       )}
@@ -217,7 +232,9 @@ export function CityAtlas({
         {!atlas && !error && <ActivityIndicator color={BrandColors.copper} />}
         {error && (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>City atlas needs an internet connection.</Text>
+            <Text style={styles.errorText}>
+              City atlas needs an internet connection.
+            </Text>
             <TouchableOpacity
               style={styles.retry}
               onPress={() => setAttempt((value) => value + 1)}
@@ -238,7 +255,9 @@ export function CityAtlas({
                 <Path
                   key={`${featureIndex}-${pathIndex}`}
                   d={path}
-                  fill={feature.highlighted ? BrandColors.copperDark : "#344D43"}
+                  fill={
+                    feature.highlighted ? BrandColors.copperDark : "#344D43"
+                  }
                   opacity={feature.highlighted ? 0.9 : 0.78}
                   stroke={BrandColors.onDarkMuted}
                   strokeWidth={0.035}
@@ -275,7 +294,9 @@ export function CityAtlas({
           ))}
         </ScrollView>
       )}
-      {!compact && <Text style={styles.credit}>Boundaries: geoBoundaries ADM1</Text>}
+      {!compact && (
+        <Text style={styles.credit}>Boundaries: geoBoundaries ADM1</Text>
+      )}
     </View>
   );
 }

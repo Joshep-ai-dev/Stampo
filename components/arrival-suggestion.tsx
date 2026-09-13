@@ -1,18 +1,20 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import type { NotificationResponse } from "expo-notifications";
-import { useEffect, useState } from "react";
+import { useEffect,
+  useState } from "react";
 import {
   Alert,
   Modal,
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 import { getPlaceSuggestions } from "@/data/place-suggestions";

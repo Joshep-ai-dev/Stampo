@@ -1,4 +1,5 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { canUseGpsArrivals } from "@/services/gps-access";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,11 +7,16 @@ import {
   getCountryDataList,
   getEmojiFlag,
   type TCountryCode,
-} from "countries-list";
+  } from "countries-list";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect,
+  useRouter } from "expo-router";
+import { useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState } from "react";
 import {
   ImageBackground,
   InteractionManager,
@@ -18,12 +24,11 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
+import { Text, TextInput } from "@/components/app-text";
 import {
   Gesture,
   GestureDetector,

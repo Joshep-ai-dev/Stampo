@@ -1,3 +1,4 @@
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, ImageBackground } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -5,11 +6,9 @@ import { useMemo, useState } from "react";
 import {
   Alert,
   Modal,
-  Text as NativeText,
   Pressable,
   ScrollView,
   StyleSheet,
-  type TextProps,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -24,12 +23,6 @@ import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
 import { useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
-
-// Preserve this promotional screen's editorial composition across Android
-// font-size settings. Other screens continue to follow the system font scale.
-function Text(props: TextProps) {
-  return <NativeText {...props} allowFontScaling={false} />;
-}
 
 const destinations = [
   {
@@ -196,21 +189,21 @@ export default function PlusScreen() {
               n: "1",
               icon: "stats-chart",
               title: "Reach a Kroo Score of 5.0+",
-              copy: "Explore the world and build your score.",
+              copy: "Explore the world\nand build your score.",
               action: () => router.navigate("/(tabs)/passport" as never),
             },
             {
               n: "2",
               icon: "bulb",
               title: "Achieve a Kroo IQ Score of 80+",
-              copy: "Show off your travel knowledge.",
+              copy: "Show off your\ntravel knowledge.",
               action: () => router.navigate("/(tabs)/community" as never),
             },
             {
               n: "3",
               icon: "people",
               title: "Refer 5 others to join Kroo+",
-              copy: "Share the adventure with family and friends.",
+              copy: "Share the adventure\nwith family and friends.",
               action: () => router.push("/add-friends" as never),
             },
           ].map((step) => (
@@ -527,11 +520,11 @@ const s = StyleSheet.create({
   locationText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(12),
     color: BrandColors.white,
-    textShadowColor: "rgba(0,0,0,1)",
+    textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 4,
     marginBottom: 10,
   },
   steps: {
@@ -572,7 +565,7 @@ const s = StyleSheet.create({
     color: BrandColors.green,
   },
   stepTitle: {
-    marginTop: 7,
+    marginTop: 6,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(14),
@@ -581,7 +574,7 @@ const s = StyleSheet.create({
   },
   stepCopy: {
     width: "100%",
-    marginTop: -20,
+    marginTop: -25,
     paddingHorizontal: 12,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
@@ -616,7 +609,7 @@ const s = StyleSheet.create({
   progressLabel: {
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(15),
     color: BrandColors.onDark,
   },
   progressValue: {

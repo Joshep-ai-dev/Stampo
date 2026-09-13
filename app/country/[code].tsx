@@ -1,19 +1,26 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { countries,
+  getEmojiFlag,
+  type TCountryCode } from "countries-list";
+import { useFocusEffect,
+  useLocalSearchParams,
+  useRouter } from "expo-router";
+import { useCallback,
+  useEffect,
+  useState } from "react";
 import {
   Alert,
   ScrollView,
   type StyleProp,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   type ViewStyle,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
