@@ -13,6 +13,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import type { ManagedCollection } from "@/services/api";
 import { PlaceSectionTitle } from "./place-detail-sections";
+import { StampCardBackground } from "./stamp-card-background";
 
 export function PlaceCollectionList({
   collections,
@@ -61,6 +62,7 @@ export function PlaceCollectionList({
               accessibilityRole="link"
               accessibilityLabel={`Open ${collection.title}`}
             >
+              <StampCardBackground />
               <Text style={s.title} numberOfLines={1}>
                 {collection.title}
               </Text>
@@ -99,10 +101,9 @@ const s = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 9,
     borderRadius: 12,
-    backgroundColor: BrandColors.surface,
+    backgroundColor: "transparent",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#C5A36C",
+    overflow: "hidden",
   },
   title: {
     width: "100%",

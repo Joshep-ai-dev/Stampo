@@ -9,6 +9,7 @@ import { Text } from "@/components/app-text";
 import { BrandColors } from "@/constants/theme";
 import type { CountryRecord } from "@/data/cities";
 import { stampAssets } from "@/data/stamps";
+import { StampCardBackground } from "./stamp-card-background";
 
 const UNVISITED_STAMP = "#AAB5AF";
 
@@ -38,6 +39,7 @@ export const CountryStampCard = memo(function CountryStampCard({
           : "not visited"
       }`}
     >
+      <StampCardBackground />
       <View style={styles.header}>
         <Text style={styles.flag}>{country.flag}</Text>
         <Text style={styles.name} numberOfLines={1}>
@@ -78,10 +80,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 9,
     borderRadius: 12,
-    backgroundColor: BrandColors.surface,
+    backgroundColor: "transparent",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#C5A36C",
+    overflow: "hidden",
   },
   header: {
     width: "100%",

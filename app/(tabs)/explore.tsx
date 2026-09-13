@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
+import { StampCardBackground } from "@/components/stamp-card-background";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
 import { api, type CollectionProgress } from "@/services/api";
@@ -237,6 +238,7 @@ export default function ExploreScreen() {
                   router.push(`/collection/${collection.id}` as never)
                 }
               >
+                <StampCardBackground />
                 <View style={s.collectionHeader}>
                   <Text style={s.challengeTitle} numberOfLines={1}>
                     {collection.title}
@@ -367,10 +369,9 @@ const s = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 9,
     borderRadius: 12,
-    backgroundColor: BrandColors.surface,
+    backgroundColor: "transparent",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#C5A36C",
+    overflow: "hidden",
   },
   collectionHeader: {
     width: "100%",

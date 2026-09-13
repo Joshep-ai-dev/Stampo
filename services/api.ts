@@ -820,9 +820,8 @@ export const api = {
       `/me/collections/${encodeURIComponent(collectionId)}`,
       { method: "PUT", body: JSON.stringify({ progress }) },
     ),
-  listVisits: () => request<Visit[]>("/visits").then((items) =>
-    items.map(normalizeVisit),
-  ),
+  listVisits: () =>
+    request<Visit[]>("/visits").then((items) => items.map(normalizeVisit)),
   syncVisits: (visits: Visit[]) =>
     request<Visit[]>("/me/sync/visits", {
       method: "POST",
