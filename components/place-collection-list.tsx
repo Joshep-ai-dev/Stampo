@@ -67,6 +67,8 @@ export function PlaceCollectionList({
                     source={{ uri: collection.explorerImageUrl }}
                     style={s.image}
                     contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={120}
                   />
                 ) : null}
               </View>

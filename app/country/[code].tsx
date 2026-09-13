@@ -1,17 +1,10 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { countries,
-  getEmojiFlag,
-  type TCountryCode } from "countries-list";
-import { useFocusEffect,
-  useLocalSearchParams,
-  useRouter } from "expo-router";
-import { useCallback,
-  useEffect,
-  useState } from "react";
+import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -297,9 +290,10 @@ export default function CountryScreen() {
             <StampHeroFrame>
               {normalizedCode === "AQ" ? (
                 <Image
-                  source={require("@/assets/images/stampo/Antarctica-detail.png")}
+                  source={require("@/assets/images/stampo/Antarctica-detail.webp")}
                   style={s.stampImage}
                   contentFit="contain"
+                  priority="high"
                 />
               ) : (
                 <ProgressivePlaceImage

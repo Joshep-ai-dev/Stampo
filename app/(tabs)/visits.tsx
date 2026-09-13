@@ -717,7 +717,6 @@ const s = StyleSheet.create({
   },
   benefitTitle: {
     marginTop: 6,
-    height: 30,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(11),

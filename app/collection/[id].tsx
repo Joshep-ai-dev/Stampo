@@ -185,6 +185,7 @@ export default function CollectionScreen() {
               uri={collection.imageUrl}
               style={s.heroImage}
               contentFit={"cover"}
+              priority="high"
             />
           </StampHeroFrame>
         </View>

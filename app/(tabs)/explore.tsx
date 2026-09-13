@@ -92,15 +92,6 @@ export default function ExploreScreen() {
           progress: progressById.get(kind.id)?.progress ?? 0,
           status: progressById.get(kind.id)?.status ?? "inactive",
         }));
-        const remoteImages = details
-          .flatMap((collection) => [
-            collection.imageUrl,
-            ...(collection.places?.map((place) => place.imageUrl) ?? []),
-          ])
-          .filter((url): url is string => Boolean(url));
-        if (remoteImages.length > 0) {
-          void Image.prefetch(remoteImages).catch(() => undefined);
-        }
         if (active) {
           setCollectionCatalog(details);
         }
@@ -246,6 +237,9 @@ export default function ExploreScreen() {
                       source={{ uri: collection.explorerImageUrl }}
                       style={s.collectionImage}
                       contentFit="contain"
+                      cachePolicy="memory-disk"
+                      priority="high"
+                      transition={120}
                     />
                   ) : null}
                 </View>

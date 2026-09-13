@@ -1,15 +1,11 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { BrandColors } from "@/constants/theme";
-import { api,
-  type SightDetail } from "@/services/api";
+import { api, type SightDetail } from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams,
-  useRouter } from "expo-router";
-import { useEffect,
-  useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -67,6 +63,7 @@ export default function SightScreen() {
             uri={sight.image}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
+            priority="high"
           />
           <TouchableOpacity style={s.back} onPress={() => router.back()}>
             <Ionicons
@@ -79,7 +76,16 @@ export default function SightScreen() {
         <View style={s.panel}>
           <Text style={s.title}>{sight.name}</Text>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: "/city/[id]", params: { id: sight.cityId, name: sight.city, countryCode: sight.countryId } })}
+            onPress={() =>
+              router.push({
+                pathname: "/city/[id]",
+                params: {
+                  id: sight.cityId,
+                  name: sight.city,
+                  countryCode: sight.countryId,
+                },
+              })
+            }
           >
             <Text style={s.city}>⌖ {sight.city}</Text>
           </TouchableOpacity>

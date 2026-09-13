@@ -1,10 +1,6 @@
-import {
-  Ionicons } from "@expo/vector-icons";
-import { useFocusEffect,
-  useLocalSearchParams,
-  useRouter } from "expo-router";
-import { useCallback,
-  useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -164,6 +160,7 @@ export default function CityScreen() {
                     uri={city.image}
                     style={s.heroImage}
                     contentFit="cover"
+                    priority="high"
                   />
                 ) : (
                   <View style={[s.heroImage, s.heroPlaceholder]}>

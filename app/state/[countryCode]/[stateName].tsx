@@ -1,12 +1,8 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Image } from "expo-image";
-import { useFocusEffect,
-  useLocalSearchParams,
-  useRouter } from "expo-router";
-import { useCallback,
-  useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -256,6 +252,9 @@ export default function StateScreen() {
                   recyclingKey={`state-${countryCode}-${stateName}-${detail.imageUrl || "fallback"}`}
                   style={styles.heroImage}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  transition={120}
                   accessibilityLabel={`${detail.name} state image`}
                 />
               </StampHeroFrame>

@@ -10,7 +10,7 @@ import {
 
 import { BrandColors } from "@/constants/theme";
 
-type Props = Pick<ImageProps, "contentFit" | "blurRadius"> & {
+type Props = Pick<ImageProps, "contentFit" | "blurRadius" | "priority"> & {
   uri?: string;
   style: StyleProp<ViewStyle>;
 };
@@ -20,6 +20,7 @@ export function ProgressivePlaceImage({
   style,
   contentFit = "cover",
   blurRadius,
+  priority = "normal",
 }: Props) {
   const [loaded, setLoaded] = useState(false);
   const pulse = useRef(new Animated.Value(0.45)).current;
@@ -61,7 +62,8 @@ export function ProgressivePlaceImage({
           contentFit={contentFit}
           blurRadius={blurRadius}
           cachePolicy="memory-disk"
-          transition={220}
+          priority={priority}
+          transition={120}
           onLoad={() => setLoaded(true)}
           onError={() => setLoaded(false)}
         />
