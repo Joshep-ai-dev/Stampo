@@ -1,22 +1,17 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { canUseGpsArrivals } from "@/services/gps-access";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCountryDataList,
   getEmojiFlag,
   type TCountryCode,
-  } from "countries-list";
+} from "countries-list";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
-import { useFocusEffect,
-  useRouter } from "expo-router";
-import { useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ImageBackground,
   InteractionManager,
@@ -28,7 +23,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Text, TextInput } from "@/components/app-text";
 import {
   Gesture,
   GestureDetector,
@@ -1748,27 +1742,28 @@ const styles = StyleSheet.create({
     color: BrandColors.white,
   },
   heroMotto: {
-    marginLeft: 42,
+    marginLeft: 36,
     fontFamily: "Lora_500Medium",
-    fontSize: 6,
+    fontSize: responsiveFontSize(8),
     letterSpacing: 1.5,
     color: "#91A58A",
   },
   heroTagline: {
     position: "absolute",
-    right: 30,
-    bottom: 26,
-    fontFamily: "Lora_400Regular_Italic",
-    fontSize: responsiveFontSize(15),
+    zIndex: 50,
+    right: 20,
+    bottom: 20,
+    fontFamily: "Caveat_400Regular",
+    fontSize: responsiveFontSize(20),
     color: "#79A783",
-    transform: [{ rotate: "-7deg" }],
+    transform: [{ rotate: "-5deg" }],
   },
   scoreCenter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-  laurel: { width: 60, height: 90 },
+  laurel: { width: 60, height: 70 },
   collectWorld: {
     position: "absolute",
     left: 18,
@@ -1797,7 +1792,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(15),
-    letterSpacing: 2.4,
+    letterSpacing: 3,
     color: BrandColors.copper,
   },
   name: {
@@ -1845,7 +1840,7 @@ const styles = StyleSheet.create({
   scoreCard: {
     marginHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#AC8B60",
     backgroundColor: "rgba(10,43,32,0.3)",

@@ -1,8 +1,8 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -14,13 +14,23 @@ export type TravelStatItem = {
   onInfo?: () => void;
 };
 
-export function TravelStats({ items, separate = false }: { items: TravelStatItem[]; separate?: boolean }) {
+export function TravelStats({
+  items,
+  separate = false,
+}: {
+  items: TravelStatItem[];
+  separate?: boolean;
+}) {
   return (
     <View style={[styles.card, separate && styles.separateCard]}>
       {items.map((item, index) => (
         <View
           key={item.label}
-          style={[styles.stat, !separate && index < items.length - 1 && styles.border, separate && styles.separateStat]}
+          style={[
+            styles.stat,
+            !separate && index < items.length - 1 && styles.border,
+            separate && styles.separateStat,
+          ]}
         >
           <View style={styles.top}>
             <Ionicons
@@ -34,18 +44,18 @@ export function TravelStats({ items, separate = false }: { items: TravelStatItem
                 <Text style={styles.total}>/{item.total}</Text>
               ) : null}
             </View>
-            {item.onInfo ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`About ${item.label.toLowerCase()}`}
-                hitSlop={8}
-                style={[styles.infoButton, { margin: 4 }]}
-                onPress={item.onInfo}
-              >
-                <Text style={styles.infoText}>i</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
+          {item.onInfo ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`About ${item.label.toLowerCase()}`}
+              hitSlop={8}
+              style={[styles.infoButton, { margin: 4 }]}
+              onPress={item.onInfo}
+            >
+              <Text style={styles.infoText}>i</Text>
+            </TouchableOpacity>
+          ) : null}
           <View style={styles.labelRow}>
             <Text
               numberOfLines={1}
@@ -63,9 +73,21 @@ export function TravelStats({ items, separate = false }: { items: TravelStatItem
 }
 
 const styles = StyleSheet.create({
-  separateCard: { height: 74, borderWidth: 0, backgroundColor: "transparent", gap: 8, alignItems: "stretch" },
-  separateStat: { borderWidth: 1, borderColor: "#3B6552", borderRadius: 8, justifyContent: "center", backgroundColor: "rgba(10,43,32,0.3)" },
-  separateLabel: { fontSize: responsiveFontSize(10), letterSpacing: 1.5 },
+  separateCard: {
+    height: 74,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    gap: 8,
+    alignItems: "stretch",
+  },
+  separateStat: {
+    borderWidth: 1,
+    borderColor: "#3B6552",
+    borderRadius: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(10,43,32,0.3)",
+  },
+  separateLabel: { fontSize: responsiveFontSize(12), letterSpacing: 1.5 },
   card: {
     height: 80,
     borderRadius: 10,
@@ -76,7 +98,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   stat: { flex: 1, minWidth: 0, alignItems: "center" },
-  border: { borderRightWidth: 1, borderRightColor: BrandColors.paleGreen },
+  border: {
+    position: "relative",
+    borderRightWidth: 1,
+    borderRightColor: BrandColors.paleGreen,
+  },
   top: { flexDirection: "row", alignItems: "center", gap: 6 },
   numberRow: { flexDirection: "row", alignItems: "baseline" },
   value: {
@@ -87,7 +113,7 @@ const styles = StyleSheet.create({
   total: {
     marginLeft: 2,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   labelRow: {
@@ -106,8 +132,11 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   infoButton: {
-    width: 11,
-    height: 11,
+    position: "absolute",
+    right: 4,
+    top: 4,
+    width: 12,
+    height: 12,
     borderRadius: 7,
     borderWidth: 1,
     borderColor: BrandColors.copper,

@@ -1,4 +1,5 @@
 import "@/services/arrival-monitoring";
+import { Caveat_400Regular } from "@expo-google-fonts/caveat";
 import {
   Fraunces_600SemiBold,
   Fraunces_700Bold,
@@ -88,6 +89,7 @@ export default function RootLayout() {
   const [hydrated, setHydrated] = useState(false);
   const [minimumSplashElapsed, setMinimumSplashElapsed] = useState(false);
   const [loaded, error] = useFonts({
+    Caveat_400Regular,
     Lora_400Regular,
     Lora_400Regular_Italic,
     Lora_500Medium,

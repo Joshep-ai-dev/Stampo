@@ -2,8 +2,8 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { BrandColors } from "@/constants/theme";
@@ -21,7 +21,7 @@ function Icon({
 }) {
   return (
     <View style={styles.iconWrap}>
-      <Ionicons name={(focused ? on : off) as never} size={28} color={color} />
+      <Ionicons name={(focused ? on : off) as never} size={24} color={color} />
       {focused && <View style={styles.activeIndicator} />}
     </View>
   );
@@ -97,7 +97,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Social",
+          title: "Kroo IQ",
           tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   add: {
-    width: 68,
-    height: 68,
-    marginTop: -20,
+    width: 56,
+    height: 56,
+    marginTop: -24,
     borderRadius: 34,
     backgroundColor: BrandColors.mapGreen,
     borderWidth: 4,

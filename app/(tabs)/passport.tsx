@@ -1,18 +1,13 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getCountryDataList } from "countries-list";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect,
-  useRouter } from "expo-router";
-import { type ReactNode,
-  useCallback,
-  useMemo,
-  useRef,
-  useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -27,7 +22,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Text, TextInput } from "@/components/app-text";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Reanimated, {
   Extrapolation,
@@ -312,12 +306,7 @@ function IdentityPage({
   return (
     <>
       <View style={[styles.paper, styles.identityPaper, { width, height }]}>
-        <View
-          style={[
-            styles.identityHeading,
-            compact && styles.identityHeadingCompact,
-          ]}
-        >
+        <View style={styles.identityHeading}>
           <Text style={styles.identityCountry}>TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>EXPLORE · LEARN · BELONG</Text>
           <Text style={styles.identityMotto}>
@@ -355,7 +344,7 @@ function IdentityPage({
                   <>
                     <Ionicons
                       name="person"
-                      size={48}
+                      size={64}
                       color={BrandColors.muted}
                     />
                     <Text style={styles.addPhoto}>ADD{`\n`}PHOTO</Text>
@@ -377,13 +366,7 @@ function IdentityPage({
                 </View>
 
                 <Text style={styles.passportBrandTagline}>
-                  Every place{`\n`}adds a new page.
-                </Text>
-              </View>
-              <View style={styles.travelStamp}>
-                <Ionicons name="airplane" size={22} color={BrandColors.muted} />
-                <Text style={styles.travelStampText}>
-                  CURIOSITY{`\n`}NO BORDERS
+                  Every place{`\n`}&nbsp;&nbsp;&nbsp;&nbsp;adds a new page.
                 </Text>
               </View>
             </View>
@@ -407,7 +390,7 @@ function IdentityPage({
                     <View style={styles.fieldControl}>
                       <Ionicons
                         name="person-outline"
-                        size={14}
+                        size={12}
                         color={BrandColors.green}
                       />
                       {editing ? (
@@ -427,7 +410,9 @@ function IdentityPage({
                       )}
                     </View>
                   </View>
-                  <View style={styles.sexField}>
+                  <View
+                    style={[styles.identityField, styles.passportFieldGrow]}
+                  >
                     <Text style={styles.fieldCaption}>SEX</Text>
                     {editing ? (
                       <View style={styles.sexOptions}>
@@ -458,7 +443,7 @@ function IdentityPage({
                       <View style={styles.fieldControl}>
                         <Ionicons
                           name="person-circle-outline"
-                          size={14}
+                          size={12}
                           color={BrandColors.green}
                         />
                         <Text style={styles.identityValue}>
@@ -473,7 +458,7 @@ function IdentityPage({
                   <View style={styles.fieldControl}>
                     <Ionicons
                       name="mail-outline"
-                      size={15}
+                      size={12}
                       color={BrandColors.green}
                     />
                     {editing ? (
@@ -501,13 +486,13 @@ function IdentityPage({
                   >
                     <Text style={styles.fieldCaption}>DATE OF BIRTH *</Text>
                     <TouchableOpacity
-                      style={styles.passportSelect}
+                      style={styles.fieldControl}
                       onPress={() => editing && setDatePickerVisible(true)}
                       disabled={!editing}
                     >
                       <Ionicons
                         name="calendar-outline"
-                        size={15}
+                        size={12}
                         color={BrandColors.green}
                       />
                       <Text style={styles.passportSelectText}>
@@ -520,13 +505,13 @@ function IdentityPage({
                   >
                     <Text style={styles.fieldCaption}>NATIONALITY</Text>
                     <TouchableOpacity
-                      style={styles.passportSelect}
+                      style={styles.fieldControl}
                       onPress={() => editing && setCountryPickerVisible(true)}
                       disabled={!editing}
                     >
                       <Ionicons
                         name="globe-outline"
-                        size={15}
+                        size={12}
                         color={BrandColors.green}
                       />
                       <Text numberOfLines={1} style={styles.passportSelectText}>
@@ -535,7 +520,7 @@ function IdentityPage({
                       {editing ? (
                         <Ionicons
                           name="chevron-down"
-                          size={14}
+                          size={12}
                           color={BrandColors.muted}
                         />
                       ) : null}
@@ -553,7 +538,7 @@ function IdentityPage({
                 <View style={styles.fieldControl}>
                   <Ionicons
                     name="globe-outline"
-                    size={15}
+                    size={12}
                     color={BrandColors.green}
                   />
                   <Text style={styles.passportSelectText}>
@@ -566,7 +551,7 @@ function IdentityPage({
                 <View style={styles.preferenceCopy}>
                   <Ionicons
                     name="checkbox"
-                    size={18}
+                    size={14}
                     color={BrandColors.green}
                   />
                   <Text style={styles.preferenceText}>
@@ -981,7 +966,7 @@ export default function PassportScreen() {
   const availablePageHeight = carouselHeight
     ? carouselHeight - (compactPassport ? 20 : 28)
     : screenHeight - (compactPassport ? 178 : 218);
-  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.48);
+  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.7);
   const krooScore = useMemo(
     () =>
       calculateKrooScoreFromVisits(visits, completedSightIds, challengePoints),
@@ -1258,7 +1243,7 @@ const styles = StyleSheet.create({
   },
   coverLevel: {
     position: "absolute",
-    top: "79.5%",
+    top: "75.8%",
     left: "13%",
     right: "13%",
     textAlign: "center",
@@ -1275,24 +1260,19 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.surface,
     borderWidth: 1.5,
     borderColor: colors.paperBorder,
-    borderRadius: 18,
-    padding: 9,
+    borderRadius: 8,
+    padding: 8,
     elevation: 0,
   },
   identityPaper: {
-    padding: 14,
-    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    justifyContent: "flex-start",
     borderWidth: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
   },
   identityHeading: {
     position: "relative",
   },
-  identityHeadingCompact: { paddingBottom: 4 },
   identityCountry: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(19),
@@ -1300,11 +1280,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   identityType: {
-    marginTop: 3,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(10),
     letterSpacing: 2.1,
-    color: BrandColors.muted,
+    color: BrandColors.green,
   },
   identityMotto: {
     position: "absolute",
@@ -1315,66 +1294,47 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(7),
     lineHeight: responsiveFontSize(10),
     letterSpacing: 1.6,
-    color: BrandColors.muted,
+    color: BrandColors.green,
   },
   passportBrandRow: {
+    marginLeft: 15,
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "flex-start",
   },
   passportHero: {
-    minHeight: 118,
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
   },
   passportSeal: {
-    width: 96,
-    height: 96,
+    width: 120,
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
   },
   passportSealImage: { width: "100%", height: "100%" },
   passportBrandTagline: {
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(9),
+    fontFamily: "Caveat_400Regular",
+    fontSize: responsiveFontSize(15),
     lineHeight: responsiveFontSize(12),
-    fontStyle: "italic",
-    textAlign: "center",
-    color: BrandColors.muted,
-  },
-  travelStamp: {
-    width: 73,
-    height: 73,
-    borderWidth: 1.5,
-    borderRadius: 37,
-    borderColor: "rgba(132,110,91,.52)",
-    alignItems: "center",
-    justifyContent: "center",
-    transform: [{ rotate: "-9deg" }],
-  },
-  travelStampText: {
-    marginTop: 3,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(6),
-    lineHeight: responsiveFontSize(8),
-    letterSpacing: 1,
-    color: BrandColors.muted,
+    paddingLeft: 25,
+    marginTop: -5,
+    color: BrandColors.ink,
+    transform: [{ rotate: "-4deg" }],
   },
   passportSectionHeading: {
-    minHeight: 29,
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
     borderTopWidth: 1,
     borderTopColor: BrandColors.line,
   },
   passportSectionTitle: {
+    marginTop: 2,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(12),
     letterSpacing: 1.6,
     color: BrandColors.green,
   },
@@ -1448,8 +1408,8 @@ const styles = StyleSheet.create({
     color: BrandColors.ink,
   },
   photoBox: {
-    width: 88,
-    height: 112,
+    width: 100,
+    height: 130,
     borderRadius: 3,
     borderWidth: 1.5,
     borderColor: BrandColors.copperDark,
@@ -1464,22 +1424,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: responsiveFontSize(12),
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
+    fontSize: responsiveFontSize(11),
+    letterSpacing: 2.5,
     color: BrandColors.muted,
   },
   identityFields: { gap: 7 },
   identityField: {
-    borderWidth: 1,
-    borderColor: "rgba(132,110,91,.55)",
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingTop: 3,
+    paddingTop: 0,
   },
   fieldCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(8),
+    fontSize: responsiveFontSize(9),
     letterSpacing: 0.7,
-    color: BrandColors.muted,
+    color: BrandColors.green,
   },
   identityInput: {
     flex: 1,
@@ -1499,9 +1456,9 @@ const styles = StyleSheet.create({
   },
   editPassportButton: {
     position: "absolute",
-    right: 60,
-    top: 0,
-    height: 30,
+    right: 0,
+    top: 40,
+    height: 24,
     paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -1530,13 +1487,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     color: BrandColors.white,
   },
-  passportSelect: {
-    height: 27,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 6,
-  },
   passportSelectText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
@@ -1544,7 +1494,11 @@ const styles = StyleSheet.create({
     color: BrandColors.ink,
   },
   fieldControl: {
-    minHeight: 27,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "rgba(132,110,91,.55)",
+    borderRadius: 4,
+    height: 24,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
@@ -1553,14 +1507,14 @@ const styles = StyleSheet.create({
   passportFieldGrow: { flex: 1, flexBasis: 0, minWidth: 0 },
   sexField: { flex: 1, flexBasis: 0, minWidth: 0 },
   sexOptions: {
-    height: 32,
+    height: 24,
     flexDirection: "row",
     gap: 4,
     alignItems: "center",
   },
   sexOption: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: BrandColors.line,
