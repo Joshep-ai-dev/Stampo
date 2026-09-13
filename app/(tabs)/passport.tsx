@@ -677,7 +677,20 @@ function IdentityPage({
               {editing ? (
                 <>
                   <TouchableOpacity
-                    style={styles.passwordButton}
+                    style={[styles.actionButton, styles.actionButtonPrimary]}
+                    onPress={() => void save()}
+                  >
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        styles.actionButtonTextPrimary,
+                      ]}
+                    >
+                      SAVE PASSPORT
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.actionButtonSecondary]}
                     onPress={() => {
                       setDraft({
                         name: profile.name,
@@ -695,29 +708,42 @@ function IdentityPage({
                       setEditing(false);
                     }}
                   >
-                    <Text style={styles.passwordButtonText}>CANCEL</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.savePassportButton}
-                    onPress={() => void save()}
-                  >
-                    <Text style={styles.savePassportText}>SAVE PASSPORT</Text>
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        styles.actionButtonTextSecondary,
+                      ]}
+                    >
+                      CANCEL
+                    </Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
                   <TouchableOpacity
-                    style={styles.savePassportButton}
+                    style={[styles.actionButton, styles.actionButtonPrimary]}
                     onPress={() => setEditing(true)}
                   >
-                    <Text style={styles.savePassportText}>EDIT PASSPORT</Text>
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        styles.actionButtonTextPrimary,
+                      ]}
+                    >
+                      EDIT PASSPORT
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.signOutButton}
+                    style={[styles.actionButton, styles.actionButtonSecondary]}
                     disabled={signingOut}
                     onPress={() => void signOut()}
                   >
-                    <Text style={styles.signOutText}>
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        styles.actionButtonTextSecondary,
+                      ]}
+                    >
                       {signingOut ? "SIGNING OUT…" : "SIGN OUT"}
                     </Text>
                   </TouchableOpacity>
@@ -756,31 +782,35 @@ function IdentityPage({
             {authMode !== "code" ? (
               <View style={styles.authPassportRow}>
                 <View style={[styles.authField, styles.authBirthdate]}>
-                  <Text style={styles.authCaption}>GIVEN NAME</Text>
-                  <TextInput
-                    value={draft.name}
-                    onChangeText={(name) =>
-                      setDraft((current) => ({ ...current, name }))
-                    }
-                    placeholder="First name"
-                    placeholderTextColor="#a89378"
-                    autoCapitalize="words"
-                    style={styles.authInput}
-                  />
+                  <Text style={styles.fieldCaption}>GIVEN NAME</Text>
+                  <View style={styles.fieldControl}>
+                    <TextInput
+                      value={draft.name}
+                      onChangeText={(name) =>
+                        setDraft((current) => ({ ...current, name }))
+                      }
+                      placeholder="First name"
+                      placeholderTextColor="#a89378"
+                      autoCapitalize="words"
+                      style={styles.identityInput}
+                    />
+                  </View>
                 </View>
                 {authMode === "create-account" ? (
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.authCaption}>FAMILY NAME</Text>
-                    <TextInput
-                      value={draft.familyName}
-                      onChangeText={(familyName) =>
-                        setDraft((current) => ({ ...current, familyName }))
-                      }
-                      placeholder="Family name"
-                      placeholderTextColor="#a89378"
-                      autoCapitalize="words"
-                      style={styles.authInput}
-                    />
+                    <Text style={styles.fieldCaption}>FAMILY NAME</Text>
+                    <View style={styles.fieldControl}>
+                      <TextInput
+                        value={draft.familyName}
+                        onChangeText={(familyName) =>
+                          setDraft((current) => ({ ...current, familyName }))
+                        }
+                        placeholder="Family name"
+                        placeholderTextColor="#a89378"
+                        autoCapitalize="words"
+                        style={styles.identityInput}
+                      />
+                    </View>
                   </View>
                 ) : null}
               </View>
@@ -789,15 +819,15 @@ function IdentityPage({
               <>
                 <View style={styles.authPassportRow}>
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.authCaption}>NATIONALITY</Text>
+                    <Text style={styles.fieldCaption}>NATIONALITY</Text>
                     <TouchableOpacity
-                      style={styles.authSelect}
+                      style={styles.fieldControl}
                       onPress={() => {
                         setCountryPickerTarget("nationality");
                         setCountryPickerVisible(true);
                       }}
                     >
-                      <Text numberOfLines={1} style={styles.authSelectText}>
+                      <Text numberOfLines={1} style={styles.passportSelectText}>
                         {draft.nationality || "Select country"}
                       </Text>
                       <Ionicons
@@ -808,12 +838,12 @@ function IdentityPage({
                     </TouchableOpacity>
                   </View>
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.authCaption}>DATE OF BIRTH</Text>
+                    <Text style={styles.fieldCaption}>DATE OF BIRTH</Text>
                     <TouchableOpacity
-                      style={styles.authSelect}
+                      style={styles.fieldControl}
                       onPress={() => setDatePickerVisible(true)}
                     >
-                      <Text style={styles.authSelectText}>
+                      <Text style={styles.passportSelectText}>
                         {draft.dateOfBirth || "YYYY-MM-DD"}
                       </Text>
                     </TouchableOpacity>
@@ -822,43 +852,48 @@ function IdentityPage({
               </>
             ) : null}
             <View style={styles.authField}>
-              <Text style={styles.authCaption}>EMAIL</Text>
-              <TextInput
-                value={draft.email}
-                onChangeText={(email) =>
-                  setDraft((current) => ({ ...current, email }))
-                }
-                placeholder="you@example.com"
-                placeholderTextColor="#a89378"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.authInput}
-              />
+              <Text style={styles.fieldCaption}>EMAIL</Text>
+              <View style={styles.fieldControl}>
+                <TextInput
+                  value={draft.email}
+                  onChangeText={(email) =>
+                    setDraft((current) => ({ ...current, email }))
+                  }
+                  placeholder="you@example.com"
+                  placeholderTextColor="#a89378"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.identityInput}
+                />
+              </View>
             </View>
             {authMode === "code" ? (
               <View style={styles.authField}>
-                <Text style={styles.authCaption}>
+                <Text style={styles.fieldCaption}>
                   6-DIGIT VERIFICATION CODE
                 </Text>
-                <TextInput
-                  value={verificationCode}
-                  onChangeText={(value) =>
-                    setVerificationCode(value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="000000"
-                  placeholderTextColor="#a89378"
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={styles.authInput}
-                />
+                <View style={styles.fieldControl}>
+                  <TextInput
+                    value={verificationCode}
+                    onChangeText={(value) =>
+                      setVerificationCode(value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="000000"
+                    placeholderTextColor="#a89378"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    style={styles.identityInput}
+                  />
+                </View>
               </View>
             ) : null}
             <View style={styles.authButtons}>
               <TouchableOpacity
                 disabled={authBusy}
                 style={[
-                  styles.signInPrimary,
+                  styles.actionButton,
+                  styles.actionButtonPrimary,
                   styles.authButton,
                   authBusy && styles.authButtonDisabled,
                 ]}
@@ -874,7 +909,12 @@ function IdentityPage({
                       : void requestCode("sign-in")
                 }
               >
-                <Text style={styles.signInPrimaryText}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    styles.actionButtonTextPrimary,
+                  ]}
+                >
                   {authMode === "code" || authMode === "create-account"
                     ? "BACK"
                     : "SIGN IN"}
@@ -886,7 +926,8 @@ function IdentityPage({
                   (authMode === "code" && verificationCode.length !== 6)
                 }
                 style={[
-                  styles.createSecondary,
+                  styles.actionButton,
+                  styles.actionButtonSecondary,
                   styles.authButton,
                   (authBusy ||
                     (authMode === "code" && verificationCode.length !== 6)) &&
@@ -900,7 +941,12 @@ function IdentityPage({
                       : setAuthMode("create-account")
                 }
               >
-                <Text style={styles.createSecondaryText}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    styles.actionButtonTextSecondary,
+                  ]}
+                >
                   {authBusy
                     ? "PLEASE WAIT"
                     : authMode === "code"
@@ -1510,19 +1556,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BrandColors.line,
   },
-  authCaption: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
-    letterSpacing: 1,
-    color: BrandColors.muted,
-  },
-  authInput: {
-    height: 36,
-    padding: 0,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
-    color: BrandColors.ink,
-  },
   photoBox: {
     width: 90,
     height: 115,
@@ -1556,7 +1589,7 @@ const styles = StyleSheet.create({
   },
   identityInput: {
     flex: 1,
-    height: 27,
+    height: 30,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(12),
@@ -1564,7 +1597,7 @@ const styles = StyleSheet.create({
   },
   identityValue: {
     flex: 1,
-    height: 27,
+    height: 30,
     textAlignVertical: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(12),
@@ -1589,21 +1622,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     color: BrandColors.green,
   },
-  savePassportButton: {
-    flex: 1,
-    height: 34,
-    borderRadius: 18,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.green,
-  },
-  savePassportText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    letterSpacing: 0.8,
-    color: BrandColors.white,
-  },
   passportSelectText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
@@ -1611,29 +1629,17 @@ const styles = StyleSheet.create({
     color: BrandColors.ink,
   },
   fieldControl: {
-    paddingHorizontal: 4,
+    height: 26,
+    paddingHorizontal: 7,
     borderWidth: 1,
     borderColor: "rgba(132,110,91,.55)",
     borderRadius: 4,
-    height: 24,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
   },
   passportFieldRow: { flexDirection: "row", gap: 8 },
   passportFieldGrow: { flex: 1, flexBasis: 0, minWidth: 0 },
-  authSelect: {
-    height: 36,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  authSelectText: {
-    flex: 1,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.ink,
-  },
   authPassportRow: { width: "100%", flexDirection: "row", gap: 12 },
   authBirthdate: { width: "auto", flex: 1, flexBasis: 0, minWidth: 0 },
   pickerModalRoot: { flex: 1, justifyContent: "flex-end" },
@@ -1682,49 +1688,31 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
-  accountButton: {
-    height: 30,
-    borderRadius: 7,
-    backgroundColor: BrandColors.green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  accountButtonText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
-    letterSpacing: 0.8,
-    color: BrandColors.white,
-  },
   authButtons: { width: "100%", flexDirection: "row", gap: 6 },
   authButton: { flex: 1 },
   authButtonDisabled: { opacity: 0.55 },
-  signInPrimary: {
+  actionButton: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
     height: 34,
     borderRadius: 18,
-    backgroundColor: BrandColors.green,
     alignItems: "center",
     justifyContent: "center",
   },
-  signInPrimaryText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    letterSpacing: 0.9,
-    color: BrandColors.white,
-  },
-  createSecondary: {
-    height: 34,
-    borderRadius: 18,
+  actionButtonPrimary: { backgroundColor: BrandColors.green },
+  actionButtonSecondary: {
     borderWidth: 1,
     borderColor: BrandColors.green,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  createSecondaryText: {
+  actionButtonText: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(10),
-    letterSpacing: 0.6,
-    color: BrandColors.green,
+    letterSpacing: 0.8,
   },
+  actionButtonTextPrimary: { color: BrandColors.white },
+  actionButtonTextSecondary: { color: BrandColors.green },
   accountActions: { marginTop: 10, flexDirection: "row", gap: 6 },
   preferenceRow: { flexDirection: "row", gap: 8, paddingTop: 4 },
   preferenceLanguage: { flex: 1 },
@@ -1740,50 +1728,6 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(10),
     lineHeight: responsiveFontSize(10),
     color: BrandColors.ink,
-  },
-  passwordButton: {
-    flex: 1,
-    height: 34,
-    borderRadius: 18,
-    backgroundColor: BrandColors.green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  passwordButtonText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
-    letterSpacing: 0.4,
-    color: BrandColors.white,
-  },
-  signInButton: {
-    height: 30,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: BrandColors.green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signInText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
-    letterSpacing: 0.8,
-    color: BrandColors.green,
-  },
-  signOutButton: {
-    flex: 1,
-    width: "100%",
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BrandColors.copperDark,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signOutText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    letterSpacing: 0.8,
-    color: BrandColors.copperDark,
   },
   passwordModalRoot: {
     flex: 1,
@@ -1924,7 +1868,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
   },
-  pagination: { height: 80, alignItems: "center", paddingTop: 5 },
+  pagination: { height: 45, alignItems: "center" },
   dots: {
     flexDirection: "row",
     alignItems: "center",
@@ -1936,7 +1880,6 @@ const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.dot },
   dotActive: { backgroundColor: BrandColors.copper },
   pageCount: {
-    marginTop: 8,
     color: colors.muted,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(20),
