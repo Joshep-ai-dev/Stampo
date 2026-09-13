@@ -140,15 +140,11 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={s.headerPad}>
-          <View style={s.exploreHeader}>
-            <View style={s.logoCrop}>
-              <Image
-                source={require("../../assets/images/kroo_logo_text.png")}
-                style={s.exploreLogo}
-                contentFit="contain"
-              />
-            </View>
-          </View>
+          <Image
+            source={require("../../assets/images/kroo_logo_text.png")}
+            style={s.exploreLogo}
+            contentFit="contain"
+          />
         </View>
 
         <Section title="Countries" />
@@ -289,27 +285,18 @@ function Section({ title }: { title: string }) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 30 },
-  headerPad: { paddingHorizontal: 18 },
-  exploreHeader: {
-    height: 64,
+  headerPad: {
+    alignSelf: "center",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  logoCrop: {
-    width: 200,
-    height: 60,
-    overflow: "hidden",
   },
   exploreLogo: {
-    position: "absolute",
-    width: 200,
-    height: 75,
-    top: -15,
-    left: 0,
+    width: 132,
+    height: 54,
+    flex: 1,
+    alignItems: "center",
   },
   headingRow: {
-    marginTop: 23,
     marginBottom: 11,
     paddingHorizontal: 14,
     flexDirection: "row",

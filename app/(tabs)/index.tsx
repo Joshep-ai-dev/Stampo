@@ -1398,6 +1398,7 @@ export default function HomeScreen() {
         footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
+
       <Modal visible={showWelcome} transparent animationType="fade">
         <View style={styles.welcomeOverlay}>
           <ImageBackground
@@ -1429,7 +1430,7 @@ export default function HomeScreen() {
                     <View style={styles.featureIconCircle}>
                       <Ionicons
                         name="location"
-                        size={32}
+                        size={26}
                         color={BrandColors.copper}
                       />
                     </View>
@@ -1445,7 +1446,7 @@ export default function HomeScreen() {
                     <View style={styles.featureIconCircle}>
                       <Ionicons
                         name="book-outline"
-                        size={32}
+                        size={26}
                         color={BrandColors.copper}
                       />
                     </View>
@@ -1499,10 +1500,11 @@ export default function HomeScreen() {
                   <Text style={styles.welcomeButtonText}>CONTINUE</Text>
                   <Ionicons
                     name="arrow-forward"
-                    size={26}
+                    size={18}
                     color={BrandColors.green}
                   />
                 </TouchableOpacity>
+                <View style={{ marginBottom: 100 }} />
               </ScrollView>
             </View>
           </ImageBackground>
@@ -1588,7 +1590,7 @@ const styles = StyleSheet.create({
   welcomeBody: {
     marginTop: 4,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(15),
+    fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(21),
     color: BrandColors.green,
     textAlign: "center",
@@ -1611,12 +1613,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
   },
-  welcomeFeature: { flex: 1, alignItems: "center", paddingHorizontal: 5 },
+  welcomeFeature: { flex: 1, alignItems: "center" },
   featureDivider: { width: 1, backgroundColor: "#8E9B8B" },
   featureIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.green,
@@ -1624,7 +1626,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     marginTop: 8,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(19),
+    fontSize: responsiveFontSize(16),
     lineHeight: responsiveFontSize(19),
     color: BrandColors.green,
     textAlign: "center",
@@ -1645,12 +1647,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 18,
+    gap: 8,
   },
   saveProgressCopy: { flexShrink: 1 },
   saveProgressTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(18),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.green,
   },
   saveProgressBody: {
@@ -1664,7 +1666,7 @@ const styles = StyleSheet.create({
   welcomeQuestion: {
     marginTop: 18,
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(19),
+    fontSize: responsiveFontSize(16),
     lineHeight: responsiveFontSize(23),
     color: BrandColors.green,
     textAlign: "center",
@@ -1684,16 +1686,16 @@ const styles = StyleSheet.create({
   },
   welcomeInput: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 40,
     paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(16),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
     textAlignVertical: "center",
     writingDirection: "ltr",
   },
   welcomeButton: {
-    minHeight: 42,
+    minHeight: 40,
     marginTop: 16,
     borderRadius: 14,
     flexDirection: "row",
@@ -1703,10 +1705,10 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.copper,
     marginHorizontal: 30,
   },
-  welcomeButtonDisabled: { opacity: 0.55 },
+  welcomeButtonDisabled: { opacity: 0.7 },
   welcomeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(13),
     letterSpacing: 1,
     color: BrandColors.green,
   },

@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 import {
   Alert,
   Modal,
+  Text as NativeText,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
+  type TextProps,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +24,13 @@ import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
 import { useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
+
+// Preserve this promotional screen's editorial composition across Android
+// font-size settings. Other screens continue to follow the system font scale.
+function Text(props: TextProps) {
+  return <NativeText {...props} allowFontScaling={false} />;
+}
+
 const destinations = [
   {
     name: "Bali Bliss Escape",
@@ -51,6 +60,7 @@ const destinations = [
 type Destination = (typeof destinations)[number];
 
 export default function PlusScreen() {
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const billing = useKrooPlusBilling();
   const { countryCode, countryName } = useLocalSearchParams<{
@@ -140,8 +150,11 @@ export default function PlusScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
       >
-        <ImageBackground source={HERO} style={s.hero} contentFit="cover">
-          <View style={s.heroShade} />
+        <ImageBackground
+          source={HERO}
+          style={[s.hero, { minHeight: Math.max(280, width * 0.64) }]}
+          contentFit="cover"
+        >
           <View style={s.brandRow}>
             <Image
               source={require("../../assets/images/kroo_logo_text.png")}
@@ -172,7 +185,7 @@ export default function PlusScreen() {
             </>
           )}
           <View style={s.location}>
-            <Ionicons name="location" size={16} color="#fff" />
+            <Ionicons name="location" size={14} color="#fff" />
             <Text style={s.locationText}>Phi Phi Islands, Thailand</Text>
           </View>
         </ImageBackground>
@@ -212,8 +225,8 @@ export default function PlusScreen() {
                   color={BrandColors.copper}
                 />
                 <Text style={s.stepTitle}>{step.title}</Text>
-                <Text style={s.stepCopy}>{step.copy}</Text>
               </View>
+              <Text style={s.stepCopy}>{step.copy}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -281,12 +294,8 @@ export default function PlusScreen() {
             <Text style={s.darkHeading}>Everything You Get with Kroo+</Text>
             <View style={s.benefits}>
               {[
-                [
-                  "trophy",
-                  "Participate in Dream Vacation Challenge",
-                  "Qualify for your dream trip.",
-                ],
-                ["bulb", "Access to Kroo IQ", "Test your travel knowledge."],
+                ["trophy", "Participate in Dream Vacation Challenge", ""],
+                ["bulb", "Access to\nKroo IQ", "Test your travel knowledge."],
                 [
                   "business",
                   "Full access to all top Sights",
@@ -476,33 +485,30 @@ function Plan({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 26 },
-  hero: { height: 260, justifyContent: "flex-end", padding: 22, gap: 0 },
-  heroShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,20,14,.22)",
+  hero: {
+    paddingHorizontal: 18,
+    paddingBottom: 22,
   },
   brandRow: {
-    position: "absolute",
-    top: 15,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
   },
   heroTitleSection: {
-    marginBottom: 48,
+    marginBottom: 12,
   },
   heroTitle: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(26),
-    lineHeight: responsiveFontSize(26),
+    lineHeight: responsiveFontSize(31),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 24,
   },
   heroSubtitle: {
+    marginTop: 6,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(13),
@@ -512,14 +518,16 @@ const s = StyleSheet.create({
     textShadowRadius: 10,
   },
   location: {
-    marginTop: 46,
+    marginTop: "auto",
+    paddingTop: 40,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 5,
   },
   locationText: {
+    flex: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(10),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
@@ -532,12 +540,13 @@ const s = StyleSheet.create({
     paddingTop: 20,
     flexDirection: "row",
     gap: 2,
+    paddingBottom: 16,
   },
-  step: { flex: 1, minHeight: 144, alignItems: "center", paddingHorizontal: 2 },
+  step: { flex: 1, alignItems: "center", paddingHorizontal: 2 },
   stepArc: {
     width: "100%",
     maxWidth: 145,
-    minHeight: 120,
+    height: 120,
     paddingTop: 24,
     paddingHorizontal: 7,
     alignItems: "center",
@@ -571,17 +580,18 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   stepCopy: {
-    position: "absolute",
-    top: 100,
-    maxWidth: 86,
+    width: "100%",
+    marginTop: -20,
+    paddingHorizontal: 12,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(10),
     lineHeight: responsiveFontSize(14),
+    letterSpacing: -0.3,
     color: BrandColors.onDarkMuted,
   },
   progressPanel: {
-    margin: 14,
+    margin: 12,
     marginTop: 0,
     padding: 12,
     borderWidth: 1,
@@ -593,10 +603,11 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     color: BrandColors.onDark,
   },
-  progressItems: { marginTop: 7, flexDirection: "row" },
+  progressItems: { marginTop: 7, gap: 6, flexDirection: "row" },
   progressItem: {
     flex: 1,
-    paddingHorizontal: 12,
+    minWidth: 0,
+    paddingHorizontal: 5,
   },
   vr: {
     borderRightWidth: StyleSheet.hairlineWidth,
@@ -652,8 +663,12 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    columnGap: 12,
+    rowGap: 6,
   },
   lightHeading: {
+    flexShrink: 1,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
@@ -702,8 +717,8 @@ const s = StyleSheet.create({
   benefit: {
     flex: 1,
     minHeight: 110,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
     alignItems: "center",
     justifyContent: "flex-start",
     borderWidth: 1,
@@ -712,6 +727,7 @@ const s = StyleSheet.create({
   },
   benefitTitle: {
     marginTop: 6,
+    height: 30,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(11),
@@ -726,10 +742,10 @@ const s = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   plans: {
-    marginVertical: 12,
+    marginBottom: 12,
     paddingHorizontal: 12,
     flexDirection: "row",
-    gap: 16,
+    gap: 8,
   },
   plan: {
     flex: 1,
@@ -771,7 +787,6 @@ const s = StyleSheet.create({
   cta: {
     minHeight: 48,
     marginHorizontal: 12,
-    marginTop: 10,
     borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
@@ -877,9 +892,9 @@ const s = StyleSheet.create({
   },
   visitContent: { paddingBottom: 40 },
   wordmark: {
-    width: 200,
-    height: 75,
-    top: -25,
-    left: 0,
+    width: 132,
+    height: 54,
+    flex: 1,
+    alignItems: "center",
   },
 });
