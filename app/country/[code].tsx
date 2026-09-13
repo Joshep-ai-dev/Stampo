@@ -2,6 +2,7 @@ import {
   responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { countries,
   getEmojiFlag,
   type TCountryCode } from "countries-list";
@@ -294,11 +295,19 @@ export default function CountryScreen() {
         {detail ? (
           <View style={s.heroWrap}>
             <StampHeroFrame>
-              <ProgressivePlaceImage
-                uri={detail.country.coverImage}
-                style={s.stampImage}
-                contentFit={"contain"}
-              />
+              {normalizedCode === "AQ" ? (
+                <Image
+                  source={require("@/assets/images/stampo/Antarctica-detail.png")}
+                  style={s.stampImage}
+                  contentFit="contain"
+                />
+              ) : (
+                <ProgressivePlaceImage
+                  uri={detail.country.coverImage}
+                  style={s.stampImage}
+                  contentFit="contain"
+                />
+              )}
             </StampHeroFrame>
           </View>
         ) : null}
