@@ -28,8 +28,8 @@ const features = [
 ] as const;
 
 export function KrooPlusOffer({
-  monthlyPrice = "$5.99",
-  annualPrice = "$59.99",
+  monthlyPrice = "$9.99",
+  annualPrice = "$99.99",
   busy = false,
   onPurchase,
   onRestore,

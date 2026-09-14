@@ -212,11 +212,28 @@ export default function PlusScreen() {
                 <View style={s.number}>
                   <Text style={s.numberText}>{step.n}</Text>
                 </View>
-                <Ionicons
-                  name={step.icon as never}
-                  size={28}
-                  color={BrandColors.copper}
-                />
+                {step.n === "3" ? (
+                  <View
+                    style={s.referralIcons}
+                    accessibilityLabel="Refer five people"
+                  >
+                    {[0, 1, 2, 3, 4].map((person, i) => (
+                      <Ionicons
+                        key={person}
+                        name="person"
+                        size={24 - Math.abs(2 - i) * 2}
+                        style={{ marginLeft: -12 }}
+                        color={BrandColors.copper}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <Ionicons
+                    name={step.icon as never}
+                    size={28}
+                    color={BrandColors.copper}
+                  />
+                )}
                 <Text style={s.stepTitle}>{step.title}</Text>
               </View>
               <Text style={s.stepCopy}>{step.copy}</Text>
@@ -283,15 +300,23 @@ export default function PlusScreen() {
 
         {!isPlus && (
           <>
-            <Text style={s.darkHeading}>Everything You Get with Kroo+</Text>
+            <Text style={s.darkHeading}>Everything You Get With Kroo+</Text>
             <View style={s.benefits}>
               {[
-                ["trophy", "Participate in Dream Vacation Challenge", ""],
-                ["bulb", "Access to\nKroo IQ", "Test your travel knowledge."],
+                [
+                  "trophy",
+                  "Dream Vacation Challenge",
+                  "Win a free vacation of a lifetime.",
+                ],
+                [
+                  "bulb",
+                  "Access to Kroo IQ",
+                  "Learn and test your travel knowledge.",
+                ],
                 [
                   "business",
-                  "Full access to all top Sights",
-                  "Explore more. Discover more.",
+                  "Full access to Top Sights",
+                  "Explore and discover more.",
                 ],
                 [
                   "star",
@@ -515,6 +540,7 @@ const s = StyleSheet.create({
   stepArc: {
     width: "100%",
     maxWidth: 145,
+    minWidth: 115,
     height: 120,
     paddingTop: 24,
     paddingHorizontal: 7,
@@ -550,14 +576,22 @@ const s = StyleSheet.create({
   },
   stepCopy: {
     width: "100%",
-    marginTop: -25,
-    paddingHorizontal: 12,
+    marginTop: -20,
+    paddingHorizontal: 3,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(10),
-    lineHeight: responsiveFontSize(14),
-    letterSpacing: -0.3,
+    fontSize: responsiveFontSize(12),
+    lineHeight: responsiveFontSize(16),
+    letterSpacing: -0.2,
     color: BrandColors.onDarkMuted,
+  },
+  referralIcons: {
+    height: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    paddingLeft: 6,
   },
   progressPanel: {
     margin: 12,
@@ -619,7 +653,7 @@ const s = StyleSheet.create({
     marginTop: 9,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   vacations: {
@@ -677,12 +711,17 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(20),
     color: BrandColors.onDark,
   },
-  benefits: { padding: 12, flexDirection: "row", gap: 6 },
+  benefits: {
+    padding: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   benefit: {
-    flex: 1,
-    minHeight: 110,
-    paddingVertical: 8,
-    paddingHorizontal: 2,
+    width: "48.5%",
+    minHeight: 148,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "flex-start",
     borderWidth: 1,
@@ -693,15 +732,16 @@ const s = StyleSheet.create({
     marginTop: 6,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(11),
-    lineHeight: responsiveFontSize(13),
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(18),
     color: BrandColors.onDark,
   },
   benefitCopy: {
     marginTop: 4,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(9),
+    fontSize: responsiveFontSize(12),
+    lineHeight: responsiveFontSize(16),
     color: BrandColors.onDarkMuted,
   },
   plans: {
@@ -730,12 +770,12 @@ const s = StyleSheet.create({
   },
   badgeText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(11),
     color: BrandColors.green,
   },
   planLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
   planPrice: {
@@ -745,7 +785,7 @@ const s = StyleSheet.create({
   },
   planSuffix: {
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(12),
   },
   cta: {
     minHeight: 48,

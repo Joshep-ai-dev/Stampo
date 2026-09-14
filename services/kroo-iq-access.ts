@@ -6,5 +6,5 @@ export const KROO_IQ_REQUIRES_KROO_PLUS = true;
 export const KROO_IQ_USES_BACKEND = true;
 
 export function canUseKrooIq(isKrooPlus: boolean) {
-  return KROO_IQ_REQUIRES_KROO_PLUS || isKrooPlus;
+  return !KROO_IQ_REQUIRES_KROO_PLUS || isKrooPlus;
 }

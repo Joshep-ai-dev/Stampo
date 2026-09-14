@@ -293,6 +293,7 @@ export type KrooIqQuiz = {
   }[];
   attempt: KrooIqAttempt;
   isPreview: boolean;
+  pointsPerCorrect: number;
 };
 
 export type KrooIqAnswerResult = {

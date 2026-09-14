@@ -82,8 +82,8 @@ export default function KrooPlusScreen() {
 
         <View style={{ width: "100%", marginTop: 28 }}>
           <KrooPlusOffer
-            monthlyPrice={billing.prices.monthly ?? "$5.99"}
-            annualPrice={billing.prices.annual ?? "$59.99"}
+            monthlyPrice={billing.prices.monthly ?? "$9.99"}
+            annualPrice={billing.prices.annual ?? "$99.99"}
             busy={busy}
             onPurchase={(plan) => {
               setBusy(true);
