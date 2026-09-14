@@ -1,6 +1,7 @@
 import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, ImageBackground } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -148,6 +149,17 @@ export default function PlusScreen() {
           style={[s.hero, { minHeight: Math.max(280, width * 0.64) }]}
           contentFit="cover"
         >
+          <LinearGradient
+            pointerEvents="none"
+            colors={[
+              "rgba(3, 34, 25, 0.78)",
+              "rgba(3, 34, 25, 0.36)",
+              "rgba(3, 34, 25, 0.04)",
+              "rgba(3, 34, 25, 0.22)",
+            ]}
+            locations={[0, 0.3, 0.68, 1]}
+            style={s.heroGradient}
+          />
           {!isPlus && (
             <>
               <Text style={s.heroTitle}>Join Kroo+</Text>
@@ -471,6 +483,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 22,
   },
+  heroGradient: { ...StyleSheet.absoluteFillObject },
   heroTitle: {
     marginTop: 2,
     textAlign: "center",
