@@ -18,12 +18,14 @@ export const CollectionStampCard = memo(function CollectionStampCard({
   progress = 0,
   onPress,
   width = 122,
+  access,
 }: {
   title: string;
   imageUrl?: string;
   progress?: number;
   onPress: () => void;
   width?: number;
+  access?: "free" | "pro";
 }) {
   const safeProgress = Math.max(0, Math.min(progress, 100));
 
@@ -39,6 +41,7 @@ export const CollectionStampCard = memo(function CollectionStampCard({
       <Text style={s.title} numberOfLines={2}>
         {title}
       </Text>
+      {access === "pro" ? <Text style={s.percent}>Kroo+</Text> : null}
       <View style={s.imageFrame}>
         {imageUrl ? (
           <Image
@@ -101,6 +104,7 @@ export function CollectionStampList({
               <CollectionStampCard
                 key={collection.id}
                 title={collection.title}
+                access={collection.access}
                 imageUrl={collection.explorerImageUrl}
                 progress={progress}
                 onPress={() =>

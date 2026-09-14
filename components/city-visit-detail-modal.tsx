@@ -65,15 +65,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   useEffect(() => {
     let active = true;
     setAirportsLoading(true);
-    const visit = city.visits[0];
     void api.cityAirports(city.id)
-      .catch(() => [])
-      .then(async (items) => {
-        if (items.length || !visit?.subcountry) return items;
-        return api
-          .stateAirports(visit.countryCode, visit.subcountry)
-          .catch(() => []);
-      })
       .then((items) => {
         if (!active) return;
         setAirports(items.filter((airport, index, all) =>

@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -11,11 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DetailModal } from "@/components/detail-modal";
 import { CollectionStampList } from "@/components/collection-stamp-card";
+import { DetailModal } from "@/components/detail-modal";
 import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   CitiesVisitedSection,
@@ -247,7 +247,7 @@ export default function StateScreen() {
                   source={
                     detail.imageUrl
                       ? { uri: detail.imageUrl }
-                      : require("@/assets/images/other/globe-airplane.png")
+                      : require("@/assets/images/other/globe.webp")
                   }
                   recyclingKey={`state-${countryCode}-${stateName}-${detail.imageUrl || "fallback"}`}
                   style={styles.heroImage}

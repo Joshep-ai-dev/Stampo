@@ -177,15 +177,16 @@ export default function AddFriendsScreen() {
               >
                 <Text style={s.scanButtonText}>SCAN A FRIEND&apos;S CODE</Text>
               </TouchableOpacity>
+              {friendCode ? <Text selectable style={s.qrDescription}>Referral code: {friendCode.replace("stampo://friend/", "")}</Text> : null}
               <TouchableOpacity
                 style={s.shareLink}
                 disabled={!friendCode}
                 onPress={() =>
-                  void Share.share({ message: `Add me on Kroo: ${friendCode}` })
+                  void Share.share({ message: `You are invited to Kroo. Enter this member referral code on the welcome screen: ${friendCode}` })
                 }
               >
                 <Ionicons name="share-outline" size={15} color={c.mint} />
-                <Text style={s.shareText}>SHARE MY QR CODE</Text>
+                <Text style={s.shareText}>SHARE MY INVITATION</Text>
               </TouchableOpacity>
             </View>
           </>

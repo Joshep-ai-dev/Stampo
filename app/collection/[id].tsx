@@ -28,7 +28,7 @@ import {
   collectionPlaceCompletionId,
   isCollectionPlaceCompleted,
 } from "@/data/sight-completion";
-import { api } from "@/services/api";
+import { api, ApiError } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
@@ -89,13 +89,14 @@ export default function CollectionScreen() {
     let active = true;
     setCollection(null);
     setCollectionLoading(true);
-    const cacheKey = `kroo.collection.${id}.v1`;
+    const cacheKey = `kroo.collection.${id}.${subscription.isKrooPlus ? "pro" : "free"}.v2`;
     const applyCollection = (
       item: Awaited<ReturnType<typeof api.collectionDetail>>,
     ) => {
       if (!active) return;
       setCollection({
         id: item.id,
+        access: item.access,
         title: item.title,
         subtitle: item.description || item.detail,
         imageUrl: item.heroImageUrl,
@@ -120,7 +121,7 @@ export default function CollectionScreen() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, subscription.isKrooPlus]);
 
   if (!collection) {
     return (
@@ -138,6 +139,10 @@ export default function CollectionScreen() {
   }
 
   const toggleCompleted = async (place: CollectionPlace) => {
+    if (!subscription.isKrooPlus && (collection.access === "pro" || place.access === "pro" || place.isPremium)) {
+      router.push("/kroo-plus");
+      return;
+    }
     const targetId = collectionPlaceCompletionId(collection.id, place);
     const next = !isCollectionPlaceCompleted(
       collection.id,
@@ -154,7 +159,12 @@ export default function CollectionScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 403) {
+        dispatch(sightCompletionSet({ id: targetId, completed: !next }));
+        router.push("/kroo-plus");
+        return;
+      }
       Alert.alert(
         "Saved on this device",
         "Kroo will sync this collection when the server is available.",
@@ -166,7 +176,7 @@ export default function CollectionScreen() {
     isCollectionPlaceCompleted(collection.id, place, completedSightIds, visits),
   ).length;
   const isPremiumPlace = (place: CollectionPlace) =>
-    place.access === "pro" || place.isPremium === true;
+    collection.access === "pro" || place.access === "pro" || place.isPremium === true;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
     : collection.places.filter((place) => !isPremiumPlace(place));

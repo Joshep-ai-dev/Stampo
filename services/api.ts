@@ -17,6 +17,8 @@ function backendImageUrl(value?: string) {
 }
 
 let authToken: string | null = null;
+let invitationToken: string | null = null;
+export function setInvitationToken(token: string | null) { invitationToken = token; }
 
 export function setApiToken(token: string | null) {
   authToken = token;
@@ -39,6 +41,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       Accept: "application/json",
+      ...(invitationToken ? { "X-Kroo-Invitation": invitationToken } : {}),
       ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...init?.headers,
@@ -194,6 +197,7 @@ type ProfileUpdate = ProfileDetails &
   Partial<Pick<ProfileState, "language" | "photoUri">>;
 
 export type CollectionProgress = {
+  access?: "free" | "pro";
   id: string;
   title: string;
   detail: string;
@@ -214,6 +218,7 @@ export type ManagedCollectionPlace = {
   city?: string;
   state?: string;
   country?: string;
+  countryId?: string;
   location?: string;
   detail?: string;
   access?: "free" | "pro";
@@ -223,6 +228,7 @@ export type ManagedCollectionPlace = {
 };
 
 export type ManagedCollection = {
+  access?: "free" | "pro";
   id: string;
   title: string;
   detail: string;
@@ -492,7 +498,7 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
-      isPremium: place.isPremium === true || place.access === "pro",
+      isPremium: item.access === "pro" || place.isPremium === true || place.access === "pro",
       imageUrl: backendImageUrl(place.imageUrl),
     })),
   };
@@ -658,6 +664,7 @@ async function cityDetail(
 }
 
 export const api = {
+  validateReferral: (code: string) => request<{ accessToken: string }>("/invitations/validate", { method: "POST", body: JSON.stringify({ code }) }),
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
@@ -729,9 +736,10 @@ export const api = {
     request<BackendSight[]>(
       `/catalog/cities/${encodeURIComponent(id)}/sights`,
     ).then((items) => items.map(normalizeSight)),
-  cityAirports: (id: string) =>
+  cityAirports: (id: string, signal?: AbortSignal) =>
     request<AirportOption[]>(
       `/catalog/cities/${encodeURIComponent(id)}/airports`,
+      { signal },
     ),
   searchAirports: (query: string, signal?: AbortSignal) =>
     request<AirportOption[]>(

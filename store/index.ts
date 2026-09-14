@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configureStore } from "@reduxjs/toolkit";
 
-import { api } from "@/services/api";
+import { api, setInvitationToken } from "@/services/api";
 import dashboardReducer, {
   dashboardCleared,
   fetchHomeDashboard,
@@ -35,6 +35,8 @@ export const store = configureStore({
     subscription: subscriptionReducer,
   },
 });
+
+store.subscribe(() => setInvitationToken(store.getState().profile.invitation));
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

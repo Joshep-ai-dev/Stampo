@@ -5,6 +5,7 @@ export type CollectionPlace = {
   city?: string;
   state?: string;
   country?: string;
+  countryId?: string;
   location?: string;
   detail?: string;
   access?: "free" | "pro";
@@ -14,6 +15,7 @@ export type CollectionPlace = {
 };
 
 export type CollectionDefinition = {
+  access?: "free" | "pro";
   id: string;
   title: string;
   subtitle: string;

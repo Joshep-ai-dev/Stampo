@@ -136,7 +136,7 @@ export default function ExploreScreen() {
           />
         </View>
 
-        <Section title="Countries" />
+        <Section title="Countries" subtitle={`${countryCatalog.length} countries to explore`} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -191,7 +191,7 @@ export default function ExploreScreen() {
           }
         />
 
-        <Section title="Collections" />
+        <Section title="Collections" subtitle="Special places. Epic lists. New challenges." />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -216,6 +216,7 @@ export default function ExploreScreen() {
               <CollectionStampCard
                 key={collection.id}
                 title={collection.title}
+                access={collection.access}
                 imageUrl={collection.explorerImageUrl}
                 progress={collection.progress}
                 onPress={() =>
@@ -235,10 +236,11 @@ export default function ExploreScreen() {
     </SafeAreaView>
   );
 }
-function Section({ title }: { title: string }) {
+function Section({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <View style={s.headingRow}>
       <Text style={s.heading}>{title}</Text>
+      <Text style={s.subtitle}>{subtitle}</Text>
     </View>
   );
 }
@@ -259,10 +261,9 @@ const s = StyleSheet.create({
   headingRow: {
     marginBottom: 11,
     paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    gap: 4,
   },
+  subtitle: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: BrandColors.onDarkMuted },
   heading: {
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(24),

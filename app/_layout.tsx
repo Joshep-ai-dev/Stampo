@@ -20,6 +20,7 @@ import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
 } from "@expo-google-fonts/space-mono";
+import { useAppSelector } from "@/store/hooks";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -85,6 +86,29 @@ function LoadingSplash() {
   );
 }
 
+function AppAccess() {
+  const invitation = useAppSelector((state) => state.profile.invitation);
+  return <>
+    {invitation ? <ArrivalSuggestionPrompt /> : null}
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!invitation}><Stack.Screen name="welcome" /></Stack.Protected>
+      <Stack.Protected guard={!!invitation}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="add-friends" />
+        <Stack.Screen name="country-atlas" />
+        <Stack.Screen name="gift-kroo-plus" />
+        <Stack.Screen name="kroo-plus" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="city/[id]" />
+        <Stack.Screen name="collection/[id]" />
+        <Stack.Screen name="country/[code]" />
+        <Stack.Screen name="sight/[id]" />
+        <Stack.Screen name="state/[countryCode]/[stateName]" />
+      </Stack.Protected>
+    </Stack>
+  </>;
+}
+
 export default function RootLayout() {
   const [hydrated, setHydrated] = useState(false);
   const [minimumSplashElapsed, setMinimumSplashElapsed] = useState(false);
@@ -124,10 +148,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
         <SubscriptionProvider>
-          <ArrivalSuggestionPrompt />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+          <AppAccess />
           <StatusBar style="light" />
         </SubscriptionProvider>
       </Provider>

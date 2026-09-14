@@ -1,7 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
-import { canUseGpsArrivals } from "@/services/gps-access";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCountryDataList,
@@ -9,7 +8,6 @@ import {
   type TCountryCode,
 } from "countries-list";
 import { Image } from "expo-image";
-import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -30,7 +28,6 @@ import {
 } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -59,11 +56,10 @@ import {
 import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
-import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { nameChanged } from "@/store/profile-slice";
+import { invitationAccepted, nameChanged } from "@/store/profile-slice";
 import {
   travelStateHydrated,
   type Visit,
@@ -99,99 +95,10 @@ type MapCountry = {
   polygons: { x: number; y: number }[][];
 };
 
-type CurrentMapLocation = {
-  label: string;
-  latitude: number;
-  longitude: number;
-};
-
 let cachedMapCountries: MapCountry[] | null = null;
 let cachedMapCountriesPromise: Promise<MapCountry[]> | null = null;
-
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
-const MAP_GEO_LEFT = -169.110266;
-const MAP_GEO_TOP = 83.600842;
-const MAP_GEO_RIGHT = 190.486279;
-const MAP_GEO_BOTTOM = -58.508473;
-
-function projectToWorldMap(latitude: number, longitude: number) {
-  const clampedLatitude = Math.max(
-    MAP_GEO_BOTTOM,
-    Math.min(MAP_GEO_TOP, latitude),
-  );
-  let wrappedLongitude = longitude;
-  while (wrappedLongitude < MAP_GEO_LEFT) wrappedLongitude += 360;
-  while (wrappedLongitude > MAP_GEO_RIGHT) wrappedLongitude -= 360;
-  // Match MapSVG's own geo-to-pixel conversion. Its world asset uses a
-  // spherical Mercator Y scale derived from the SVG width and longitude span;
-  // geoViewBox's top latitude is metadata, not the SVG's y=0 edge.
-  const latitudeRadians = (clampedLatitude * Math.PI) / 180;
-  const bottomRadians = (MAP_GEO_BOTTOM * Math.PI) / 180;
-  const projectionScale =
-    (MAP_WIDTH / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) * (180 / Math.PI);
-  const mercatorY = (radians: number) =>
-    Math.log(Math.tan(Math.PI / 4 + radians / 2));
-  return {
-    x:
-      ((wrappedLongitude - MAP_GEO_LEFT) / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
-      MAP_WIDTH,
-    y:
-      MAP_HEIGHT -
-      projectionScale * (mercatorY(latitudeRadians) - mercatorY(bottomRadians)),
-  };
-}
-
-function CurrentPositionPin({
-  latitude,
-  longitude,
-  canvasWidth,
-  scale,
-  translateX,
-  translateY,
-}: {
-  latitude: number;
-  longitude: number;
-  canvasWidth: number;
-  scale: SharedValue<number>;
-  translateX: SharedValue<number>;
-  translateY: SharedValue<number>;
-}) {
-  const projected = projectToWorldMap(latitude, longitude);
-  const fitScale = Math.min(canvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
-  const offsetX = (canvasWidth - MAP_WIDTH * fitScale) / 2;
-  const offsetY = (250 - MAP_HEIGHT * fitScale) / 2;
-  const baseX = offsetX + projected.x * fitScale;
-  const baseY = offsetY + projected.y * fitScale;
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          translateX.value + (baseX - canvasWidth / 2) * (scale.value - 1),
-      },
-      {
-        translateY: translateY.value + (baseY - 125) * (scale.value - 1),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.currentPositionPin,
-        { left: baseX - 13, top: baseY - 34 },
-        animatedStyle,
-      ]}
-    >
-      <Image
-        source={require("@/assets/images/gps-position-pin.png")}
-        contentFit="contain"
-        style={styles.currentPositionPinImage}
-      />
-    </Animated.View>
-  );
-}
 
 function CountryMapLabel({
   country,
@@ -453,11 +360,9 @@ function loadBundledMapCountries() {
 function WorldMap({
   visited,
   visits,
-  currentLocation,
 }: {
   visited: Set<string>;
   visits: Visit[];
-  currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -522,48 +427,6 @@ function WorldMap({
     },
     [committedOffset, countriesOnMap, mapCanvasWidth, zoomLevel],
   );
-  const setMapZoom = useCallback(
-    (nextScale: number) => {
-      const clampedScale = Math.min(20, Math.max(1, nextScale));
-      const reset = clampedScale === 1;
-      const fittedScale = Math.min(
-        mapCanvasWidth / MAP_WIDTH,
-        250 / MAP_HEIGHT,
-      );
-      const maxX = Math.max(
-        0,
-        (MAP_WIDTH * fittedScale * clampedScale - mapCanvasWidth) / 2,
-      );
-      const maxY = Math.max(
-        0,
-        (MAP_HEIGHT * fittedScale * clampedScale - 250) / 2,
-      );
-      const nextX = reset
-        ? 0
-        : Math.max(-maxX, Math.min(maxX, savedTranslateX.value));
-      const nextY = reset
-        ? 0
-        : Math.max(-maxY, Math.min(maxY, savedTranslateY.value));
-      scale.value = withTiming(clampedScale, { duration: 160 });
-      savedScale.value = clampedScale;
-      translateX.value = reset ? withTiming(0, { duration: 160 }) : nextX;
-      translateY.value = reset ? withTiming(0, { duration: 160 }) : nextY;
-      savedTranslateX.value = nextX;
-      savedTranslateY.value = nextY;
-      commitMapTransform(clampedScale, nextX, nextY);
-    },
-    [
-      commitMapTransform,
-      mapCanvasWidth,
-      savedScale,
-      savedTranslateX,
-      savedTranslateY,
-      scale,
-      translateX,
-      translateY,
-    ],
-  );
-
   const pinchGesture = Gesture.Pinch()
     .onStart((event) => {
       pinchStartTranslateX.value = savedTranslateX.value;
@@ -859,34 +722,6 @@ function WorldMap({
           </Animated.View>
         </View>
       </GestureDetector>
-      {currentLocation && mapCanvasWidth > 1 ? (
-        <CurrentPositionPin
-          latitude={currentLocation.latitude}
-          longitude={currentLocation.longitude}
-          canvasWidth={mapCanvasWidth}
-          scale={scale}
-          translateX={translateX}
-          translateY={translateY}
-        />
-      ) : null}
-      <View style={styles.mapControls}>
-        <TouchableOpacity
-          style={styles.mapControlButton}
-          onPress={() => setMapZoom(zoomLevel * 1.7)}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom map in"
-        >
-          <Ionicons name="add" size={22} color={BrandColors.onDark} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.mapControlButton}
-          onPress={() => setMapZoom(zoomLevel / 1.7)}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom map out"
-        >
-          <Ionicons name="remove" size={22} color={BrandColors.onDark} />
-        </TouchableOpacity>
-      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -994,11 +829,7 @@ export default function HomeScreen() {
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
-  const isKrooPlus = useAppSelector((x) => x.subscription.isKrooPlus);
-  const gpsArrivalsAllowed = canUseGpsArrivals(isKrooPlus);
   const dashboard = useAppSelector((x) => x.dashboard);
-  const [currentLocation, setCurrentLocation] =
-    useState<CurrentMapLocation | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [infoModal, setInfoModal] = useState<{
     title: string;
@@ -1010,83 +841,30 @@ export default function HomeScreen() {
     footer?: string;
   } | null>(null);
   const [welcomeName, setWelcomeName] = useState(name);
-  const showWelcome = !name;
-  const saveWelcomeName = useCallback(() => {
+  const invitation = useAppSelector((x) => x.profile.invitation);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralError, setReferralError] = useState("");
+  const [validatingReferral, setValidatingReferral] = useState(false);
+  const showWelcome = !invitation || !name;
+  const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
-    if (trimmed) dispatch(nameChanged(trimmed));
-  }, [dispatch, welcomeName]);
-  const locateUser = useCallback(async () => {
-    if (!gpsArrivalsAllowed) return;
+    if (!trimmed || !referralCode.trim() || validatingReferral) return;
+    setValidatingReferral(true);
+    setReferralError("");
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) return;
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setCurrentLocation({
-        label: "Current position",
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
-      try {
-        const [address] = await Location.reverseGeocodeAsync(position.coords);
-        setCurrentLocation({
-          label:
-            [address?.city || address?.subregion, address?.country]
-              .filter(Boolean)
-              .join(", ") || "Current position",
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      } catch (error) {
-        console.warn("Could not resolve the current location name.", error);
-      }
+      const result = await api.validateReferral(referralCode.trim());
+      dispatch(nameChanged(trimmed));
+      dispatch(invitationAccepted(result.accessToken));
     } catch (error) {
-      console.warn("Could not get the current GPS position.", error);
-    }
-  }, [gpsArrivalsAllowed]);
-  useEffect(() => {
-    let active = true;
-    let subscription: Location.LocationSubscription | undefined;
-    if (!gpsArrivalsAllowed) {
-      setCurrentLocation(null);
-      void stopArrivalMonitoring().catch(() => undefined);
-      return () => {
-        active = false;
-      };
-    }
-    const startLocation = async () => {
-      await locateUser();
-      const permission = await Location.getForegroundPermissionsAsync();
-      if (!active || !permission.granted) return;
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 25,
-          timeInterval: 30_000,
-        },
-        (position) => {
-          if (!active) return;
-          setCurrentLocation((previous) => ({
-            label: previous?.label ?? "Current position",
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }));
-        },
+      setReferralError(
+        error instanceof Error
+          ? error.message
+          : "Could not check your referral code. Please try again.",
       );
-      if (!active) {
-        subscription.remove();
-        subscription = undefined;
-      }
-    };
-    void startLocation().catch((error) => {
-      console.warn("Could not start foreground location updates.", error);
-    });
-    return () => {
-      active = false;
-      subscription?.remove();
-    };
-  }, [gpsArrivalsAllowed, locateUser]);
+    } finally {
+      setValidatingReferral(false);
+    }
+  }, [dispatch, welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.syncVisits(visits),
@@ -1256,31 +1034,21 @@ export default function HomeScreen() {
             </View>
           </View>
           <Image
-            source={require("@/assets/images/other/globe-airplane.png")}
+            source={require("@/assets/images/other/globe.webp")}
             style={[styles.globe, compact && styles.globeCompact]}
             contentFit="contain"
           />
           <Image
-            source={require("@/assets/images/other/collect_letter.webp")}
+            source={require("@/assets/images/other/airport.webp")}
             style={styles.heroTagline}
             contentFit="contain"
           />
         </View>
         <View style={styles.scoreCard}>
-          <TouchableOpacity
-            style={styles.scoreLine}
-            onPress={openKrooScore}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Open Kroo Score details"
-          >
+          <View style={styles.scoreLine}>
             <View style={styles.infoTitleRow}>
               <Text style={styles.scoreTitle}>KROO SCORE</Text>
-              <Ionicons
-                name="information-circle-outline"
-                size={17}
-                color={BrandColors.copper}
-              />
+              <InfoButton label="About Kroo Score" onPress={openKrooScore} />
             </View>
             <View style={styles.scoreCenter}>
               <Image
@@ -1307,7 +1075,7 @@ export default function HomeScreen() {
               <Text style={styles.worldPercent}>{worldProgress}%</Text>
               <Text style={styles.worldText}> of the world explored</Text>
             </View>
-          </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.statsShared}>
           <TravelStats
@@ -1341,11 +1109,7 @@ export default function HomeScreen() {
         </View>
         <CityVisitSearch home />
         <View>
-          <WorldMap
-            visited={countryCodes}
-            visits={visits}
-            currentLocation={gpsArrivalsAllowed ? currentLocation : null}
-          />
+          <WorldMap visited={countryCodes} visits={visits} />
           <View pointerEvents="none" style={styles.collectWorld}>
             <Image
               source={require("@/assets/images/other/compass.png")}
@@ -1406,7 +1170,8 @@ export default function HomeScreen() {
               >
                 <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
                 <Text style={styles.welcomeBody}>
-                  Track your travels. Collect the world.{"\n"}No account needed.
+                  No account needed to start.{"\n"}Enter a Kroo member referral
+                  code to join.
                 </Text>
                 <View style={styles.welcomeOrnament}>
                   <View style={styles.ornamentLine} />
@@ -1479,17 +1244,48 @@ export default function HomeScreen() {
                     autoCapitalize="words"
                   />
                 </View>
+                <Text style={styles.welcomeQuestion}>Member referral code</Text>
+                <View style={styles.welcomeInputWrap}>
+                  <TextInput
+                    value={referralCode}
+                    onChangeText={(value) => {
+                      setReferralCode(value);
+                      setReferralError("");
+                    }}
+                    style={styles.welcomeInput}
+                    placeholder="Enter referral code"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel="Member referral code"
+                    editable={!validatingReferral}
+                  />
+                </View>
+                {referralError ? (
+                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                    {referralError}
+                  </Text>
+                ) : null}
                 <TouchableOpacity
                   style={[
                     styles.welcomeButton,
-                    !welcomeName.trim() && styles.welcomeButtonDisabled,
+                    (!welcomeName.trim() ||
+                      !referralCode.trim() ||
+                      validatingReferral) &&
+                      styles.welcomeButtonDisabled,
                   ]}
                   onPress={saveWelcomeName}
                   accessibilityRole="button"
-                  accessibilityLabel="Save passport name"
-                  disabled={!welcomeName.trim()}
+                  accessibilityLabel="Validate referral and continue"
+                  disabled={
+                    !welcomeName.trim() ||
+                    !referralCode.trim() ||
+                    validatingReferral
+                  }
                 >
-                  <Text style={styles.welcomeButtonText}>CONTINUE</Text>
+                  <Text style={styles.welcomeButtonText}>
+                    {validatingReferral ? "CHECKING..." : "CONTINUE"}
+                  </Text>
                   <Ionicons
                     name="arrow-forward"
                     size={16}
@@ -1656,7 +1452,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   welcomeQuestion: {
-    marginTop: 18,
+    marginTop: 8,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(16),
     lineHeight: responsiveFontSize(23),
@@ -1666,7 +1462,7 @@ const styles = StyleSheet.create({
   },
   welcomeInputWrap: {
     minHeight: 32,
-    marginTop: 10,
+    marginTop: 4,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -1737,9 +1533,9 @@ const styles = StyleSheet.create({
   heroTagline: {
     position: "absolute",
     right: 10,
-    bottom: 5,
-    width: 150,
-    height: 55,
+    top: 50,
+    width: 170,
+    height: "100%",
     zIndex: 10,
   },
   scoreCenter: {
@@ -1819,7 +1615,7 @@ const styles = StyleSheet.create({
     height: 170,
     zIndex: 0,
   },
-  globeCompact: { right: 10, top: 25, width: 150, height: 150 },
+  globeCompact: { right: 40, top: 25, width: 150, height: 150 },
   scoreCard: {
     marginHorizontal: 12,
     paddingVertical: 10,
@@ -1960,30 +1756,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  mapControls: {
-    position: "absolute",
-    right: 8,
-    top: 8,
-    zIndex: 8,
-    gap: 6,
-  },
-  mapControlButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: "rgba(0, 40, 29, 0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  currentPositionPin: {
-    position: "absolute",
-    zIndex: 5,
-    width: 26,
-    height: 34,
-  },
-  currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(11),

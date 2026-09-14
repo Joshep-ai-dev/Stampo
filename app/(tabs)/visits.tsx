@@ -663,7 +663,7 @@ const s = StyleSheet.create({
   destinationName: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(13),
-    color: "#fff",
+    color: BrandColors.white,
   },
   destinationValue: {
     fontFamily: "Lora_700Bold",

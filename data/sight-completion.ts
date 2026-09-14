@@ -1,9 +1,13 @@
+import usStates from "./us-states.json";
+
 type CollectionCompletionPlace = {
   id: string;
   sightId?: string | number | null;
   name?: string;
   state?: string;
   country?: string;
+  countryId?: string;
+  countryCode?: string;
 };
 
 type CollectionCompletionVisit = {
@@ -12,7 +16,13 @@ type CollectionCompletionVisit = {
   countryCode: string;
 };
 
-const normalize = (value?: string) => value?.trim().toLocaleLowerCase() ?? "";
+const normalize = (value?: string) => value?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/\s+/g, " ") ?? "";
+
+const normalizeState = (value?: string) => {
+  const key = value?.trim().toUpperCase().replace(/^US-/, "") ?? "";
+  return normalize(usStates[key as keyof typeof usStates] ?? value);
+};
+const isUnitedStates = (value?: string) => ["us", "usa", "united states", "united states of america"].includes(normalize(value));
 
 export function collectionPlaceCompletionId(
   collectionId: string,
@@ -35,19 +45,19 @@ export function isCollectionPlaceCompleted(
     return true;
   }
 
-  const state = normalize(place.state);
+  const state = normalizeState(place.state);
   const isStateChecklistItem =
     state.length > 0 &&
-    normalize(place.name) === state &&
-    normalize(place.country) === "united states";
+    normalizeState(place.name) === state &&
+    (isUnitedStates(place.countryId) || isUnitedStates(place.countryCode) || isUnitedStates(place.country));
 
   return (
     isStateChecklistItem &&
     visits.some(
       (visit) =>
-        normalize(visit.subcountry) === state &&
+        normalizeState(visit.subcountry) === state &&
         (visit.countryCode.trim().toUpperCase() === "US" ||
-          normalize(visit.country) === "united states"),
+          isUnitedStates(visit.country)),
     )
   );
 }

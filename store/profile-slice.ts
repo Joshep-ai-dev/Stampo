@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type ProfileState = {
+  invitation: string | null;
   name: string;
   familyName: string;
   email: string;
@@ -35,6 +36,7 @@ export type ProfileDetails = Pick<
 >;
 
 const initialState: ProfileState = {
+  invitation: null,
   name: "",
   familyName: "",
   email: "",
@@ -57,6 +59,7 @@ const profileSlice = createSlice({
   name: "profile",
   initialState,
   reducers: {
+    invitationAccepted(state, action: PayloadAction<string>) { state.invitation = action.payload; },
     nameChanged(state, action: PayloadAction<string>) {
       state.name = action.payload.trim() || state.name;
     },
@@ -90,6 +93,7 @@ const profileSlice = createSlice({
 });
 
 export const {
+  invitationAccepted,
   authSessionChanged,
   nameChanged,
   profileDetailsChanged,
