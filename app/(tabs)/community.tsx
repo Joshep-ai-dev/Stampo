@@ -633,7 +633,7 @@ const s = StyleSheet.create({
   action: {
     minHeight: 36,
     paddingHorizontal: 22,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: BrandColors.copperDark,
     backgroundColor: BrandColors.copper,
