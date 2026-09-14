@@ -169,10 +169,6 @@ export default function PlusScreen() {
               </Text>
             </>
           )}
-          <View style={s.location}>
-            <Ionicons name="location" size={14} color="#fff" />
-            <Text style={s.locationText}>Phi Phi Islands, Thailand</Text>
-          </View>
         </ImageBackground>
 
         <View style={s.steps}>
@@ -494,23 +490,6 @@ const s = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
-  },
-  location: {
-    marginTop: "auto",
-    paddingTop: 40,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 5,
-  },
-  locationText: {
-    flex: 1,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
-    color: BrandColors.white,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
-    marginBottom: 10,
   },
   steps: {
     marginTop: -32,
