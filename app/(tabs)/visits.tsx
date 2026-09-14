@@ -254,7 +254,6 @@ export default function PlusScreen() {
         <View style={s.vacations}>
           <View style={s.sectionRow}>
             <Text style={s.lightHeading}>Choose Your Dream Vacation</Text>
-            <Text style={s.viewAll}>View All Destinations →</Text>
           </View>
           <ScrollView
             horizontal
@@ -642,11 +641,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(16),
     color: BrandColors.ink,
-  },
-  viewAll: {
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(12),
-    color: BrandColors.muted,
   },
   destinationRow: { paddingHorizontal: 14, paddingTop: 9, gap: 9 },
   destinationCard: {
