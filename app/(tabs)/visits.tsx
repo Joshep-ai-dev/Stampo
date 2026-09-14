@@ -148,14 +148,6 @@ export default function PlusScreen() {
           style={[s.hero, { minHeight: Math.max(280, width * 0.64) }]}
           contentFit="cover"
         >
-          <View style={s.brandRow}>
-            <Image
-              source={require("../../assets/images/kroo_logo_text.png")}
-              style={s.wordmark}
-              contentFit="contain"
-              accessibilityLabel="Kroo"
-            />
-          </View>
           {!isPlus && (
             <>
               <Text style={s.heroTitle}>Join Kroo+</Text>
@@ -482,12 +474,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 22,
   },
-  brandRow: {
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
   heroTitle: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
