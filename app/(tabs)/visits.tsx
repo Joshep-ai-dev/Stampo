@@ -471,10 +471,12 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 26 },
   hero: {
+    paddingTop: 6,
     paddingHorizontal: 18,
     paddingBottom: 22,
   },
   heroTitle: {
+    marginTop: 2,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(26),
