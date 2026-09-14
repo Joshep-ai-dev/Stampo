@@ -1,3 +1,4 @@
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -9,12 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitDetailModal } from "@/components/city-visit-detail-modal";
+import { CollectionStampList } from "@/components/collection-stamp-card";
 import { DetailModal } from "@/components/detail-modal";
-import { PlaceCollectionList } from "@/components/place-collection-list";
 import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   PlaceSectionTitle,
@@ -267,9 +267,10 @@ export default function CityScreen() {
                 </Text>
               ) : null}
             </View>
-            <PlaceCollectionList
+            <CollectionStampList
               collections={city.collections ?? []}
               completedSightIds={completedSightIds}
+              visits={visits}
               placeName={city.name}
             />
           </>

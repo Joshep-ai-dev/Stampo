@@ -1254,12 +1254,15 @@ export default function HomeScreen() {
               </Text>
               <InfoButton label="About Kroo Levels" onPress={openKrooLevels} />
             </View>
-            <Text style={styles.heroMotto}>EXPLORE · DISCOVER · BELONG</Text>
           </View>
-          <Text style={styles.heroTagline}>A more curious you.</Text>
           <Image
             source={require("@/assets/images/other/globe-airplane.png")}
             style={[styles.globe, compact && styles.globeCompact]}
+            contentFit="contain"
+          />
+          <Image
+            source={require("@/assets/images/other/collect_letter.webp")}
+            style={styles.heroTagline}
             contentFit="contain"
           />
         </View>
@@ -1327,21 +1330,11 @@ export default function HomeScreen() {
                 value: continentCount,
                 total: 7,
                 label: "CONTINENTS",
-                onInfo: () =>
-                  setInfoModal({
-                    title: "Continents",
-                    body: "Explore all seven continents. Each continent with a visited city counts toward your total.",
-                  }),
               },
               {
                 icon: "business-outline",
                 value: cityCount,
                 label: "CITIES",
-                onInfo: () =>
-                  setInfoModal({
-                    title: "Cities",
-                    body: "Your total counts unique visited cities. Use the search below to add your travels.",
-                  }),
               },
             ]}
           />
@@ -1741,22 +1734,13 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(8),
     color: BrandColors.white,
   },
-  heroMotto: {
-    marginLeft: 36,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(8),
-    letterSpacing: 1.5,
-    color: "#91A58A",
-  },
   heroTagline: {
     position: "absolute",
-    zIndex: 50,
-    right: 20,
-    bottom: 20,
-    fontFamily: "Caveat_400Regular",
-    fontSize: responsiveFontSize(20),
-    color: "#79A783",
-    transform: [{ rotate: "-5deg" }],
+    right: 10,
+    bottom: 5,
+    width: 150,
+    height: 55,
+    zIndex: 10,
   },
   scoreCenter: {
     flexDirection: "row",
@@ -1785,7 +1769,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     overflow: "hidden",
   },
-  heroCompact: { height: 190, paddingHorizontal: 14 },
+  heroCompact: { height: 180, paddingHorizontal: 14 },
   welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
@@ -1831,12 +1815,11 @@ const styles = StyleSheet.create({
   globe: {
     position: "absolute",
     right: 16,
-    top: 25,
     width: 170,
     height: 170,
     zIndex: 0,
   },
-  globeCompact: { right: 10, top: 35, width: 150, height: 150 },
+  globeCompact: { right: 10, top: 25, width: 150, height: 150 },
   scoreCard: {
     marginHorizontal: 12,
     paddingVertical: 10,

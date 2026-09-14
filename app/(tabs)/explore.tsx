@@ -1,24 +1,18 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Text } from "@/components/app-text";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CollectionStampCard } from "@/components/collection-stamp-card";
 import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
-import { StampCardBackground } from "@/components/stamp-card-background";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
-import { collectionPlaceCompletionId } from "@/data/sight-completion";
+import { isCollectionPlaceCompleted } from "@/data/sight-completion";
 import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
@@ -103,15 +97,17 @@ export default function ExploreScreen() {
   );
   const visibleCollections = useMemo(() => {
     const withLocalProgress = collectionCatalog.map((collection) => {
-      const placeIds =
-        collection.places?.map((place) =>
-          collectionPlaceCompletionId(collection.id, place),
-        ) ?? [];
-      const localCompleted = placeIds.filter((id) =>
-        completedSightIds.includes(id),
+      const places = collection.places ?? [];
+      const localCompleted = places.filter((place) =>
+        isCollectionPlaceCompleted(
+          collection.id,
+          place,
+          completedSightIds,
+          visits,
+        ),
       ).length;
-      const localProgress = placeIds.length
-        ? Math.round((localCompleted / placeIds.length) * 100)
+      const localProgress = places.length
+        ? Math.round((localCompleted / places.length) * 100)
         : 0;
       return {
         ...collection,
@@ -125,7 +121,7 @@ export default function ExploreScreen() {
       );
     }
     return withLocalProgress.filter((collection) => collection.progress >= 100);
-  }, [collectionCatalog, collectionFilter, completedSightIds]);
+  }, [collectionCatalog, collectionFilter, completedSightIds, visits]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -217,48 +213,15 @@ export default function ExploreScreen() {
         >
           {visibleCollections.length ? (
             visibleCollections.map((collection) => (
-              <TouchableOpacity
+              <CollectionStampCard
                 key={collection.id}
-                style={s.challenge}
-                activeOpacity={0.82}
+                title={collection.title}
+                imageUrl={collection.explorerImageUrl}
+                progress={collection.progress}
                 onPress={() =>
                   router.push(`/collection/${collection.id}` as never)
                 }
-              >
-                <StampCardBackground />
-                <View style={s.collectionHeader}>
-                  <Text style={s.challengeTitle} numberOfLines={1}>
-                    {collection.title}
-                  </Text>
-                </View>
-                <View style={s.challengeSeal}>
-                  {collection.explorerImageUrl ? (
-                    <Image
-                      source={{ uri: collection.explorerImageUrl }}
-                      style={s.collectionImage}
-                      contentFit="contain"
-                      cachePolicy="memory-disk"
-                      priority="high"
-                      transition={120}
-                    />
-                  ) : null}
-                </View>
-                {collection.progress > 0 ? (
-                  <View style={s.collectionProgressRow}>
-                    <View style={s.challengeProgress}>
-                      <View
-                        style={[
-                          s.progressFill,
-                          { width: `${collection.progress}%` },
-                        ]}
-                      />
-                    </View>
-                    <Text style={s.challengePercent}>
-                      {collection.progress}%
-                    </Text>
-                  </View>
-                ) : null}
-              </TouchableOpacity>
+              />
             ))
           ) : (
             <View style={s.empty}>
@@ -312,29 +275,6 @@ const s = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 12,
   },
-  progress: {
-    position: "absolute",
-    left: 9,
-    right: 27,
-    bottom: 10,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: BrandColors.surfaceSoft,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-    backgroundColor: BrandColors.copper,
-  },
-  percent: {
-    position: "absolute",
-    right: 6,
-    bottom: 5,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(8),
-    color: BrandColors.muted,
-  },
   empty: {
     width: 280,
     height: 90,
@@ -351,57 +291,5 @@ const s = StyleSheet.create({
     gap: 10,
     paddingTop: 5,
     paddingBottom: 12,
-  },
-  challenge: {
-    width: 148,
-    height: 240,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 9,
-    borderRadius: 12,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  collectionHeader: {
-    width: "100%",
-    height: 24,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  challengeSeal: {
-    width: 124,
-    height: 174,
-    marginTop: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  collectionImage: { height: "100%", width: 400 },
-  collectionProgressRow: {
-    width: "100%",
-    marginTop: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  challengeTitle: {
-    textAlign: "center",
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.green,
-    flexShrink: 1,
-  },
-  challengeProgress: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: BrandColors.surfaceSoft,
-    overflow: "hidden",
-  },
-  challengePercent: {
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(10),
-    color: BrandColors.muted,
   },
 });

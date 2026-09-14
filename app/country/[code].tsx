@@ -18,7 +18,7 @@ import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
-import { PlaceCollectionList } from "@/components/place-collection-list";
+import { CollectionStampList } from "@/components/collection-stamp-card";
 import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   CitiesVisitedSection,
@@ -410,11 +410,12 @@ export default function CountryScreen() {
             })
           }
         />
-        <PlaceCollectionList
+        <CollectionStampList
           collections={countryCollectionItems.map(
             ({ collection }) => collection,
           )}
           completedSightIds={completedSightIds}
+          visits={allVisits}
           placeName={name}
         />
 

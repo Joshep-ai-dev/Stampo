@@ -533,7 +533,13 @@ function IdentityPage({
                         size={12}
                         color={BrandColors.green}
                       />
-                      <Text numberOfLines={1} style={styles.passportSelectText}>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.passportSelectText,
+                          styles.authSelectText,
+                        ]}
+                      >
                         {draft.nationality || "Select nationality"}
                       </Text>
                       {editing ? (
@@ -781,8 +787,10 @@ function IdentityPage({
             {authMode !== "code" ? (
               <View style={styles.authPassportRow}>
                 <View style={[styles.authField, styles.authBirthdate]}>
-                  <Text style={styles.fieldCaption}>GIVEN NAME</Text>
-                  <View style={styles.fieldControl}>
+                  <Text style={[styles.fieldCaption, styles.authFieldCaption]}>
+                    GIVEN NAME
+                  </Text>
+                  <View style={[styles.fieldControl, styles.authFieldControl]}>
                     <TextInput
                       value={draft.name}
                       onChangeText={(name) =>
@@ -791,14 +799,20 @@ function IdentityPage({
                       placeholder="First name"
                       placeholderTextColor="#a89378"
                       autoCapitalize="words"
-                      style={styles.identityInput}
+                      style={[styles.identityInput, styles.authInput]}
                     />
                   </View>
                 </View>
                 {authMode === "create-account" ? (
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.fieldCaption}>FAMILY NAME</Text>
-                    <View style={styles.fieldControl}>
+                    <Text
+                      style={[styles.fieldCaption, styles.authFieldCaption]}
+                    >
+                      FAMILY NAME
+                    </Text>
+                    <View
+                      style={[styles.fieldControl, styles.authFieldControl]}
+                    >
                       <TextInput
                         value={draft.familyName}
                         onChangeText={(familyName) =>
@@ -807,7 +821,7 @@ function IdentityPage({
                         placeholder="Family name"
                         placeholderTextColor="#a89378"
                         autoCapitalize="words"
-                        style={styles.identityInput}
+                        style={[styles.identityInput, styles.authInput]}
                       />
                     </View>
                   </View>
@@ -818,9 +832,13 @@ function IdentityPage({
               <>
                 <View style={styles.authPassportRow}>
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.fieldCaption}>NATIONALITY</Text>
+                    <Text
+                      style={[styles.fieldCaption, styles.authFieldCaption]}
+                    >
+                      NATIONALITY
+                    </Text>
                     <TouchableOpacity
-                      style={styles.fieldControl}
+                      style={[styles.fieldControl, styles.authFieldControl]}
                       onPress={() => {
                         setCountryPickerTarget("nationality");
                         setCountryPickerVisible(true);
@@ -837,12 +855,21 @@ function IdentityPage({
                     </TouchableOpacity>
                   </View>
                   <View style={[styles.authField, styles.authBirthdate]}>
-                    <Text style={styles.fieldCaption}>DATE OF BIRTH</Text>
+                    <Text
+                      style={[styles.fieldCaption, styles.authFieldCaption]}
+                    >
+                      DATE OF BIRTH
+                    </Text>
                     <TouchableOpacity
-                      style={styles.fieldControl}
+                      style={[styles.fieldControl, styles.authFieldControl]}
                       onPress={() => setDatePickerVisible(true)}
                     >
-                      <Text style={styles.passportSelectText}>
+                      <Text
+                        style={[
+                          styles.passportSelectText,
+                          styles.authSelectText,
+                        ]}
+                      >
                         {draft.dateOfBirth || "YYYY-MM-DD"}
                       </Text>
                     </TouchableOpacity>
@@ -851,8 +878,10 @@ function IdentityPage({
               </>
             ) : null}
             <View style={styles.authField}>
-              <Text style={styles.fieldCaption}>EMAIL</Text>
-              <View style={styles.fieldControl}>
+              <Text style={[styles.fieldCaption, styles.authFieldCaption]}>
+                EMAIL
+              </Text>
+              <View style={[styles.fieldControl, styles.authFieldControl]}>
                 <TextInput
                   value={draft.email}
                   onChangeText={(email) =>
@@ -863,16 +892,16 @@ function IdentityPage({
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  style={styles.identityInput}
+                  style={[styles.identityInput, styles.authInput]}
                 />
               </View>
             </View>
             {authMode === "code" ? (
               <View style={styles.authField}>
-                <Text style={styles.fieldCaption}>
+                <Text style={[styles.fieldCaption, styles.authFieldCaption]}>
                   6-DIGIT VERIFICATION CODE
                 </Text>
-                <View style={styles.fieldControl}>
+                <View style={[styles.fieldControl, styles.authFieldControl]}>
                   <TextInput
                     value={verificationCode}
                     onChangeText={(value) =>
@@ -882,7 +911,7 @@ function IdentityPage({
                     placeholderTextColor="#a89378"
                     keyboardType="number-pad"
                     maxLength={6}
-                    style={styles.identityInput}
+                    style={[styles.identityInput, styles.authInput]}
                   />
                 </View>
               </View>
@@ -912,6 +941,7 @@ function IdentityPage({
                   style={[
                     styles.actionButtonText,
                     styles.actionButtonTextPrimary,
+                    styles.authButtonText,
                   ]}
                 >
                   {authMode === "code" || authMode === "create-account"
@@ -944,6 +974,7 @@ function IdentityPage({
                   style={[
                     styles.actionButtonText,
                     styles.actionButtonTextSecondary,
+                    styles.authButtonText,
                   ]}
                 >
                   {authBusy
@@ -1534,8 +1565,12 @@ const styles = StyleSheet.create({
   },
   authField: {
     width: "100%",
-    marginBottom: 12,
+    marginBottom: 16,
   },
+  authFieldCaption: { fontSize: responsiveFontSize(11), marginBottom: 4 },
+  authFieldControl: { height: 42, paddingHorizontal: 12, borderRadius: 8 },
+  authInput: { height: 42, fontSize: responsiveFontSize(15) },
+  authSelectText: { fontSize: responsiveFontSize(14) },
   photoBox: {
     width: 90,
     height: 115,
@@ -1669,7 +1704,8 @@ const styles = StyleSheet.create({
     color: BrandColors.ink,
   },
   authButtons: { width: "100%", flexDirection: "row", gap: 6 },
-  authButton: { flex: 1 },
+  authButton: { flex: 1, height: 42, borderRadius: 8 },
+  authButtonText: { fontSize: responsiveFontSize(12) },
   authButtonDisabled: { opacity: 0.55 },
   actionButton: {
     flexGrow: 1,

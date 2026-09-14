@@ -265,6 +265,7 @@ export function CityVisitSearch({
             <Pressable
               onPress={() => setQuery("")}
               hitSlop={10}
+              style={styles.clearButton}
               accessibilityLabel="Clear search"
             >
               <Ionicons name="close-circle" size={16} color="#b4a796" />
@@ -502,9 +503,9 @@ export function CityVisitSearch({
 
 const styles = StyleSheet.create({
   homeInputWrap: { height: 42, borderRadius: 8, paddingHorizontal: 12 },
-  homeInput: { textAlign: "left", fontSize: responsiveFontSize(15) },
+  homeInput: { textAlign: "center", fontSize: responsiveFontSize(15) },
   homeButton: { width: 42, height: 42, borderRadius: 8 },
-  wrapper: { marginTop: 20, paddingHorizontal: 14, zIndex: 4 },
+  wrapper: { marginTop: 12, paddingHorizontal: 14, zIndex: 4 },
   heading: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(24),
@@ -532,6 +533,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     paddingVertical: 0,
   },
+  clearButton: { position: "absolute", right: 12 },
   searchButton: {
     width: 42,
     height: 42,

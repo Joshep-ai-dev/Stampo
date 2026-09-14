@@ -24,7 +24,10 @@ import {
   type CollectionDefinition,
   type CollectionPlace,
 } from "@/data/collections";
-import { collectionPlaceCompletionId } from "@/data/sight-completion";
+import {
+  collectionPlaceCompletionId,
+  isCollectionPlaceCompleted,
+} from "@/data/sight-completion";
 import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -72,6 +75,7 @@ export default function CollectionScreen() {
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
+  const visits = useAppSelector((state) => state.travel.visits);
   const subscription = useAppSelector((state) => state.subscription);
   const [collection, setCollection] = useState<CollectionDefinition | null>(
     null,
@@ -135,7 +139,12 @@ export default function CollectionScreen() {
 
   const toggleCompleted = async (place: CollectionPlace) => {
     const targetId = collectionPlaceCompletionId(collection.id, place);
-    const next = !completedSightIds.includes(targetId);
+    const next = !isCollectionPlaceCompleted(
+      collection.id,
+      place,
+      completedSightIds,
+      visits,
+    );
     dispatch(sightCompletionSet({ id: targetId, completed: next }));
     if (!isSignedIn) return;
     try {
@@ -154,9 +163,7 @@ export default function CollectionScreen() {
   };
 
   const completedCount = collection.places.filter((place) =>
-    completedSightIds.includes(
-      collectionPlaceCompletionId(collection.id, place),
-    ),
+    isCollectionPlaceCompleted(collection.id, place, completedSightIds, visits),
   ).length;
   const isPremiumPlace = (place: CollectionPlace) =>
     place.access === "pro" || place.isPremium === true;
@@ -197,8 +204,12 @@ export default function CollectionScreen() {
         </View>
         <View style={s.placeList}>
           {freePlaces.map((place) => {
-            const targetId = collectionPlaceCompletionId(collection.id, place);
-            const checked = completedSightIds.includes(targetId);
+            const checked = isCollectionPlaceCompleted(
+              collection.id,
+              place,
+              completedSightIds,
+              visits,
+            );
             return (
               <TouchableOpacity
                 key={place.id}
@@ -248,11 +259,12 @@ export default function CollectionScreen() {
             </View>
             <View style={s.lockedList}>
               {premiumPlacePreviews.map((place) => {
-                const targetId = collectionPlaceCompletionId(
+                const checked = isCollectionPlaceCompleted(
                   collection.id,
                   place,
+                  completedSightIds,
+                  visits,
                 );
-                const checked = completedSightIds.includes(targetId);
                 return (
                   <TouchableOpacity
                     key={place.id}
