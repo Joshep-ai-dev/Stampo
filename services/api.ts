@@ -110,6 +110,18 @@ export type HomeDashboard = {
   worldProgress: number;
   visitedCountryCodes: string[];
   continentCounts: Record<string, number>;
+  challengeProgress: {
+    krooScore: number;
+    krooScoreTarget: number;
+    krooScoreQualified: boolean;
+    krooIqScore: number;
+    krooIqTarget: number;
+    krooIqQualified: boolean;
+    referralCount: number;
+    referralTarget: number;
+    referralsQualified: boolean;
+    qualified: boolean;
+  };
   updatedAt: string;
 };
 

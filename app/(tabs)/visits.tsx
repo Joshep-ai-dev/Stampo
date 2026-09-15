@@ -2,8 +2,8 @@ import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
@@ -21,7 +21,8 @@ import { useKrooPlusBilling } from "@/components/subscription-provider";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
-import { useAppSelector } from "@/store/hooks";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
 
@@ -56,17 +57,20 @@ type Destination = (typeof destinations)[number];
 export default function PlusScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const billing = useKrooPlusBilling();
   const { countryCode, countryName } = useLocalSearchParams<{
     countryCode?: string;
     countryName?: string;
   }>();
   const travel = useAppSelector((state) => state.travel);
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const dashboard = useAppSelector((state) => state.dashboard.data);
   const isPlus = useAppSelector((state) => state.subscription.isKrooPlus);
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Destination | null>(null);
-  const krooScore = useMemo(
+  const localKrooScore = useMemo(
     () =>
       calculateKrooScoreFromVisits(
         travel.visits,
@@ -75,8 +79,20 @@ export default function PlusScreen() {
       ),
     [travel],
   );
-  const krooIq = 0;
-  const referrals = 0;
+  useFocusEffect(
+    useCallback(() => {
+      if (isSignedIn) void dispatch(fetchHomeDashboard());
+    }, [dispatch, isSignedIn]),
+  );
+  const challenge = dashboard?.challengeProgress;
+  const krooScore = challenge?.krooScore ?? localKrooScore;
+  const krooIq = challenge?.krooIqScore ?? 0;
+  const referrals = challenge?.referralCount ?? 0;
+  const completedSteps = [
+    krooScore >= (challenge?.krooScoreTarget ?? 5),
+    krooIq >= (challenge?.krooIqTarget ?? 80),
+    referrals >= (challenge?.referralTarget ?? 5),
+  ].filter(Boolean).length;
 
   if (countryCode)
     return (
@@ -264,7 +280,9 @@ export default function PlusScreen() {
             />
           </View>
           <Text style={s.progressNote}>
-            You&apos;re already 2 steps away from qualifying!
+            {completedSteps === 3
+              ? "You qualify for the Dream Vacation Challenge!"
+              : `${3 - completedSteps} ${3 - completedSteps === 1 ? "step" : "steps"} away from qualifying!`}
           </Text>
         </View>
 

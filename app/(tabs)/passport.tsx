@@ -976,7 +976,7 @@ const styles = StyleSheet.create({
   },
   coverLevel: {
     position: "absolute",
-    top: "79.2%",
+    top: "78%",
     left: "13%",
     right: "13%",
     textAlign: "center",

@@ -15,7 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import { api, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
-import { useAppSelector } from "@/store/hooks";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const c = {
   green: BrandColors.greenDeep,
@@ -53,10 +54,14 @@ function PaperBorder({ wide = false }: { wide?: boolean }) {
 
 export default function KrooIqScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { status: subscriptionStatus } = useAppSelector(
     (state) => state.subscription,
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const savedKrooIqScore = useAppSelector(
+    (state) => state.dashboard.data?.challengeProgress?.krooIqScore ?? 0,
+  );
   const [quiz, setQuiz] = useState<KrooIqQuiz | null>(null);
   const [stage, setStage] = useState<Stage>("intro");
   const [index, setIndex] = useState(0);
@@ -68,7 +73,7 @@ export default function KrooIqScreen() {
   const questions = quiz?.questions ?? [];
   const question = questions[index];
   const correct = quiz?.attempt.correctCount ?? 0;
-  const score = quiz?.attempt.scoreAfter ?? 0;
+  const score = quiz?.attempt.scoreAfter ?? savedKrooIqScore;
   const progress = stage === "intro" ? 0 : index + 1;
 
   const load = useCallback(async () => {
@@ -96,8 +101,9 @@ export default function KrooIqScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (isSignedIn) void dispatch(fetchHomeDashboard());
       void load();
-    }, [load]),
+    }, [dispatch, isSignedIn, load]),
   );
 
   const confirm = async () => {
@@ -110,6 +116,7 @@ export default function KrooIqScreen() {
       setQuiz((current) =>
         current ? { ...current, attempt: result.attempt } : current,
       );
+      if (result.attempt.completed) void dispatch(fetchHomeDashboard());
       setStage("answer");
     } catch (cause) {
       setError(
