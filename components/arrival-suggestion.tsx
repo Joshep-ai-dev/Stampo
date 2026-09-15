@@ -82,10 +82,10 @@ export function ArrivalSuggestionPrompt() {
   const confirmVisit = async () => {
     if (!suggestion || !isSignedIn || !canUseGpsArrivals(isKrooPlus)) {
       Alert.alert(
-        GPS_ARRIVALS_REQUIRE_KROO_PLUS ? "Kroo+" : "Sign in required",
+        GPS_ARRIVALS_REQUIRE_KROO_PLUS ? "Kroo+" : "Kroo Passport required",
         GPS_ARRIVALS_REQUIRE_KROO_PLUS
-          ? "Sign in with an active Kroo+ membership to save a GPS-verified visit."
-          : "Sign in to save a GPS-verified visit.",
+          ? "An active Kroo+ membership is required to save a GPS-verified visit."
+          : "Finish setting up your Kroo Passport to save this visit.",
       );
       return;
     }

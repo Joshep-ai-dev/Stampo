@@ -117,9 +117,9 @@ export default function AddFriendsScreen() {
         {!isSignedIn ? (
           <View style={s.signedOut}>
             <Ionicons name="person-circle-outline" size={46} color={c.copper} />
-            <Text style={s.signedOutTitle}>Sign in to add friends</Text>
+            <Text style={s.signedOutTitle}>Kroo ID unavailable</Text>
             <Text style={s.bodyText}>
-              Open Passport and sign in to create your private friend QR code.
+              Reopen Kroo to finish setting up your passport and referral code.
             </Text>
           </View>
         ) : (

@@ -59,7 +59,11 @@ import { api } from "@/services/api";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { invitationAccepted, nameChanged } from "@/store/profile-slice";
+import {
+  invitationAccepted,
+  membershipStarted,
+  nameChanged,
+} from "@/store/profile-slice";
 import {
   travelStateHydrated,
   type Visit,
@@ -168,16 +172,6 @@ function StampedScore({ value }: { value: number }) {
             >
               {label}
             </SvgText>
-            {SCORE_DISTRESS.map(([cx, cy, radius], index) => (
-              <Circle
-                key={`${cx}-${cy}-${index}`}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill="black"
-                opacity={index % 3 === 0 ? 0.8 : 1}
-              />
-            ))}
           </Mask>
         </Defs>
         <Rect
@@ -852,9 +846,17 @@ export default function HomeScreen() {
     setValidatingReferral(true);
     setReferralError("");
     try {
-      const result = await api.validateReferral(referralCode.trim());
+      const result = await api.joinWithReferral(trimmed, referralCode.trim());
       dispatch(nameChanged(trimmed));
       dispatch(invitationAccepted(result.accessToken));
+      dispatch(
+        membershipStarted({
+          userId: result.user.id,
+          krooId: result.user.krooId,
+          formattedKrooId: result.user.formattedKrooId,
+          emailOptIn: result.user.emailOptIn,
+        }),
+      );
     } catch (error) {
       setReferralError(
         error instanceof Error
@@ -1034,12 +1036,12 @@ export default function HomeScreen() {
             </View>
           </View>
           <Image
-            source={require("@/assets/images/other/globe.webp")}
+            source={require("@/assets/images/other/globe.png")}
             style={[styles.globe, compact && styles.globeCompact]}
             contentFit="contain"
           />
           <Image
-            source={require("@/assets/images/other/airport.webp")}
+            source={require("@/assets/images/other/collect_letter.webp")}
             style={styles.heroTagline}
             contentFit="contain"
           />
@@ -1532,9 +1534,9 @@ const styles = StyleSheet.create({
   },
   heroTagline: {
     position: "absolute",
-    right: 10,
+    right: 25,
     top: 50,
-    width: 170,
+    width: 150,
     height: "100%",
     zIndex: 10,
   },
@@ -1615,7 +1617,7 @@ const styles = StyleSheet.create({
     height: 170,
     zIndex: 0,
   },
-  globeCompact: { right: 40, top: 25, width: 150, height: 150 },
+  globeCompact: { right: 30, top: 5, width: 150, height: "100%" },
   scoreCard: {
     marginHorizontal: 12,
     paddingVertical: 10,

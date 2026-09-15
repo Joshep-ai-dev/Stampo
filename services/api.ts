@@ -84,10 +84,13 @@ type AuthResponse = {
   token: string;
   user: {
     id: string;
+    krooId: number;
+    formattedKrooId: string;
     name: string;
     email: string;
     language: string;
     plan: "free" | "pro";
+    emailOptIn: boolean;
   };
 };
 
@@ -177,11 +180,14 @@ export type SubscriptionEntitlement = {
 
 export type RemoteProfile = {
   id: string;
+  krooId: number;
+  formattedKrooId: string;
   name: string;
   familyName?: string;
   email: string;
   phoneNumber?: string;
   language: string;
+  emailOptIn: boolean;
   plan: "free" | "pro";
   nationality: string;
   dateOfBirth: string;
@@ -194,7 +200,7 @@ export type RemoteProfile = {
 };
 
 type ProfileUpdate = ProfileDetails &
-  Partial<Pick<ProfileState, "language" | "photoUri">>;
+  Partial<Pick<ProfileState, "language" | "photoUri" | "emailOptIn">>;
 
 export type CollectionProgress = {
   access?: "free" | "pro";
@@ -665,7 +671,24 @@ async function cityDetail(
 }
 
 export const api = {
-  validateReferral: (code: string) => request<{ accessToken: string }>("/invitations/validate", { method: "POST", body: JSON.stringify({ code }) }),
+  joinWithReferral: async (name: string, code: string) => {
+    const session = await request<AuthResponse & { accessToken: string }>(
+      "/invitations/join",
+      { method: "POST", body: JSON.stringify({ name, code }) },
+    );
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return { user: session.user, accessToken: session.accessToken };
+  },
+  claimInvitedMembership: async (name: string) => {
+    const session = await request<AuthResponse & { accessToken: string }>(
+      "/invitations/claim",
+      { method: "POST", body: JSON.stringify({ name }) },
+    );
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
@@ -891,72 +914,11 @@ export const api = {
     });
     return { photoUri: backendImageUrl(result.photoUri) };
   },
-  updatePassword: (payload: { currentPassword: string; newPassword: string }) =>
-    request<void>("/auth/password", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
   updateProfile: (profile: ProfileUpdate) =>
     request<RemoteProfile>("/profile", {
       method: "PUT",
       body: JSON.stringify(profile),
     }),
-  signUp: async (payload: {
-    name: string;
-    email: string;
-    password: string;
-  }) => {
-    const session = await request<AuthResponse>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({
-        ...payload,
-        passwordConfirmation: payload.password,
-      }),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return session.user;
-  },
-  signIn: async (payload: { email: string; password: string }) => {
-    const session = await request<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ ...payload, deviceName: "Kroo mobile app" }),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return { user: session.user };
-  },
-  requestAuthCode: (payload: {
-    email: string;
-    purpose: "sign-in" | "create-account";
-  }) =>
-    request<{ message: string }>("/auth/code/request", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  verifyAuthCode: async (payload: {
-    email: string;
-    code: string;
-    purpose: "sign-in" | "create-account";
-    name?: string;
-    familyName?: string;
-    phoneNumber?: string;
-    nationality?: string;
-    dateOfBirth?: string;
-    address?: string;
-    city?: string;
-    stateProvince?: string;
-    postalCode?: string;
-    country?: string;
-  }) => {
-    const session = await request<AuthResponse>("/auth/code/verify", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return session.user;
-  },
   restoreSession: async () => {
     const token = await getStoredAuthToken();
     if (!token) return null;
@@ -970,14 +932,6 @@ export const api = {
         return null;
       }
       throw error;
-    }
-  },
-  signOut: async () => {
-    try {
-      await request<void>("/auth/logout", { method: "POST" });
-    } finally {
-      setApiToken(null);
-      await deleteStoredAuthToken();
     }
   },
 };

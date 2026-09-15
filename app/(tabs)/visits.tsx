@@ -310,7 +310,7 @@ export default function PlusScreen() {
                 ],
                 [
                   "bulb",
-                  "Access to Kroo IQ",
+                  "Access to\nKroo IQ",
                   "Learn and test your travel knowledge.",
                 ],
                 [
@@ -325,13 +325,15 @@ export default function PlusScreen() {
                 ],
               ].map(([icon, title, copy]) => (
                 <View key={title} style={s.benefit}>
-                  <Ionicons
-                    name={icon as never}
-                    size={30}
-                    color={BrandColors.copper}
-                  />
-                  <Text style={s.benefitTitle}>{title}</Text>
-                  <Text style={s.benefitCopy}>{copy}</Text>
+                  <View style={s.benefitInner}>
+                    <Ionicons
+                      name={icon as never}
+                      size={30}
+                      color={BrandColors.copper}
+                    />
+                    <Text style={s.benefitTitle}>{title}</Text>
+                    <Text style={s.benefitCopy}>{copy}</Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -711,17 +713,15 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(20),
     color: BrandColors.onDark,
   },
-  benefits: {
-    padding: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  benefits: { padding: 10, flexDirection: "row" },
   benefit: {
-    width: "48.5%",
-    minHeight: 148,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
+    flex: 1,
+    paddingHorizontal: 2,
+    marginBottom: 8,
+  },
+  benefitInner: {
+    flex: 1,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "flex-start",
     borderWidth: 1,
@@ -732,7 +732,7 @@ const s = StyleSheet.create({
     marginTop: 6,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(12),
     lineHeight: responsiveFontSize(18),
     color: BrandColors.onDark,
   },

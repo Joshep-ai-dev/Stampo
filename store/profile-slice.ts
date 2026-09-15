@@ -14,6 +14,8 @@ export type ProfileState = {
   postalCode: string;
   country: string;
   krooNumber: number;
+  formattedKrooId: string;
+  emailOptIn: boolean;
   isSignedIn: boolean;
   userId: string | null;
   language: string;
@@ -49,6 +51,8 @@ const initialState: ProfileState = {
   postalCode: "",
   country: "",
   krooNumber: 0,
+  formattedKrooId: "",
+  emailOptIn: true,
   isSignedIn: false,
   userId: null,
   language: "English",
@@ -82,6 +86,24 @@ const profileSlice = createSlice({
       state.isSignedIn = action.payload.isSignedIn;
       state.userId = action.payload.userId;
     },
+    membershipStarted(
+      state,
+      action: PayloadAction<{
+        userId: string;
+        krooId: number;
+        formattedKrooId: string;
+        emailOptIn: boolean;
+      }>,
+    ) {
+      state.isSignedIn = true;
+      state.userId = action.payload.userId;
+      state.krooNumber = action.payload.krooId;
+      state.formattedKrooId = action.payload.formattedKrooId;
+      state.emailOptIn = action.payload.emailOptIn;
+    },
+    emailPreferenceChanged(state, action: PayloadAction<boolean>) {
+      state.emailOptIn = action.payload;
+    },
     signedOut(state) {
       state.isSignedIn = false;
       state.userId = null;
@@ -95,6 +117,8 @@ const profileSlice = createSlice({
 export const {
   invitationAccepted,
   authSessionChanged,
+  membershipStarted,
+  emailPreferenceChanged,
   nameChanged,
   profileDetailsChanged,
   languageChanged,

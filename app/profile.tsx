@@ -72,24 +72,6 @@ const profileSections: readonly ProfileSection[] = [
     rows: [{ id: "language", label: "Language", value: "English" }],
   },
   {
-    id: "account",
-    title: "Account",
-    rows: [
-      {
-        id: "sign-up",
-        label: "Sign Up",
-        description:
-          "Create an account to upload this device data to the cloud.",
-      },
-      {
-        id: "sign-in",
-        label: "Sign in to existing account",
-        description:
-          "Sign in to sync the travel data on this device with your Kroo account.",
-      },
-    ],
-  },
-  {
     id: "legal",
     title: "Legal",
     rows: [
@@ -157,10 +139,6 @@ export default function ProfileScreen() {
   );
 
   const openRow = (row: ProfileRow) => {
-    if (row.id === "sign-up" || row.id === "sign-in") {
-      router.push("/(tabs)/passport" as never);
-      return;
-    }
     if (row.id === "kroo-plus") {
       router.push("/kroo-plus" as never);
       return;

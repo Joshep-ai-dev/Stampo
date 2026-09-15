@@ -247,7 +247,7 @@ export default function StateScreen() {
                   source={
                     detail.imageUrl
                       ? { uri: detail.imageUrl }
-                      : require("@/assets/images/other/globe.webp")
+                      : require("@/assets/images/other/globe.png")
                   }
                   recyclingKey={`state-${countryCode}-${stateName}-${detail.imageUrl || "fallback"}`}
                   style={styles.heroImage}

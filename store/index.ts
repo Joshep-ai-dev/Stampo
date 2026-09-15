@@ -12,6 +12,7 @@ import countryDetailReducer, {
 import profileReducer, {
   authSessionChanged,
   languageChanged,
+  membershipStarted,
   photoChanged,
   profileDetailsChanged,
   profileHydrated,
@@ -56,7 +57,11 @@ export async function hydrateStore() {
   }
 
   try {
-    const user = await api.restoreSession();
+    let user = await api.restoreSession();
+    const savedProfile = store.getState().profile;
+    if (!user && savedProfile.invitation && savedProfile.name) {
+      user = await api.claimInvitedMembership(savedProfile.name);
+    }
     if (user) {
       const localTravel = store.getState().travel;
       const profile = store.getState().profile;
@@ -76,6 +81,14 @@ export async function hydrateStore() {
           country: remoteProfile?.country ?? profile.country,
         }),
       );
+      if (remoteProfile) {
+        store.dispatch(membershipStarted({
+          userId: user.id,
+          krooId: remoteProfile.krooId,
+          formattedKrooId: remoteProfile.formattedKrooId,
+          emailOptIn: remoteProfile.emailOptIn,
+        }));
+      }
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));

@@ -219,7 +219,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [applyCustomerInfo, applyServerEntitlement, dispatch, expirationAt, ready, userId]);
 
   const purchase = useCallback(async (plan: KrooPlusPlan) => {
-    if (!userId) throw new Error("Sign in before purchasing Kroo+.");
+    if (!userId) throw new Error("Finish setting up your Kroo Passport before purchasing Kroo+.");
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
     if (!ready) throw new Error(initializationError || "Kroo+ billing is unavailable. Please try again later.");
     const selectedPackage: PurchasesPackage | null = packageForPlan(offering, plan);
@@ -243,7 +243,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [apiKey, applyCustomerInfo, applyServerEntitlement, initializationError, offering, ready, userId]);
 
   const restore = useCallback(async () => {
-    if (!userId) throw new Error("Sign in before restoring Kroo+.");
+    if (!userId) throw new Error("Finish setting up your Kroo Passport before restoring Kroo+.");
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
     if (!ready) throw new Error("Kroo+ is still connecting. Please try again in a moment.");
     const customerInfo = await Purchases.restorePurchases();
