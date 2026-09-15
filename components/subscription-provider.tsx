@@ -34,6 +34,10 @@ const MONTHLY_PACKAGE_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_MONTHLY_PACKAGE_ID ?? "$rc_monthly";
 const ANNUAL_PACKAGE_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ANNUAL_PACKAGE_ID ?? "$rc_annual";
+const BILLING_UNAVAILABLE_MESSAGE =
+  "Google Play Billing is unavailable on this device. Sign in to the Play Store or use a Google Play-enabled device.";
+
+let revenueCatLogHandlerConfigured = false;
 
 type BillingContextValue = {
   configured: boolean;
@@ -54,6 +58,21 @@ function revenueCatApiKey() {
     return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "";
   }
   return "";
+}
+
+function configureRevenueCatLogging() {
+  if (revenueCatLogHandlerConfigured) return;
+  revenueCatLogHandlerConfigured = true;
+  Purchases.setLogHandler((level, message) => {
+    if (message.includes("Billing is not available in this device")) {
+      if (__DEV__) console.warn(`[RevenueCat] ${BILLING_UNAVAILABLE_MESSAGE}`);
+      return;
+    }
+    if (level === LOG_LEVEL.ERROR) console.error(`[RevenueCat] ${message}`);
+    else if (level === LOG_LEVEL.WARN) console.warn(`[RevenueCat] ${message}`);
+    else if (__DEV__) console.log(`[RevenueCat] ${message}`);
+  });
+  void Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
 }
 
 function packageForPlan(offering: PurchasesOffering | null, plan: KrooPlusPlan) {
@@ -137,7 +156,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setInitializationError(null);
     const initialize = async () => {
       if (!await Purchases.isConfigured()) {
-        Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
+        configureRevenueCatLogging();
         Purchases.configure({ apiKey, appUserID: userId ?? undefined });
         identifiedUserRef.current = userId;
       } else if (userId && identifiedUserRef.current !== userId) {
@@ -148,12 +167,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         identifiedUserRef.current = null;
       }
 
-      const [offerings, customerInfo] = await Promise.all([
-        Purchases.getOfferings(),
+      const [canMakePayments, customerInfo] = await Promise.all([
+        Purchases.canMakePayments().catch(() => false),
         Purchases.getCustomerInfo(),
       ]);
       if (cancelled) return;
       applyCustomerInfo(customerInfo);
+      if (!canMakePayments) {
+        setOffering(null);
+        setReady(false);
+        setInitializationError(BILLING_UNAVAILABLE_MESSAGE);
+        try {
+          await applyServerEntitlement(customerInfo);
+        } catch (error) {
+          if (!cancelled) dispatch(subscriptionFailed(messageFrom(error)));
+        }
+        return;
+      }
+      const offerings = await Purchases.getOfferings();
+      if (cancelled) return;
       setOffering(offerings.all[OFFERING_ID] ?? offerings.current);
       setReady(true);
       try {

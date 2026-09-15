@@ -174,15 +174,27 @@ export function CityVisitSearch({
       setAirportsLoading(true);
       setAirportError(false);
       void api
-        .cityAirports(selectedCity.id, controller.signal)
-        .then((items) => { if (active) setAirports(items); })
+        .searchAirports(
+          selectedCity.name,
+          selectedCity.country,
+          selectedCity.countryCode,
+          controller.signal,
+        )
+        .then((items) => {
+          if (active) setAirports(items);
+        })
         .catch((error) => {
-          if (active && !(error instanceof Error && error.name === "AbortError")) {
+          if (
+            active &&
+            !(error instanceof Error && error.name === "AbortError")
+          ) {
             setAirports([]);
             setAirportError(true);
           }
         })
-        .finally(() => { if (active) setAirportsLoading(false); });
+        .finally(() => {
+          if (active) setAirportsLoading(false);
+        });
     }, 250);
     return () => {
       active = false;

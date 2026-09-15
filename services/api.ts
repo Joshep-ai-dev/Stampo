@@ -18,7 +18,9 @@ function backendImageUrl(value?: string) {
 
 let authToken: string | null = null;
 let invitationToken: string | null = null;
-export function setInvitationToken(token: string | null) { invitationToken = token; }
+export function setInvitationToken(token: string | null) {
+  invitationToken = token;
+}
 
 export function setApiToken(token: string | null) {
   authToken = token;
@@ -517,7 +519,10 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
-      isPremium: item.access === "pro" || place.isPremium === true || place.access === "pro",
+      isPremium:
+        item.access === "pro" ||
+        place.isPremium === true ||
+        place.access === "pro",
       imageUrl: backendImageUrl(place.imageUrl),
     })),
   };
@@ -777,9 +782,14 @@ export const api = {
       `/catalog/cities/${encodeURIComponent(id)}/airports`,
       { signal },
     ),
-  searchAirports: (query: string, signal?: AbortSignal) =>
+  searchAirports: (
+    city: string,
+    country: string,
+    countryCode: string,
+    signal?: AbortSignal,
+  ) =>
     request<AirportOption[]>(
-      `/catalog/airports?query=${encodeURIComponent(query)}&limit=50`,
+      `/catalog/airports?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
       { signal },
     ),
   stateAirports: (countryCode: string, state: string) =>

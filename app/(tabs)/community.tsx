@@ -240,16 +240,10 @@ function ScoreCard({ score }: { score: number }) {
       />
       <View style={s.scoreCenter}>
         <View style={s.iqRow}>
-          <Ionicons name="bulb-outline" size={27} color={c.copper} />
           <Text style={s.iqLabel}>KROO IQ</Text>
-          <Ionicons
-            name="information-circle-outline"
-            size={15}
-            color={c.cream}
-          />
         </View>
         <Text style={s.score}>{score.toFixed(2)}</Text>
-        <Text style={s.scoreCaption}>Your travel knowledge</Text>
+        <Text style={s.scoreCaption}>Test your travel knowledge</Text>
       </View>
     </View>
   );
@@ -492,7 +486,7 @@ function Action({
     >
       <Text style={s.actionText}>{label}</Text>
       {arrow && (
-        <Ionicons name="chevron-forward" size={12} color={BrandColors.white} />
+        <Ionicons name="chevron-forward" size={13} color={BrandColors.white} />
       )}
     </TouchableOpacity>
   );
@@ -635,7 +629,8 @@ const s = StyleSheet.create({
     color: c.ink,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(17),
+    lineHeight: responsiveFontSize(19),
+    letterSpacing: 1.2,
   },
   action: {
     minHeight: 36,
@@ -651,7 +646,7 @@ const s = StyleSheet.create({
   actionText: {
     color: BrandColors.white,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(15),
   },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {
