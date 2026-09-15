@@ -81,11 +81,15 @@ export default function ExploreScreen() {
         const progressById = new Map(
           progressItems.map((item) => [item.id, item]),
         );
-        const details: CollectionProgress[] = kinds.map((kind) => ({
-          ...kind,
-          progress: progressById.get(kind.id)?.progress ?? 0,
-          status: progressById.get(kind.id)?.status ?? "inactive",
-        }));
+        const details: CollectionProgress[] = kinds.map((kind) => {
+          const progress = progressById.get(kind.id);
+          return {
+            ...kind,
+            access: kind.access ?? progress?.access,
+            progress: progress?.progress ?? 0,
+            status: progress?.status ?? "inactive",
+          };
+        });
         if (active) {
           setCollectionCatalog(details);
         }
@@ -96,24 +100,26 @@ export default function ExploreScreen() {
     }, [isSignedIn]),
   );
   const visibleCollections = useMemo(() => {
-    const withLocalProgress = collectionCatalog.map((collection) => {
-      const places = collection.places ?? [];
-      const localCompleted = places.filter((place) =>
-        isCollectionPlaceCompleted(
-          collection.id,
-          place,
-          completedSightIds,
-          visits,
-        ),
-      ).length;
-      const localProgress = places.length
-        ? Math.round((localCompleted / places.length) * 100)
-        : 0;
-      return {
-        ...collection,
-        progress: Math.max(collection.progress, localProgress),
-      };
-    });
+    const withLocalProgress = collectionCatalog
+      .filter((collection) => collection.access !== "pro")
+      .map((collection) => {
+        const places = collection.places ?? [];
+        const localCompleted = places.filter((place) =>
+          isCollectionPlaceCompleted(
+            collection.id,
+            place,
+            completedSightIds,
+            visits,
+          ),
+        ).length;
+        const localProgress = places.length
+          ? Math.round((localCompleted / places.length) * 100)
+          : 0;
+        return {
+          ...collection,
+          progress: Math.max(collection.progress, localProgress),
+        };
+      });
     if (collectionFilter === "All") return withLocalProgress;
     if (collectionFilter === "Active") {
       return withLocalProgress.filter(
