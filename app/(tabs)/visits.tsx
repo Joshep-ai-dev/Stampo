@@ -75,8 +75,8 @@ export default function PlusScreen() {
       ),
     [travel],
   );
-  const krooIq = 76;
-  const referrals = 3;
+  const krooIq = 0;
+  const referrals = 0;
 
   if (countryCode)
     return (

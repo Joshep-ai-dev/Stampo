@@ -204,6 +204,11 @@ function IdentityPage({
   return (
     <>
       <View style={[styles.paper, styles.identityPaper, { width, height }]}>
+        <Image
+          source={require("@/assets/images/other/passport_backgorund.webp")}
+          style={[styles.passportPageBackground, { width }, { height }]}
+          contentFit="fill"
+        />
         <View style={styles.identityHeading}>
           <Text style={styles.identityCountry}>TRAVEL PASSPORT</Text>
           <Text style={styles.identityType}>EXPLORE · LEARN · BELONG</Text>
@@ -263,24 +268,13 @@ function IdentityPage({
                     >
                       <Ionicons
                         name={idCopied ? "checkmark" : "copy-outline"}
-                        size={16}
+                        size={14}
                         color={BrandColors.copperDark}
                       />
                     </Pressable>
                   ) : null}
                 </View>
               </View>
-              <View style={styles.passportSeal}>
-                <Image
-                  source={require("@/assets/images/favicon.png")}
-                  style={styles.passportSealImage}
-                  contentFit="contain"
-                />
-              </View>
-
-              <Text style={styles.passportBrandTagline}>
-                Every place{`\n`}&nbsp;&nbsp;&nbsp;&nbsp;adds a new page.
-              </Text>
             </View>
           </View>
           <View style={styles.passportSectionHeading}>
@@ -988,15 +982,21 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.surface,
     borderWidth: 1.5,
     borderColor: colors.paperBorder,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 8,
     elevation: 0,
+    overflow: "hidden",
+  },
+  passportPageBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
   identityPaper: {
+    borderWidth: 0,
     paddingVertical: 8,
     paddingHorizontal: 16,
     justifyContent: "flex-start",
-    borderWidth: 2,
   },
   signedPassportScroll: {
     flex: 1,
@@ -1064,29 +1064,14 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     flex: 1,
     alignItems: "flex-start",
+    alignSelf: "stretch",
+    justifyContent: "center",
   },
   passportHero: {
     marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-  },
-  passportSeal: {
-    width: 90,
-    height: 90,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  passportSealImage: { width: "100%", height: "100%" },
-  passportBrandTagline: {
-    position: "absolute",
-    fontFamily: "Caveat_400Regular",
-    fontSize: responsiveFontSize(18),
-    lineHeight: responsiveFontSize(12),
-    bottom: 20,
-    right: 10,
-    color: BrandColors.ink,
-    transform: [{ rotate: "-10deg" }],
   },
   passportSectionHeading: {
     marginTop: 6,
