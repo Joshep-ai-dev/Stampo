@@ -41,7 +41,6 @@ export const CollectionStampCard = memo(function CollectionStampCard({
       <Text style={s.title} numberOfLines={2}>
         {title}
       </Text>
-      {access === "pro" ? <Text style={s.percent}>Kroo+</Text> : null}
       <View style={s.imageFrame}>
         {imageUrl ? (
           <Image
@@ -140,7 +139,7 @@ const s = StyleSheet.create({
     height: 28,
     textAlign: "center",
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(13),
     color: BrandColors.green,
   },
