@@ -292,8 +292,13 @@ function IdentityPage({
           <View style={styles.passportHero}>
             <TouchableOpacity
               style={styles.photoBox}
-              onPress={() => editing && void pickPhoto()}
-              disabled={!editing}
+              onPress={() => void pickPhoto()}
+              accessibilityRole="button"
+              accessibilityLabel={
+                profile.photoUri
+                  ? "Change passport photo"
+                  : "Add passport photo"
+              }
             >
               {profile.photoUri ? (
                 <Image
