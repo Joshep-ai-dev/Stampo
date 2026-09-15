@@ -816,11 +816,10 @@ export default function HomeScreen() {
     footer?: string;
   } | null>(null);
   const [welcomeName, setWelcomeName] = useState(name);
-  const invitation = useAppSelector((x) => x.profile.invitation);
   const [referralCode, setReferralCode] = useState("");
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
-  const showWelcome = !invitation || !name;
+  const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
     if (!trimmed || !referralCode.trim() || validatingReferral) return;
@@ -850,8 +849,8 @@ export default function HomeScreen() {
   }, [dispatch, welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
-      api.syncVisits(visits),
-      api.syncTravelState({ completedSightIds }),
+      api.listVisits(),
+      api.travelState(),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));
@@ -859,7 +858,7 @@ export default function HomeScreen() {
     if (travelStateResult.status === "fulfilled") {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
-  }, [completedSightIds, dispatch, visits]);
+  }, [dispatch]);
   const refreshSignedInTravelRef = useRef(refreshSignedInTravel);
   useEffect(() => {
     refreshSignedInTravelRef.current = refreshSignedInTravel;

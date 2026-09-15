@@ -1,8 +1,9 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
+import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -14,11 +15,10 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DetailModal } from "@/components/detail-modal";
 import { CollectionStampList } from "@/components/collection-stamp-card";
+import { DetailModal } from "@/components/detail-modal";
 import { PlaceDetailHeader } from "@/components/place-detail-header";
 import {
   CitiesVisitedSection,
@@ -252,11 +252,11 @@ export default function CountryScreen() {
   };
   const toggleSight = async (sightId: string, completed: boolean) => {
     const next = !completed;
-    dispatch(sightCompletionSet({ id: sightId, completed: next }));
-    dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
     if (!isSignedIn) return;
     try {
       await api.setSightCompleted(sightId, next);
+      dispatch(sightCompletionSet({ id: sightId, completed: next }));
+      dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
       void api
         .listVisits()
         .then((visits) => dispatch(visitsHydrated(visits)))
@@ -264,12 +264,7 @@ export default function CountryScreen() {
       void dispatch(fetchHomeDashboard());
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this sight when the server is available.",
-      );
-    }
+    } catch {}
   };
 
   return (

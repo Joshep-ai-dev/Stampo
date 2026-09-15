@@ -710,6 +710,15 @@ export const api = {
     await storeAuthToken(session.token);
     return session.user;
   },
+  resumeMembership: async (formattedKrooId: string) => {
+    const session = await request<AuthResponse>("/members/resume", {
+      method: "POST",
+      body: JSON.stringify({ krooId: formattedKrooId }),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
@@ -846,11 +855,6 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
-  syncTravelState: (state: { completedSightIds: string[] }) =>
-    request<TravelStateResponse>("/me/sync/travel-state", {
-      method: "POST",
-      body: JSON.stringify(state),
-    }),
   subscriptionStatus: () =>
     request<SubscriptionEntitlement>("/me/subscription"),
   syncRevenueCatSubscription: () =>
@@ -881,11 +885,6 @@ export const api = {
     ),
   listVisits: () =>
     request<Visit[]>("/visits").then((items) => items.map(normalizeVisit)),
-  syncVisits: (visits: Visit[]) =>
-    request<Visit[]>("/me/sync/visits", {
-      method: "POST",
-      body: JSON.stringify({ visits }),
-    }).then((items) => items.map(normalizeVisit)),
   createVisit: (visit: NewVisit) =>
     request<Visit>("/visits", {
       method: "POST",
@@ -900,7 +899,7 @@ export const api = {
     request<void>(`/visits/${encodeURIComponent(visitId)}`, {
       method: "DELETE",
     }),
-  currentUser: () => request<AuthUser>("/auth/me"),
+  currentUser: () => request<AuthUser>("/members/current"),
   getProfile: () =>
     request<RemoteProfile>("/profile").then((profile) => ({
       ...profile,
@@ -950,7 +949,7 @@ export const api = {
     if (!token) return null;
     setApiToken(token);
     try {
-      return await request<AuthUser>("/auth/me");
+      return await request<AuthUser>("/members/current");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setApiToken(null);

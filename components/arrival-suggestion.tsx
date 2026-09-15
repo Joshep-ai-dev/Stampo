@@ -26,7 +26,7 @@ import {
 } from "@/services/gps-access";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { visitAdded, visitReceived, type NewVisit } from "@/store/travel-slice";
+import { visitReceived, type NewVisit } from "@/store/travel-slice";
 
 function suggestionFromResponse(response: NotificationResponse | null) {
   const data = response?.notification.request.content.data;
@@ -154,15 +154,11 @@ export function ArrivalSuggestionPrompt() {
           matchedCountryCode: suggestion.countryCode,
         },
       };
-      try {
-        dispatch(visitReceived(await api.createVisit(pendingVisit)));
-      } catch {
-        dispatch(visitAdded(pendingVisit));
-        Alert.alert(
-          "Saved on this device",
-          "Kroo will sync this GPS visit and airport when the server is available.",
-        );
-      }
+        try {
+          dispatch(visitReceived(await api.createVisit(pendingVisit)));
+        } catch {
+          return;
+        }
       void dispatch(fetchHomeDashboard());
       setSuggestion(null);
     } catch (error) {

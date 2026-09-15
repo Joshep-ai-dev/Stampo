@@ -6,7 +6,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -190,27 +189,22 @@ export default function StateScreen() {
 
   const toggleSight = async (id: string, completed: boolean) => {
     const next = !completed;
-    dispatch(sightCompletionSet({ id, completed: next }));
-    setDetail((current) =>
-      current
-        ? {
-            ...current,
-            sights: current.sights.map((sight) =>
-              sight.id === id ? { ...sight, completed: next } : sight,
-            ),
-          }
-        : current,
-    );
     if (!isSignedIn) return;
     try {
       await api.setSightCompleted(id, next);
-      void dispatch(fetchHomeDashboard());
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this sight when the server is available.",
+      dispatch(sightCompletionSet({ id, completed: next }));
+      setDetail((current) =>
+        current
+          ? {
+              ...current,
+              sights: current.sights.map((sight) =>
+                sight.id === id ? { ...sight, completed: next } : sight,
+              ),
+            }
+          : current,
       );
-    }
+      void dispatch(fetchHomeDashboard());
+    } catch {}
   };
 
   return (

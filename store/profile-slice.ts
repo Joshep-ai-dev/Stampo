@@ -101,6 +101,13 @@ const profileSlice = createSlice({
       state.formattedKrooId = action.payload.formattedKrooId;
       state.emailOptIn = action.payload.emailOptIn;
     },
+    krooIdRemembered(
+      state,
+      action: PayloadAction<{ krooId: number; formattedKrooId: string }>,
+    ) {
+      state.krooNumber = action.payload.krooId;
+      state.formattedKrooId = action.payload.formattedKrooId;
+    },
     emailPreferenceChanged(state, action: PayloadAction<boolean>) {
       state.emailOptIn = action.payload;
     },
@@ -118,6 +125,7 @@ export const {
   invitationAccepted,
   authSessionChanged,
   membershipStarted,
+  krooIdRemembered,
   emailPreferenceChanged,
   nameChanged,
   profileDetailsChanged,

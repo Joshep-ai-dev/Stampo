@@ -132,20 +132,16 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
         }] : []),
       ],
     };
-    setCurrentVisits((items) => items.map((item) => item.id === updated.id ? updated : item));
-    dispatch(visitUpdated(updated));
-    setEditingVisitId(null);
-    setReplacementCity(null);
-    setCityQuery("");
     if (!isSignedIn) return;
     try {
       const remote = await api.updateVisit(updated);
       setCurrentVisits((items) => items.map((item) => item.id === remote.id ? remote : item));
       dispatch(visitUpdated(remote));
+      setEditingVisitId(null);
+      setReplacementCity(null);
+      setCityQuery("");
       void dispatch(fetchHomeDashboard());
-    } catch {
-      Alert.alert("Saved on this device", "Kroo will sync this edit when the server is available.");
-    }
+    } catch {}
   };
 
   const deleteVisit = async (visit: Visit) => {

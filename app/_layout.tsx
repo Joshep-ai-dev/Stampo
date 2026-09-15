@@ -87,12 +87,12 @@ function LoadingSplash() {
 }
 
 function AppAccess() {
-  const invitation = useAppSelector((state) => state.profile.invitation);
+  const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   return <>
-    {invitation ? <ArrivalSuggestionPrompt /> : null}
+    {isSignedIn ? <ArrivalSuggestionPrompt /> : null}
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!invitation}><Stack.Screen name="welcome" /></Stack.Protected>
-      <Stack.Protected guard={!!invitation}>
+      <Stack.Protected guard={!isSignedIn}><Stack.Screen name="welcome" /></Stack.Protected>
+      <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-friends" />
         <Stack.Screen name="country-atlas" />

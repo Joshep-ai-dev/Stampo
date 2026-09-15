@@ -5,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -27,7 +26,7 @@ import {
 } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { NewVisit, visitAdded, visitReceived } from "@/store/travel-slice";
+import { NewVisit, visitReceived } from "@/store/travel-slice";
 
 const colors = {
   card: BrandColors.white,
@@ -243,16 +242,11 @@ export function CityVisitSearch({
         : [],
     };
     try {
-      if (isSignedIn) dispatch(visitReceived(await api.createVisit(visit)));
-      else dispatch(visitAdded(visit));
+      if (!isSignedIn) return;
+      dispatch(visitReceived(await api.createVisit(visit)));
       void dispatch(fetchHomeDashboard());
     } catch {
-      // Keep the same functionality when the account is temporarily offline.
-      dispatch(visitAdded(visit));
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this visit with your account when the server is available.",
-      );
+      return;
     }
     closeModal();
     setQuery("");

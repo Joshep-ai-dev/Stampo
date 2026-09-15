@@ -51,14 +51,6 @@ const travelSlice = createSlice({
   name: "travel",
   initialState,
   reducers: {
-    visitAdded: {
-      reducer(state, action: PayloadAction<Visit>) {
-        state.visits.push(action.payload);
-      },
-      prepare(visit: NewVisit) {
-        return { payload: { ...visit, id: `${visit.cityId}-${Date.now()}` } };
-      },
-    },
     visitReceived(state, action: PayloadAction<Visit>) {
       state.visits.push({
         ...action.payload,
@@ -160,7 +152,6 @@ export const {
   sightCompletionSet,
   sightToggled,
   travelStateHydrated,
-  visitAdded,
   visitReceived,
   visitUpdated,
   visitsCleared,

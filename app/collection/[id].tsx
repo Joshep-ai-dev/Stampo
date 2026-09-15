@@ -1,11 +1,9 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -89,7 +87,6 @@ export default function CollectionScreen() {
     let active = true;
     setCollection(null);
     setCollectionLoading(true);
-    const cacheKey = `kroo.collection.${id}.${subscription.isKrooPlus ? "pro" : "free"}.v2`;
     const applyCollection = (
       item: Awaited<ReturnType<typeof api.collectionDetail>>,
     ) => {
@@ -103,16 +100,10 @@ export default function CollectionScreen() {
         places: item.places,
       });
     };
-    void AsyncStorage.getItem(cacheKey)
-      .then((cached) => {
-        if (cached && active) applyCollection(JSON.parse(cached));
-      })
-      .catch(() => undefined);
     void api
       .collectionDetail(id)
       .then((item) => {
         applyCollection(item);
-        void AsyncStorage.setItem(cacheKey, JSON.stringify(item));
       })
       .catch(() => undefined)
       .finally(() => {
@@ -150,26 +141,21 @@ export default function CollectionScreen() {
       completedSightIds,
       visits,
     );
-    dispatch(sightCompletionSet({ id: targetId, completed: next }));
     if (!isSignedIn) return;
     try {
       await api.setSightCompleted(targetId, next);
+      dispatch(sightCompletionSet({ id: targetId, completed: next }));
       void api
         .listVisits()
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 403) {
-        dispatch(sightCompletionSet({ id: targetId, completed: !next }));
-        router.push("/kroo-plus");
-        return;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 403) {
+          router.push("/kroo-plus");
+          return;
+        }
       }
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this collection when the server is available.",
-      );
-    }
   };
 
   const completedCount = collection.places.filter((place) =>

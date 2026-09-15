@@ -190,15 +190,12 @@ function IdentityPage({
     }
   };
   const save = async () => {
-    dispatch(profileDetailsChanged(draft));
-    setEditing(false);
     try {
       await api.updateProfile(draft);
+      dispatch(profileDetailsChanged(draft));
+      setEditing(false);
     } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Your passport will sync when the server is available.",
-      );
+      // Keep the editor open because the server remains the source of truth.
     }
   };
   return (
@@ -483,8 +480,10 @@ function IdentityPage({
               accessibilityState={{ checked: profile.emailOptIn }}
               onPress={() => {
                 const checked = !profile.emailOptIn;
-                dispatch(emailPreferenceChanged(checked));
-                void api.updateProfile({ ...draft, emailOptIn: checked });
+                void api
+                  .updateProfile({ ...draft, emailOptIn: checked })
+                  .then(() => dispatch(emailPreferenceChanged(checked)))
+                  .catch(() => undefined);
               }}
             >
               <Text style={styles.fieldCaption}>EMAIL PREFERENCES</Text>
