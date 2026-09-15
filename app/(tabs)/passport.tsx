@@ -210,8 +210,31 @@ function IdentityPage({
           contentFit="fill"
         />
         <View style={styles.identityHeading}>
-          <Text style={styles.identityCountry}>TRAVEL PASSPORT</Text>
-          <Text style={styles.identityType}>EXPLORE · LEARN · BELONG</Text>
+          <Text style={styles.identityCountry}>KROO PASSPORT</Text>
+          <View style={styles.headingKrooIdRow}>
+            <Text style={styles.krooIdLabel}>
+              Kroo ID: {displayedKrooId || "Assigning…"}
+            </Text>
+            {displayedKrooId ? (
+              <Pressable
+                accessibilityLabel="Copy Kroo ID"
+                accessibilityRole="button"
+                hitSlop={10}
+                onPress={() => {
+                  void Clipboard.setStringAsync(displayedKrooId);
+                  setIdCopied(true);
+                  setTimeout(() => setIdCopied(false), 1500);
+                }}
+                style={styles.copyKrooIdButton}
+              >
+                <Ionicons
+                  name={idCopied ? "checkmark" : "copy-outline"}
+                  size={12}
+                  color={BrandColors.green}
+                />
+              </Pressable>
+            ) : null}
+          </View>
           <Text style={styles.identityMotto}>
             A MORE{`\n`}CURIOUS{`\n`}YOU
           </Text>
@@ -247,34 +270,22 @@ function IdentityPage({
                 </>
               )}
             </TouchableOpacity>
-            <View style={styles.passportBrandRow}>
-              <View style={styles.passportIdentityHeader}>
-                <Text style={styles.krooPassportTitle}>Kroo Passport</Text>
-                <View style={styles.krooIdRow}>
-                  <Text style={styles.krooIdLabel}>
-                    Kroo ID: {displayedKrooId || "Assigning…"}
-                  </Text>
-                  {displayedKrooId ? (
-                    <Pressable
-                      accessibilityLabel="Copy Kroo ID"
-                      accessibilityRole="button"
-                      hitSlop={10}
-                      onPress={() => {
-                        void Clipboard.setStringAsync(displayedKrooId);
-                        setIdCopied(true);
-                        setTimeout(() => setIdCopied(false), 1500);
-                      }}
-                      style={styles.copyKrooIdButton}
-                    >
-                      <Ionicons
-                        name={idCopied ? "checkmark" : "copy-outline"}
-                        size={14}
-                        color={BrandColors.copperDark}
-                      />
-                    </Pressable>
-                  ) : null}
-                </View>
-              </View>
+            <View style={styles.passportStampContainer}>
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={styles.leafLeft}
+                contentFit="contain"
+              />
+              <Image
+                source={require("@/assets/images/favicon.png")}
+                style={styles.passportStampImage}
+                contentFit="contain"
+              />
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={[styles.leafRight]}
+                contentFit="contain"
+              />
             </View>
           </View>
           <View style={styles.passportSectionHeading}>
@@ -712,7 +723,7 @@ export default function PassportScreen() {
   const availablePageHeight = carouselHeight
     ? carouselHeight - (compactPassport ? 20 : 28)
     : screenHeight - (compactPassport ? 178 : 218);
-  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.55);
+  const pageHeight = Math.min(availablePageHeight, pageWidth * 1.65);
   const krooScore = useMemo(
     () =>
       calculateKrooScoreFromVisits(visits, completedSightIds, challengePoints),
@@ -1005,32 +1016,20 @@ const styles = StyleSheet.create({
   signedPassportContent: {
     paddingBottom: 12,
   },
-  passportIdentityHeader: {
-    width: "100%",
-    alignItems: "flex-start",
-  },
-  krooPassportTitle: {
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(20),
-    color: BrandColors.green,
-  },
   krooIdLabel: {
-    textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(12),
     letterSpacing: 0.7,
-    color: BrandColors.copperDark,
+    color: BrandColors.green,
   },
-  krooIdRow: {
-    minHeight: 28,
+  headingKrooIdRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
   },
   copyKrooIdButton: {
-    width: 28,
-    height: 28,
+    width: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1043,12 +1042,6 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
     letterSpacing: 1.2,
   },
-  identityType: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    letterSpacing: 2.1,
-    color: BrandColors.green,
-  },
   identityMotto: {
     position: "absolute",
     right: 0,
@@ -1060,12 +1053,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     color: BrandColors.green,
   },
-  passportBrandRow: {
-    marginLeft: 15,
+  passportStampContainer: {
+    marginLeft: -30,
     flex: 1,
-    alignItems: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "stretch",
     justifyContent: "center",
+  },
+  passportStampImage: {
+    width: 112,
+    height: 112,
+  },
+  leafLeft: {
+    width: 50,
+    height: "100%",
+    marginTop: -20,
+    marginRight: -20,
+  },
+  leafRight: {
+    width: 50,
+    height: "100%",
+    scaleX: -1,
+    marginTop: -20,
+    marginLeft: -20,
   },
   passportHero: {
     marginTop: 8,
