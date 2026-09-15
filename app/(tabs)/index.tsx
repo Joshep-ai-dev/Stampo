@@ -430,7 +430,7 @@ function WorldMap({
     })
     .onUpdate((event) => {
       const nextScale = Math.min(
-        20,
+        40,
         Math.max(1, savedScale.value * event.scale),
       );
       const scaleChange = nextScale / savedScale.value;
@@ -537,35 +537,16 @@ function WorldMap({
     panGesture,
   );
   const animatedTranslationStyle = useAnimatedStyle(() => {
-    const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
-        {
-          translateX: translateX.value - committedOffset.x * relativeScale,
-        },
-        {
-          translateY: translateY.value - committedOffset.y * relativeScale,
-        },
+        { translateX: translateX.value },
+        { translateY: translateY.value },
       ],
     };
   });
   const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value / zoomLevel }],
+    transform: [{ scale: scale.value }],
   }));
-  const committedGroupTransform = useMemo(() => {
-    if (zoomLevel === 1 && committedOffset.x === 0 && committedOffset.y === 0) {
-      return undefined;
-    }
-    const fittedMapScale = Math.min(
-      mapCanvasWidth / MAP_WIDTH,
-      250 / MAP_HEIGHT,
-    );
-    const svgTranslateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) + committedOffset.x / fittedMapScale;
-    const svgTranslateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) + committedOffset.y / fittedMapScale;
-    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${svgTranslateX} ${svgTranslateY})`;
-  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -707,7 +688,7 @@ function WorldMap({
                 viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
                 preserveAspectRatio="xMidYMid meet"
               >
-                <G transform={committedGroupTransform}>
+                <G>
                   {countryPaths}
                   {countryLabels}
                 </G>
@@ -1248,6 +1229,11 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.welcomeQuestion}>Member referral code</Text>
                 <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="key-outline"
+                    size={16}
+                    color={BrandColors.copperDark}
+                  />
                   <TextInput
                     value={referralCode}
                     onChangeText={(value) => {
@@ -1261,7 +1247,32 @@ export default function HomeScreen() {
                     autoCorrect={false}
                     accessibilityLabel="Member referral code"
                     editable={!validatingReferral}
+                    returnKeyType="go"
+                    onSubmitEditing={() => void saveWelcomeName()}
                   />
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Validate referral code"
+                    hitSlop={8}
+                    disabled={
+                      !welcomeName.trim() ||
+                      !referralCode.trim() ||
+                      validatingReferral
+                    }
+                    onPress={() => void saveWelcomeName()}
+                  >
+                    <Ionicons
+                      name="arrow-forward-circle"
+                      size={24}
+                      color={
+                        !welcomeName.trim() ||
+                        !referralCode.trim() ||
+                        validatingReferral
+                          ? BrandColors.muted
+                          : BrandColors.copperDark
+                      }
+                    />
+                  </TouchableOpacity>
                 </View>
                 {referralError ? (
                   <Text accessibilityRole="alert" style={styles.welcomeBody}>

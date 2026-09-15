@@ -704,18 +704,18 @@ export default function PassportScreen() {
   );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const compactPassport = screenWidth < 380 || screenHeight < 720;
-  const [activePage, setActivePage] = useState(1);
+  const [activePage, setActivePage] = useState(0);
   const [carouselHeight, setCarouselHeight] = useState<number | null>(null);
-  const activePageRef = useRef(1);
-  const activePageValue = useSharedValue(1);
-  const gestureStart = useSharedValue(1);
-  const bookPosition = useSharedValue(1);
+  const activePageRef = useRef(0);
+  const activePageValue = useSharedValue(0);
+  const gestureStart = useSharedValue(0);
+  const bookPosition = useSharedValue(0);
   useFocusEffect(
     useCallback(() => {
-      activePageRef.current = 1;
-      setActivePage(1);
-      activePageValue.value = 1;
-      bookPosition.value = 1;
+      activePageRef.current = 0;
+      setActivePage(0);
+      activePageValue.value = 0;
+      bookPosition.value = 0;
     }, [activePageValue, bookPosition]),
   );
   const horizontalInset = compactPassport ? 20 : 36;

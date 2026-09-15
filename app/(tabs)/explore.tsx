@@ -3,7 +3,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 import { Text } from "@/components/app-text";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -128,6 +128,13 @@ export default function ExploreScreen() {
     }
     return withLocalProgress.filter((collection) => collection.progress >= 100);
   }, [collectionCatalog, collectionFilter, completedSightIds, visits]);
+  useEffect(() => {
+    const nextImages = visibleCollections
+      .slice(0, 6)
+      .map((collection) => collection.explorerImageUrl)
+      .filter((url): url is string => Boolean(url));
+    if (nextImages.length) void Image.prefetch(nextImages, "memory-disk");
+  }, [visibleCollections]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView

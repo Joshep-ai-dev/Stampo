@@ -515,7 +515,9 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     description: item.description ?? item.detail ?? "",
     imageUrl: backendImageUrl(item.imageUrl),
     heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
-    explorerImageUrl: backendImageUrl(item.explorerImageUrl),
+    explorerImageUrl: backendImageUrl(
+      item.explorerImageUrl ?? item.heroImageUrl ?? item.imageUrl,
+    ),
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
@@ -535,7 +537,9 @@ function normalizeCollectionProgress(
     ...item,
     imageUrl: backendImageUrl(item.imageUrl),
     heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
-    explorerImageUrl: backendImageUrl(item.explorerImageUrl),
+    explorerImageUrl: backendImageUrl(
+      item.explorerImageUrl ?? item.heroImageUrl ?? item.imageUrl,
+    ),
     places: item.places?.map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
