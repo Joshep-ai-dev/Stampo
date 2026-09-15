@@ -38,13 +38,17 @@ import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits, getKrooLevel } from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import { api } from "@/services/api";
+import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import type { ProfileState } from "@/store/profile-slice";
 import {
   emailPreferenceChanged,
+  languageChanged,
+  membershipStarted,
   photoChanged,
   profileDetailsChanged,
 } from "@/store/profile-slice";
+import { travelStateHydrated, visitsHydrated } from "@/store/travel-slice";
 
 const colors = {
   background: BrandColors.canvas,
@@ -191,6 +195,48 @@ function IdentityPage({
   };
   const save = async () => {
     try {
+      if (draft.email.trim() && draft.email.trim().toLowerCase() !== profile.email.trim().toLowerCase()) {
+        const previousUserId = profile.userId;
+        const member = await api.connectMemberEmail(
+          draft.email.trim(),
+          displayedKrooId,
+        );
+        if (member.id !== previousUserId) {
+          const [remote, visits, travelState] = await Promise.all([
+            api.getProfile(),
+            api.listVisits(),
+            api.travelState(),
+          ]);
+          const existingDraft = {
+            name: remote.name,
+            familyName: remote.familyName ?? "",
+            email: remote.email,
+            phoneNumber: remote.phoneNumber ?? "",
+            nationality: remote.nationality ?? "",
+            dateOfBirth: remote.dateOfBirth ?? "",
+            address: remote.address ?? "",
+            city: remote.city ?? "",
+            stateProvince: remote.stateProvince ?? "",
+            postalCode: remote.postalCode ?? "",
+            country: remote.country ?? "",
+          };
+          dispatch(membershipStarted({
+            userId: member.id,
+            krooId: member.krooId,
+            formattedKrooId: member.formattedKrooId,
+            emailOptIn: remote.emailOptIn,
+          }));
+          dispatch(profileDetailsChanged(existingDraft));
+          dispatch(languageChanged(remote.language));
+          dispatch(photoChanged(remote.photoUri));
+          dispatch(visitsHydrated(visits));
+          dispatch(travelStateHydrated(travelState));
+          setDraft(existingDraft);
+          setEditing(false);
+          void dispatch(fetchHomeDashboard());
+          return;
+        }
+      }
       await api.updateProfile(draft);
       dispatch(profileDetailsChanged(draft));
       setEditing(false);

@@ -46,7 +46,7 @@ export const CollectionStampCard = memo(function CollectionStampCard({
           <Image
             source={{ uri: imageUrl }}
             style={s.image}
-            contentFit="contain"
+            contentFit="cover"
             cachePolicy="memory-disk"
             transition={120}
           />

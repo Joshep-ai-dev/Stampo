@@ -1249,29 +1249,6 @@ export default function HomeScreen() {
                     returnKeyType="go"
                     onSubmitEditing={() => void saveWelcomeName()}
                   />
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel="Validate referral code"
-                    hitSlop={8}
-                    disabled={
-                      !welcomeName.trim() ||
-                      !referralCode.trim() ||
-                      validatingReferral
-                    }
-                    onPress={() => void saveWelcomeName()}
-                  >
-                    <Ionicons
-                      name="arrow-forward-circle"
-                      size={24}
-                      color={
-                        !welcomeName.trim() ||
-                        !referralCode.trim() ||
-                        validatingReferral
-                          ? BrandColors.muted
-                          : BrandColors.copperDark
-                      }
-                    />
-                  </TouchableOpacity>
                 </View>
                 {referralError ? (
                   <Text accessibilityRole="alert" style={styles.welcomeBody}>

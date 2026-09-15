@@ -719,6 +719,15 @@ export const api = {
     await storeAuthToken(session.token);
     return session.user;
   },
+  connectMemberEmail: async (email: string, formattedKrooId: string) => {
+    const session = await request<AuthResponse>("/members/email", {
+      method: "POST",
+      body: JSON.stringify({ email, krooId: formattedKrooId }),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
