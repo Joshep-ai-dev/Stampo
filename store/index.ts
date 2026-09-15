@@ -16,11 +16,9 @@ import profileReducer, {
   photoChanged,
   profileDetailsChanged,
   profileHydrated,
-  signedOut,
 } from "./profile-slice";
 import travelReducer, {
   travelStateHydrated,
-  visitsCleared,
   visitsHydrated,
 } from "./travel-slice";
 import subscriptionReducer from "./subscription-slice";
@@ -81,12 +79,15 @@ export async function hydrateStore() {
           country: remoteProfile?.country ?? profile.country,
         }),
       );
-      if (remoteProfile) {
+      const krooId = remoteProfile?.krooId ?? user.krooId;
+      const formattedKrooId =
+        remoteProfile?.formattedKrooId ?? user.formattedKrooId;
+      if (krooId && formattedKrooId) {
         store.dispatch(membershipStarted({
           userId: user.id,
-          krooId: remoteProfile.krooId,
-          formattedKrooId: remoteProfile.formattedKrooId,
-          emailOptIn: remoteProfile.emailOptIn,
+          krooId,
+          formattedKrooId,
+          emailOptIn: remoteProfile?.emailOptIn ?? user.emailOptIn,
         }));
       }
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));

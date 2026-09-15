@@ -4,6 +4,7 @@ import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getCountryDataList } from "countries-list";
+import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -59,6 +60,20 @@ type PassportPage =
   | { id: string; type: "cover"; image: number; accessibilityLabel: string }
   | { id: string; type: "identity" }
   | { id: string; type: "stamps"; slots: (Stamp | null)[] };
+
+function formatKrooId(id: number) {
+  const encoded = ((id - 1) * 7_919 + 314_159_265) % 1_000_000_000;
+  let letterValue = Math.floor(encoded / 10_000);
+  const numbers = String(encoded % 10_000).padStart(4, "0");
+  let letters = "";
+  for (let position = 0; position < 4; position += 1) {
+    letters = String.fromCharCode(65 + (letterValue % 26)) + letters;
+    letterValue = Math.floor(letterValue / 26);
+  }
+  const checksumLetter = String.fromCharCode(65 + (encoded % 26));
+  const checksumDigit = Math.floor(encoded / 26) % 10;
+  return `${letters[0]}${numbers[0]}${letters[1]}${numbers[1]}${letters[2]}${numbers[2]}${letters[3]}${numbers[3]}${checksumLetter}${checksumDigit}`;
+}
 
 function BookSheet({
   index,
@@ -138,6 +153,11 @@ function IdentityPage({
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editing, setEditing] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
+  const [idCopied, setIdCopied] = useState(false);
+  const displayedKrooId =
+    profile.krooNumber > 0
+      ? formatKrooId(profile.krooNumber)
+      : profile.formattedKrooId;
   const countries = useMemo(
     () =>
       getCountryDataList().sort((left, right) =>
@@ -223,10 +243,33 @@ function IdentityPage({
               )}
             </TouchableOpacity>
             <View style={styles.passportBrandRow}>
-              <Text style={styles.krooPassportTitle}>Kroo Passport</Text>
-              <Text style={styles.krooIdLabel}>
-                Kroo ID {profile.formattedKrooId || "Assigning…"}
-              </Text>
+              <View style={styles.passportIdentityHeader}>
+                <Text style={styles.krooPassportTitle}>Kroo Passport</Text>
+                <View style={styles.krooIdRow}>
+                  <Text style={styles.krooIdLabel}>
+                    Kroo ID: {displayedKrooId || "Assigning…"}
+                  </Text>
+                  {displayedKrooId ? (
+                    <Pressable
+                      accessibilityLabel="Copy Kroo ID"
+                      accessibilityRole="button"
+                      hitSlop={10}
+                      onPress={() => {
+                        void Clipboard.setStringAsync(displayedKrooId);
+                        setIdCopied(true);
+                        setTimeout(() => setIdCopied(false), 1500);
+                      }}
+                      style={styles.copyKrooIdButton}
+                    >
+                      <Ionicons
+                        name={idCopied ? "checkmark" : "copy-outline"}
+                        size={16}
+                        color={BrandColors.copperDark}
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
               <View style={styles.passportSeal}>
                 <Image
                   source={require("@/assets/images/favicon.png")}
@@ -962,6 +1005,10 @@ const styles = StyleSheet.create({
   signedPassportContent: {
     paddingBottom: 12,
   },
+  passportIdentityHeader: {
+    width: "100%",
+    alignItems: "flex-start",
+  },
   krooPassportTitle: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
@@ -969,13 +1016,23 @@ const styles = StyleSheet.create({
     color: BrandColors.green,
   },
   krooIdLabel: {
-    marginTop: 1,
-    marginBottom: 5,
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(12),
     letterSpacing: 0.7,
     color: BrandColors.copperDark,
+  },
+  krooIdRow: {
+    minHeight: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  copyKrooIdButton: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   identityHeading: {
     position: "relative",
@@ -1105,7 +1162,7 @@ const styles = StyleSheet.create({
   authSelectText: { fontSize: responsiveFontSize(12) },
   photoBox: {
     width: 90,
-    height: 115,
+    height: 120,
     borderRadius: 3,
     borderWidth: 1.5,
     borderColor: BrandColors.copperDark,
