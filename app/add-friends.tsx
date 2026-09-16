@@ -1,12 +1,10 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
-import { CameraView,
-  useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import { useEffect,
-  useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -177,12 +174,18 @@ export default function AddFriendsScreen() {
               >
                 <Text style={s.scanButtonText}>SCAN A FRIEND&apos;S CODE</Text>
               </TouchableOpacity>
-              {friendCode ? <Text selectable style={s.qrDescription}>Referral code: {friendCode.replace("stampo://friend/", "")}</Text> : null}
+              {friendCode ? (
+                <Text selectable style={s.qrDescription}>
+                  Referral code: {friendCode.replace("stampo://friend/", "")}
+                </Text>
+              ) : null}
               <TouchableOpacity
                 style={s.shareLink}
                 disabled={!friendCode}
                 onPress={() =>
-                  void Share.share({ message: `You are invited to Kroo. Enter this member referral code on the welcome screen: ${friendCode}` })
+                  void Share.share({
+                    message: `You are invited to Kroo. Enter this member referral code on the welcome screen: ${friendCode}`,
+                  })
                 }
               >
                 <Ionicons name="share-outline" size={15} color={c.mint} />
@@ -195,6 +198,8 @@ export default function AddFriendsScreen() {
       <Modal
         visible={scannerOpen}
         animationType="slide"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setScannerOpen(false)}
       >
         <View style={s.scanner}>
@@ -252,7 +257,11 @@ const s = StyleSheet.create({
     color: c.mint,
     marginBottom: 4,
   },
-  title: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), color: c.cream },
+  title: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(28),
+    color: c.cream,
+  },
   privacyCard: {
     marginHorizontal: 22,
     marginTop: 20,
@@ -378,7 +387,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scannerTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(22), color: c.cream },
+  scannerTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(22),
+    color: c.cream,
+  },
   scanFrame: {
     width: 260,
     height: 260,

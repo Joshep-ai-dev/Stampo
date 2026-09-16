@@ -1,12 +1,11 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useMemo,
-  useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -18,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text, TextInput } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandColors } from "@/constants/theme";
@@ -242,6 +240,8 @@ export default function ProfileScreen() {
         transparent
         animationType="slide"
         onRequestClose={closeModal}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -305,17 +305,11 @@ export default function ProfileScreen() {
                       : `${activeRow.label} content will be served by the Laravel backend when it is available.`}
                   </Text>
                 )}
-              {activeRow &&
-                activeRow.id === "name" && (
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={saveModal}
-                  >
-                    <Text style={styles.saveText}>
-                      SAVE
-                    </Text>
-                  </TouchableOpacity>
-                )}
+              {activeRow && activeRow.id === "name" && (
+                <TouchableOpacity style={styles.saveButton} onPress={saveModal}>
+                  <Text style={styles.saveText}>SAVE</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>

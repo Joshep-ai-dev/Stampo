@@ -333,6 +333,8 @@ export function CityVisitSearch({
         animationType="slide"
         transparent
         onRequestClose={closeModal}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}

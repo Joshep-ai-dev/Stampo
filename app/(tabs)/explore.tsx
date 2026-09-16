@@ -149,7 +149,7 @@ export default function ExploreScreen() {
           />
         </View>
 
-        <Section title="Countries" subtitle={`${countryCatalog.length} countries to explore`} />
+        <Section title="Countries" subtitle={`195 countries to explore`} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -204,7 +204,10 @@ export default function ExploreScreen() {
           }
         />
 
-        <Section title="Collections" subtitle="Special places. Epic lists. New challenges." />
+        <Section
+          title="Collections"
+          subtitle="Special places. Epic lists. New challenges."
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -276,7 +279,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 4,
   },
-  subtitle: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: BrandColors.onDarkMuted },
+  subtitle: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDarkMuted,
+  },
   heading: {
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(24),

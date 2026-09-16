@@ -153,8 +153,9 @@ const s = StyleSheet.create({
   },
   image: { width: "100%", height: "100%" },
   progressRow: {
-    width: "100%",
+    width: "80%",
     marginTop: -1,
+    marginLeft: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,

@@ -258,7 +258,7 @@ export default function PlusScreen() {
         </View>
 
         <View style={s.progressPanel}>
-          <Text style={s.progressHeading}>YOUR PROGRESS</Text>
+          <Text style={s.progressHeading}>Your Progress</Text>
           <View style={s.progressItems}>
             <Progress
               label="Kroo Score"
@@ -418,6 +418,8 @@ export default function PlusScreen() {
         animationType="slide"
         visible={Boolean(selected)}
         onRequestClose={() => setSelected(null)}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={s.modalRoot}>
           <Pressable style={s.backdrop} onPress={() => setSelected(null)} />

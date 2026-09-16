@@ -830,7 +830,7 @@ export default function HomeScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
-  const showWelcome = true; // !isSignedIn || !name;
+  const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
     if (!trimmed || !referralCode.trim() || validatingReferral) return;

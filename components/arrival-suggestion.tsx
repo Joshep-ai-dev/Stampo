@@ -1,10 +1,9 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import type { NotificationResponse } from "expo-notifications";
-import { useEffect,
-  useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -14,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 import { getPlaceSuggestions } from "@/data/place-suggestions";
@@ -66,7 +64,9 @@ export function ArrivalSuggestionPrompt() {
           await Notifications.clearLastNotificationResponseAsync();
         }
       };
-      void Notifications.getLastNotificationResponseAsync().then(consumeResponse);
+      void Notifications.getLastNotificationResponseAsync().then(
+        consumeResponse,
+      );
       const subscription =
         Notifications.addNotificationResponseReceivedListener((response) => {
           void consumeResponse(response);
@@ -99,7 +99,8 @@ export function ArrivalSuggestionPrompt() {
         (name, index, names) =>
           Boolean(name?.trim()) &&
           names.findIndex(
-            (candidate) => normalizePlaceName(candidate) === normalizePlaceName(name),
+            (candidate) =>
+              normalizePlaceName(candidate) === normalizePlaceName(name),
           ) === index,
       );
       let city = null;
@@ -136,16 +137,25 @@ export function ArrivalSuggestionPrompt() {
         note: "Added from a GPS arrival.",
         places: [
           ...(airport
-            ? [{
-              id: suggestion.nearbyPlace?.type === "airport"
-                ? `airport:${suggestion.nearbyPlace.id}`
-                : `gps-airport-${Date.now()}`,
-              name: airport,
-              type: "airport" as const,
-            }]
+            ? [
+                {
+                  id:
+                    suggestion.nearbyPlace?.type === "airport"
+                      ? `airport:${suggestion.nearbyPlace.id}`
+                      : `gps-airport-${Date.now()}`,
+                  name: airport,
+                  type: "airport" as const,
+                },
+              ]
             : []),
           ...(suggestion.nearbyPlace?.type === "sight"
-            ? [{ id: suggestion.nearbyPlace.id, name: suggestion.nearbyPlace.name, type: "sight" as const }]
+            ? [
+                {
+                  id: suggestion.nearbyPlace.id,
+                  name: suggestion.nearbyPlace.name,
+                  type: "sight" as const,
+                },
+              ]
             : []),
         ],
         verification: {
@@ -154,11 +164,11 @@ export function ArrivalSuggestionPrompt() {
           matchedCountryCode: suggestion.countryCode,
         },
       };
-        try {
-          dispatch(visitReceived(await api.createVisit(pendingVisit)));
-        } catch {
-          return;
-        }
+      try {
+        dispatch(visitReceived(await api.createVisit(pendingVisit)));
+      } catch {
+        return;
+      }
       void dispatch(fetchHomeDashboard());
       setSuggestion(null);
     } catch (error) {
@@ -177,6 +187,8 @@ export function ArrivalSuggestionPrompt() {
       transparent
       animationType="fade"
       onRequestClose={() => setSuggestion(null)}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlay}>
         <Pressable

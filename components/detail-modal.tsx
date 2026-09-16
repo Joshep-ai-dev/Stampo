@@ -1,6 +1,6 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import type { ReactNode } from "react";
@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -43,6 +42,7 @@ export function DetailModal({
       transparent
       animationType="fade"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={s.overlay}>

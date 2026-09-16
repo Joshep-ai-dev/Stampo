@@ -642,6 +642,8 @@ function IdentityPage({
         animationType="slide"
         visible={countryPickerVisible}
         onRequestClose={() => setCountryPickerVisible(false)}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={styles.pickerModalRoot}>
           <Pressable
