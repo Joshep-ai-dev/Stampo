@@ -830,7 +830,7 @@ export default function HomeScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
-  const showWelcome = !isSignedIn || !name;
+  const showWelcome = true; // !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
     if (!trimmed || !referralCode.trim() || validatingReferral) return;
@@ -1148,152 +1148,95 @@ export default function HomeScreen() {
         onClose={() => setInfoModal(null)}
       />
 
-      <Modal visible={showWelcome} transparent animationType="fade">
+      <Modal
+        visible={showWelcome}
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
         <View style={styles.welcomeOverlay}>
           <ImageBackground
-            source={require("@/assets/images/other/welcome_border_image.webp")}
+            source={require("@/assets/images/other/welcome.webp")}
             resizeMode="stretch"
             style={styles.welcomeSheet}
           >
             <View style={styles.welcomeSheetContent}>
-              <ScrollView
-                bounces={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.welcomeContent}
-              >
-                <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
-                <Text style={styles.welcomeBody}>
-                  No account needed to start.{"\n"}Enter a Kroo member referral
-                  code to join.
+              <Text style={styles.welcomeTitle}>
+                EXTRAORDINARY{"\n"}JOURNEYS START HERE
+              </Text>
+              <Text style={styles.welcomeCopy}>
+                Kroo is an invite-only community{"\n"}of travelers who explore,
+                share{"\n"}and inspire.
+              </Text>
+              <View style={styles.welcomeInputWrap}>
+                <Ionicons
+                  name="person"
+                  size={16}
+                  color={BrandColors.copperDark}
+                />
+                <TextInput
+                  value={welcomeName}
+                  onChangeText={setWelcomeName}
+                  style={styles.welcomeInput}
+                  placeholder="First Name"
+                  placeholderTextColor={BrandColors.muted}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.welcomeInputWrap}>
+                <Ionicons
+                  name="key-outline"
+                  size={16}
+                  color={BrandColors.copperDark}
+                />
+                <TextInput
+                  value={referralCode}
+                  onChangeText={(value) => {
+                    setReferralCode(value);
+                    setReferralError("");
+                  }}
+                  style={styles.welcomeInput}
+                  placeholder="Enter referral code"
+                  placeholderTextColor={BrandColors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Member referral code"
+                  editable={!validatingReferral}
+                  returnKeyType="go"
+                  onSubmitEditing={() => void saveWelcomeName()}
+                />
+              </View>
+              {referralError ? (
+                <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                  {referralError}
                 </Text>
-                <View style={styles.welcomeOrnament}>
-                  <View style={styles.ornamentLine} />
-                  <Ionicons
-                    name="compass-outline"
-                    size={24}
-                    color={BrandColors.green}
-                  />
-                  <View style={styles.ornamentLine} />
-                </View>
-                <View style={styles.welcomeFeatures}>
-                  <View style={styles.welcomeFeature}>
-                    <View style={styles.featureIconCircle}>
-                      <Ionicons
-                        name="location"
-                        size={26}
-                        color={BrandColors.copper}
-                      />
-                    </View>
-                    <Text style={styles.featureTitle}>
-                      Add a city{"\n"}you’ve visited
-                    </Text>
-                    <Text style={styles.featureCopy}>
-                      Countries update{"\n"}automatically.
-                    </Text>
-                  </View>
-                  <View style={styles.featureDivider} />
-                  <View style={styles.welcomeFeature}>
-                    <View style={styles.featureIconCircle}>
-                      <Ionicons
-                        name="book-outline"
-                        size={26}
-                        color={BrandColors.copper}
-                      />
-                    </View>
-                    <Text style={styles.featureTitle}>
-                      Collect{"\n"}passport stamps
-                    </Text>
-                    <Text style={styles.featureCopy}>
-                      See every country{"\n"}you’ve visited.
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.saveProgressRow}>
-                  <SaveProgressIcon />
-                  <View style={styles.saveProgressCopy}>
-                    <Text style={styles.saveProgressTitle}>
-                      Want to save your progress?
-                    </Text>
-                    <Text style={styles.saveProgressBody}>
-                      Create your passport anytime{"\n"}on the Passport page.
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.welcomeQuestion}>
-                  What name would you like to use{"\n"}on your passport?
-                </Text>
-                <View style={styles.welcomeInputWrap}>
-                  <Ionicons
-                    name="person"
-                    size={16}
-                    color={BrandColors.copperDark}
-                  />
-                  <TextInput
-                    value={welcomeName}
-                    onChangeText={setWelcomeName}
-                    style={styles.welcomeInput}
-                    placeholder="First Name"
-                    placeholderTextColor={BrandColors.muted}
-                    autoCapitalize="words"
-                  />
-                </View>
-                <Text style={styles.welcomeQuestion}>Member referral code</Text>
-                <View style={styles.welcomeInputWrap}>
-                  <Ionicons
-                    name="key-outline"
-                    size={16}
-                    color={BrandColors.copperDark}
-                  />
-                  <TextInput
-                    value={referralCode}
-                    onChangeText={(value) => {
-                      setReferralCode(value);
-                      setReferralError("");
-                    }}
-                    style={styles.welcomeInput}
-                    placeholder="Enter referral code"
-                    placeholderTextColor={BrandColors.muted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    accessibilityLabel="Member referral code"
-                    editable={!validatingReferral}
-                    returnKeyType="go"
-                    onSubmitEditing={() => void saveWelcomeName()}
-                  />
-                </View>
-                {referralError ? (
-                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
-                    {referralError}
-                  </Text>
-                ) : null}
-                <TouchableOpacity
-                  style={[
-                    styles.welcomeButton,
-                    (!welcomeName.trim() ||
-                      !referralCode.trim() ||
-                      validatingReferral) &&
-                      styles.welcomeButtonDisabled,
-                  ]}
-                  onPress={saveWelcomeName}
-                  accessibilityRole="button"
-                  accessibilityLabel="Validate referral and continue"
-                  disabled={
-                    !welcomeName.trim() ||
+              ) : null}
+              <TouchableOpacity
+                style={[
+                  styles.welcomeButton,
+                  (!welcomeName.trim() ||
                     !referralCode.trim() ||
-                    validatingReferral
-                  }
-                >
-                  <Text style={styles.welcomeButtonText}>
-                    {validatingReferral ? "CHECKING..." : "CONTINUE"}
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={16}
-                    color={BrandColors.white}
-                  />
-                </TouchableOpacity>
-                <View style={{ marginBottom: 100 }} />
-              </ScrollView>
+                    validatingReferral) &&
+                    styles.welcomeButtonDisabled,
+                ]}
+                onPress={saveWelcomeName}
+                accessibilityRole="button"
+                accessibilityLabel="Validate referral and continue"
+                disabled={
+                  !welcomeName.trim() ||
+                  !referralCode.trim() ||
+                  validatingReferral
+                }
+              >
+                <Text style={styles.welcomeButtonText}>
+                  {validatingReferral ? "CHECKING..." : "Join Kroo"}
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={BrandColors.green}
+                />
+              </TouchableOpacity>
             </View>
           </ImageBackground>
         </View>
@@ -1350,16 +1293,10 @@ const styles = StyleSheet.create({
   },
   welcomeOverlay: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.62)",
   },
   welcomeSheet: {
     width: "100%",
-    maxWidth: 430,
-    maxHeight: "96%",
+    height: "100%",
     overflow: "hidden",
   },
   welcomeContent: {
@@ -1367,124 +1304,31 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "stretch",
   },
-  welcomeTitle: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(34),
-    lineHeight: responsiveFontSize(40),
-    color: BrandColors.green,
-    textAlign: "center",
-    marginHorizontal: 30,
-  },
-  welcomeBody: {
-    marginTop: 4,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(21),
-    color: BrandColors.green,
-    textAlign: "center",
-    marginHorizontal: 30,
-  },
-  welcomeOrnament: {
-    marginTop: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  ornamentLine: {
-    width: "35%",
-    height: 1,
-    backgroundColor: "#78907F",
-  },
-  welcomeFeatures: {
-    marginTop: 4,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  welcomeFeature: { flex: 1, alignItems: "center" },
-  featureDivider: { width: 1, backgroundColor: "#8E9B8B" },
-  featureIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.green,
-  },
-  featureTitle: {
-    marginTop: 8,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(16),
-    lineHeight: responsiveFontSize(19),
-    color: BrandColors.green,
-    textAlign: "center",
-  },
-  featureCopy: {
-    marginTop: 4,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(16),
-    color: BrandColors.green,
-    textAlign: "center",
-  },
-  saveProgressRow: {
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#8E9B8B",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  saveProgressCopy: { flexShrink: 1 },
-  saveProgressTitle: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(16),
-    color: BrandColors.green,
-  },
-  saveProgressBody: {
-    marginTop: 2,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(17),
-    color: BrandColors.green,
-    marginHorizontal: 4,
-  },
-  welcomeQuestion: {
-    marginTop: 8,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(16),
-    lineHeight: responsiveFontSize(23),
-    color: BrandColors.green,
-    textAlign: "center",
-    marginHorizontal: 30,
-  },
+
   welcomeInputWrap: {
-    minHeight: 32,
-    marginTop: 4,
+    minHeight: 30,
+    marginTop: 8,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.copperDark,
-    backgroundColor: "rgba(255,250,235,.72)",
     marginHorizontal: 30,
   },
   welcomeInput: {
     flex: 1,
-    minHeight: 32,
+    minHeight: 30,
     paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.ink,
+    fontSize: responsiveFontSize(16),
+    color: BrandColors.copper,
     textAlignVertical: "center",
     writingDirection: "ltr",
   },
   welcomeButton: {
-    minHeight: 40,
-    marginTop: 16,
+    minHeight: 38,
+    marginTop: 8,
     borderRadius: 12,
     flexDirection: "row",
     gap: 4,
@@ -1496,9 +1340,9 @@ const styles = StyleSheet.create({
   welcomeButtonDisabled: { opacity: 0.7 },
   welcomeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(18),
     letterSpacing: 1,
-    color: BrandColors.white,
+    color: BrandColors.green,
   },
 
   welcomeSecondaryButton: {
@@ -1938,8 +1782,34 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   welcomeSheetContent: {
-    marginVertical: 7,
+    width: "100%",
+    height: "100%",
+    marginTop: "72%",
     borderRadius: 10,
     overflow: "hidden",
+  },
+  welcomeBody: {
+    marginTop: 4,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(21),
+    color: BrandColors.green,
+    textAlign: "center",
+    marginHorizontal: 30,
+  },
+  welcomeTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    color: BrandColors.white,
+    fontSize: responsiveFontSize(28),
+    letterSpacing: 1.2,
+  },
+  welcomeCopy: {
+    marginTop: 4,
+    textAlign: "center",
+    color: BrandColors.white,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(16),
+    lineHeight: responsiveFontSize(21),
   },
 });
