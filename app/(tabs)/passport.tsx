@@ -514,22 +514,9 @@ function IdentityPage({
             </View>
           </View>
           <View style={styles.passportSectionHeading}>
-            <Text style={styles.passportSectionTitle}>PREFERENCES</Text>
+            <Text style={styles.passportSectionTitle}>EMAIL PREFERENCES</Text>
           </View>
           <View style={styles.preferenceRow}>
-            <View style={[styles.identityField, styles.preferenceLanguage]}>
-              <Text style={styles.fieldCaption}>LANGUAGE</Text>
-              <View style={styles.fieldControl}>
-                <Ionicons
-                  name="globe-outline"
-                  size={12}
-                  color={BrandColors.green}
-                />
-                <Text style={styles.passportSelectText}>
-                  {profile.language}
-                </Text>
-              </View>
-            </View>
             <TouchableOpacity
               style={styles.emailPreference}
               accessibilityRole="checkbox"
@@ -542,7 +529,6 @@ function IdentityPage({
                   .catch(() => undefined);
               }}
             >
-              <Text style={styles.fieldCaption}>EMAIL PREFERENCES</Text>
               <View style={styles.preferenceCopy}>
                 <Ionicons
                   name={profile.emailOptIn ? "checkbox" : "square-outline"}
@@ -1376,14 +1362,15 @@ const styles = StyleSheet.create({
   preferenceLanguage: { flex: 1 },
   emailPreference: { flex: 1, paddingTop: 3 },
   preferenceCopy: {
-    marginTop: 2,
+    flex: 1,
     flexDirection: "row",
     gap: 5,
+    alignItems: "center",
   },
   preferenceText: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(12),
     lineHeight: responsiveFontSize(10),
     color: BrandColors.ink,
   },

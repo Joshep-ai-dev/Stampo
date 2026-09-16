@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -122,36 +121,17 @@ export default function PlusScreen() {
     );
 
   const purchase = () => {
-    setBusy(true);
-    void billing
-      .purchase(plan)
-      .catch((error) =>
-        Alert.alert(
-          "Kroo+",
-          error instanceof Error ? error.message : "Please try again.",
-        ),
-      )
-      .finally(() => setBusy(false));
-  };
-  const restore = () => {
-    setBusy(true);
-    void billing
-      .restore()
-      .then((active) =>
-        Alert.alert(
-          active ? "Kroo+ restored" : "No purchase found",
-          active
-            ? "Your membership is active again."
-            : "No active Kroo+ purchase was found.",
-        ),
-      )
-      .catch((error) =>
-        Alert.alert(
-          "Kroo+",
-          error instanceof Error ? error.message : "Please try again.",
-        ),
-      )
-      .finally(() => setBusy(false));
+    router.push(`/gift-kroo-plus?plan=${plan}`);
+    // setBusy(true);
+    // void billing
+    //   .purchase(plan)
+    //   .catch((error) =>
+    //     Alert.alert(
+    //       "Kroo+",
+    //       error instanceof Error ? error.message : "Please try again.",
+    //     ),
+    //   )
+    //   .finally(() => setBusy(false));
   };
 
   return (
@@ -382,8 +362,7 @@ export default function PlusScreen() {
               </Text>
             </TouchableOpacity>
             <Text style={s.terms}>
-              Then {billing.prices.annual ?? "$99.99"}/year. Cancel anytime
-              before trial ends. No risk.
+              Cancel anytime before trial ends. No risk.
             </Text>
             {/* <TouchableOpacity onPress={restore}>
               <Text style={s.restore}>Restore purchases</Text>
@@ -430,22 +409,18 @@ export default function PlusScreen() {
                   style={s.close}
                   onPress={() => setSelected(null)}
                 >
-                  <Ionicons
-                    name="close"
-                    size={22}
-                    color={BrandColors.onDark}
-                  />{" "}
+                  <Ionicons name="close" size={22} color={BrandColors.onDark} />
                 </TouchableOpacity>
                 <Image source={HERO} style={s.sheetImage} contentFit="cover" />
                 <Text style={s.sheetTitle}>{selected.name}</Text>
                 <Text style={s.sheetPlace}>{selected.place}</Text>
                 <Text style={s.sheetValue}>{selected.value}</Text>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={s.cta}
                   onPress={() => setSelected(null)}
                 >
                   <Text style={s.ctaText}>SELECT THIS DESTINATION</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </>
             )}
           </View>
@@ -825,15 +800,7 @@ const s = StyleSheet.create({
     margin: 10,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
-    color: BrandColors.onDarkMuted,
-  },
-  restore: {
-    margin: 10,
-    textAlign: "center",
-    textDecorationLine: "underline",
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
   },
   assurances: {
@@ -847,14 +814,15 @@ const s = StyleSheet.create({
   assuranceText: {
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDark,
   },
   legal: {
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(12),
     color: BrandColors.onDarkMuted,
+    letterSpacing: -0.2,
   },
   underline: { textDecorationLine: "underline" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },

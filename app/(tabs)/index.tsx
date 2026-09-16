@@ -533,8 +533,8 @@ function WorldMap({
     });
   const mapGesture = Gesture.Simultaneous(
     Gesture.Exclusive(resetGesture, countryTapGesture),
-    pinchGesture,
-    panGesture,
+    // pinchGesture,
+    // panGesture,
   );
   const committedViewBox = useMemo(() => {
     const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
