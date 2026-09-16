@@ -536,17 +536,30 @@ function WorldMap({
     pinchGesture,
     panGesture,
   );
+  const committedViewBox = useMemo(() => {
+    const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const viewportWidth = mapCanvasWidth / fittedScale / zoomLevel;
+    const viewportHeight = 250 / fittedScale / zoomLevel;
+    const centerX =
+      MAP_WIDTH / 2 - committedOffset.x / (fittedScale * zoomLevel);
+    const centerY =
+      MAP_HEIGHT / 2 - committedOffset.y / (fittedScale * zoomLevel);
+
+    return `${centerX - viewportWidth / 2} ${centerY - viewportHeight / 2} ${viewportWidth} ${viewportHeight}`;
+  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const animatedTranslationStyle = useAnimatedStyle(() => {
+    const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
+        { translateX: translateX.value - relativeScale * committedOffset.x },
+        { translateY: translateY.value - relativeScale * committedOffset.y },
       ],
     };
-  });
-  const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  }, [committedOffset, zoomLevel]);
+  const animatedScaleStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: scale.value / zoomLevel }] }),
+    [zoomLevel],
+  );
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -679,13 +692,11 @@ function WorldMap({
             <Animated.View
               style={[styles.zoomableMap, animatedScaleStyle]}
               pointerEvents="none"
-              renderToHardwareTextureAndroid
-              shouldRasterizeIOS
             >
               <Svg
                 width="100%"
                 height="100%"
-                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                viewBox={committedViewBox}
                 preserveAspectRatio="xMidYMid meet"
               >
                 <G>

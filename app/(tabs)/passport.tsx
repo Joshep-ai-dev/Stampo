@@ -195,7 +195,10 @@ function IdentityPage({
   };
   const save = async () => {
     try {
-      if (draft.email.trim() && draft.email.trim().toLowerCase() !== profile.email.trim().toLowerCase()) {
+      if (
+        draft.email.trim() &&
+        draft.email.trim().toLowerCase() !== profile.email.trim().toLowerCase()
+      ) {
         const previousUserId = profile.userId;
         const member = await api.connectMemberEmail(
           draft.email.trim(),
@@ -220,12 +223,14 @@ function IdentityPage({
             postalCode: remote.postalCode ?? "",
             country: remote.country ?? "",
           };
-          dispatch(membershipStarted({
-            userId: member.id,
-            krooId: member.krooId,
-            formattedKrooId: member.formattedKrooId,
-            emailOptIn: remote.emailOptIn,
-          }));
+          dispatch(
+            membershipStarted({
+              userId: member.id,
+              krooId: member.krooId,
+              formattedKrooId: member.formattedKrooId,
+              emailOptIn: remote.emailOptIn,
+            }),
+          );
           dispatch(profileDetailsChanged(existingDraft));
           dispatch(languageChanged(remote.language));
           dispatch(photoChanged(remote.photoUri));
@@ -1408,11 +1413,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 14,
   },
-  emptySlot: {
-    borderWidth: 1.2,
-    borderStyle: "dashed",
-    borderColor: BrandColors.line,
-  },
+  emptySlot: {},
   stampImage: {
     width: "100%",
     height: "100%",
