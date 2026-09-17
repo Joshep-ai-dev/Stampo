@@ -358,7 +358,7 @@ export default function PlusScreen() {
               onPress={purchase}
             >
               <Text style={s.ctaText}>
-                {busy ? "PLEASE WAIT…" : "START 3-DAY FREE TRIAL"}
+                {busy ? "PLEASE WAIT…" : "GET KROO+"}
               </Text>
             </TouchableOpacity>
             <Text style={s.terms}>
