@@ -88,13 +88,12 @@ export function KrooPlusOffer({
         onPress={() => onPurchase(plan)}
       >
         <Text style={s.ctaText}>
-          {busy ? "CONNECTING TO REVENUECAT..." : "START 7-DAY FREE TRIAL"}
+          {busy ? "CONNECTING TO REVENUECAT..." : "JOIN KROO+"}
         </Text>
       </TouchableOpacity>
       <Text style={s.terms}>
-        Then{" "}
         {plan === "annual" ? `${annualPrice}/year` : `${monthlyPrice}/month`}.
-        Cancel anytime before trial ends.
+        Cancel anytime.
       </Text>
       {onRestore && (
         <TouchableOpacity disabled={busy} onPress={onRestore}>

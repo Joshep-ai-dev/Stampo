@@ -28,6 +28,7 @@ import {
 } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -88,6 +89,144 @@ const CONTINENTS = [
   { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
+
+const DISSOLVE_COLUMNS = 18;
+const DISSOLVE_ROWS = 32;
+const DISSOLVE_DURATION = 1150;
+
+type DissolveParticle = {
+  color: string;
+  column: number;
+  delay: number;
+  driftX: number;
+  driftY: number;
+  row: number;
+};
+
+function seededFraction(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function DissolveParticleView({
+  height,
+  particle,
+  progress,
+  width,
+}: {
+  height: number;
+  particle: DissolveParticle;
+  progress: SharedValue<number>;
+  width: number;
+}) {
+  const particleWidth = width / DISSOLVE_COLUMNS;
+  const particleHeight = height / DISSOLVE_ROWS;
+  const animatedStyle = useAnimatedStyle(() => {
+    const localProgress = Math.max(
+      0,
+      Math.min(1, (progress.value - particle.delay) / (1 - particle.delay)),
+    );
+
+    return {
+      opacity: 1 - localProgress,
+      transform: [
+        { translateX: particle.driftX * localProgress * 28 },
+        {
+          translateY:
+            particle.driftY * localProgress * 30 +
+            localProgress * localProgress * 18,
+        },
+        { scale: 1 - localProgress * 0.42 },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.dissolveParticle,
+        {
+          backgroundColor: particle.color,
+          height: particleHeight + 1,
+          left: particle.column * particleWidth,
+          top: particle.row * particleHeight,
+          width: particleWidth + 1,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function WelcomeDissolveEffect({
+  height,
+  onFinished,
+  width,
+}: {
+  height: number;
+  onFinished: () => void;
+  width: number;
+}) {
+  const progress = useSharedValue(0);
+  const sourceStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, 1 - progress.value * 12),
+  }));
+  const particles = useMemo(() => {
+    const result: DissolveParticle[] = [];
+    for (let row = 0; row < DISSOLVE_ROWS; row += 1) {
+      for (let column = 0; column < DISSOLVE_COLUMNS; column += 1) {
+        const seed = row * DISSOLVE_COLUMNS + column + 1;
+        const accentChance = seededFraction(seed + 31);
+        result.push({
+          color:
+            accentChance > 0.91
+              ? BrandColors.copper
+              : accentChance > 0.84
+                ? "#E8D8B5"
+                : column % 3 === 0
+                  ? "#004C38"
+                  : "#003F2F",
+          column,
+          delay:
+            (column / DISSOLVE_COLUMNS) * 0.22 +
+            seededFraction(seed) * 0.07,
+          driftX: seededFraction(seed + 11) - 0.5,
+          driftY: -0.35 - seededFraction(seed + 23),
+          row,
+        });
+      }
+    }
+    return result;
+  }, []);
+
+  useEffect(() => {
+    progress.value = withTiming(1, { duration: DISSOLVE_DURATION }, (finished) => {
+      if (finished) runOnJS(onFinished)();
+    });
+  }, [onFinished, progress]);
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View style={[StyleSheet.absoluteFill, sourceStyle]}>
+        <ImageBackground
+          source={require("@/assets/images/other/welcome.webp")}
+          resizeMode="stretch"
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      {particles.map((particle) => (
+        <DissolveParticleView
+          key={`${particle.row}-${particle.column}`}
+          height={height}
+          particle={particle}
+          progress={progress}
+          width={width}
+        />
+      ))}
+    </View>
+  );
+}
 type MapCountry = {
   code: string;
   name: string;
@@ -807,7 +946,7 @@ function WorldMap({
 }
 
 export default function HomeScreen() {
-  const { width: screenWidth } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
@@ -830,6 +969,11 @@ export default function HomeScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
+  const [welcomeDismissing, setWelcomeDismissing] = useState(false);
+  const finishWelcomeDissolve = useCallback(
+    () => setWelcomeDismissing(false),
+    [],
+  );
   const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
@@ -838,6 +982,7 @@ export default function HomeScreen() {
     setReferralError("");
     try {
       const result = await api.joinWithReferral(trimmed, referralCode.trim());
+      setWelcomeDismissing(true);
       dispatch(nameChanged(trimmed));
       dispatch(invitationAccepted(result.accessToken));
       dispatch(
@@ -1149,13 +1294,19 @@ export default function HomeScreen() {
       />
 
       <Modal
-        visible={showWelcome}
-        animationType="fade"
+        visible={showWelcome || welcomeDismissing}
+        animationType="none"
+        presentationStyle="overFullScreen"
+        transparent
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <View style={styles.welcomeOverlay}>
-          <ImageBackground
+        <View
+          style={styles.welcomeOverlay}
+          pointerEvents={welcomeDismissing ? "none" : "auto"}
+        >
+          {!welcomeDismissing ? (
+            <ImageBackground
             source={require("@/assets/images/other/welcome.webp")}
             resizeMode="stretch"
             style={styles.welcomeSheet}
@@ -1238,7 +1389,15 @@ export default function HomeScreen() {
                 />
               </TouchableOpacity>
             </View>
-          </ImageBackground>
+            </ImageBackground>
+          ) : null}
+          {welcomeDismissing ? (
+            <WelcomeDissolveEffect
+              height={screenHeight}
+              width={screenWidth}
+              onFinished={finishWelcomeDissolve}
+            />
+          ) : null}
         </View>
       </Modal>
     </SafeAreaView>
@@ -1293,6 +1452,10 @@ const styles = StyleSheet.create({
   },
   welcomeOverlay: {
     flex: 1,
+    backgroundColor: "transparent",
+  },
+  dissolveParticle: {
+    position: "absolute",
   },
   welcomeSheet: {
     width: "100%",

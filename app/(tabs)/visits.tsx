@@ -199,7 +199,7 @@ export default function PlusScreen() {
               n: "3",
               icon: "people",
               title: "Refer 5 others to join Kroo+",
-              copy: "Share the adventure\nwith family and friends.",
+              copy: "Each must remain a paid\nmember for 3 months.",
               action: () => {},
             },
           ].map((step) => (
@@ -362,7 +362,7 @@ export default function PlusScreen() {
               </Text>
             </TouchableOpacity>
             <Text style={s.terms}>
-              Cancel anytime before trial ends. No risk.
+              Billed immediately. Cancel anytime.
             </Text>
             {/* <TouchableOpacity onPress={restore}>
               <Text style={s.restore}>Restore purchases</Text>
