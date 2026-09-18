@@ -160,7 +160,7 @@ export default function KrooIqScreen() {
             before={quiz?.attempt.scoreBefore ?? 0}
             score={score}
             imageUrl={destination?.imageUrl}
-            actionLabel={quiz?.isPreview ? "Join Kroo+" : "Next Destination"}
+            actionLabel={quiz?.isPreview ? "Enter Kroo+" : "Next Destination"}
             onPress={
               quiz?.isPreview
                 ? () => router.navigate("/(tabs)/visits" as never)
@@ -452,7 +452,7 @@ function Locked({ onPress }: { onPress: () => void }) {
         Build your travel knowledge with a new destination and five questions
         every day. Kroo IQ is exclusively available to Kroo+ members.
       </Text>
-      <Action label="Join Kroo+" arrow onPress={onPress} />
+      <Action label="Enter Kroo+" arrow={false} onPress={onPress} />
     </View>
   );
 }
