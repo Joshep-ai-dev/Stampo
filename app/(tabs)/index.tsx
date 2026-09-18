@@ -90,17 +90,18 @@ const CONTINENTS = [
   { code: "SA", name: "South America" },
 ];
 
-const DISSOLVE_COLUMNS = 18;
-const DISSOLVE_ROWS = 32;
-const DISSOLVE_DURATION = 1150;
+const DISSOLVE_DURATION = 4350;
+const DISSOLVE_EDGE_PARTICLES = 900;
+const DISSOLVE_FILL_PARTICLES = 600;
 
 type DissolveParticle = {
   color: string;
-  column: number;
   delay: number;
   driftX: number;
   driftY: number;
-  row: number;
+  size: number;
+  x: number;
+  y: number;
 };
 
 function seededFraction(seed: number) {
@@ -119,8 +120,6 @@ function DissolveParticleView({
   progress: SharedValue<number>;
   width: number;
 }) {
-  const particleWidth = width / DISSOLVE_COLUMNS;
-  const particleHeight = height / DISSOLVE_ROWS;
   const animatedStyle = useAnimatedStyle(() => {
     const localProgress = Math.max(
       0,
@@ -148,10 +147,10 @@ function DissolveParticleView({
         styles.dissolveParticle,
         {
           backgroundColor: particle.color,
-          height: particleHeight + 1,
-          left: particle.column * particleWidth,
-          top: particle.row * particleHeight,
-          width: particleWidth + 1,
+          height: particle.size,
+          left: particle.x * width,
+          top: particle.y * height,
+          width: particle.size,
         },
         animatedStyle,
       ]}
@@ -170,40 +169,66 @@ function WelcomeDissolveEffect({
 }) {
   const progress = useSharedValue(0);
   const sourceStyle = useAnimatedStyle(() => ({
-    opacity: Math.max(0, 1 - progress.value * 12),
+    opacity: Math.max(0, 1 - progress.value * 5),
   }));
   const particles = useMemo(() => {
     const result: DissolveParticle[] = [];
-    for (let row = 0; row < DISSOLVE_ROWS; row += 1) {
-      for (let column = 0; column < DISSOLVE_COLUMNS; column += 1) {
-        const seed = row * DISSOLVE_COLUMNS + column + 1;
-        const accentChance = seededFraction(seed + 31);
-        result.push({
-          color:
-            accentChance > 0.91
-              ? BrandColors.copper
-              : accentChance > 0.84
-                ? "#E8D8B5"
-                : column % 3 === 0
-                  ? "#004C38"
-                  : "#003F2F",
-          column,
-          delay:
-            (column / DISSOLVE_COLUMNS) * 0.22 +
-            seededFraction(seed) * 0.07,
-          driftX: seededFraction(seed + 11) - 0.5,
-          driftY: -0.35 - seededFraction(seed + 23),
-          row,
-        });
-      }
+    for (let index = 0; index < DISSOLVE_EDGE_PARTICLES; index += 1) {
+      const seed = index + 1;
+      const edgePosition = seededFraction(seed + 5);
+      const edge = index % 4;
+      const inset = 0.025 + seededFraction(seed + 7) * 0.018;
+      const jitter = (seededFraction(seed + 13) - 0.5) * 0.025;
+      const x =
+        edge === 1
+          ? 1 - inset + jitter
+          : edge === 3
+            ? inset + jitter
+            : edgePosition;
+      const y =
+        edge === 0
+          ? inset + jitter
+          : edge === 2
+            ? 1 - inset + jitter
+            : edgePosition;
+
+      result.push({
+        color:
+          seededFraction(seed + 31) > 0.28 ? BrandColors.copper : "#0A5A43",
+        delay: seededFraction(seed + 17) * 0.2 + (x + y) * 0.035,
+        driftX: (seededFraction(seed + 11) - 0.5) * 1.6,
+        driftY: -0.45 - seededFraction(seed + 23),
+        size: 3 + seededFraction(seed + 29) * 3.5,
+        x: Math.max(0, Math.min(0.99, x)),
+        y: Math.max(0, Math.min(0.99, y)),
+      });
+    }
+    for (let index = 0; index < DISSOLVE_FILL_PARTICLES; index += 1) {
+      const seed = DISSOLVE_EDGE_PARTICLES + index + 1;
+      const x = seededFraction(seed + 41);
+      const y = seededFraction(seed + 47);
+      result.push({
+        color:
+          seededFraction(seed + 53) > 0.86 ? BrandColors.copper : "#07513D",
+        delay: seededFraction(seed + 59) * 0.18 + x * 0.08,
+        driftX: (seededFraction(seed + 61) - 0.5) * 1.4,
+        driftY: -0.3 - seededFraction(seed + 67),
+        size: 2.5 + seededFraction(seed + 71) * 3,
+        x,
+        y,
+      });
     }
     return result;
   }, []);
 
   useEffect(() => {
-    progress.value = withTiming(1, { duration: DISSOLVE_DURATION }, (finished) => {
-      if (finished) runOnJS(onFinished)();
-    });
+    progress.value = withTiming(
+      1,
+      { duration: DISSOLVE_DURATION },
+      (finished) => {
+        if (finished) runOnJS(onFinished)();
+      },
+    );
   }, [onFinished, progress]);
 
   return (
@@ -217,7 +242,7 @@ function WelcomeDissolveEffect({
       </Animated.View>
       {particles.map((particle) => (
         <DissolveParticleView
-          key={`${particle.row}-${particle.column}`}
+          key={`${particle.x}-${particle.y}`}
           height={height}
           particle={particle}
           progress={progress}
@@ -970,10 +995,27 @@ export default function HomeScreen() {
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
   const [welcomeDismissing, setWelcomeDismissing] = useState(false);
-  const finishWelcomeDissolve = useCallback(
-    () => setWelcomeDismissing(false),
-    [],
-  );
+  const pendingMembership = useRef<{
+    name: string;
+    result: Awaited<ReturnType<typeof api.joinWithReferral>>;
+  } | null>(null);
+  const finishWelcomeDissolve = useCallback(() => {
+    const pending = pendingMembership.current;
+    if (pending) {
+      dispatch(nameChanged(pending.name));
+      dispatch(invitationAccepted(pending.result.accessToken));
+      dispatch(
+        membershipStarted({
+          userId: pending.result.user.id,
+          krooId: pending.result.user.krooId,
+          formattedKrooId: pending.result.user.formattedKrooId,
+          emailOptIn: pending.result.user.emailOptIn,
+        }),
+      );
+      pendingMembership.current = null;
+    }
+    setWelcomeDismissing(false);
+  }, [dispatch]);
   const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
@@ -982,27 +1024,17 @@ export default function HomeScreen() {
     setReferralError("");
     try {
       const result = await api.joinWithReferral(trimmed, referralCode.trim());
+      pendingMembership.current = { name: trimmed, result };
       setWelcomeDismissing(true);
-      dispatch(nameChanged(trimmed));
-      dispatch(invitationAccepted(result.accessToken));
-      dispatch(
-        membershipStarted({
-          userId: result.user.id,
-          krooId: result.user.krooId,
-          formattedKrooId: result.user.formattedKrooId,
-          emailOptIn: result.user.emailOptIn,
-        }),
-      );
     } catch (error) {
       setReferralError(
         error instanceof Error
           ? error.message
           : "Could not check your referral code. Please try again.",
       );
-    } finally {
       setValidatingReferral(false);
     }
-  }, [dispatch, welcomeName, referralCode, validatingReferral]);
+  }, [welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -1307,88 +1339,88 @@ export default function HomeScreen() {
         >
           {!welcomeDismissing ? (
             <ImageBackground
-            source={require("@/assets/images/other/welcome.webp")}
-            resizeMode="stretch"
-            style={styles.welcomeSheet}
-          >
-            <View style={styles.welcomeSheetContent}>
-              <Text style={styles.welcomeTitle}>
-                EXTRAORDINARY{"\n"}JOURNEYS START HERE
-              </Text>
-              <Text style={styles.welcomeCopy}>
-                Kroo is an invite-only community{"\n"}of travelers who explore,
-                share{"\n"}and inspire.
-              </Text>
-              <View style={styles.welcomeInputWrap}>
-                <Ionicons
-                  name="person"
-                  size={16}
-                  color={BrandColors.copperDark}
-                />
-                <TextInput
-                  value={welcomeName}
-                  onChangeText={setWelcomeName}
-                  style={styles.welcomeInput}
-                  placeholder="First Name"
-                  placeholderTextColor={BrandColors.muted}
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={styles.welcomeInputWrap}>
-                <Ionicons
-                  name="key-outline"
-                  size={16}
-                  color={BrandColors.copperDark}
-                />
-                <TextInput
-                  value={referralCode}
-                  onChangeText={(value) => {
-                    setReferralCode(value);
-                    setReferralError("");
-                  }}
-                  style={styles.welcomeInput}
-                  placeholder="Enter referral code"
-                  placeholderTextColor={BrandColors.muted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Member referral code"
-                  editable={!validatingReferral}
-                  returnKeyType="go"
-                  onSubmitEditing={() => void saveWelcomeName()}
-                />
-              </View>
-              {referralError ? (
-                <Text accessibilityRole="alert" style={styles.welcomeBody}>
-                  {referralError}
+              source={require("@/assets/images/other/welcome.webp")}
+              resizeMode="stretch"
+              style={styles.welcomeSheet}
+            >
+              <View style={styles.welcomeSheetContent}>
+                <Text style={styles.welcomeTitle}>
+                  EXTRAORDINARY{"\n"}JOURNEYS START HERE
                 </Text>
-              ) : null}
-              <TouchableOpacity
-                style={[
-                  styles.welcomeButton,
-                  (!welcomeName.trim() ||
+                <Text style={styles.welcomeCopy}>
+                  Kroo is an invite-only community{"\n"}of travelers who
+                  explore, share{"\n"}and inspire.
+                </Text>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="person"
+                    size={16}
+                    color={BrandColors.copperDark}
+                  />
+                  <TextInput
+                    value={welcomeName}
+                    onChangeText={setWelcomeName}
+                    style={styles.welcomeInput}
+                    placeholder="First Name"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="words"
+                  />
+                </View>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="key-outline"
+                    size={16}
+                    color={BrandColors.copperDark}
+                  />
+                  <TextInput
+                    value={referralCode}
+                    onChangeText={(value) => {
+                      setReferralCode(value);
+                      setReferralError("");
+                    }}
+                    style={styles.welcomeInput}
+                    placeholder="Enter referral code"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel="Member referral code"
+                    editable={!validatingReferral}
+                    returnKeyType="go"
+                    onSubmitEditing={() => void saveWelcomeName()}
+                  />
+                </View>
+                {referralError ? (
+                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                    {referralError}
+                  </Text>
+                ) : null}
+                <TouchableOpacity
+                  style={[
+                    styles.welcomeButton,
+                    (!welcomeName.trim() ||
+                      !referralCode.trim() ||
+                      validatingReferral) &&
+                      styles.welcomeButtonDisabled,
+                  ]}
+                  onPress={saveWelcomeName}
+                  accessibilityRole="button"
+                  accessibilityLabel="Validate referral and continue"
+                  disabled={
+                    !welcomeName.trim() ||
                     !referralCode.trim() ||
-                    validatingReferral) &&
-                    styles.welcomeButtonDisabled,
-                ]}
-                onPress={saveWelcomeName}
-                accessibilityRole="button"
-                accessibilityLabel="Validate referral and continue"
-                disabled={
-                  !welcomeName.trim() ||
-                  !referralCode.trim() ||
-                  validatingReferral
-                }
-              >
-                <Text style={styles.welcomeButtonText}>
-                  {validatingReferral ? "CHECKING..." : "Join Kroo"}
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={18}
-                  color={BrandColors.green}
-                />
-              </TouchableOpacity>
-            </View>
+                    validatingReferral
+                  }
+                >
+                  <Text style={styles.welcomeButtonText}>
+                    {validatingReferral ? "CHECKING..." : "Enter Kroo"}
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={18}
+                    color={BrandColors.green}
+                  />
+                </TouchableOpacity>
+              </View>
             </ImageBackground>
           ) : null}
           {welcomeDismissing ? (
