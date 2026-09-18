@@ -1,4 +1,5 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -8,10 +9,10 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
@@ -81,9 +82,9 @@ export default function KrooPlusScreen() {
 
         <View style={{ width: "100%", marginTop: 28 }}>
           <KrooPlusOffer
-            monthlyPrice={billing.prices.monthly ?? "$5.99"}
-            annualPrice={billing.prices.annual ?? "$59.99"}
-            busy={busy || !billing.ready}
+            monthlyPrice={billing.prices.monthly ?? "$9.99"}
+            annualPrice={billing.prices.annual ?? "$99.99"}
+            busy={busy}
             onPurchase={(plan) => {
               setBusy(true);
               void billing.purchase(plan).catch(showError).finally(() => setBusy(false));

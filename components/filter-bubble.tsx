@@ -1,6 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { Text } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 

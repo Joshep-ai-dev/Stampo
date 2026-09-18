@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
@@ -11,7 +12,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -114,9 +114,9 @@ export default function AddFriendsScreen() {
         {!isSignedIn ? (
           <View style={s.signedOut}>
             <Ionicons name="person-circle-outline" size={46} color={c.copper} />
-            <Text style={s.signedOutTitle}>Sign in to add friends</Text>
+            <Text style={s.signedOutTitle}>Kroo ID unavailable</Text>
             <Text style={s.bodyText}>
-              Open Passport and sign in to create your private friend QR code.
+              Reopen Kroo to finish setting up your passport and referral code.
             </Text>
           </View>
         ) : (
@@ -174,15 +174,22 @@ export default function AddFriendsScreen() {
               >
                 <Text style={s.scanButtonText}>SCAN A FRIEND&apos;S CODE</Text>
               </TouchableOpacity>
+              {friendCode ? (
+                <Text selectable style={s.qrDescription}>
+                  Referral code: {friendCode.replace("stampo://friend/", "")}
+                </Text>
+              ) : null}
               <TouchableOpacity
                 style={s.shareLink}
                 disabled={!friendCode}
                 onPress={() =>
-                  void Share.share({ message: `Add me on Kroo: ${friendCode}` })
+                  void Share.share({
+                    message: `You are invited to Kroo. Enter this member referral code on the welcome screen: ${friendCode}`,
+                  })
                 }
               >
                 <Ionicons name="share-outline" size={15} color={c.mint} />
-                <Text style={s.shareText}>SHARE MY QR CODE</Text>
+                <Text style={s.shareText}>SHARE MY INVITATION</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -191,6 +198,8 @@ export default function AddFriendsScreen() {
       <Modal
         visible={scannerOpen}
         animationType="slide"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setScannerOpen(false)}
       >
         <View style={s.scanner}>
@@ -248,7 +257,11 @@ const s = StyleSheet.create({
     color: c.mint,
     marginBottom: 4,
   },
-  title: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(28), color: c.cream },
+  title: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(28),
+    color: c.cream,
+  },
   privacyCard: {
     marginHorizontal: 22,
     marginTop: 20,
@@ -374,7 +387,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scannerTitle: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(22), color: c.cream },
+  scannerTitle: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(22),
+    color: c.cream,
+  },
   scanFrame: {
     width: 260,
     height: 260,

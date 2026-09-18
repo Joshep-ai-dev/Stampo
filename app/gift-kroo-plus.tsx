@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -10,8 +11,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -28,7 +27,7 @@ export default function GiftKrooPlusScreen() {
   const { plan: rawPlan } = useLocalSearchParams<{ plan?: string }>();
   const plan = rawPlan === "monthly" ? "monthly" : "annual";
   const giftPeriod = plan === "monthly" ? "1 month" : "1 year";
-  const giftPrice = plan === "monthly" ? "$5.99" : "$59.99";
+  const giftPrice = plan === "monthly" ? "$9.99" : "$99.99";
   const [note, setNote] = useState(DEFAULT_NOTE);
   const [busy, setBusy] = useState(false);
 
@@ -113,7 +112,10 @@ export default function GiftKrooPlusScreen() {
             textAlignVertical="top"
           />
           <TouchableOpacity
-            style={[styles.cta, (busy || !GIFT_CHECKOUT_URL) && styles.disabled]}
+            style={[
+              styles.cta,
+              (busy || !GIFT_CHECKOUT_URL) && styles.disabled,
+            ]}
             disabled={busy || !GIFT_CHECKOUT_URL}
             onPress={() => void continueToPurchase()}
           >

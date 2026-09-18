@@ -95,7 +95,9 @@ Common statuses:
 {
   "id": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
   "name": "Robb",
+  "familyName": "Walker",
   "email": "robb@example.com",
+  "phoneNumber": "+66 81 234 5678",
   "language": "English",
   "plan": "free"
 }
@@ -109,12 +111,18 @@ Common statuses:
 {
   "id": "5ec53967-acde-4ccf-bc78-3f80ee8da15d",
   "name": "Robb",
+  "familyName": "Walker",
   "email": "robb@example.com",
+  "phoneNumber": "+66 81 234 5678",
   "language": "English",
   "plan": "free",
   "nationality": "United States",
   "dateOfBirth": "1990-05-14",
-  "sex": "F",
+  "address": "12 Riverside Road",
+  "city": "Bangkok",
+  "stateProvince": "Bangkok",
+  "postalCode": "10110",
+  "country": "Thailand",
   "photoUri": null
 }
 ```
@@ -315,11 +323,17 @@ Accepted properties:
 ```json
 {
   "name": "Robb",
+  "familyName": "Walker",
   "email": "robb@example.com",
+  "phoneNumber": "+66 81 234 5678",
   "language": "English",
   "nationality": "United States",
   "dateOfBirth": "1990-05-14",
-  "sex": "F",
+  "address": "12 Riverside Road",
+  "city": "Bangkok",
+  "stateProvince": "Bangkok",
+  "postalCode": "10110",
+  "country": "Thailand",
   "photoUri": "file:///local/profile-photo.jpg"
 }
 ```

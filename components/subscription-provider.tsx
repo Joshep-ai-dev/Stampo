@@ -34,6 +34,10 @@ const MONTHLY_PACKAGE_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_MONTHLY_PACKAGE_ID ?? "$rc_monthly";
 const ANNUAL_PACKAGE_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ANNUAL_PACKAGE_ID ?? "$rc_annual";
+const BILLING_UNAVAILABLE_MESSAGE =
+  "Google Play Billing is unavailable on this device. Sign in to the Play Store or use a Google Play-enabled device.";
+
+let revenueCatLogHandlerConfigured = false;
 
 type BillingContextValue = {
   configured: boolean;
@@ -54,6 +58,21 @@ function revenueCatApiKey() {
     return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "";
   }
   return "";
+}
+
+function configureRevenueCatLogging() {
+  if (revenueCatLogHandlerConfigured) return;
+  revenueCatLogHandlerConfigured = true;
+  Purchases.setLogHandler((level, message) => {
+    if (message.includes("Billing is not available in this device")) {
+      if (__DEV__) console.warn(`[RevenueCat] ${BILLING_UNAVAILABLE_MESSAGE}`);
+      return;
+    }
+    if (level === LOG_LEVEL.ERROR) console.error(`[RevenueCat] ${message}`);
+    else if (level === LOG_LEVEL.WARN) console.warn(`[RevenueCat] ${message}`);
+    else if (__DEV__) console.log(`[RevenueCat] ${message}`);
+  });
+  void Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
 }
 
 function packageForPlan(offering: PurchasesOffering | null, plan: KrooPlusPlan) {
@@ -89,6 +108,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const userId = useAppSelector((state) => state.profile.userId);
   const apiKey = revenueCatApiKey();
   const [ready, setReady] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [expirationAt, setExpirationAt] = useState<number | null>(null);
   const customerInfoRef = useRef<CustomerInfo | null>(null);
@@ -133,9 +153,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     dispatch(subscriptionLoading());
     setReady(false);
+    setInitializationError(null);
     const initialize = async () => {
       if (!await Purchases.isConfigured()) {
-        Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
+        configureRevenueCatLogging();
         Purchases.configure({ apiKey, appUserID: userId ?? undefined });
         identifiedUserRef.current = userId;
       } else if (userId && identifiedUserRef.current !== userId) {
@@ -146,12 +167,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         identifiedUserRef.current = null;
       }
 
-      const [offerings, customerInfo] = await Promise.all([
-        Purchases.getOfferings(),
+      const [canMakePayments, customerInfo] = await Promise.all([
+        Purchases.canMakePayments().catch(() => false),
         Purchases.getCustomerInfo(),
       ]);
       if (cancelled) return;
       applyCustomerInfo(customerInfo);
+      if (!canMakePayments) {
+        setOffering(null);
+        setReady(false);
+        setInitializationError(BILLING_UNAVAILABLE_MESSAGE);
+        try {
+          await applyServerEntitlement(customerInfo);
+        } catch (error) {
+          if (!cancelled) dispatch(subscriptionFailed(messageFrom(error)));
+        }
+        return;
+      }
+      const offerings = await Purchases.getOfferings();
+      if (cancelled) return;
       setOffering(offerings.all[OFFERING_ID] ?? offerings.current);
       setReady(true);
       try {
@@ -164,6 +198,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     void initialize().catch((error: unknown) => {
       if (cancelled) return;
       setReady(false);
+      setInitializationError(messageFrom(error));
       dispatch(subscriptionFailed(messageFrom(error)));
     });
     return () => { cancelled = true; };
@@ -216,9 +251,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [applyCustomerInfo, applyServerEntitlement, dispatch, expirationAt, ready, userId]);
 
   const purchase = useCallback(async (plan: KrooPlusPlan) => {
-    if (!userId) throw new Error("Sign in before purchasing Kroo+.");
+    if (!userId) throw new Error("Finish setting up your Kroo Passport before purchasing Kroo+.");
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
-    if (!ready) throw new Error("Kroo+ is still connecting. Please try again in a moment.");
+    if (!ready) throw new Error(initializationError || "Kroo+ billing is unavailable. Please try again later.");
     const selectedPackage: PurchasesPackage | null = packageForPlan(offering, plan);
     if (!selectedPackage) {
       throw new Error(`The Kroo+ ${plan} package is missing from the RevenueCat offering.`);
@@ -237,10 +272,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
-  }, [apiKey, applyCustomerInfo, applyServerEntitlement, offering, ready, userId]);
+  }, [apiKey, applyCustomerInfo, applyServerEntitlement, initializationError, offering, ready, userId]);
 
   const restore = useCallback(async () => {
-    if (!userId) throw new Error("Sign in before restoring Kroo+.");
+    if (!userId) throw new Error("Finish setting up your Kroo Passport before restoring Kroo+.");
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
     if (!ready) throw new Error("Kroo+ is still connecting. Please try again in a moment.");
     const customerInfo = await Purchases.restorePurchases();

@@ -1,15 +1,17 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
-import { useEffect, useState } from "react";
+import { useEffect,
+  useState } from "react";
 import alpha2To3 from "countries-list/minimal/countries.2to3.min.json";
 import {
   ActivityIndicator,
   LayoutChangeEvent,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import Svg, { Path } from "react-native-svg";
 
 import { BrandColors } from "@/constants/theme";

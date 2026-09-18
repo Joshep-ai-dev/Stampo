@@ -1,6 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { canUseGpsArrivals } from "@/services/gps-access";
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCountryDataList,
@@ -8,22 +8,24 @@ import {
   type TCountryCode,
 } from "countries-list";
 import { Image } from "expo-image";
-import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ImageBackground,
   InteractionManager,
   Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
-import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  ScrollView,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   type SharedValue,
@@ -47,15 +49,22 @@ import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
-import { calculateKrooScore, getKrooLevel, KROO_LEVELS } from "@/data/kroo-score";
+import {
+  calculateKrooScore,
+  getKrooLevel,
+  KROO_LEVELS,
+} from "@/data/kroo-score";
 import { stampAssets } from "@/data/stamps";
 import worldMapPaths from "@/data/world-map-paths.json";
 import { api } from "@/services/api";
-import { stopArrivalMonitoring } from "@/services/arrival-monitoring";
 import { fetchCountryDetail } from "@/store/country-detail-slice";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { nameChanged } from "@/store/profile-slice";
+import {
+  invitationAccepted,
+  membershipStarted,
+  nameChanged,
+} from "@/store/profile-slice";
 import {
   travelStateHydrated,
   type Visit,
@@ -80,6 +89,169 @@ const CONTINENTS = [
   { code: "OC", name: "Oceania" },
   { code: "SA", name: "South America" },
 ];
+
+const DISSOLVE_DURATION = 2350;
+const DISSOLVE_EDGE_PARTICLES = 900;
+const DISSOLVE_FILL_PARTICLES = 900;
+
+type DissolveParticle = {
+  color: string;
+  delay: number;
+  driftX: number;
+  driftY: number;
+  size: number;
+  x: number;
+  y: number;
+};
+
+function seededFraction(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function DissolveParticleView({
+  height,
+  particle,
+  progress,
+  width,
+}: {
+  height: number;
+  particle: DissolveParticle;
+  progress: SharedValue<number>;
+  width: number;
+}) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const localProgress = Math.max(
+      0,
+      Math.min(1, (progress.value - particle.delay) / (1 - particle.delay)),
+    );
+
+    return {
+      opacity: 1 - localProgress,
+      transform: [
+        { translateX: particle.driftX * localProgress * 28 },
+        {
+          translateY:
+            particle.driftY * localProgress * 30 +
+            localProgress * localProgress * 18,
+        },
+        { scale: 1 - localProgress * 0.42 },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.dissolveParticle,
+        {
+          backgroundColor: particle.color,
+          height: particle.size,
+          left: particle.x * width,
+          top: particle.y * height,
+          width: particle.size,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function WelcomeDissolveEffect({
+  height,
+  onFinished,
+  width,
+}: {
+  height: number;
+  onFinished: () => void;
+  width: number;
+}) {
+  const progress = useSharedValue(0);
+  const sourceStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, 1 - progress.value * 5),
+  }));
+  const particles = useMemo(() => {
+    const result: DissolveParticle[] = [];
+    for (let index = 0; index < DISSOLVE_EDGE_PARTICLES; index += 1) {
+      const seed = index + 1;
+      const edgePosition = seededFraction(seed + 5);
+      const edge = index % 4;
+      const inset = 0.025 + seededFraction(seed + 7) * 0.018;
+      const jitter = (seededFraction(seed + 13) - 0.5) * 0.025;
+      const x =
+        edge === 1
+          ? 1 - inset + jitter
+          : edge === 3
+            ? inset + jitter
+            : edgePosition;
+      const y =
+        edge === 0
+          ? inset + jitter
+          : edge === 2
+            ? 1 - inset + jitter
+            : edgePosition;
+
+      result.push({
+        color:
+          seededFraction(seed + 31) > 0.28 ? BrandColors.copper : "#0A5A43",
+        delay: seededFraction(seed + 17) * 0.2 + (x + y) * 0.035,
+        driftX: (seededFraction(seed + 11) - 0.5) * 1.6,
+        driftY: -0.45 - seededFraction(seed + 23),
+        size: 3 + seededFraction(seed + 29) * 3.5,
+        x: Math.max(0, Math.min(0.99, x)),
+        y: Math.max(0, Math.min(0.99, y)),
+      });
+    }
+    for (let index = 0; index < DISSOLVE_FILL_PARTICLES; index += 1) {
+      const seed = DISSOLVE_EDGE_PARTICLES + index + 1;
+      const x = seededFraction(seed + 41);
+      const y = seededFraction(seed + 47);
+      result.push({
+        color:
+          seededFraction(seed + 53) > 0.86 ? BrandColors.copper : "#07513D",
+        delay: seededFraction(seed + 59) * 0.18 + x * 0.08,
+        driftX: (seededFraction(seed + 61) - 0.5) * 1.4,
+        driftY: -0.3 - seededFraction(seed + 67),
+        size: 2.5 + seededFraction(seed + 71) * 3,
+        x,
+        y,
+      });
+    }
+    return result;
+  }, []);
+
+  useEffect(() => {
+    progress.value = withTiming(
+      1,
+      { duration: DISSOLVE_DURATION },
+      (finished) => {
+        if (finished) runOnJS(onFinished)();
+      },
+    );
+  }, [onFinished, progress]);
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View style={[StyleSheet.absoluteFill, sourceStyle]}>
+        <ImageBackground
+          source={require("@/assets/images/other/welcome.webp")}
+          resizeMode="stretch"
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      {particles.map((particle) => (
+        <DissolveParticleView
+          key={`${particle.x}-${particle.y}`}
+          height={height}
+          particle={particle}
+          progress={progress}
+          width={width}
+        />
+      ))}
+    </View>
+  );
+}
 type MapCountry = {
   code: string;
   name: string;
@@ -91,99 +263,10 @@ type MapCountry = {
   polygons: { x: number; y: number }[][];
 };
 
-type CurrentMapLocation = {
-  label: string;
-  latitude: number;
-  longitude: number;
-};
-
 let cachedMapCountries: MapCountry[] | null = null;
 let cachedMapCountriesPromise: Promise<MapCountry[]> | null = null;
-
 const MAP_WIDTH = 1009.6727;
 const MAP_HEIGHT = 665.96301;
-const MAP_GEO_LEFT = -169.110266;
-const MAP_GEO_TOP = 83.600842;
-const MAP_GEO_RIGHT = 190.486279;
-const MAP_GEO_BOTTOM = -58.508473;
-
-function projectToWorldMap(latitude: number, longitude: number) {
-  const clampedLatitude = Math.max(
-    MAP_GEO_BOTTOM,
-    Math.min(MAP_GEO_TOP, latitude),
-  );
-  let wrappedLongitude = longitude;
-  while (wrappedLongitude < MAP_GEO_LEFT) wrappedLongitude += 360;
-  while (wrappedLongitude > MAP_GEO_RIGHT) wrappedLongitude -= 360;
-  // Match MapSVG's own geo-to-pixel conversion. Its world asset uses a
-  // spherical Mercator Y scale derived from the SVG width and longitude span;
-  // geoViewBox's top latitude is metadata, not the SVG's y=0 edge.
-  const latitudeRadians = (clampedLatitude * Math.PI) / 180;
-  const bottomRadians = (MAP_GEO_BOTTOM * Math.PI) / 180;
-  const projectionScale =
-    (MAP_WIDTH / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) * (180 / Math.PI);
-  const mercatorY = (radians: number) =>
-    Math.log(Math.tan(Math.PI / 4 + radians / 2));
-  return {
-    x:
-      ((wrappedLongitude - MAP_GEO_LEFT) / (MAP_GEO_RIGHT - MAP_GEO_LEFT)) *
-      MAP_WIDTH,
-    y:
-      MAP_HEIGHT -
-      projectionScale * (mercatorY(latitudeRadians) - mercatorY(bottomRadians)),
-  };
-}
-
-function CurrentPositionPin({
-  latitude,
-  longitude,
-  canvasWidth,
-  scale,
-  translateX,
-  translateY,
-}: {
-  latitude: number;
-  longitude: number;
-  canvasWidth: number;
-  scale: SharedValue<number>;
-  translateX: SharedValue<number>;
-  translateY: SharedValue<number>;
-}) {
-  const projected = projectToWorldMap(latitude, longitude);
-  const fitScale = Math.min(canvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
-  const offsetX = (canvasWidth - MAP_WIDTH * fitScale) / 2;
-  const offsetY = (250 - MAP_HEIGHT * fitScale) / 2;
-  const baseX = offsetX + projected.x * fitScale;
-  const baseY = offsetY + projected.y * fitScale;
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          translateX.value + (baseX - canvasWidth / 2) * (scale.value - 1),
-      },
-      {
-        translateY: translateY.value + (baseY - 125) * (scale.value - 1),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.currentPositionPin,
-        { left: baseX - 13, top: baseY - 34 },
-        animatedStyle,
-      ]}
-    >
-      <Image
-        source={require("@/assets/images/gps-position-pin.png")}
-        contentFit="contain"
-        style={styles.currentPositionPinImage}
-      />
-    </Animated.View>
-  );
-}
 
 function CountryMapLabel({
   country,
@@ -253,16 +336,6 @@ function StampedScore({ value }: { value: number }) {
             >
               {label}
             </SvgText>
-            {SCORE_DISTRESS.map(([cx, cy, radius], index) => (
-              <Circle
-                key={`${cx}-${cy}-${index}`}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill="black"
-                opacity={index % 3 === 0 ? 0.8 : 1}
-              />
-            ))}
           </Mask>
         </Defs>
         <Rect
@@ -395,9 +468,9 @@ function polygonContainsPoint(
     const crossesRay =
       current.y > pointY !== previous.y > pointY &&
       pointX <
-      ((previous.x - current.x) * (pointY - current.y)) /
-      (previous.y - current.y) +
-      current.x;
+        ((previous.x - current.x) * (pointY - current.y)) /
+          (previous.y - current.y) +
+          current.x;
     if (crossesRay) inside = !inside;
   }
   return inside;
@@ -445,11 +518,9 @@ function loadBundledMapCountries() {
 function WorldMap({
   visited,
   visits,
-  currentLocation,
 }: {
   visited: Set<string>;
   visits: Visit[];
-  currentLocation: CurrentMapLocation | null;
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -514,45 +585,6 @@ function WorldMap({
     },
     [committedOffset, countriesOnMap, mapCanvasWidth, zoomLevel],
   );
-  const setMapZoom = useCallback(
-    (nextScale: number) => {
-      const clampedScale = Math.min(20, Math.max(1, nextScale));
-      const reset = clampedScale === 1;
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
-      const maxX = Math.max(
-        0,
-        (MAP_WIDTH * fittedScale * clampedScale - mapCanvasWidth) / 2,
-      );
-      const maxY = Math.max(
-        0,
-        (MAP_HEIGHT * fittedScale * clampedScale - 250) / 2,
-      );
-      const nextX = reset
-        ? 0
-        : Math.max(-maxX, Math.min(maxX, savedTranslateX.value));
-      const nextY = reset
-        ? 0
-        : Math.max(-maxY, Math.min(maxY, savedTranslateY.value));
-      scale.value = withTiming(clampedScale, { duration: 160 });
-      savedScale.value = clampedScale;
-      translateX.value = reset ? withTiming(0, { duration: 160 }) : nextX;
-      translateY.value = reset ? withTiming(0, { duration: 160 }) : nextY;
-      savedTranslateX.value = nextX;
-      savedTranslateY.value = nextY;
-      commitMapTransform(clampedScale, nextX, nextY);
-    },
-    [
-      commitMapTransform,
-      mapCanvasWidth,
-      savedScale,
-      savedTranslateX,
-      savedTranslateY,
-      scale,
-      translateX,
-      translateY,
-    ],
-  );
-
   const pinchGesture = Gesture.Pinch()
     .onStart((event) => {
       pinchStartTranslateX.value = savedTranslateX.value;
@@ -562,7 +594,7 @@ function WorldMap({
     })
     .onUpdate((event) => {
       const nextScale = Math.min(
-        20,
+        40,
         Math.max(1, savedScale.value * event.scale),
       );
       const scaleChange = nextScale / savedScale.value;
@@ -572,12 +604,15 @@ function WorldMap({
         (pinchStartFocalX.value -
           mapCanvasWidth / 2 -
           pinchStartTranslateX.value) *
-        (1 - scaleChange);
+          (1 - scaleChange);
       const nextTranslateY =
         pinchStartTranslateY.value +
         (pinchStartFocalY.value - 125 - pinchStartTranslateY.value) *
-        (1 - scaleChange);
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+          (1 - scaleChange);
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
       const maxX = Math.max(
         0,
         (MAP_WIDTH * fittedScale * nextScale - mapCanvasWidth) / 2,
@@ -612,7 +647,10 @@ function WorldMap({
     .minDistance(6)
     .onUpdate((event) => {
       if (scale.value <= 1) return;
-      const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+      const fittedScale = Math.min(
+        mapCanvasWidth / MAP_WIDTH,
+        250 / MAP_HEIGHT,
+      );
       const maxX = Math.max(
         0,
         (MAP_WIDTH * fittedScale * scale.value - mapCanvasWidth) / 2,
@@ -659,42 +697,33 @@ function WorldMap({
     });
   const mapGesture = Gesture.Simultaneous(
     Gesture.Exclusive(resetGesture, countryTapGesture),
-    pinchGesture,
-    panGesture,
+    // pinchGesture,
+    // panGesture,
   );
+  const committedViewBox = useMemo(() => {
+    const fittedScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
+    const viewportWidth = mapCanvasWidth / fittedScale / zoomLevel;
+    const viewportHeight = 250 / fittedScale / zoomLevel;
+    const centerX =
+      MAP_WIDTH / 2 - committedOffset.x / (fittedScale * zoomLevel);
+    const centerY =
+      MAP_HEIGHT / 2 - committedOffset.y / (fittedScale * zoomLevel);
+
+    return `${centerX - viewportWidth / 2} ${centerY - viewportHeight / 2} ${viewportWidth} ${viewportHeight}`;
+  }, [committedOffset, mapCanvasWidth, zoomLevel]);
   const animatedTranslationStyle = useAnimatedStyle(() => {
     const relativeScale = scale.value / zoomLevel;
     return {
       transform: [
-        {
-          translateX: translateX.value - committedOffset.x * relativeScale,
-        },
-        {
-          translateY: translateY.value - committedOffset.y * relativeScale,
-        },
+        { translateX: translateX.value - relativeScale * committedOffset.x },
+        { translateY: translateY.value - relativeScale * committedOffset.y },
       ],
     };
-  });
-  const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value / zoomLevel }],
-  }));
-  const committedGroupTransform = useMemo(() => {
-    if (
-      zoomLevel === 1 &&
-      committedOffset.x === 0 &&
-      committedOffset.y === 0
-    ) {
-      return undefined;
-    }
-    const fittedMapScale = Math.min(mapCanvasWidth / MAP_WIDTH, 250 / MAP_HEIGHT);
-    const svgTranslateX =
-      MAP_WIDTH * 0.5 * (1 - zoomLevel) +
-      committedOffset.x / fittedMapScale;
-    const svgTranslateY =
-      MAP_HEIGHT * 0.5 * (1 - zoomLevel) +
-      committedOffset.y / fittedMapScale;
-    return `matrix(${zoomLevel} 0 0 ${zoomLevel} ${svgTranslateX} ${svgTranslateY})`;
-  }, [committedOffset, mapCanvasWidth, zoomLevel]);
+  }, [committedOffset, zoomLevel]);
+  const animatedScaleStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: scale.value / zoomLevel }] }),
+    [zoomLevel],
+  );
   const visitedIso2 = useMemo(() => {
     const countryList = getCountryDataList();
     return new Set(
@@ -704,7 +733,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-              "");
+                "");
         })
         .filter(Boolean),
     );
@@ -719,7 +748,7 @@ function WorldMap({
           return code.length === 2
             ? code
             : (countryList.find((country) => country.iso3 === code)?.iso2 ??
-              "");
+                "");
         })
         .filter(Boolean),
     );
@@ -737,7 +766,8 @@ function WorldMap({
     });
   }, [selectedCountry, visits]);
   useEffect(() => {
-    if (selectedCountry) void dispatch(fetchCountryDetail(selectedCountry.code));
+    if (selectedCountry)
+      void dispatch(fetchCountryDetail(selectedCountry.code));
   }, [dispatch, selectedCountry]);
   const selectedCountryDetail = selectedCountry
     ? countryDetailCache[selectedCountry.code.toUpperCase()]?.data
@@ -818,10 +848,7 @@ function WorldMap({
       onLayout={(event) => setMapCanvasWidth(event.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={mapGesture}>
-        <View
-          style={styles.zoomableMap}
-          collapsable={false}
-        >
+        <View style={styles.zoomableMap} collapsable={false}>
           <Animated.View
             style={[styles.zoomableMap, animatedTranslationStyle]}
             pointerEvents="none"
@@ -829,16 +856,14 @@ function WorldMap({
             <Animated.View
               style={[styles.zoomableMap, animatedScaleStyle]}
               pointerEvents="none"
-              renderToHardwareTextureAndroid
-              shouldRasterizeIOS
             >
               <Svg
                 width="100%"
                 height="100%"
-                viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                viewBox={committedViewBox}
                 preserveAspectRatio="xMidYMid meet"
               >
-                <G transform={committedGroupTransform}>
+                <G>
                   {countryPaths}
                   {countryLabels}
                 </G>
@@ -847,34 +872,6 @@ function WorldMap({
           </Animated.View>
         </View>
       </GestureDetector>
-      {currentLocation && mapCanvasWidth > 1 ? (
-        <CurrentPositionPin
-          latitude={currentLocation.latitude}
-          longitude={currentLocation.longitude}
-          canvasWidth={mapCanvasWidth}
-          scale={scale}
-          translateX={translateX}
-          translateY={translateY}
-        />
-      ) : null}
-      <View style={styles.mapControls}>
-        <TouchableOpacity
-          style={styles.mapControlButton}
-          onPress={() => setMapZoom(zoomLevel * 1.7)}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom map in"
-        >
-          <Ionicons name="add" size={22} color={BrandColors.onDark} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.mapControlButton}
-          onPress={() => setMapZoom(zoomLevel / 1.7)}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom map out"
-        >
-          <Ionicons name="remove" size={22} color={BrandColors.onDark} />
-        </TouchableOpacity>
-      </View>
       <Modal
         visible={selectedCountry !== null}
         transparent
@@ -974,7 +971,7 @@ function WorldMap({
 }
 
 export default function HomeScreen() {
-  const { width: screenWidth } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
@@ -982,11 +979,7 @@ export default function HomeScreen() {
   const name = useAppSelector((x) => x.profile.name);
   const challengePoints = useAppSelector((x) => x.travel.challengePoints);
   const isSignedIn = useAppSelector((x) => x.profile.isSignedIn);
-  const isKrooPlus = useAppSelector((x) => x.subscription.isKrooPlus);
-  const gpsArrivalsAllowed = canUseGpsArrivals(isKrooPlus);
   const dashboard = useAppSelector((x) => x.dashboard);
-  const [currentLocation, setCurrentLocation] =
-    useState<CurrentMapLocation | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [infoModal, setInfoModal] = useState<{
     title: string;
@@ -998,87 +991,54 @@ export default function HomeScreen() {
     footer?: string;
   } | null>(null);
   const [welcomeName, setWelcomeName] = useState(name);
-  const showWelcome = !name;
-  const saveWelcomeName = useCallback(() => {
-    const trimmed = welcomeName.trim();
-    if (trimmed) dispatch(nameChanged(trimmed));
-  }, [dispatch, welcomeName]);
-  const locateUser = useCallback(async () => {
-    if (!gpsArrivalsAllowed) return;
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) return;
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setCurrentLocation({
-        label: "Current position",
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
-      try {
-        const [address] = await Location.reverseGeocodeAsync(position.coords);
-        setCurrentLocation({
-          label:
-            [address?.city || address?.subregion, address?.country]
-              .filter(Boolean)
-              .join(", ") || "Current position",
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      } catch (error) {
-        console.warn("Could not resolve the current location name.", error);
-      }
-    } catch (error) {
-      console.warn("Could not get the current GPS position.", error);
-    }
-  }, [gpsArrivalsAllowed]);
-  useEffect(() => {
-    let active = true;
-    let subscription: Location.LocationSubscription | undefined;
-    if (!gpsArrivalsAllowed) {
-      setCurrentLocation(null);
-      void stopArrivalMonitoring().catch(() => undefined);
-      return () => {
-        active = false;
-      };
-    }
-    const startLocation = async () => {
-      await locateUser();
-      const permission = await Location.getForegroundPermissionsAsync();
-      if (!active || !permission.granted) return;
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 25,
-          timeInterval: 30_000,
-        },
-        (position) => {
-          if (!active) return;
-          setCurrentLocation((previous) => ({
-            label: previous?.label ?? "Current position",
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }));
-        },
+  const [referralCode, setReferralCode] = useState("");
+  const [referralError, setReferralError] = useState("");
+  const [validatingReferral, setValidatingReferral] = useState(false);
+  const [welcomeDismissing, setWelcomeDismissing] = useState(false);
+  const pendingMembership = useRef<{
+    name: string;
+    result: Awaited<ReturnType<typeof api.joinWithReferral>>;
+  } | null>(null);
+  const finishWelcomeDissolve = useCallback(() => {
+    const pending = pendingMembership.current;
+    if (pending) {
+      dispatch(nameChanged(pending.name));
+      dispatch(invitationAccepted(pending.result.accessToken));
+      dispatch(
+        membershipStarted({
+          userId: pending.result.user.id,
+          krooId: pending.result.user.krooId,
+          formattedKrooId: pending.result.user.formattedKrooId,
+          emailOptIn: pending.result.user.emailOptIn,
+        }),
       );
-      if (!active) {
-        subscription.remove();
-        subscription = undefined;
-      }
-    };
-    void startLocation().catch((error) => {
-      console.warn("Could not start foreground location updates.", error);
-    });
-    return () => {
-      active = false;
-      subscription?.remove();
-    };
-  }, [gpsArrivalsAllowed, locateUser]);
+      pendingMembership.current = null;
+    }
+    setWelcomeDismissing(false);
+  }, [dispatch]);
+  const showWelcome = !isSignedIn || !name;
+  const saveWelcomeName = useCallback(async () => {
+    const trimmed = welcomeName.trim();
+    if (!trimmed || !referralCode.trim() || validatingReferral) return;
+    setValidatingReferral(true);
+    setReferralError("");
+    try {
+      const result = await api.joinWithReferral(trimmed, referralCode.trim());
+      pendingMembership.current = { name: trimmed, result };
+      setWelcomeDismissing(true);
+    } catch (error) {
+      setReferralError(
+        error instanceof Error
+          ? error.message
+          : "Could not check your referral code. Please try again.",
+      );
+      setValidatingReferral(false);
+    }
+  }, [welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
-      api.syncVisits(visits),
-      api.syncTravelState({ completedSightIds }),
+      api.listVisits(),
+      api.travelState(),
     ]);
     if (visitsResult.status === "fulfilled") {
       dispatch(visitsHydrated(visitsResult.value));
@@ -1086,7 +1046,7 @@ export default function HomeScreen() {
     if (travelStateResult.status === "fulfilled") {
       dispatch(travelStateHydrated(travelStateResult.value));
     }
-  }, [completedSightIds, dispatch, visits]);
+  }, [dispatch]);
   const refreshSignedInTravelRef = useRef(refreshSignedInTravel);
   useEffect(() => {
     refreshSignedInTravelRef.current = refreshSignedInTravel;
@@ -1162,7 +1122,14 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Score",
       body: "Your Kroo Score reflects how well-traveled you are and is calculated based on a weighted mix of the following:",
-      bullets: ["Continents", "Countries", "Cities", "Airports", "Sights", "Challenges"],
+      bullets: [
+        "Continents",
+        "Countries",
+        "Cities",
+        "Airports",
+        "Sights",
+        "Challenges",
+      ],
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1171,9 +1138,12 @@ export default function HomeScreen() {
     setInfoModal({
       title: "Kroo Levels",
       body: "Your level is based on your Kroo Score. Keep adding places you have visited to progress through the levels.",
-      bullets: [...KROO_LEVELS].reverse().map((level) =>
-        `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
-      ),
+      bullets: [...KROO_LEVELS]
+        .reverse()
+        .map(
+          (level) =>
+            `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99" : level.maximum.toFixed(1)}`} `,
+        ),
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
     });
@@ -1215,7 +1185,8 @@ export default function HomeScreen() {
                 compact && styles.nameCompact,
                 (name || "Traveler").length > 12 && styles.nameLong,
               ]}
-              numberOfLines={2}
+              numberOfLines={1}
+              adjustsFontSizeToFit
               ellipsizeMode="tail"
             >
               {name || "Traveler"}
@@ -1229,75 +1200,95 @@ export default function HomeScreen() {
               <Text style={styles.levelText}>
                 {serverHome?.level ?? getKrooLevel(score)}
               </Text>
-              <InfoButton
-                label="About Kroo Levels"
-                onPress={openKrooLevels}
-              />
+              <InfoButton label="About Kroo Levels" onPress={openKrooLevels} />
             </View>
           </View>
           <Image
-            source={require("@/assets/images/other/globe-airplane.png")}
+            source={require("@/assets/images/other/globe.png")}
             style={[styles.globe, compact && styles.globeCompact]}
+            contentFit="contain"
+          />
+          <Image
+            source={require("@/assets/images/other/collect_letter.webp")}
+            style={styles.heroTagline}
             contentFit="contain"
           />
         </View>
         <View style={styles.scoreCard}>
-          <TouchableOpacity style={styles.scoreLine} onPress={openKrooScore} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Open Kroo Score details">
-            <StampedScore value={Number(score)} />
-            <View style={styles.scoreDetails}>
-              <View style={styles.infoTitleRow}>
-                <Text style={styles.scoreTitle}>KROO SCORE</Text>
-                <InfoButton
-                  label="About Kroo Score"
-                  onPress={openKrooScore}
-                />
-              </View>
-              <View style={styles.scoreBar}>
-                <View
-                  style={[
-                    styles.scoreFill,
-                    { width: `${Math.min(score, 100)}%` },
-                  ]}
-                />
-              </View>
-              <View style={styles.worldTextRow}>
-                <Text style={styles.worldPercent}>{worldProgress}%</Text>
-                <Text style={styles.worldText}> of the world explored</Text>
-              </View>
+          <View style={styles.scoreLine}>
+            <View style={styles.infoTitleRow}>
+              <Text style={styles.scoreTitle}>KROO SCORE</Text>
+              <InfoButton label="About Kroo Score" onPress={openKrooScore} />
             </View>
-          </TouchableOpacity>
-          <View style={styles.statsShared}>
-            <TravelStats
-              items={[
-                {
-                  icon: "globe-outline",
-                  value: countryCount,
-                  total: 195,
-                  label: "COUNTRIES",
-                  onInfo: () =>
-                    setInfoModal({
-                      title: "Countries",
-                      body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
-                      icon: "globe-outline",
-                    }),
-                },
-                {
-                  icon: "flag-outline",
-                  value: continentCount,
-                  total: 7,
-                  label: "CONTINENTS",
-                },
-                { icon: "business-outline", value: cityCount, label: "CITIES" },
-              ]}
-            />
+            <View style={styles.scoreCenter}>
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={styles.laurel}
+                contentFit="contain"
+              />
+              <StampedScore value={Number(score)} />
+              <Image
+                source={require("@/assets/images/other/leaf.png")}
+                style={[styles.laurel, { transform: [{ scaleX: -1 }] }]}
+                contentFit="contain"
+              />
+            </View>
+            <View style={styles.scoreBar}>
+              <View
+                style={[
+                  styles.scoreFill,
+                  { width: `${Math.max(0, Math.min(score, 100))}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.worldTextRow}>
+              <Text style={styles.worldPercent}>{worldProgress}%</Text>
+              <Text style={styles.worldText}> of the world explored</Text>
+            </View>
           </View>
         </View>
-        <CityVisitSearch />
-        <WorldMap
-          visited={countryCodes}
-          visits={visits}
-          currentLocation={gpsArrivalsAllowed ? currentLocation : null}
-        />
+        <View style={styles.statsShared}>
+          <TravelStats
+            separate
+            items={[
+              {
+                icon: "globe-outline",
+                value: countryCount,
+                total: 195,
+                label: "COUNTRIES",
+                onInfo: () =>
+                  setInfoModal({
+                    title: "Countries",
+                    body: "The United Nations recognizes 195 sovereign countries worldwide. This includes 193 member states and two observer states Vatican City and Palestine.\n\nThe countries listed on Kroo are based on these 195 UN recognized countries.",
+                    icon: "globe-outline",
+                  }),
+              },
+              {
+                icon: "flag-outline",
+                value: continentCount,
+                total: 7,
+                label: "CONTINENTS",
+              },
+              {
+                icon: "business-outline",
+                value: cityCount,
+                label: "CITIES",
+              },
+            ]}
+          />
+        </View>
+        <CityVisitSearch home />
+        <View>
+          <WorldMap visited={countryCodes} visits={visits} />
+          <View pointerEvents="none" style={styles.collectWorld}>
+            <Image
+              source={require("@/assets/images/other/compass.png")}
+              style={{ width: 38, height: 38 }}
+              contentFit="contain"
+            />
+            <Text style={styles.collectText}>{"COLLECT\nTHE WORLD"}</Text>
+          </View>
+        </View>
         <View style={styles.continentCard}>
           <View style={styles.continentHeader}>
             <Text style={styles.continentTitle}>
@@ -1333,43 +1324,112 @@ export default function HomeScreen() {
         footer={infoModal?.footer}
         onClose={() => setInfoModal(null)}
       />
-      <Modal visible={showWelcome} transparent animationType="fade">
-        <View style={styles.welcomeOverlay}>
-          <View style={styles.welcomeSheet}>
-            <Text style={styles.welcomeTitle}>Welcome to Kroo</Text>
-            <Text style={styles.welcomeBody}>
-              Feel free to have a look around and try Kroo out for free — no account needed.
-            </Text>
-            <Text style={styles.welcomeStrong}>To start we suggest</Text>
-            <View style={styles.bullets}>
-              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>Add a city you have visited — the countries you have visited will automatically update</Text></View>
-              <View style={styles.bulletRow}><Text style={styles.bullet}>•</Text><Text style={styles.bulletText}>View the stamps of the countries you have visited in your passport</Text></View>
-            </View>
-            <Text style={styles.welcomeBody}>
-              When you&apos;re ready to save your travel progress and Kroo Score, simply complete your passport profile on the Passport page.
-            </Text>
-            <Text style={styles.welcomeQuestion}>
-              What name would you like to use on your passport?
-            </Text>
-            <TextInput
-              value={welcomeName}
-              onChangeText={setWelcomeName}
-              style={styles.welcomeInput}
-              placeholder="First Name"
-              placeholderTextColor={BrandColors.muted}
-              autoCapitalize="words"
-              textAlign="center"
-            />
-            <TouchableOpacity
-              style={styles.welcomeButton}
-              onPress={saveWelcomeName}
-              accessibilityRole="button"
-              accessibilityLabel="Save passport name"
-              disabled={!welcomeName.trim()}
+
+      <Modal
+        visible={showWelcome || welcomeDismissing}
+        animationType="none"
+        presentationStyle="overFullScreen"
+        transparent
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
+        <View
+          style={styles.welcomeOverlay}
+          pointerEvents={welcomeDismissing ? "none" : "auto"}
+        >
+          {!welcomeDismissing ? (
+            <ImageBackground
+              source={require("@/assets/images/other/welcome.webp")}
+              resizeMode="stretch"
+              style={styles.welcomeSheet}
             >
-              <Text style={styles.welcomeButtonText}>CONTINUE</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.welcomeSheetContent}>
+                <Text style={styles.welcomeTitle}>
+                  EXTRAORDINARY{"\n"}JOURNEYS START HERE
+                </Text>
+                <Text style={styles.welcomeCopy}>
+                  Kroo is an invite-only community{"\n"}of travelers who
+                  explore, share{"\n"}and inspire.
+                </Text>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="person"
+                    size={16}
+                    color={BrandColors.copperDark}
+                  />
+                  <TextInput
+                    value={welcomeName}
+                    onChangeText={setWelcomeName}
+                    style={styles.welcomeInput}
+                    placeholder="First Name"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="words"
+                  />
+                </View>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="key-outline"
+                    size={16}
+                    color={BrandColors.copperDark}
+                  />
+                  <TextInput
+                    value={referralCode}
+                    onChangeText={(value) => {
+                      setReferralCode(value);
+                      setReferralError("");
+                    }}
+                    style={styles.welcomeInput}
+                    placeholder="Enter referral code"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel="Member referral code"
+                    editable={!validatingReferral}
+                    returnKeyType="go"
+                    onSubmitEditing={() => void saveWelcomeName()}
+                  />
+                </View>
+                {referralError ? (
+                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                    {referralError}
+                  </Text>
+                ) : null}
+                <TouchableOpacity
+                  style={[
+                    styles.welcomeButton,
+                    (!welcomeName.trim() ||
+                      !referralCode.trim() ||
+                      validatingReferral) &&
+                      styles.welcomeButtonDisabled,
+                  ]}
+                  onPress={saveWelcomeName}
+                  accessibilityRole="button"
+                  accessibilityLabel="Validate referral and continue"
+                  disabled={
+                    !welcomeName.trim() ||
+                    !referralCode.trim() ||
+                    validatingReferral
+                  }
+                >
+                  <Text style={styles.welcomeButtonText}>
+                    {validatingReferral ? "CHECKING..." : "Enter Kroo"}
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={18}
+                    color={BrandColors.green}
+                  />
+                </TouchableOpacity>
+              </View>
+            </ImageBackground>
+          ) : null}
+          {welcomeDismissing ? (
+            <WelcomeDissolveEffect
+              height={screenHeight}
+              width={screenWidth}
+              onFinished={finishWelcomeDissolve}
+            />
+          ) : null}
         </View>
       </Modal>
     </SafeAreaView>
@@ -1395,83 +1455,95 @@ function InfoButton({
   );
 }
 
+function SaveProgressIcon() {
+  return (
+    <Svg width={48} height={55} viewBox="0 0 80 92" fill="none">
+      <G
+        stroke="#985b3b"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <Path d="M18 7.5C31 5.6 48.2 5 62.5 6.5c2.6.3 4.2 2.2 4.3 4.7l2.1 55.9c.1 2.7-1.5 4.8-4 5.3L20.5 78c-2.6.3-4.6-1.3-4.8-3.9L13.2 13c-.1-2.8 1.6-5 4.8-5.5Z" />
+        <Path d="M17 69.5c14.4-1.2 33.6-2.7 50.8-3.8M21 78l39 7.5c2.5.5 4.6-1.3 4.6-4.2v-8.4" />
+        <Circle cx={41} cy={34.5} r={16} />
+        <Path d="M25.4 34.5h31.2M41 18.5v32M30.5 22.8c4.5 4.1 16.6 4.1 21 0M30.5 46.2c4.5-4.1 16.6-4.1 21 0M41 18.5c-5 4.5-7.4 9.8-7.4 16S36 46 41 50.5M41 18.5c5 4.5 7.4 9.8 7.4 16S46 46 41 50.5" />
+        <Path d="M30 58.5h22" />
+      </G>
+    </Svg>
+  );
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BrandColors.green },
-  content: { paddingBottom: 30 },
+  safe: { flex: 1, backgroundColor: "#00271C" },
+  content: {
+    paddingBottom: 30,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+  },
   welcomeOverlay: {
     flex: 1,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.62)",
+    backgroundColor: "transparent",
+  },
+  dissolveParticle: {
+    position: "absolute",
   },
   welcomeSheet: {
     width: "100%",
-    maxWidth: 430,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.greenPanel,
+    height: "100%",
+    overflow: "hidden",
   },
-  welcomeTitle: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    color: BrandColors.onDark,
-    textAlign: "center",
+  welcomeContent: {
+    paddingHorizontal: 10,
+    paddingVertical: 14,
+    alignItems: "stretch",
   },
-  welcomeBody: {
-    marginTop: 12,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(15),
-    lineHeight: 22,
-    color: BrandColors.onDark,
-    textAlign: "center",
-  },
-  welcomeStrong: {
-    fontFamily: "Lora_700Bold",
-    color: BrandColors.onDark,
-    textAlign: "center",
-  },
-  welcomeQuestion: {
-    marginTop: 22,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
-    color: BrandColors.onDark,
-  },
-  welcomeInput: {
-    minHeight: 52,
-    marginTop: 14,
+
+  welcomeInputWrap: {
+    minHeight: 30,
+    marginTop: 8,
     paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: BrandColors.surface,
+    borderColor: BrandColors.copperDark,
+    marginHorizontal: 30,
+  },
+  welcomeInput: {
+    flex: 1,
+    minHeight: 30,
+    paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
-    color: BrandColors.ink,
-    textAlign: "center",
+    color: BrandColors.copper,
     textAlignVertical: "center",
     writingDirection: "ltr",
   },
   welcomeButton: {
-    minHeight: 54,
-    marginTop: 16,
-    borderRadius: 14,
+    minHeight: 38,
+    marginTop: 8,
+    borderRadius: 12,
+    flexDirection: "row",
+    gap: 4,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.copper,
+    marginHorizontal: 30,
   },
+  welcomeButtonDisabled: { opacity: 0.7 },
   welcomeButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(18),
     letterSpacing: 1,
     color: BrandColors.green,
   },
+
   welcomeSecondaryButton: {
     minHeight: 42,
     marginTop: 8,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1497,26 +1569,55 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(8),
     color: BrandColors.white,
   },
+  heroTagline: {
+    position: "absolute",
+    right: 25,
+    top: 50,
+    width: 150,
+    height: "100%",
+    zIndex: 10,
+  },
+  scoreCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  laurel: { width: 60, height: 70 },
+  collectWorld: {
+    position: "absolute",
+    left: 18,
+    bottom: 3,
+    alignItems: "center",
+  },
+  collectText: {
+    marginTop: 4,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: 7,
+    letterSpacing: 2,
+    lineHeight: 11,
+    textAlign: "center",
+    color: "#99AC8C",
+  },
   hero: {
-    height: 205,
-    paddingHorizontal: 10,
+    height: 210,
+    paddingHorizontal: 18,
     paddingTop: 0,
     overflow: "hidden",
   },
-  heroCompact: { height: 190, paddingHorizontal: 10 },
+  heroCompact: { height: 180, paddingHorizontal: 14 },
   welcome: { position: "relative", zIndex: 2, marginTop: 7 },
   greeting: {
     position: "relative",
     zIndex: 2,
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(15),
-    letterSpacing: 2.4,
+    letterSpacing: 3,
     color: BrandColors.copper,
   },
   name: {
     position: "relative",
     zIndex: 2,
-    maxWidth: "80%",
+    maxWidth: "55%",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(48),
     lineHeight: 56,
@@ -1533,7 +1634,6 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   levelRow: {
-    marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -1549,37 +1649,28 @@ const styles = StyleSheet.create({
   },
   globe: {
     position: "absolute",
-    right: 45,
-    top: 5,
-    width: 210,
-    height: 210,
+    right: 16,
+    width: 170,
+    height: 170,
     zIndex: 0,
   },
-  globeCompact: { right: 14, width: 185, height: 185 },
+  globeCompact: { right: 30, top: 5, width: 150, height: "100%" },
   scoreCard: {
-    marginTop: -24,
-    marginHorizontal: 10,
-    paddingTop: 4,
-    paddingBottom: 13,
-    backgroundColor: "transparent",
+    marginHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#AC8B60",
+    backgroundColor: "rgba(10,43,32,0.3)",
   },
-  statsShared: { marginTop: 12 },
-  scoreLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    paddingHorizontal: 14,
-  },
-  score: {
-    width: 112,
-    height: 58,
-  },
-  scoreDetails: { flex: 1 },
+  statsShared: { marginTop: 10, marginHorizontal: 12 },
+  scoreLine: { alignItems: "center", paddingHorizontal: 18 },
+  score: { width: 140, height: 78 },
   scoreTitle: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(18),
-    letterSpacing: 0.3,
-    color: BrandColors.onDark,
+    fontSize: responsiveFontSize(16),
+    letterSpacing: 3,
+    color: BrandColors.onDarkMuted,
   },
   infoTitleRow: {
     flexDirection: "row",
@@ -1604,8 +1695,10 @@ const styles = StyleSheet.create({
     color: BrandColors.copper,
   },
   scoreBar: {
-    width: "100%",
-    height: 5,
+    width: "72%",
+    height: 8,
+    borderWidth: 1,
+    borderColor: "#315749",
     marginTop: 5,
     borderRadius: 4,
     backgroundColor: "rgba(120,166,110,.24)",
@@ -1628,7 +1721,7 @@ const styles = StyleSheet.create({
     color: BrandColors.progressGreen,
   },
   worldText: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     color: BrandColors.onDark,
   },
@@ -1647,7 +1740,7 @@ const styles = StyleSheet.create({
   statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   statNumberRow: { flexDirection: "row", alignItems: "baseline" },
   statValue: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(23),
     color: BrandColors.onDark,
   },
@@ -1702,32 +1795,8 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  mapControls: {
-    position: "absolute",
-    right: 8,
-    top: 8,
-    zIndex: 8,
-    gap: 6,
-  },
-  mapControlButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    backgroundColor: "rgba(0, 40, 29, 0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  currentPositionPin: {
-    position: "absolute",
-    zIndex: 5,
-    width: 26,
-    height: 34,
-  },
-  currentPositionPinImage: { width: "100%", height: "100%" },
   mapLoadingText: {
-    fontFamily: "Lora_400Regular",
+    fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(11),
     color: BrandColors.onDarkMuted,
   },
@@ -1895,7 +1964,48 @@ const styles = StyleSheet.create({
   },
   bullets: { width: "100%", marginTop: 15, paddingLeft: 5, textAlign: "left" },
   bulletRow: { marginBottom: 5, flexDirection: "row" },
-  bullet: { width: 15, fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(17), color: BrandColors.onDark },
-  bulletText: { flex: 1, fontFamily: "Lora_500Medium", fontSize: responsiveFontSize(15), color: BrandColors.onDark },
-
+  bullet: {
+    width: 15,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(17),
+    color: BrandColors.onDark,
+  },
+  bulletText: {
+    flex: 1,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(15),
+    color: BrandColors.onDark,
+  },
+  welcomeSheetContent: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    top: "31.5%",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  welcomeBody: {
+    marginTop: 4,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(21),
+    color: BrandColors.green,
+    textAlign: "center",
+    marginHorizontal: 30,
+  },
+  welcomeTitle: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    color: BrandColors.white,
+    fontSize: responsiveFontSize(28),
+    letterSpacing: 1.2,
+  },
+  welcomeCopy: {
+    marginTop: 4,
+    textAlign: "center",
+    color: BrandColors.white,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(16),
+    lineHeight: responsiveFontSize(21),
+  },
 });

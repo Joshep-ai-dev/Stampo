@@ -1,8 +1,19 @@
-import { responsiveFontSize } from "@/constants/responsive-typography";
+import {
+  responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect,
+  useMemo,
+  useState } from "react";
+import { ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Text, TextInput } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
 import { api, type AirportOption, type CatalogCitySearchResult } from "@/services/api";
@@ -54,15 +65,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   useEffect(() => {
     let active = true;
     setAirportsLoading(true);
-    const visit = city.visits[0];
     void api.cityAirports(city.id)
-      .catch(() => [])
-      .then(async (items) => {
-        if (items.length || !visit?.subcountry) return items;
-        return api
-          .stateAirports(visit.countryCode, visit.subcountry)
-          .catch(() => []);
-      })
       .then((items) => {
         if (!active) return;
         setAirports(items.filter((airport, index, all) =>
@@ -129,20 +132,16 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
         }] : []),
       ],
     };
-    setCurrentVisits((items) => items.map((item) => item.id === updated.id ? updated : item));
-    dispatch(visitUpdated(updated));
-    setEditingVisitId(null);
-    setReplacementCity(null);
-    setCityQuery("");
     if (!isSignedIn) return;
     try {
       const remote = await api.updateVisit(updated);
       setCurrentVisits((items) => items.map((item) => item.id === remote.id ? remote : item));
       dispatch(visitUpdated(remote));
+      setEditingVisitId(null);
+      setReplacementCity(null);
+      setCityQuery("");
       void dispatch(fetchHomeDashboard());
-    } catch {
-      Alert.alert("Saved on this device", "Kroo will sync this edit when the server is available.");
-    }
+    } catch {}
   };
 
   const deleteVisit = async (visit: Visit) => {

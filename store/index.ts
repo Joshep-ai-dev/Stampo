@@ -1,30 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configureStore } from "@reduxjs/toolkit";
 
-import { api } from "@/services/api";
+import { api, setInvitationToken } from "@/services/api";
 import dashboardReducer, {
   dashboardCleared,
   fetchHomeDashboard,
 } from "./dashboard-slice";
-import countryDetailReducer, {
-  countryDetailCacheHydrated,
-} from "./country-detail-slice";
+import countryDetailReducer from "./country-detail-slice";
 import profileReducer, {
   authSessionChanged,
   languageChanged,
+  krooIdRemembered,
+  membershipStarted,
   photoChanged,
   profileDetailsChanged,
-  profileHydrated,
-  signedOut,
 } from "./profile-slice";
 import travelReducer, {
   travelStateHydrated,
-  visitsCleared,
   visitsHydrated,
 } from "./travel-slice";
 import subscriptionReducer from "./subscription-slice";
 
-const STORAGE_KEY = "stampo.app-state.v1";
+const LEGACY_STORAGE_KEY = "stampo.app-state.v1";
+const MEMBER_ID_KEY = "kroo.member-id.v1";
 
 export const store = configureStore({
   reducer: {
@@ -36,48 +34,74 @@ export const store = configureStore({
   },
 });
 
+store.subscribe(() => setInvitationToken(store.getState().profile.invitation));
+
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 let persistenceStarted = false;
 
 export async function hydrateStore() {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    const saved = JSON.parse(raw) as Partial<RootState>;
-    if (saved.travel?.visits)
-      store.dispatch(visitsHydrated(saved.travel.visits));
-    if (saved.travel) store.dispatch(travelStateHydrated(saved.travel));
-    if (saved.profile) store.dispatch(profileHydrated(saved.profile));
-    if (saved.countryDetail?.cache)
-      store.dispatch(countryDetailCacheHydrated(saved.countryDetail.cache));
+  const legacyRaw = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
+  const legacy = legacyRaw
+    ? (JSON.parse(legacyRaw) as Partial<RootState>)
+    : null;
+  const storedMember = await AsyncStorage.getItem(MEMBER_ID_KEY);
+  const legacyProfile = legacy?.profile;
+  const savedFormattedKrooId =
+    storedMember || legacyProfile?.formattedKrooId || "";
+  const savedNumericKrooId = legacyProfile?.krooNumber ?? 0;
+  if (savedFormattedKrooId || savedNumericKrooId) {
+    store.dispatch(krooIdRemembered({
+      krooId: savedNumericKrooId,
+      formattedKrooId: savedFormattedKrooId,
+    }));
   }
+  await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
 
   try {
-    const user = await api.restoreSession();
+    const savedProfile = store.getState().profile;
+    const savedKrooId =
+      savedProfile.formattedKrooId ||
+      (savedProfile.krooNumber ? String(savedProfile.krooNumber) : "");
+    const user =
+      (await api.restoreSession()) ??
+      (savedKrooId ? await api.resumeMembership(savedKrooId) : null);
     if (user) {
-      const localTravel = store.getState().travel;
       const profile = store.getState().profile;
       const remoteProfile = await api.getProfile().catch(() => null);
       store.dispatch(
         profileDetailsChanged({
           name: user.name,
+          familyName: remoteProfile?.familyName ?? profile.familyName,
           email: user.email,
+          phoneNumber: remoteProfile?.phoneNumber ?? profile.phoneNumber,
           nationality: remoteProfile?.nationality ?? profile.nationality,
           dateOfBirth: remoteProfile?.dateOfBirth ?? profile.dateOfBirth,
-          sex: remoteProfile?.sex ?? profile.sex,
+          address: remoteProfile?.address ?? profile.address,
+          city: remoteProfile?.city ?? profile.city,
+          stateProvince: remoteProfile?.stateProvince ?? profile.stateProvince,
+          postalCode: remoteProfile?.postalCode ?? profile.postalCode,
+          country: remoteProfile?.country ?? profile.country,
         }),
       );
+      const krooId = remoteProfile?.krooId ?? user.krooId;
+      const formattedKrooId =
+        remoteProfile?.formattedKrooId ?? user.formattedKrooId;
+      if (krooId && formattedKrooId) {
+        store.dispatch(membershipStarted({
+          userId: user.id,
+          krooId,
+          formattedKrooId,
+          emailOptIn: remoteProfile?.emailOptIn ?? user.emailOptIn,
+        }));
+      }
       if (remoteProfile) store.dispatch(photoChanged(remoteProfile.photoUri));
       store.dispatch(languageChanged(user.language));
       store.dispatch(authSessionChanged({ isSignedIn: true, userId: user.id }));
-      const [visitsResult] = await Promise.allSettled([
-        api.syncVisits(localTravel.visits),
-      ]);
-      const [travelStateResult] = await Promise.allSettled([
-        api.syncTravelState({
-          completedSightIds: localTravel.completedSightIds,
-        }),
+      const [visitsResult, travelStateResult] = await Promise.allSettled([
+        api.listVisits(),
+        api.travelState(),
       ]);
       if (visitsResult.status === "fulfilled") {
         store.dispatch(visitsHydrated(visitsResult.value));
@@ -101,11 +125,8 @@ export async function hydrateStore() {
   if (!persistenceStarted) {
     persistenceStarted = true;
     store.subscribe(() => {
-      const state = store.getState();
-      void AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(state),
-      );
+      const memberId = store.getState().profile.formattedKrooId;
+      if (memberId) void AsyncStorage.setItem(MEMBER_ID_KEY, memberId);
     });
   }
 }

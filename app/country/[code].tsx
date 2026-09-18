@@ -1,6 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { Ionicons } from "@expo/vector-icons";
+import { Text } from "@/components/app-text";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -10,30 +10,29 @@ import {
   ScrollView,
   type StyleProp,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CollectionStampList } from "@/components/collection-stamp-card";
 import { DetailModal } from "@/components/detail-modal";
-import { PlaceCollectionList } from "@/components/place-collection-list";
-import { CitiesVisitedSection, type PlaceListItem, StatesSection, TopSightsSection } from "@/components/place-detail-sections";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
+import {
+  CitiesVisitedSection,
+  type PlaceListItem,
+  StatesSection,
+  TopSightsSection,
+} from "@/components/place-detail-sections";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
-import { stampAssets } from "@/data/stamps";
-import {
-  api,
-  type SightDetail,
-} from "@/services/api";
+import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import {
-  canUseGpsArrivals,
-  GPS_ARRIVALS_REQUIRE_KROO_PLUS,
-} from "@/services/gps-access";
+import { canUseGpsArrivals } from "@/services/gps-access";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
@@ -117,9 +116,11 @@ export default function CountryScreen() {
       ),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
-  const visitedStates = [...new Set(
-    countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
-  )].sort((left, right) => left.localeCompare(right));
+  const visitedStates = [
+    ...new Set(
+      countryVisits.map((visit) => visit.subcountry.trim()).filter(Boolean),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
@@ -162,19 +163,66 @@ export default function CountryScreen() {
     airports: Math.max(detail?.stats.airports ?? 0, localAirportIds.size),
   };
   const stateItems: PlaceListItem[] = visitedStates.map((stateName) => {
-    const matchingVisits = countryVisits.filter((visit) => visit.subcountry.trim() === stateName);
-    const sightCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
-    const airportCount = new Set(matchingVisits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
-    const image = detail?.states.find((item) => item.name?.trim().toLocaleLowerCase() === stateName.trim().toLocaleLowerCase())?.imageUrl;
-    return { id: stateName, name: stateName, image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}` };
+    const matchingVisits = countryVisits.filter(
+      (visit) => visit.subcountry.trim() === stateName,
+    );
+    const sightCount = new Set(
+      matchingVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "sight")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const airportCount = new Set(
+      matchingVisits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const image = detail?.states.find(
+      (item) =>
+        item.name?.trim().toLocaleLowerCase() ===
+        stateName.trim().toLocaleLowerCase(),
+    )?.imageUrl;
+    return {
+      id: stateName,
+      name: stateName,
+      image,
+      detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${matchingVisits.length} ${matchingVisits.length === 1 ? "visit" : "visits"}`,
+    };
   });
   const cityItems: PlaceListItem[] = visitedCities.map((city) => {
-    const cityDetail = detail?.cities.find((item) => item.id === city.id || item.name.trim().toLocaleLowerCase() === city.name.trim().toLocaleLowerCase());
-    const sightCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "sight").map((place) => place.id || place.name))).size;
-    const airportCount = new Set(city.visits.flatMap((visit) => visit.places.filter((place) => place.type === "airport").map((place) => place.id || place.name))).size;
-    return { id: city.id, name: city.name, image: cityDetail?.image, detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}` };
+    const cityDetail = detail?.cities.find(
+      (item) =>
+        item.id === city.id ||
+        item.name.trim().toLocaleLowerCase() ===
+          city.name.trim().toLocaleLowerCase(),
+    );
+    const sightCount = new Set(
+      city.visits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "sight")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    const airportCount = new Set(
+      city.visits.flatMap((visit) =>
+        visit.places
+          .filter((place) => place.type === "airport")
+          .map((place) => place.id || place.name),
+      ),
+    ).size;
+    return {
+      id: city.id,
+      name: city.name,
+      // Prefer the catalog image, but retain the thumbnail stored with an
+      // existing visit when this country response does not include the city.
+      image:
+        cityDetail?.image || city.visits.find((visit) => visit.image)?.image,
+      detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}`,
+    };
   });
-  const stamp = stampAssets[normalizedCode];
   const enableGpsArrivals = async () => {
     if (!canUseGpsArrivals(subscription.isKrooPlus)) {
       Alert.alert(
@@ -200,11 +248,11 @@ export default function CountryScreen() {
   };
   const toggleSight = async (sightId: string, completed: boolean) => {
     const next = !completed;
-    dispatch(sightCompletionSet({ id: sightId, completed: next }));
-    dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
     if (!isSignedIn) return;
     try {
       await api.setSightCompleted(sightId, next);
+      dispatch(sightCompletionSet({ id: sightId, completed: next }));
+      dispatch(countrySightCompletionSet({ code, sightId, completed: next }));
       void api
         .listVisits()
         .then((visits) => dispatch(visitsHydrated(visits)))
@@ -212,12 +260,7 @@ export default function CountryScreen() {
       void dispatch(fetchHomeDashboard());
       dispatch(countryDetailInvalidated(code));
       void dispatch(fetchCountryDetail(code));
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this sight when the server is available.",
-      );
-    }
+    } catch {}
   };
 
   return (
@@ -227,67 +270,43 @@ export default function CountryScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
-        <View style={s.header}>
-          <TouchableOpacity
-            accessibilityLabel="Go back"
-            style={s.iconButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={25}
-              color={BrandColors.onDark}
-            />
-          </TouchableOpacity>
-          <Text
-            style={s.title}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.68}
-          >
-            {flag} {name}
-          </Text>
-          <View style={s.headerSpacer} />
-        </View>
+        <PlaceDetailHeader
+          title={name}
+          flagEmoji={flag}
+          onBack={() => router.back()}
+        />
 
-        <View style={s.stampHero}>
-          {!detail ? (
-            <View style={s.heroLoading} />
-          ) : detail.country.coverImage ? (
-            <Image
-              source={{ uri: detail.country.coverImage }}
-              recyclingKey={`country-${code}-${detail.country.coverImage}`}
-              style={s.countryHeroImage}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : stamp ? (
-            <Image
-              source={stamp}
-              style={s.stampImage}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : (
-            <Image
-              source={require("@/assets/images/other/globe-airplane.png")}
-              style={s.stampImage}
-              contentFit="cover"
-            />
-          )}
-        </View>
-
+        {detail ? (
+          <View style={s.heroWrap}>
+            <StampHeroFrame>
+              {normalizedCode === "AQ" ? (
+                <Image
+                  source={require("@/assets/images/stampo/Antarctica-detail.webp")}
+                  style={s.stampImage}
+                  contentFit="contain"
+                  priority="high"
+                />
+              ) : (
+                <ProgressivePlaceImage
+                  uri={detail.country.coverImage}
+                  style={s.stampImage}
+                  contentFit="contain"
+                />
+              )}
+            </StampHeroFrame>
+          </View>
+        ) : null}
         <View style={s.statsWrap}>
           <TravelStats
             items={[
               ...(normalizedCode === "US"
                 ? [
-                  {
-                    icon: "map-outline",
-                    value: displayedStats.states,
-                    label: "STATES",
-                  },
-                ]
+                    {
+                      icon: "map-outline",
+                      value: displayedStats.states,
+                      label: "STATES",
+                    },
+                  ]
                 : []),
               {
                 icon: "business-outline",
@@ -323,16 +342,75 @@ export default function CountryScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
-        <TopSightsSection sights={visibleSights} lockedSights={lockedSights} completedSightIds={completedSightIds} onOpen={setSelectedSight} onToggle={(id, checked) => void toggleSight(id, checked)} locationForSight={(sight) => sight.city || detail?.cities.find((city) => String(city.id) === String(sight.cityId))?.name || ""} upgrade={lockedSights.length ? <UpgradeBanner count={lockedSights.length} active={subscription.isKrooPlus} configured={subscription.configured} /> : null} />
+        <TopSightsSection
+          sights={visibleSights}
+          lockedSights={lockedSights}
+          completedSightIds={completedSightIds}
+          onOpen={setSelectedSight}
+          onToggle={(id, checked) => void toggleSight(id, checked)}
+          locationForSight={(sight) => {
+            const city = detail?.cities.find(
+              (item) => String(item.id) === String(sight.cityId),
+            );
+            const cityName = sight.city || city?.name || "";
+            if (sight?.countryId !== "US") {
+              return cityName;
+            }
+            return [cityName, sight.state || city?.subcountry]
+              .filter(Boolean)
+              .join(", ");
+          }}
+          upgrade={
+            lockedSights.length ? (
+              <UpgradeBanner
+                count={lockedSights.length}
+                active={subscription.isKrooPlus}
+                configured={subscription.configured}
+              />
+            ) : null
+          }
+        />
 
         {normalizedCode === "US" ? (
-          <StatesSection showDetail={false} items={stateItems} emptyText="Your visited states will appear here." onOpen={(state) => router.push({ pathname: "/state/[countryCode]/[stateName]", params: { countryCode: "US", stateName: state.name } })} />
+          <StatesSection
+            showDetail={false}
+            items={stateItems}
+            emptyText="Your visited states will appear here."
+            onOpen={(state) =>
+              router.push({
+                pathname: "/state/[countryCode]/[stateName]",
+                params: { countryCode: "US", stateName: state.name },
+              })
+            }
+          />
         ) : null}
 
-        <CitiesVisitedSection showDetail={normalizedCode !== "US"} items={cityItems} emptyText="Your visited cities will appear here." onOpen={(city) => router.push({ pathname: "/city/[id]", params: { id: city.id, name: city.name, country: name, countryCode: normalizedCode } })} />
-        <PlaceCollectionList collections={countryCollectionItems.map(({ collection }) => collection)} completedSightIds={completedSightIds} placeName={name} />
+        <CitiesVisitedSection
+          showDetail={normalizedCode !== "US"}
+          items={cityItems}
+          emptyText="Your visited cities will appear here."
+          onOpen={(city) =>
+            router.push({
+              pathname: "/city/[id]",
+              params: {
+                id: city.id,
+                name: city.name,
+                country: name,
+                countryCode: normalizedCode,
+              },
+            })
+          }
+        />
+        <CollectionStampList
+          collections={countryCollectionItems.map(
+            ({ collection }) => collection,
+          )}
+          completedSightIds={completedSightIds}
+          visits={allVisits}
+          placeName={name}
+        />
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
           accessibilityRole="button"
@@ -353,7 +431,7 @@ export default function CountryScreen() {
             size={18}
             color={BrandColors.copper}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </ScrollView>
       {selectedSight ? (
         <DetailModal
@@ -431,57 +509,19 @@ function ResolvedPlaceImage({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 44 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(49,87,73,.56)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    flex: 1,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(28),
-    lineHeight: 34,
-    includeFontPadding: false,
-    color: BrandColors.copper,
-  },
-  headerSpacer: { width: 42, height: 42 },
-  stampHero: {
-    marginHorizontal: 14,
-    marginBottom: 14,
-    padding: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.surface,
-    overflow: "hidden",
-  },
   stampImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
-    transform: [{ scale: 1.2 }],
+    height: "100%",
   },
   countryHeroImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
+    height: "100%",
   },
-  heroLoading: { flex: 1, backgroundColor: BrandColors.greenPanel },
+  heroLoading: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: BrandColors.greenPanel,
+  },
   statsWrap: { marginHorizontal: 14, marginBottom: 2 },
   messageCard: {
     marginHorizontal: 14,
@@ -815,4 +855,8 @@ const s = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   sightsEmpty: { marginHorizontal: 16 },
+  heroWrap: {
+    margin: 12,
+    marginTop: 0,
+  },
 });

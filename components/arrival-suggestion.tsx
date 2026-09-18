@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import type { NotificationResponse } from "expo-notifications";
 import { useEffect, useState } from "react";
@@ -9,7 +10,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -24,7 +24,7 @@ import {
 } from "@/services/gps-access";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { visitAdded, visitReceived, type NewVisit } from "@/store/travel-slice";
+import { visitReceived, type NewVisit } from "@/store/travel-slice";
 
 function suggestionFromResponse(response: NotificationResponse | null) {
   const data = response?.notification.request.content.data;
@@ -64,7 +64,9 @@ export function ArrivalSuggestionPrompt() {
           await Notifications.clearLastNotificationResponseAsync();
         }
       };
-      void Notifications.getLastNotificationResponseAsync().then(consumeResponse);
+      void Notifications.getLastNotificationResponseAsync().then(
+        consumeResponse,
+      );
       const subscription =
         Notifications.addNotificationResponseReceivedListener((response) => {
           void consumeResponse(response);
@@ -80,10 +82,10 @@ export function ArrivalSuggestionPrompt() {
   const confirmVisit = async () => {
     if (!suggestion || !isSignedIn || !canUseGpsArrivals(isKrooPlus)) {
       Alert.alert(
-        GPS_ARRIVALS_REQUIRE_KROO_PLUS ? "Kroo+" : "Sign in required",
+        GPS_ARRIVALS_REQUIRE_KROO_PLUS ? "Kroo+" : "Kroo Passport required",
         GPS_ARRIVALS_REQUIRE_KROO_PLUS
-          ? "Sign in with an active Kroo+ membership to save a GPS-verified visit."
-          : "Sign in to save a GPS-verified visit.",
+          ? "An active Kroo+ membership is required to save a GPS-verified visit."
+          : "Finish setting up your Kroo Passport to save this visit.",
       );
       return;
     }
@@ -97,7 +99,8 @@ export function ArrivalSuggestionPrompt() {
         (name, index, names) =>
           Boolean(name?.trim()) &&
           names.findIndex(
-            (candidate) => normalizePlaceName(candidate) === normalizePlaceName(name),
+            (candidate) =>
+              normalizePlaceName(candidate) === normalizePlaceName(name),
           ) === index,
       );
       let city = null;
@@ -129,20 +132,30 @@ export function ArrivalSuggestionPrompt() {
         countryCode: city.countryCode,
         continentCode: city.continentCode,
         subcountry: city.subcountry,
+        image: city.image ?? "",
         visitedAt: suggestion.detectedAt.slice(0, 10),
         note: "Added from a GPS arrival.",
         places: [
           ...(airport
-            ? [{
-              id: suggestion.nearbyPlace?.type === "airport"
-                ? `airport:${suggestion.nearbyPlace.id}`
-                : `gps-airport-${Date.now()}`,
-              name: airport,
-              type: "airport" as const,
-            }]
+            ? [
+                {
+                  id:
+                    suggestion.nearbyPlace?.type === "airport"
+                      ? `airport:${suggestion.nearbyPlace.id}`
+                      : `gps-airport-${Date.now()}`,
+                  name: airport,
+                  type: "airport" as const,
+                },
+              ]
             : []),
           ...(suggestion.nearbyPlace?.type === "sight"
-            ? [{ id: suggestion.nearbyPlace.id, name: suggestion.nearbyPlace.name, type: "sight" as const }]
+            ? [
+                {
+                  id: suggestion.nearbyPlace.id,
+                  name: suggestion.nearbyPlace.name,
+                  type: "sight" as const,
+                },
+              ]
             : []),
         ],
         verification: {
@@ -154,11 +167,7 @@ export function ArrivalSuggestionPrompt() {
       try {
         dispatch(visitReceived(await api.createVisit(pendingVisit)));
       } catch {
-        dispatch(visitAdded(pendingVisit));
-        Alert.alert(
-          "Saved on this device",
-          "Kroo will sync this GPS visit and airport when the server is available.",
-        );
+        return;
       }
       void dispatch(fetchHomeDashboard());
       setSuggestion(null);
@@ -178,6 +187,8 @@ export function ArrivalSuggestionPrompt() {
       transparent
       animationType="fade"
       onRequestClose={() => setSuggestion(null)}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlay}>
         <Pressable

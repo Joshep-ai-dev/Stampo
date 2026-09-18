@@ -1,13 +1,15 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { memo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 import type { CountryRecord } from "@/data/cities";
 import { stampAssets } from "@/data/stamps";
+import { StampCardBackground } from "./stamp-card-background";
 
 const UNVISITED_STAMP = "#AAB5AF";
 
@@ -15,7 +17,7 @@ export const CountryStampCard = memo(function CountryStampCard({
   country,
   cityCount,
   onPress,
-  width = 156,
+  width = 122,
 }: {
   country: CountryRecord;
   cityCount: number;
@@ -37,6 +39,7 @@ export const CountryStampCard = memo(function CountryStampCard({
           : "not visited"
       }`}
     >
+      <StampCardBackground />
       <View style={styles.header}>
         <Text style={styles.flag}>{country.flag}</Text>
         <Text style={styles.name} numberOfLines={1}>
@@ -45,11 +48,7 @@ export const CountryStampCard = memo(function CountryStampCard({
       </View>
       <View style={styles.stampFrame}>
         {stamp ? (
-          <Image
-            source={stamp}
-            style={styles.stamp}
-            contentFit="contain"
-          />
+          <Image source={stamp} style={styles.stamp} contentFit="contain" />
         ) : (
           <View style={styles.placeholder}>
             <Ionicons
@@ -71,16 +70,14 @@ export const CountryStampCard = memo(function CountryStampCard({
 
 const styles = StyleSheet.create({
   card: {
-    height: 240,
-    width: 184,
+    height: 180,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 9,
     borderRadius: 12,
-    backgroundColor: BrandColors.surface,
+    backgroundColor: "transparent",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#C5A36C",
+    overflow: "hidden",
   },
   header: {
     width: "100%",
@@ -98,9 +95,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   stampFrame: {
-    width: 144,
-    height: 164,
-    marginTop: 3,
+    width: "100%",
+    height: 140,
+    marginTop: -10,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -108,7 +105,7 @@ const styles = StyleSheet.create({
   stamp: {
     width: "100%",
     height: "100%",
-    transform: [{ scale: 1.2 }],
+    transform: [{ scale: 1.3 }],
   },
   placeholder: {
     width: "100%",
@@ -117,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   status: {
-    marginTop: 7,
+    marginTop: -6,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(12),
     color: BrandColors.muted,

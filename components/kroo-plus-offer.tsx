@@ -2,7 +2,8 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text } from "@/components/app-text";
 
 export type KrooPlusPlan = "monthly" | "annual";
 
@@ -27,8 +28,8 @@ const features = [
 ] as const;
 
 export function KrooPlusOffer({
-  monthlyPrice = "$5.99",
-  annualPrice = "$59.99",
+  monthlyPrice = "$9.99",
+  annualPrice = "$99.99",
   busy = false,
   onPurchase,
   onRestore,
@@ -87,13 +88,12 @@ export function KrooPlusOffer({
         onPress={() => onPurchase(plan)}
       >
         <Text style={s.ctaText}>
-          {busy ? "CONNECTING TO REVENUECAT..." : "START 7-DAY FREE TRIAL"}
+          {busy ? "CONNECTING TO REVENUECAT..." : "JOIN KROO+"}
         </Text>
       </TouchableOpacity>
       <Text style={s.terms}>
-        Then{" "}
         {plan === "annual" ? `${annualPrice}/year` : `${monthlyPrice}/month`}.
-        Cancel anytime before trial ends.
+        Cancel anytime.
       </Text>
       {onRestore && (
         <TouchableOpacity disabled={busy} onPress={onRestore}>

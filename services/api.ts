@@ -1,4 +1,4 @@
-import type { ProfileState } from "@/store/profile-slice";
+import type { ProfileDetails, ProfileState } from "@/store/profile-slice";
 import type { NewVisit, Visit } from "@/store/travel-slice";
 import {
   deleteStoredAuthToken,
@@ -17,6 +17,10 @@ function backendImageUrl(value?: string) {
 }
 
 let authToken: string | null = null;
+let invitationToken: string | null = null;
+export function setInvitationToken(token: string | null) {
+  invitationToken = token;
+}
 
 export function setApiToken(token: string | null) {
   authToken = token;
@@ -39,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       Accept: "application/json",
+      ...(invitationToken ? { "X-Kroo-Invitation": invitationToken } : {}),
       ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...init?.headers,
@@ -81,10 +86,13 @@ type AuthResponse = {
   token: string;
   user: {
     id: string;
+    krooId: number;
+    formattedKrooId: string;
     name: string;
     email: string;
     language: string;
     plan: "free" | "pro";
+    emailOptIn: boolean;
   };
 };
 
@@ -104,6 +112,18 @@ export type HomeDashboard = {
   worldProgress: number;
   visitedCountryCodes: string[];
   continentCounts: Record<string, number>;
+  challengeProgress: {
+    krooScore: number;
+    krooScoreTarget: number;
+    krooScoreQualified: boolean;
+    krooIqScore: number;
+    krooIqTarget: number;
+    krooIqQualified: boolean;
+    referralCount: number;
+    referralTarget: number;
+    referralsQualified: boolean;
+    qualified: boolean;
+  };
   updatedAt: string;
 };
 
@@ -153,7 +173,7 @@ export type StateDetailResponse = {
   sights: SightDetail[];
   collections: ManagedCollection[];
   stats: { cities: number; sights: number; airports: number };
-  visitedCities: { id: string; name: string }[];
+  visitedCities: { id: string; name: string; image?: string }[];
 };
 
 export type TravelStateResponse = {
@@ -174,17 +194,30 @@ export type SubscriptionEntitlement = {
 
 export type RemoteProfile = {
   id: string;
+  krooId: number;
+  formattedKrooId: string;
   name: string;
+  familyName?: string;
   email: string;
+  phoneNumber?: string;
   language: string;
+  emailOptIn: boolean;
   plan: "free" | "pro";
   nationality: string;
   dateOfBirth: string;
-  sex?: "M" | "F" | "";
+  address?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country?: string;
   photoUri: string | null;
 };
 
+type ProfileUpdate = ProfileDetails &
+  Partial<Pick<ProfileState, "language" | "photoUri" | "emailOptIn">>;
+
 export type CollectionProgress = {
+  access?: "free" | "pro";
   id: string;
   title: string;
   detail: string;
@@ -193,14 +226,19 @@ export type CollectionProgress = {
   updatedAt?: string;
   description?: string;
   imageUrl?: string;
+  heroImageUrl?: string;
+  explorerImageUrl?: string;
   places?: ManagedCollectionPlace[];
 };
 
 export type ManagedCollectionPlace = {
   id: string;
+  sightId?: string;
   name: string;
   city?: string;
+  state?: string;
   country?: string;
+  countryId?: string;
   location?: string;
   detail?: string;
   access?: "free" | "pro";
@@ -210,11 +248,14 @@ export type ManagedCollectionPlace = {
 };
 
 export type ManagedCollection = {
+  access?: "free" | "pro";
   id: string;
   title: string;
   detail: string;
   description: string;
   imageUrl: string;
+  heroImageUrl: string;
+  explorerImageUrl: string;
   places: ManagedCollectionPlace[];
 };
 
@@ -248,6 +289,40 @@ export type DailyDestination = {
   displayOrder: number;
 };
 
+export type KrooIqAttempt = {
+  answers: { questionId: string; selectedAnswer: number; correct: boolean }[];
+  correctCount: number;
+  scoreBefore: number;
+  scoreAfter: number;
+  completed: boolean;
+};
+
+export type KrooIqQuiz = {
+  date: string;
+  destination: {
+    name: string;
+    region: string;
+    content: string;
+    imageUrl: string;
+  };
+  questions: {
+    id: string;
+    prompt: string;
+    answers: string[];
+    imageUrl: string;
+  }[];
+  attempt: KrooIqAttempt;
+  isPreview: boolean;
+  pointsPerCorrect: number;
+};
+
+export type KrooIqAnswerResult = {
+  correct: boolean;
+  correctAnswer: number;
+  explanation: string;
+  attempt: KrooIqAttempt;
+};
+
 export type CountryDetailResponse = {
   isEnriching: boolean;
   country: {
@@ -278,7 +353,7 @@ export type CountryDetailResponse = {
     totalSights: number;
     airports: number;
   };
-  visitedCities: { id: string; name: string }[];
+  visitedCities: { id: string; name: string; image?: string }[];
 };
 
 type CountryImportPendingResponse = {
@@ -327,6 +402,7 @@ export type SightDetail = {
   countryId: string;
   cityId: string;
   city: string;
+  state?: string;
   opentripmapXid: string | null;
   wikidataId: string | null;
   wikipediaTitle: string | null;
@@ -371,18 +447,22 @@ type BackendCity = Partial<CityDetail> & {
   countryCode?: string;
   continentCode?: string;
   subcountry?: string;
+  imageUrl?: string;
   sights?: BackendSight[];
 };
 
 function normalizeSight(item: BackendSight): SightDetail {
-  const relatedCity = typeof item.city === "object" && item.city ? item.city : null;
+  const relatedCity =
+    typeof item.city === "object" && item.city ? item.city : null;
   return {
     id: String(item.id ?? ""),
     countryId: String(item.countryId ?? ""),
     cityId: String(item.cityId ?? item.city_id ?? relatedCity?.id ?? ""),
-    city: typeof item.city === "string"
-      ? item.city
-      : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
+    city:
+      typeof item.city === "string"
+        ? item.city
+        : (item.cityName ?? item.city_name ?? relatedCity?.name ?? ""),
+    state: item.state,
     opentripmapXid: item.opentripmapXid ?? null,
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,
@@ -412,9 +492,20 @@ function normalizeCity(item: BackendCity): CityDetail {
     population: Number(item.population ?? 0),
     latitude: Number(item.latitude ?? 0),
     longitude: Number(item.longitude ?? 0),
-    image: backendImageUrl(item.image),
+    // Catalog endpoints use `image`, while the admin and legacy endpoints
+    // expose the same field as `imageUrl`.
+    image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     sights: item.sights?.map(normalizeSight),
+  };
+}
+
+function normalizeVisit(item: Visit): Visit {
+  return {
+    ...item,
+    image: backendImageUrl(item.image),
+    note: item.note ?? "",
+    places: item.places ?? [],
   };
 }
 
@@ -423,10 +514,17 @@ function normalizeCollection(item: ManagedCollection): ManagedCollection {
     ...item,
     description: item.description ?? item.detail ?? "",
     imageUrl: backendImageUrl(item.imageUrl),
+    heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
+    explorerImageUrl: backendImageUrl(
+      item.explorerImageUrl ?? item.heroImageUrl ?? item.imageUrl,
+    ),
     places: (item.places ?? []).map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
-      isPremium: place.isPremium === true || place.access === "pro",
+      isPremium:
+        item.access === "pro" ||
+        place.isPremium === true ||
+        place.access === "pro",
       imageUrl: backendImageUrl(place.imageUrl),
     })),
   };
@@ -438,6 +536,10 @@ function normalizeCollectionProgress(
   return {
     ...item,
     imageUrl: backendImageUrl(item.imageUrl),
+    heroImageUrl: backendImageUrl(item.heroImageUrl ?? item.imageUrl),
+    explorerImageUrl: backendImageUrl(
+      item.explorerImageUrl ?? item.heroImageUrl ?? item.imageUrl,
+    ),
     places: item.places?.map((place) => ({
       ...place,
       content: place.content ?? place.detail ?? "",
@@ -463,12 +565,21 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
   for (let attempt = 0; attempt < 90; attempt += 1) {
     let result: CountryDetailResponse | CountryImportPendingResponse;
     try {
-      result = await request<CountryDetailResponse | CountryImportPendingResponse>(path);
+      result = await request<
+        CountryDetailResponse | CountryImportPendingResponse
+      >(path);
     } catch (error) {
-      if (normalizedCode === "AQ" && error instanceof ApiError && error.status === 404) {
+      if (
+        normalizedCode === "AQ" &&
+        error instanceof ApiError &&
+        error.status === 404
+      ) {
         return ANTARCTICA_DETAIL;
       }
       throw error;
+    }
+    if (!result || typeof result !== "object") {
+      throw new ApiError(502, "The country guide returned an empty response.");
     }
     if ("status" in result) {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -525,11 +636,15 @@ async function cityDetail(
     );
     const normalizedId = id.trim().toLocaleLowerCase();
     const normalizedName = fallback.name?.trim().toLocaleLowerCase();
-    const match = matches.find(
-      (item) => String(item.id).toLocaleLowerCase() === normalizedId,
-    ) ?? matches.find((item) =>
-      item.name.trim().toLocaleLowerCase() === (normalizedName || normalizedId),
-    );
+    const match =
+      matches.find(
+        (item) => String(item.id).toLocaleLowerCase() === normalizedId,
+      ) ??
+      matches.find(
+        (item) =>
+          item.name.trim().toLocaleLowerCase() ===
+          (normalizedName || normalizedId),
+      );
     if (match) {
       result = {
         ...match,
@@ -561,9 +676,10 @@ async function cityDetail(
         (place) => place.city?.trim().toLocaleLowerCase() === cityName,
       ),
     );
-    const countryCitySights = country.sights.filter((sight) =>
-      String(sight.cityId) === String(city.id) ||
-      sight.city?.trim().toLocaleLowerCase() === cityName,
+    const countryCitySights = country.sights.filter(
+      (sight) =>
+        String(sight.cityId) === String(city.id) ||
+        sight.city?.trim().toLocaleLowerCase() === cityName,
     );
     sights = [...sights, ...countryCitySights].filter(
       (sight, index, all) =>
@@ -576,6 +692,42 @@ async function cityDetail(
 }
 
 export const api = {
+  joinWithReferral: async (name: string, code: string) => {
+    const session = await request<AuthResponse & { accessToken: string }>(
+      "/invitations/join",
+      { method: "POST", body: JSON.stringify({ name, code }) },
+    );
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return { user: session.user, accessToken: session.accessToken };
+  },
+  claimInvitedMembership: async (name: string) => {
+    const session = await request<AuthResponse & { accessToken: string }>(
+      "/invitations/claim",
+      { method: "POST", body: JSON.stringify({ name }) },
+    );
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
+  resumeMembership: async (formattedKrooId: string) => {
+    const session = await request<AuthResponse>("/members/resume", {
+      method: "POST",
+      body: JSON.stringify({ krooId: formattedKrooId }),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
+  connectMemberEmail: async (email: string, formattedKrooId: string) => {
+    const session = await request<AuthResponse>("/members/email", {
+      method: "POST",
+      body: JSON.stringify({ email, krooId: formattedKrooId }),
+    });
+    setApiToken(session.token);
+    await storeAuthToken(session.token);
+    return session.user;
+  },
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
@@ -591,10 +743,24 @@ export const api = {
       let collections: ManagedCollection[] = [];
       try {
         const country = await countryDetail(countryCode);
-        const cityNames = new Set(cities.map((city) => city.name.trim().toLocaleLowerCase()));
-        collections = country.collections.filter((collection) => collection.places.some((place) => cityNames.has(place.city?.trim().toLocaleLowerCase() ?? "")));
-      } catch { /* State details remain usable when collections are unavailable. */ }
-      return { ...result, imageUrl: backendImageUrl(result.imageUrl), cities, sights: result.sights.map(normalizeSight), collections };
+        const cityNames = new Set(
+          cities.map((city) => city.name.trim().toLocaleLowerCase()),
+        );
+        collections = country.collections.filter((collection) =>
+          collection.places.some((place) =>
+            cityNames.has(place.city?.trim().toLocaleLowerCase() ?? ""),
+          ),
+        );
+      } catch {
+        /* State details remain usable when collections are unavailable. */
+      }
+      return {
+        ...result,
+        imageUrl: backendImageUrl(result.imageUrl),
+        cities,
+        sights: result.sights.map(normalizeSight),
+        collections,
+      };
     }),
   searchCities: (
     query: string,
@@ -610,7 +776,12 @@ export const api = {
     if (filters.state) params.set("state", filters.state);
     return request<CatalogCitySearchResult[]>(`/cities?${params.toString()}`, {
       signal,
-    });
+    }).then((items) =>
+      items.map((item) => ({
+        ...item,
+        image: backendImageUrl(item.image),
+      })),
+    );
   },
   resolveCityImage: (_input: {
     name: string;
@@ -628,9 +799,20 @@ export const api = {
     request<BackendSight[]>(
       `/catalog/cities/${encodeURIComponent(id)}/sights`,
     ).then((items) => items.map(normalizeSight)),
-  cityAirports: (id: string) =>
+  cityAirports: (id: string, signal?: AbortSignal) =>
     request<AirportOption[]>(
       `/catalog/cities/${encodeURIComponent(id)}/airports`,
+      { signal },
+    ),
+  searchAirports: (
+    city: string,
+    country: string,
+    countryCode: string,
+    signal?: AbortSignal,
+  ) =>
+    request<AirportOption[]>(
+      `/catalog/airports?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
+      { signal },
     ),
   stateAirports: (countryCode: string, state: string) =>
     request<AirportOption[]>(
@@ -673,7 +855,8 @@ export const api = {
       items.map((item) => ({
         ...item,
         imageUrl: backendImageUrl(item.imageUrl),
-      }))),
+      })),
+    ),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
@@ -681,13 +864,6 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
-  syncTravelState: (state: {
-    completedSightIds: string[];
-  }) =>
-    request<TravelStateResponse>("/me/sync/travel-state", {
-      method: "POST",
-      body: JSON.stringify(state),
-    }),
   subscriptionStatus: () =>
     request<SubscriptionEntitlement>("/me/subscription"),
   syncRevenueCatSubscription: () =>
@@ -703,6 +879,10 @@ export const api = {
     request<CollectionProgress[]>(
       `/collections?status=${encodeURIComponent(status)}`,
     ).then((items) => items.map(normalizeCollectionProgress)),
+  collectionKinds: () =>
+    request<ManagedCollection[]>("/collection-kinds").then((items) =>
+      items.map(normalizeCollection),
+    ),
   collectionDetail: (id: string) =>
     request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
       normalizeCollection,
@@ -712,112 +892,73 @@ export const api = {
       `/me/collections/${encodeURIComponent(collectionId)}`,
       { method: "PUT", body: JSON.stringify({ progress }) },
     ),
-  listVisits: () => request<Visit[]>("/visits"),
-  syncVisits: (visits: Visit[]) =>
-    request<Visit[]>("/me/sync/visits", {
-      method: "POST",
-      body: JSON.stringify({ visits }),
-    }),
+  listVisits: () =>
+    request<Visit[]>("/visits").then((items) => items.map(normalizeVisit)),
   createVisit: (visit: NewVisit) =>
-    request<Visit>("/visits", { method: "POST", body: JSON.stringify(visit) }),
+    request<Visit>("/visits", {
+      method: "POST",
+      body: JSON.stringify(visit),
+    }).then(normalizeVisit),
   updateVisit: (visit: Visit) =>
     request<Visit>(`/visits/${encodeURIComponent(visit.id)}`, {
       method: "PUT",
       body: JSON.stringify(visit),
-    }),
+    }).then(normalizeVisit),
   deleteVisit: (visitId: string) =>
     request<void>(`/visits/${encodeURIComponent(visitId)}`, {
       method: "DELETE",
     }),
-  currentUser: () => request<AuthUser>("/auth/me"),
+  currentUser: () => request<AuthUser>("/members/current"),
   getProfile: () =>
     request<RemoteProfile>("/profile").then((profile) => ({
       ...profile,
       photoUri: profile.photoUri ? backendImageUrl(profile.photoUri) : null,
     })),
+  krooIqToday: () =>
+    request<KrooIqQuiz>("/me/kroo-iq/today").then((quiz) => ({
+      ...quiz,
+      destination: {
+        ...quiz.destination,
+        imageUrl: backendImageUrl(quiz.destination.imageUrl),
+      },
+      questions: quiz.questions.map((question) => ({
+        ...question,
+        imageUrl: backendImageUrl(question.imageUrl),
+      })),
+    })),
+  submitKrooIqAnswer: (questionId: string, selectedAnswer: number) =>
+    request<KrooIqAnswerResult>("/me/kroo-iq/answer", {
+      method: "POST",
+      body: JSON.stringify({ questionId, selectedAnswer }),
+    }),
   uploadProfileImage: async (asset: {
     uri: string;
     fileName?: string | null;
     mimeType?: string;
   }) => {
     const body = new FormData();
-    body.append(
-      "image",
-      {
-        uri: asset.uri,
-        name: asset.fileName ?? `profile-${Date.now()}.jpg`,
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob,
-    );
+    body.append("image", {
+      uri: asset.uri,
+      name: asset.fileName ?? `profile-${Date.now()}.jpg`,
+      type: asset.mimeType ?? "image/jpeg",
+    } as unknown as Blob);
     const result = await request<{ photoUri: string }>("/profile/image", {
       method: "POST",
       body,
     });
     return { photoUri: backendImageUrl(result.photoUri) };
   },
-  updatePassword: (payload: { currentPassword: string; newPassword: string }) =>
-    request<void>("/auth/password", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
-  updateProfile: (profile: ProfileState) =>
-    request<ProfileState>("/profile", {
+  updateProfile: (profile: ProfileUpdate) =>
+    request<RemoteProfile>("/profile", {
       method: "PUT",
       body: JSON.stringify(profile),
     }),
-  signUp: async (payload: {
-    name: string;
-    email: string;
-    password: string;
-  }) => {
-    const session = await request<AuthResponse>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({
-        ...payload,
-        passwordConfirmation: payload.password,
-      }),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return session.user;
-  },
-  signIn: async (payload: { email: string; password: string }) => {
-    const session = await request<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ ...payload, deviceName: "Kroo mobile app" }),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return { user: session.user };
-  },
-  requestAuthCode: (payload: { email: string; purpose: "sign-in" | "create-account" }) =>
-    request<{ message: string }>("/auth/code/request", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  verifyAuthCode: async (payload: {
-    email: string;
-    code: string;
-    purpose: "sign-in" | "create-account";
-    name?: string;
-    nationality?: string;
-    dateOfBirth?: string;
-    sex?: "M" | "F" | "";
-  }) => {
-    const session = await request<AuthResponse>("/auth/code/verify", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    setApiToken(session.token);
-    await storeAuthToken(session.token);
-    return session.user;
-  },
   restoreSession: async () => {
     const token = await getStoredAuthToken();
     if (!token) return null;
     setApiToken(token);
     try {
-      return await request<AuthUser>("/auth/me");
+      return await request<AuthUser>("/members/current");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setApiToken(null);
@@ -825,14 +966,6 @@ export const api = {
         return null;
       }
       throw error;
-    }
-  },
-  signOut: async () => {
-    try {
-      await request<void>("/auth/logout", { method: "POST" });
-    } finally {
-      setApiToken(null);
-      await deleteStoredAuthToken();
     }
   },
 };

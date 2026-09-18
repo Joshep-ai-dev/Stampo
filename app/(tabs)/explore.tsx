@@ -1,22 +1,18 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CollectionStampCard } from "@/components/collection-stamp-card";
 import { CountryStampCard } from "@/components/country-stamp-card";
 import { FilterBubble } from "@/components/filter-bubble";
 import { BrandColors } from "@/constants/theme";
 import { CountryRecord, getAllCountries } from "@/data/cities";
+import { isCollectionPlaceCompleted } from "@/data/sight-completion";
 import { api, type CollectionProgress } from "@/services/api";
 import { useAppSelector } from "@/store/hooks";
 
@@ -32,50 +28,6 @@ const countryFilters = [
   "South America",
 ];
 const collectionFilters = ["All", "Active", "Completed"] as const;
-const collectionImages: Record<string, number> = {
-  wonders: require("../../assets/images/collection/Seven Wonders.png"),
-  seas: require("../../assets/images/collection/Seven Seas.png"),
-  unesco: require("../../assets/images/collection/UNESCO Explorer.png"),
-  parks: require("../../assets/images/collection/National Parks Collector.png"),
-  usa: require("../../assets/images/collection/United States Explorer.png"),
-};
-const publicCollectionCatalog: CollectionProgress[] = [
-  {
-    id: "wonders",
-    title: "Seven Wonders",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "seas",
-    title: "Seven Seas",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "unesco",
-    title: "UNESCO Explorer",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "parks",
-    title: "National Parks Collector",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-  {
-    id: "usa",
-    title: "United States Explorer",
-    detail: "",
-    progress: 0,
-    status: "inactive",
-  },
-];
 export default function ExploreScreen() {
   const router = useRouter();
   const countryRowRef = useRef<FlatList<CountryRecord>>(null);
@@ -122,36 +74,22 @@ export default function ExploreScreen() {
     useCallback(() => {
       let active = true;
       void (async () => {
-        const serverItems = isSignedIn
+        const progressItems = isSignedIn
           ? await api.listCollections().catch(() => [])
           : [];
-        const serverById = new Map(serverItems.map((item) => [item.id, item]));
-        const details = await Promise.all(
-          publicCollectionCatalog.map(async (fallback) => {
-            const detail = await api.collectionDetail(fallback.id).catch(() => null);
-            const server = serverById.get(fallback.id);
-            return {
-              ...fallback,
-              ...server,
-              ...(detail
-                ? {
-                    title: detail.title,
-                    detail: detail.detail,
-                    description: detail.description,
-                    imageUrl: detail.imageUrl,
-                    places: detail.places,
-                  }
-                : {}),
-            };
-          }),
+        const kinds = await api.collectionKinds().catch(() => []);
+        const progressById = new Map(
+          progressItems.map((item) => [item.id, item]),
         );
-        const remoteImages = details.flatMap((collection) => [
-          collection.imageUrl,
-          ...(collection.places?.map((place) => place.imageUrl) ?? []),
-        ]).filter((url): url is string => Boolean(url));
-        if (remoteImages.length > 0) {
-          void Image.prefetch(remoteImages).catch(() => undefined);
-        }
+        const details: CollectionProgress[] = kinds.map((kind) => {
+          const progress = progressById.get(kind.id);
+          return {
+            ...kind,
+            access: kind.access ?? progress?.access,
+            progress: progress?.progress ?? 0,
+            status: progress?.status ?? "inactive",
+          };
+        });
         if (active) {
           setCollectionCatalog(details);
         }
@@ -162,23 +100,26 @@ export default function ExploreScreen() {
     }, [isSignedIn]),
   );
   const visibleCollections = useMemo(() => {
-    // Public collection cards are always available for discovery. Do not let
-    // stale authenticated API state leave the signed-out Explore page empty.
-    const source = collectionCatalog.length > 0
-      ? collectionCatalog
-      : publicCollectionCatalog;
-    const withLocalProgress = source.map((collection) => {
-      const placeIds = collection.places?.map(
-        (place) => `collection-${collection.id}-${place.id}`,
-      ) ?? [];
-      const localCompleted = placeIds.filter((id) =>
-        completedSightIds.includes(id),
-      ).length;
-      const localProgress = placeIds.length
-        ? Math.round((localCompleted / placeIds.length) * 100)
-        : 0;
-      return { ...collection, progress: Math.max(collection.progress, localProgress) };
-    });
+    const withLocalProgress = collectionCatalog
+      .filter((collection) => collection.access !== "pro")
+      .map((collection) => {
+        const places = collection.places ?? [];
+        const localCompleted = places.filter((place) =>
+          isCollectionPlaceCompleted(
+            collection.id,
+            place,
+            completedSightIds,
+            visits,
+          ),
+        ).length;
+        const localProgress = places.length
+          ? Math.round((localCompleted / places.length) * 100)
+          : 0;
+        return {
+          ...collection,
+          progress: Math.max(collection.progress, localProgress),
+        };
+      });
     if (collectionFilter === "All") return withLocalProgress;
     if (collectionFilter === "Active") {
       return withLocalProgress.filter(
@@ -186,7 +127,14 @@ export default function ExploreScreen() {
       );
     }
     return withLocalProgress.filter((collection) => collection.progress >= 100);
-  }, [collectionCatalog, collectionFilter, completedSightIds]);
+  }, [collectionCatalog, collectionFilter, completedSightIds, visits]);
+  useEffect(() => {
+    const nextImages = visibleCollections
+      .slice(0, 6)
+      .map((collection) => collection.explorerImageUrl)
+      .filter((url): url is string => Boolean(url));
+    if (nextImages.length) void Image.prefetch(nextImages, "memory-disk");
+  }, [visibleCollections]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -194,18 +142,14 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={s.headerPad}>
-          <View style={s.exploreHeader}>
-            <View style={s.logoCrop}>
-              <Image
-                source={require("../../assets/images/kroo_logo_text.png")}
-                style={s.exploreLogo}
-                contentFit="contain"
-              />
-            </View>
-          </View>
+          <Image
+            source={require("../../assets/images/kroo_logo_text.png")}
+            style={s.exploreLogo}
+            contentFit="contain"
+          />
         </View>
 
-        <Section title="Countries" />
+        <Section title="Countries" subtitle={`195 countries to explore`} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -260,7 +204,10 @@ export default function ExploreScreen() {
           }
         />
 
-        <Section title="Collections" />
+        <Section
+          title="Collections"
+          subtitle="Special places. Epic lists. New challenges."
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -282,47 +229,16 @@ export default function ExploreScreen() {
         >
           {visibleCollections.length ? (
             visibleCollections.map((collection) => (
-              <TouchableOpacity
+              <CollectionStampCard
                 key={collection.id}
-                style={s.challenge}
-                activeOpacity={0.82}
+                title={collection.title}
+                access={collection.access}
+                imageUrl={collection.explorerImageUrl}
+                progress={collection.progress}
                 onPress={() =>
                   router.push(`/collection/${collection.id}` as never)
                 }
-              >
-                <View style={s.collectionHeader}>
-                  <Text style={s.challengeTitle} numberOfLines={1}>
-                    {collection.title}
-                  </Text>
-                </View>
-                <View style={s.challengeSeal}>
-                  <Image
-                    source={
-                      collectionImages[collection.id] ??
-                      (collection.imageUrl
-                        ? { uri: collection.imageUrl }
-                        : require("@/assets/images/other/globe-airplane.png"))
-                    }
-                    style={s.collectionImage}
-                    contentFit="contain"
-                  />
-                </View>
-                {collection.progress > 0 ? (
-                  <View style={s.collectionProgressRow}>
-                    <View style={s.challengeProgress}>
-                      <View
-                        style={[
-                          s.progressFill,
-                          { width: `${collection.progress}%` },
-                        ]}
-                      />
-                    </View>
-                    <Text style={s.challengePercent}>
-                      {collection.progress}%
-                    </Text>
-                  </View>
-                ) : null}
-              </TouchableOpacity>
+              />
             ))
           ) : (
             <View style={s.empty}>
@@ -336,42 +252,37 @@ export default function ExploreScreen() {
     </SafeAreaView>
   );
 }
-function Section({ title }: { title: string }) {
+function Section({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <View style={s.headingRow}>
       <Text style={s.heading}>{title}</Text>
+      <Text style={s.subtitle}>{subtitle}</Text>
     </View>
   );
 }
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 30 },
-  headerPad: { paddingHorizontal: 18 },
-  exploreHeader: {
-    height: 64,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  logoCrop: {
-    width: 200,
-    height: 60,
-    overflow: "hidden",
-  },
-  exploreLogo: {
-    position: "absolute",
-    width: 200,
-    height: 75,
-    top: -15,
-    left: 0,
-  },
-  headingRow: {
-    marginTop: 23,
-    marginBottom: 11,
-    paddingHorizontal: 14,
+  headerPad: {
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+  },
+  exploreLogo: {
+    width: 132,
+    height: 54,
+    flex: 1,
+    alignItems: "center",
+  },
+  headingRow: {
+    marginBottom: 11,
+    paddingHorizontal: 14,
+    gap: 4,
+  },
+  subtitle: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDarkMuted,
   },
   heading: {
     fontFamily: "Lora_500Medium",
@@ -384,29 +295,6 @@ const s = StyleSheet.create({
     gap: 10,
     paddingTop: 5,
     paddingBottom: 12,
-  },
-  progress: {
-    position: "absolute",
-    left: 9,
-    right: 27,
-    bottom: 10,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: BrandColors.surfaceSoft,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-    backgroundColor: BrandColors.copper,
-  },
-  percent: {
-    position: "absolute",
-    right: 6,
-    bottom: 5,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(8),
-    color: BrandColors.muted,
   },
   empty: {
     width: 280,
@@ -424,58 +312,5 @@ const s = StyleSheet.create({
     gap: 10,
     paddingTop: 5,
     paddingBottom: 12,
-  },
-  challenge: {
-    width: 148,
-    height: 240,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 9,
-    borderRadius: 12,
-    backgroundColor: BrandColors.surface,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#C5A36C",
-  },
-  collectionHeader: {
-    width: "100%",
-    height: 24,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  challengeSeal: {
-    width: 124,
-    height: 174,
-    marginTop: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  collectionImage: { width: "100%", height: "100%" },
-  collectionProgressRow: {
-    width: "100%",
-    marginTop: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  challengeTitle: {
-    textAlign: "center",
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(14),
-    color: BrandColors.green,
-    flexShrink: 1,
-  },
-  challengeProgress: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: BrandColors.surfaceSoft,
-    overflow: "hidden",
-  },
-  challengePercent: {
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(10),
-    color: BrandColors.muted,
   },
 });

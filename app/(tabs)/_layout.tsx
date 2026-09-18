@@ -3,6 +3,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { BrandColors } from "@/constants/theme";
@@ -20,33 +21,34 @@ function Icon({
 }) {
   return (
     <View style={styles.iconWrap}>
-      <Ionicons name={(focused ? on : off) as never} size={25} color={color} />
+      <Ionicons name={(focused ? on : off) as never} size={24} color={color} />
+      {focused && <View style={styles.activeIndicator} />}
     </View>
   );
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       initialRouteName="index"
       screenOptions={{
         tabBarHideOnKeyboard: true,
+        tabBarAllowFontScaling: false,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarActiveTintColor: BrandColors.white,
         tabBarInactiveTintColor: BrandColors.onDarkMuted,
         tabBarLabelStyle: {
           fontSize: responsiveFontSize(11),
-          fontWeight: "600",
+          fontFamily: "Lora_500Medium",
           marginTop: 1,
         },
         tabBarStyle: {
-          backgroundColor: BrandColors.greenDeep,
+          backgroundColor: "#00271C",
           borderTopColor: BrandColors.line,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 72,
-          paddingTop: 7,
-          paddingBottom: 7,
+          height: 44 + Math.max(insets.bottom, 8),
         },
       }}
     >
@@ -81,7 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="visits"
         options={{
-          title: "Add",
+          title: "Kroo+",
           tabBarLabel: "",
           tabBarIcon: () => (
             <View style={styles.add}>
@@ -93,7 +95,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Social",
+          title: "Kroo IQ",
           tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
@@ -125,6 +127,14 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  activeIndicator: {
+    position: "absolute",
+    bottom: -24,
+    width: 42,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: BrandColors.copper,
+  },
   iconWrap: {
     width: 40,
     height: 28,
@@ -132,10 +142,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   add: {
-    width: 58,
-    height: 58,
-    marginTop: -20,
-    borderRadius: 29,
+    width: 56,
+    height: 56,
+    marginTop: -8,
+    borderRadius: 34,
     backgroundColor: BrandColors.mapGreen,
     borderWidth: 4,
     borderColor: BrandColors.greenDeep,

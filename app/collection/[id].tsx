@@ -1,34 +1,35 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
+import { PlaceDetailHeader } from "@/components/place-detail-header";
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
+import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import {
   type CollectionDefinition,
   type CollectionPlace,
 } from "@/data/collections";
-import { api } from "@/services/api";
+import {
+  collectionPlaceCompletionId,
+  isCollectionPlaceCompleted,
+} from "@/data/sight-completion";
+import { api, ApiError } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  sightCompletionSet,
-  visitsHydrated,
-} from "@/store/travel-slice";
+import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
 
 function PlaceImage({
   place,
@@ -47,6 +48,23 @@ function PlaceImage({
   );
 }
 
+function placeLocation(place: CollectionPlace) {
+  if (place.state && place.state !== place.city) {
+    return [place.city, place.state, place.country].filter(Boolean).join(", ");
+  }
+  if (place.location) {
+    const includesCountry =
+      place.country &&
+      place.location
+        .toLocaleLowerCase()
+        .includes(place.country.toLocaleLowerCase());
+    return [place.location, includesCountry ? undefined : place.country]
+      .filter(Boolean)
+      .join(", ");
+  }
+  return [place.city, place.country].filter(Boolean).join(", ");
+}
+
 export default function CollectionScreen() {
   const { id = "wonders" } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -55,6 +73,7 @@ export default function CollectionScreen() {
   const completedSightIds = useAppSelector(
     (state) => state.travel.completedSightIds,
   );
+  const visits = useAppSelector((state) => state.travel.visits);
   const subscription = useAppSelector((state) => state.subscription);
   const [collection, setCollection] = useState<CollectionDefinition | null>(
     null,
@@ -68,25 +87,23 @@ export default function CollectionScreen() {
     let active = true;
     setCollection(null);
     setCollectionLoading(true);
-    const cacheKey = `kroo.collection.${id}.v1`;
-    const applyCollection = (item: Awaited<ReturnType<typeof api.collectionDetail>>) => {
+    const applyCollection = (
+      item: Awaited<ReturnType<typeof api.collectionDetail>>,
+    ) => {
       if (!active) return;
       setCollection({
         id: item.id,
+        access: item.access,
         title: item.title,
         subtitle: item.description || item.detail,
-        imageUrl: item.imageUrl,
+        imageUrl: item.heroImageUrl,
         places: item.places,
       });
     };
-    void AsyncStorage.getItem(cacheKey).then((cached) => {
-      if (cached && active) applyCollection(JSON.parse(cached));
-    }).catch(() => undefined);
     void api
       .collectionDetail(id)
       .then((item) => {
         applyCollection(item);
-        void AsyncStorage.setItem(cacheKey, JSON.stringify(item));
       })
       .catch(() => undefined)
       .finally(() => {
@@ -95,7 +112,7 @@ export default function CollectionScreen() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, subscription.isKrooPlus]);
 
   if (!collection) {
     return (
@@ -113,30 +130,39 @@ export default function CollectionScreen() {
   }
 
   const toggleCompleted = async (place: CollectionPlace) => {
-    const targetId = `collection-${collection.id}-${place.id}`;
-    const next = !completedSightIds.includes(targetId);
-    dispatch(sightCompletionSet({ id: targetId, completed: next }));
+    if (!subscription.isKrooPlus && (collection.access === "pro" || place.access === "pro" || place.isPremium)) {
+      router.push("/kroo-plus");
+      return;
+    }
+    const targetId = collectionPlaceCompletionId(collection.id, place);
+    const next = !isCollectionPlaceCompleted(
+      collection.id,
+      place,
+      completedSightIds,
+      visits,
+    );
     if (!isSignedIn) return;
     try {
       await api.setSightCompleted(targetId, next);
+      dispatch(sightCompletionSet({ id: targetId, completed: next }));
       void api
         .listVisits()
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-    } catch {
-      Alert.alert(
-        "Saved on this device",
-        "Kroo will sync this collection when the server is available.",
-      );
-    }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 403) {
+          router.push("/kroo-plus");
+          return;
+        }
+      }
   };
 
   const completedCount = collection.places.filter((place) =>
-    completedSightIds.includes(`collection-${collection.id}-${place.id}`),
+    isCollectionPlaceCompleted(collection.id, place, completedSightIds, visits),
   ).length;
   const isPremiumPlace = (place: CollectionPlace) =>
-    place.access === "pro" || place.isPremium === true;
+    collection.access === "pro" || place.access === "pro" || place.isPremium === true;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
     : collection.places.filter((place) => !isPremiumPlace(place));
@@ -152,28 +178,20 @@ export default function CollectionScreen() {
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content} nestedScrollEnabled>
-        <View style={s.header}>
-          <TouchableOpacity style={s.iconButton} onPress={() => router.back()}>
-            <Ionicons
-              name="chevron-back"
-              size={25}
-              color={BrandColors.onDark}
+        <PlaceDetailHeader
+          title={collection.title}
+          onBack={() => router.back()}
+        />
+        <View style={s.heroWrap}>
+          <StampHeroFrame>
+            <ProgressivePlaceImage
+              uri={collection.imageUrl}
+              style={s.heroImage}
+              contentFit={"cover"}
+              priority="high"
             />
-          </TouchableOpacity>
-          <Text style={s.title} numberOfLines={2}>
-            {collection.title}
-          </Text>
-          <View style={s.headerSpacer} />
+          </StampHeroFrame>
         </View>
-
-        <View style={s.hero}>
-          <ProgressivePlaceImage
-            uri={collection.imageUrl}
-            style={s.heroImage}
-            contentFit={"cover"}
-          />
-        </View>
-
         <View style={s.progressHeader}>
           <Text style={s.sectionTitle}>Collection Checklist</Text>
           <Text style={s.progressText}>
@@ -182,8 +200,12 @@ export default function CollectionScreen() {
         </View>
         <View style={s.placeList}>
           {freePlaces.map((place) => {
-            const targetId = `collection-${collection.id}-${place.id}`;
-            const checked = completedSightIds.includes(targetId);
+            const checked = isCollectionPlaceCompleted(
+              collection.id,
+              place,
+              completedSightIds,
+              visits,
+            );
             return (
               <TouchableOpacity
                 key={place.id}
@@ -195,9 +217,16 @@ export default function CollectionScreen() {
                   <Text style={s.placeName} numberOfLines={1}>
                     {place.name}
                   </Text>
-                  <Text style={s.placeLocation} numberOfLines={1}>
-                    {place.location || [place.city, place.country].filter(Boolean).join(", ")}
-                  </Text>
+                  <View style={s.locationRow}>
+                    <Ionicons
+                      name="location"
+                      size={13}
+                      color={BrandColors.onDarkMuted}
+                    />
+                    <Text style={s.placeLocation} numberOfLines={1}>
+                      {placeLocation(place)}
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => void toggleCompleted(place)}
@@ -220,108 +249,98 @@ export default function CollectionScreen() {
               <UpgradeBanner
                 active={subscription.isKrooPlus}
                 configured={subscription.configured}
-                text="Tap to unlock collections with Kroo+"
+                text="Unlock collections with Kroo+"
+                supportingText="Get full access to collections, exclusive content, and more."
               />
             </View>
-            <View style={s.lockedList}>  {premiumPlacePreviews.map((place) => {
-              const targetId = `collection-${collection.id}-${place.id}`;
-              const checked = completedSightIds.includes(targetId);
-              return (
-                <TouchableOpacity
-                  key={place.id}
-                  style={[s.placeRow, s.lockedPlaceRow]}
-                  onPress={() => handlePlaceTap(place)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open locked ${place.name}`}
-                >
-                  <PlaceImage place={place} blurRadius={32} />
-                  <View style={s.placeCopy}>
-                    <Text
-                      style={[s.placeName, s.lockedPlaceName]}
-                      numberOfLines={1}
-                    >
-                      {place.name}
-                    </Text>
-                    <Text style={s.placeLocation} numberOfLines={1}>
-                      {place.location || [place.city, place.country].filter(Boolean).join(", ")}
-                    </Text>
-                  </View>
-                  <View style={s.lockedCheckIcon}>
-                    <Ionicons
-                      name={checked ? "checkmark-circle" : "ellipse-outline"}
-                      size={25}
-                      color={BrandColors.onDarkMuted}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            <View style={s.lockedList}>
+              {premiumPlacePreviews.map((place) => {
+                const checked = isCollectionPlaceCompleted(
+                  collection.id,
+                  place,
+                  completedSightIds,
+                  visits,
+                );
+                return (
+                  <TouchableOpacity
+                    key={place.id}
+                    style={[s.placeRow, s.lockedPlaceRow]}
+                    onPress={() => handlePlaceTap(place)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open locked ${place.name}`}
+                  >
+                    <PlaceImage place={place} blurRadius={32} />
+                    <View style={s.placeCopy}>
+                      <Text
+                        style={[s.placeName, s.lockedPlaceName]}
+                        numberOfLines={1}
+                      >
+                        {place.name}
+                      </Text>
+                      <View style={s.locationRow}>
+                        <Ionicons
+                          name="location"
+                          size={13}
+                          color={BrandColors.onDarkMuted}
+                        />
+                        <Text style={s.placeLocation} numberOfLines={1}>
+                          {placeLocation(place)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={s.lockedCheckIcon}>
+                      <Ionicons
+                        name={checked ? "checkmark-circle" : "ellipse-outline"}
+                        size={25}
+                        color={BrandColors.onDarkMuted}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </>
         ) : null}
       </ScrollView>
 
-      {
-        selectedPlace ? (
-          <DetailModal
-            visible
-            title={selectedPlace.name}
-            location={
-              selectedPlace.location ||
-              [selectedPlace.city, selectedPlace.country]
-                .filter(Boolean)
-                .join(", ")
-            }
-            description={
-              selectedPlace.content ||
-              selectedPlace.detail ||
-              "A memorable place in this collection."
-            }
-            image={
-              <ProgressivePlaceImage
-                uri={selectedPlace.imageUrl}
-                style={s.modalPlaceImage}
-                contentFit="cover"
-              />
-            }
-            locked={
-              !subscription.isKrooPlus &&
-              premiumPlaces.some((place) => place.id === selectedPlace.id)
-            }
-            unlockContent={
-              <UpgradeBanner
-                active={subscription.isKrooPlus}
-                configured={subscription.configured}
-                text="Tap to unlock this place with Kroo+"
-              />
-            }
-            onClose={() => setSelectedPlace(null)}
-          />
-        ) : null
-      }
-    </SafeAreaView >
+      {selectedPlace ? (
+        <DetailModal
+          visible
+          title={selectedPlace.name}
+          location={placeLocation(selectedPlace)}
+          description={
+            selectedPlace.content ||
+            selectedPlace.detail ||
+            "A memorable place in this collection."
+          }
+          image={
+            <ProgressivePlaceImage
+              uri={selectedPlace.imageUrl}
+              style={s.modalPlaceImage}
+              contentFit="cover"
+            />
+          }
+          locked={
+            !subscription.isKrooPlus &&
+            premiumPlaces.some((place) => place.id === selectedPlace.id)
+          }
+          unlockContent={
+            <UpgradeBanner
+              active={subscription.isKrooPlus}
+              configured={subscription.configured}
+              text="Unlock this place with Kroo+"
+            />
+          }
+          onClose={() => setSelectedPlace(null)}
+        />
+      ) : null}
+    </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.green },
   content: { paddingBottom: 40 },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(49,87,73,.56)",
-  },
-  headerSpacer: { width: 42, height: 42 },
   title: {
     flex: 1,
     textAlign: "center",
@@ -329,20 +348,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(22),
     color: BrandColors.copper,
   },
-  hero: {
-    marginHorizontal: 14,
-    padding: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
-    alignItems: "center",
-    backgroundColor: BrandColors.surface,
-  },
   heroImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1.5,
-    borderRadius: 16,
+    height: "100%",
   },
   subtitle: {
     marginTop: 5,
@@ -404,7 +412,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   upgradeBannerWrapper: {
-    marginHorizontal: 16
+    marginHorizontal: 16,
   },
   lockedPlaceName: {
     color: "rgba(248,234,212,.4)",
@@ -413,10 +421,16 @@ const s = StyleSheet.create({
     textShadowRadius: 24,
   },
   placeLocation: {
-    marginTop: 2,
+    flexShrink: 1,
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(10),
     color: BrandColors.onDarkMuted,
+  },
+  locationRow: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   progressHeader: {
     flexDirection: "row",
@@ -448,8 +462,12 @@ const s = StyleSheet.create({
   lockedCheckIcon: { marginLeft: 8, opacity: 0.28 },
   modalPlaceImage: {
     width: "100%",
-    height: 190,
+    aspectRatio: 1.5,
     borderRadius: 16,
     backgroundColor: BrandColors.greenPanel,
+  },
+  heroWrap: {
+    margin: 12,
+    marginTop: 0,
   },
 });

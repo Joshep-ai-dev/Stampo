@@ -10,10 +10,10 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 export default function SightScreen() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
@@ -63,6 +63,7 @@ export default function SightScreen() {
             uri={sight.image}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
+            priority="high"
           />
           <TouchableOpacity style={s.back} onPress={() => router.back()}>
             <Ionicons
@@ -75,7 +76,16 @@ export default function SightScreen() {
         <View style={s.panel}>
           <Text style={s.title}>{sight.name}</Text>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: "/city/[id]", params: { id: sight.cityId, name: sight.city, countryCode: sight.countryId } })}
+            onPress={() =>
+              router.push({
+                pathname: "/city/[id]",
+                params: {
+                  id: sight.cityId,
+                  name: sight.city,
+                  countryCode: sight.countryId,
+                },
+              })
+            }
           >
             <Text style={s.city}>⌖ {sight.city}</Text>
           </TouchableOpacity>

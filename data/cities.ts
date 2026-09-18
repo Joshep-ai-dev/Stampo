@@ -12,6 +12,7 @@ export type CityRecord = {
   subcountry: string;
   countryCode: string;
   continentCode: string;
+  image?: string;
   searchText: string;
   latitude?: number;
   longitude?: number;

@@ -1,12 +1,12 @@
 import { Dimensions } from "react-native";
 
 const REFERENCE_PHONE_WIDTH = 430;
-const MINIMUM_FONT_SCALE = 0.78;
+const MINIMUM_FONT_SCALE = 0.72;
 
 /**
- * Keeps the current type scale on standard-width phones and gently reduces it
- * on narrower screens. React Native's accessibility font scaling is applied
- * after this layout-based adjustment.
+ * Keeps the designed type scale on standard-width phones and reduces it on
+ * narrower logical viewports. Kroo's shared Text and TextInput components
+ * prevent the operating system from applying a second font multiplier.
  */
 export function responsiveFontSize(size: number): number {
   const screenWidth = Dimensions.get("window").width;

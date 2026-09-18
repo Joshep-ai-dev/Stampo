@@ -1,25 +1,58 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type ProfileState = {
+  invitation: string | null;
   name: string;
+  familyName: string;
   email: string;
+  phoneNumber: string;
   nationality: string;
   dateOfBirth: string;
-  sex: "M" | "F" | "";
+  address: string;
+  city: string;
+  stateProvince: string;
+  postalCode: string;
+  country: string;
   krooNumber: number;
+  formattedKrooId: string;
+  emailOptIn: boolean;
   isSignedIn: boolean;
   userId: string | null;
   language: string;
   photoUri: string | null;
 };
 
+export type ProfileDetails = Pick<
+  ProfileState,
+  | "name"
+  | "familyName"
+  | "email"
+  | "phoneNumber"
+  | "nationality"
+  | "dateOfBirth"
+  | "address"
+  | "city"
+  | "stateProvince"
+  | "postalCode"
+  | "country"
+>;
+
 const initialState: ProfileState = {
+  invitation: null,
   name: "",
+  familyName: "",
   email: "",
+  phoneNumber: "",
   nationality: "",
   dateOfBirth: "",
-  sex: "",
+  address: "",
+  city: "",
+  stateProvince: "",
+  postalCode: "",
+  country: "",
   krooNumber: 0,
+  formattedKrooId: "",
+  emailOptIn: true,
   isSignedIn: false,
   userId: null,
   language: "English",
@@ -30,14 +63,13 @@ const profileSlice = createSlice({
   name: "profile",
   initialState,
   reducers: {
+    invitationAccepted(state, action: PayloadAction<string>) { state.invitation = action.payload; },
     nameChanged(state, action: PayloadAction<string>) {
       state.name = action.payload.trim() || state.name;
     },
     profileDetailsChanged(
       state,
-      action: PayloadAction<
-        Pick<ProfileState, "name" | "email" | "nationality" | "dateOfBirth" | "sex">
-      >,
+      action: PayloadAction<ProfileDetails>,
     ) {
       Object.assign(state, action.payload);
     },
@@ -54,6 +86,31 @@ const profileSlice = createSlice({
       state.isSignedIn = action.payload.isSignedIn;
       state.userId = action.payload.userId;
     },
+    membershipStarted(
+      state,
+      action: PayloadAction<{
+        userId: string;
+        krooId: number;
+        formattedKrooId: string;
+        emailOptIn: boolean;
+      }>,
+    ) {
+      state.isSignedIn = true;
+      state.userId = action.payload.userId;
+      state.krooNumber = action.payload.krooId;
+      state.formattedKrooId = action.payload.formattedKrooId;
+      state.emailOptIn = action.payload.emailOptIn;
+    },
+    krooIdRemembered(
+      state,
+      action: PayloadAction<{ krooId: number; formattedKrooId: string }>,
+    ) {
+      state.krooNumber = action.payload.krooId;
+      state.formattedKrooId = action.payload.formattedKrooId;
+    },
+    emailPreferenceChanged(state, action: PayloadAction<boolean>) {
+      state.emailOptIn = action.payload;
+    },
     signedOut(state) {
       state.isSignedIn = false;
       state.userId = null;
@@ -65,7 +122,11 @@ const profileSlice = createSlice({
 });
 
 export const {
+  invitationAccepted,
   authSessionChanged,
+  membershipStarted,
+  krooIdRemembered,
+  emailPreferenceChanged,
   nameChanged,
   profileDetailsChanged,
   languageChanged,

@@ -1,5 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -13,8 +14,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -69,24 +68,6 @@ const profileSections: readonly ProfileSection[] = [
     id: "settings",
     title: "Settings",
     rows: [{ id: "language", label: "Language", value: "English" }],
-  },
-  {
-    id: "account",
-    title: "Account",
-    rows: [
-      {
-        id: "sign-up",
-        label: "Sign Up",
-        description:
-          "Create an account to upload this device data to the cloud.",
-      },
-      {
-        id: "sign-in",
-        label: "Sign in to existing account",
-        description:
-          "Sign in to sync the travel data on this device with your Kroo account.",
-      },
-    ],
   },
   {
     id: "legal",
@@ -156,10 +137,6 @@ export default function ProfileScreen() {
   );
 
   const openRow = (row: ProfileRow) => {
-    if (row.id === "sign-up" || row.id === "sign-in") {
-      router.push("/(tabs)/passport" as never);
-      return;
-    }
     if (row.id === "kroo-plus") {
       router.push("/kroo-plus" as never);
       return;
@@ -263,6 +240,8 @@ export default function ProfileScreen() {
         transparent
         animationType="slide"
         onRequestClose={closeModal}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -326,17 +305,11 @@ export default function ProfileScreen() {
                       : `${activeRow.label} content will be served by the Laravel backend when it is available.`}
                   </Text>
                 )}
-              {activeRow &&
-                activeRow.id === "name" && (
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={saveModal}
-                  >
-                    <Text style={styles.saveText}>
-                      SAVE
-                    </Text>
-                  </TouchableOpacity>
-                )}
+              {activeRow && activeRow.id === "name" && (
+                <TouchableOpacity style={styles.saveButton} onPress={saveModal}>
+                  <Text style={styles.saveText}>SAVE</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
