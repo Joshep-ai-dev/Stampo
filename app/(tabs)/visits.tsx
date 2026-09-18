@@ -199,7 +199,7 @@ export default function PlusScreen() {
               n: "3",
               icon: "people",
               title: "Refer 5 others to join Kroo+",
-              copy: "Each must remain a paid\nmember for 3 months.",
+              copy: "Share the adventure\nwith family and friends.",
               action: () => {},
             },
           ].map((step) => (
@@ -314,7 +314,7 @@ export default function PlusScreen() {
                 [
                   "business",
                   "Full access to Top Sights",
-                  "Explore and discover more.",
+                  "Explore and discover more amazing places.",
                 ],
                 [
                   "star",
@@ -361,9 +361,7 @@ export default function PlusScreen() {
                 {busy ? "PLEASE WAIT…" : "GET KROO+"}
               </Text>
             </TouchableOpacity>
-            <Text style={s.terms}>
-              Billed immediately. Cancel anytime.
-            </Text>
+            <Text style={s.terms}>Billed immediately. Cancel anytime.</Text>
             {/* <TouchableOpacity onPress={restore}>
               <Text style={s.restore}>Restore purchases</Text>
             </TouchableOpacity> */}
