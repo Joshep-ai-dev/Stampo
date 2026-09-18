@@ -32,9 +32,7 @@ import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import {
-  canUseGpsArrivals
-} from "@/services/gps-access";
+import { canUseGpsArrivals } from "@/services/gps-access";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
