@@ -90,9 +90,9 @@ const CONTINENTS = [
   { code: "SA", name: "South America" },
 ];
 
-const DISSOLVE_DURATION = 4350;
+const DISSOLVE_DURATION = 2350;
 const DISSOLVE_EDGE_PARTICLES = 900;
-const DISSOLVE_FILL_PARTICLES = 600;
+const DISSOLVE_FILL_PARTICLES = 900;
 
 type DissolveParticle = {
   color: string;
@@ -1016,7 +1016,7 @@ export default function HomeScreen() {
     }
     setWelcomeDismissing(false);
   }, [dispatch]);
-  const showWelcome = true; //!isSignedIn || !name;
+  const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
     if (!trimmed || !referralCode.trim() || validatingReferral) return;
