@@ -1016,7 +1016,7 @@ export default function HomeScreen() {
     }
     setWelcomeDismissing(false);
   }, [dispatch]);
-  const showWelcome = !isSignedIn || !name;
+  const showWelcome = true; //!isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
     if (!trimmed || !referralCode.trim() || validatingReferral) return;
@@ -1977,9 +1977,10 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   welcomeSheetContent: {
+    position: "relative",
     width: "100%",
     height: "100%",
-    marginTop: "72%",
+    top: "31.5%",
     borderRadius: 10,
     overflow: "hidden",
   },
