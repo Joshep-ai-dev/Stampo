@@ -173,7 +173,12 @@ export function CityVisitSearch({
       setAirportsLoading(true);
       setAirportError(false);
       void api
-        .cityAirports(selectedCity.id, controller.signal)
+        .searchAirports(
+          selectedCity.name,
+          selectedCity.country,
+          selectedCity.countryCode,
+          controller.signal,
+        )
         .then((items) => {
           if (active) setAirports(items);
         })
