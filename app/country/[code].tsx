@@ -1,7 +1,6 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text } from "@/components/app-text";
-import { Ionicons } from "@expo/vector-icons";
 import { countries, getEmojiFlag, type TCountryCode } from "countries-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -34,8 +33,7 @@ import { BrandColors } from "@/constants/theme";
 import { api, type SightDetail } from "@/services/api";
 import { startArrivalMonitoring } from "@/services/arrival-monitoring";
 import {
-  canUseGpsArrivals,
-  GPS_ARRIVALS_REQUIRE_KROO_PLUS,
+  canUseGpsArrivals
 } from "@/services/gps-access";
 import {
   countryDetailInvalidated,
@@ -414,7 +412,7 @@ export default function CountryScreen() {
           placeName={name}
         />
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={s.gpsCard}
           onPress={() => void enableGpsArrivals()}
           accessibilityRole="button"
@@ -435,7 +433,7 @@ export default function CountryScreen() {
             size={18}
             color={BrandColors.copper}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </ScrollView>
       {selectedSight ? (
         <DetailModal
