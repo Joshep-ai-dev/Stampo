@@ -1142,7 +1142,7 @@ export default function HomeScreen() {
         .reverse()
         .map(
           (level) =>
-            `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${level.minimum.toFixed(1) === "75.0" ? "99.9" : level.maximum.toFixed(1)}`} `,
+            `${level.name}: ${level.minimum}${level.minimum === level.maximum ? "" : `–${(level.maximum - 0.1).toFixed(1)}`} `,
         ),
       showKrooLogo: true,
       footer: serverHome?.level ?? getKrooLevel(score),
