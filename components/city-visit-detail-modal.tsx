@@ -281,6 +281,7 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                         match.country,
                         match.countryCode,
                       )
+                        .then((items) => items.length > 0 ? items : api.cityAirports(match.id))
                         .catch(() => [])
                         .then(setAirports)
                         .catch(() => setAirports([]));

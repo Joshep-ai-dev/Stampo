@@ -175,37 +175,36 @@ export function CityVisitSearch({
     setAirports([]);
     setAirportsLoading(true);
     const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setAirportsLoading(true);
-      setAirportError(false);
-      void api
-        .searchAirports(
-          selectedCity.name,
-          selectedCity.subcountry,
-          selectedCity.country,
-          selectedCity.countryCode,
-          controller.signal,
-        )
-        .then((items) => {
-          if (active) setAirports(items);
-        })
-        .catch((error) => {
-          if (
-            active &&
-            !(error instanceof Error && error.name === "AbortError")
-          ) {
-            setAirports([]);
-            setAirportError(true);
-          }
-        })
-        .finally(() => {
-          if (active) setAirportsLoading(false);
-        });
-    }, 250);
+    setAirportError(false);
+    void api
+      .searchAirports(
+        selectedCity.name,
+        selectedCity.subcountry,
+        selectedCity.country,
+        selectedCity.countryCode,
+        controller.signal,
+      )
+      .then((items) => items.length > 0
+        ? items
+        : api.cityAirports(selectedCity.id, controller.signal))
+      .then((items) => {
+        if (active) setAirports(items);
+      })
+      .catch((error) => {
+        if (
+          active &&
+          !(error instanceof Error && error.name === "AbortError")
+        ) {
+          setAirports([]);
+          setAirportError(true);
+        }
+      })
+      .finally(() => {
+        if (active) setAirportsLoading(false);
+      });
     return () => {
       active = false;
       controller.abort();
-      clearTimeout(timer);
     };
   }, [selectedCity]);
 
