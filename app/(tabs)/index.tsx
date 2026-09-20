@@ -1414,11 +1414,6 @@ export default function HomeScreen() {
                   <Text style={styles.welcomeButtonText}>
                     {validatingReferral ? "CHECKING..." : "Enter Kroo"}
                   </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={18}
-                    color={BrandColors.green}
-                  />
                 </TouchableOpacity>
               </View>
             </ImageBackground>
