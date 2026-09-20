@@ -277,9 +277,6 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       setAirportMenuOpen(false);
                       void api.cityAirports(match.id)
                         .catch(() => [])
-                        .then((items) => items.length || !match.subcountry
-                          ? items
-                          : api.stateAirports(match.countryCode, match.subcountry).catch(() => []))
                         .then(setAirports)
                         .catch(() => setAirports([]));
                     }}

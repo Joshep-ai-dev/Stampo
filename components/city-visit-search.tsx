@@ -91,7 +91,7 @@ export function CityVisitSearch({
     left: 0,
     top: 0,
     width: 0,
-    height: 200,
+    height: 38,
   });
 
   useEffect(() => {
@@ -101,7 +101,13 @@ export function CityVisitSearch({
         (fieldX, fieldY, width, height) => {
           const top = fieldY - sheetY;
           const below = Math.max(0, sheetHeight - top - height - 14);
-          const menuHeight = Math.min(200, below || 200);
+          const messageRows =
+            airportError || (!airportsLoading && airports.length === 0) ? 1 : 0;
+          const contentHeight = Math.min(
+            200,
+            Math.max(38, (airports.length + 1 + messageRows) * 38),
+          );
+          const menuHeight = Math.min(contentHeight, below || contentHeight);
           setAirportMenuLayout({
             left: fieldX - sheetX,
             top: top + height + 6,
@@ -111,7 +117,7 @@ export function CityVisitSearch({
         },
       );
     });
-  }, [airportMenuOpen, sheetHeight]);
+  }, [airportError, airportMenuOpen, airports.length, airportsLoading, sheetHeight]);
 
   const [selectedAirport, setSelectedAirport] = useState<AirportOption | null>(
     null,
@@ -160,7 +166,7 @@ export function CityVisitSearch({
   }, [countryCode, normalizedQuery]);
 
   useEffect(() => {
-    if (!selectedCity || selectedCity.name.trim().length < 2) {
+    if (!selectedCity) {
       setAirports([]);
       setAirportsLoading(false);
       return;
@@ -173,12 +179,7 @@ export function CityVisitSearch({
       setAirportsLoading(true);
       setAirportError(false);
       void api
-        .searchAirports(
-          selectedCity.name,
-          selectedCity.country,
-          selectedCity.countryCode,
-          controller.signal,
-        )
+        .cityAirports(selectedCity.id, controller.signal)
         .then((items) => {
           if (active) setAirports(items);
         })
