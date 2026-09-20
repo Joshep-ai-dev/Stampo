@@ -54,6 +54,7 @@ const travelSlice = createSlice({
     visitReceived(state, action: PayloadAction<Visit>) {
       state.visits.push({
         ...action.payload,
+        subcountry: action.payload.subcountry ?? "",
         places: action.payload.places ?? [],
         verification: action.payload.verification ?? { status: "unverified" },
       });
@@ -62,11 +63,17 @@ const travelSlice = createSlice({
       const index = state.visits.findIndex(
         (visit) => visit.id === action.payload.id,
       );
-      if (index >= 0) state.visits[index] = action.payload;
+      if (index >= 0) state.visits[index] = {
+        ...action.payload,
+        subcountry: action.payload.subcountry ?? "",
+        places: action.payload.places ?? [],
+        verification: action.payload.verification ?? { status: "unverified" },
+      };
     },
     visitsHydrated(state, action: PayloadAction<Visit[]>) {
       state.visits = action.payload.map((visit) => ({
         ...visit,
+        subcountry: visit.subcountry ?? "",
         places: visit.places ?? [],
         verification: visit.verification ?? { status: "unverified" },
       }));

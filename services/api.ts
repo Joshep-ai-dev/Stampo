@@ -482,7 +482,7 @@ function normalizeCity(item: BackendCity): CityDetail {
     country: item.country,
     countryCode: item.countryCode ?? item.countryId,
     continentCode: item.continentCode,
-    subcountry: item.subcountry,
+    subcountry: item.subcountry ?? "",
     geonamesId: item.geonamesId ?? (String(item.id ?? "") || null),
     wikidataId: item.wikidataId ?? null,
     wikipediaTitle: item.wikipediaTitle ?? null,
@@ -503,6 +503,7 @@ function normalizeCity(item: BackendCity): CityDetail {
 function normalizeVisit(item: Visit): Visit {
   return {
     ...item,
+    subcountry: item.subcountry ?? "",
     image: backendImageUrl(item.image),
     note: item.note ?? "",
     places: item.places ?? [],
