@@ -1412,7 +1412,7 @@ export default function HomeScreen() {
                   }
                 >
                   <Text style={styles.welcomeButtonText}>
-                    {validatingReferral ? "CHECKING..." : "Enter Kroo"}
+                    {validatingReferral ? "Checking..." : "Enter Kroo"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1984,7 +1984,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(21),
-    color: BrandColors.green,
+    color: BrandColors.white,
     textAlign: "center",
     marginHorizontal: 30,
   },
