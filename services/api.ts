@@ -129,6 +129,7 @@ export type HomeDashboard = {
 
 export type CatalogCitySearchResult = {
   id: string;
+  geonamesId?: string | null;
   name: string;
   country: string;
   countryCode: string;
@@ -149,6 +150,122 @@ export type AirportOption = {
   state?: string;
   countryCode?: string;
 };
+
+type GeoNamesPlace = {
+  geonameId: number;
+  name: string;
+  toponymName?: string;
+  countryCode: string;
+  adminName1?: string;
+};
+
+const externalAirportCache = new Map<string, AirportOption[]>();
+
+function normalizedPlaceName(value?: string) {
+  return (
+    value
+      ?.normalize("NFKD")
+      .replace(/\p{M}/gu, "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLocaleLowerCase() ?? ""
+  );
+}
+
+function normalizedRegionName(value?: string) {
+  return normalizedPlaceName(value).replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+async function resolveGeoNamesId(
+  city: Pick<
+    CatalogCitySearchResult,
+    "geonamesId" | "name" | "countryCode" | "subcountry"
+  >,
+  signal?: AbortSignal,
+) {
+  if (city.geonamesId) return String(city.geonamesId);
+  const username = process.env.EXPO_PUBLIC_GEONAMES_USERNAME?.trim();
+  if (!username) throw new Error("GeoNames is not configured.");
+
+  const params = new URLSearchParams({
+    name_equals: city.name,
+    country: city.countryCode,
+    featureClass: "P",
+    maxRows: "20",
+    style: "FULL",
+    username,
+  });
+  const response = await fetch(
+    `https://secure.geonames.org/searchJSON?${params.toString()}`,
+    { signal },
+  );
+  if (!response.ok)
+    throw new Error("Could not resolve this city with GeoNames.");
+
+  const result = (await response.json()) as { geonames?: GeoNamesPlace[] };
+  const expectedCity = normalizedPlaceName(city.name);
+  const expectedRegion = normalizedRegionName(city.subcountry);
+  const match = (result.geonames ?? []).find(
+    (place) =>
+      place.countryCode.toUpperCase() === city.countryCode.toUpperCase() &&
+      [place.name, place.toponymName].some(
+        (name) => normalizedPlaceName(name) === expectedCity,
+      ) &&
+      (!expectedRegion ||
+        normalizedRegionName(place.adminName1) === expectedRegion),
+  );
+  return match ? String(match.geonameId) : null;
+}
+
+async function airportsServingGeoNamesCity(
+  geonamesId: string,
+  city: Pick<CatalogCitySearchResult, "name" | "countryCode">,
+  signal?: AbortSignal,
+) {
+  const cached = externalAirportCache.get(geonamesId);
+  if (cached) return cached;
+
+  const numericId = geonamesId.replace(/[^0-9]/g, "");
+  if (!numericId) return [];
+  const query = `SELECT DISTINCT ?airport ?airportLabel ?iata ?icao WHERE {
+  ?servedCity wdt:P1566 "${numericId}".
+  ?airport wdt:P931 ?servedCity;
+           wdt:P238 ?iata.
+  OPTIONAL { ?airport wdt:P239 ?icao. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}`;
+  const params = new URLSearchParams({ query, format: "json" });
+  const response = await fetch(
+    `https://query.wikidata.org/sparql?${params.toString()}`,
+    { headers: { Accept: "application/sparql-results+json" }, signal },
+  );
+  if (!response.ok)
+    throw new Error("Could not load this city's airport relationships.");
+
+  const result = (await response.json()) as {
+    results?: {
+      bindings?: Record<string, { value?: string } | undefined>[];
+    };
+  };
+  const airports = (result.results?.bindings ?? []).flatMap((binding) => {
+    const id = binding.airport?.value?.split("/").pop();
+    const name = binding.airportLabel?.value;
+    const iataCode = binding.iata?.value;
+    if (!id || !name || !iataCode) return [];
+    return [
+      {
+        id,
+        name,
+        iataCode,
+        icaoCode: binding.icao?.value ?? null,
+        city: city.name,
+        countryCode: city.countryCode,
+      } satisfies AirportOption,
+    ];
+  });
+  externalAirportCache.set(geonamesId, airports);
+  return airports;
+}
 
 export type NearbyCatalogPlace = {
   id: string;
@@ -807,13 +924,12 @@ export const api = {
     ),
   searchAirports: (
     city: string,
-    state: string,
     country: string,
     countryCode: string,
     signal?: AbortSignal,
   ) =>
     request<AirportOption[]>(
-      `/catalog/airports?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
+      `/catalog/airports?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
       { signal },
     ),
   stateAirports: (countryCode: string, state: string) =>
