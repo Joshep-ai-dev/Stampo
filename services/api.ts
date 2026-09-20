@@ -807,12 +807,13 @@ export const api = {
     ),
   searchAirports: (
     city: string,
+    state: string,
     country: string,
     countryCode: string,
     signal?: AbortSignal,
   ) =>
     request<AirportOption[]>(
-      `/catalog/airports?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
+      `/catalog/airports?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&country=${encodeURIComponent(country)}&countryCode=${encodeURIComponent(countryCode)}`,
       { signal },
     ),
   stateAirports: (countryCode: string, state: string) =>

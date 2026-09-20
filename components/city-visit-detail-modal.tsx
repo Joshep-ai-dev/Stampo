@@ -275,7 +275,12 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       setCityQuery(match.name);
                       setEditAirport(null);
                       setAirportMenuOpen(false);
-                      void api.cityAirports(match.id)
+                      void api.searchAirports(
+                        match.name,
+                        match.subcountry,
+                        match.country,
+                        match.countryCode,
+                      )
                         .catch(() => [])
                         .then(setAirports)
                         .catch(() => setAirports([]));
