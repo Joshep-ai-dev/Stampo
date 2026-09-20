@@ -10,6 +10,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   LayoutChangeEvent,
@@ -156,6 +157,7 @@ function IdentityPage({
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
   const [idCopied, setIdCopied] = useState(false);
   const displayedKrooId =
@@ -194,6 +196,8 @@ function IdentityPage({
     }
   };
   const save = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       if (
         draft.email.trim() &&
@@ -245,8 +249,14 @@ function IdentityPage({
       await api.updateProfile(draft);
       dispatch(profileDetailsChanged(draft));
       setEditing(false);
-    } catch {
+    } catch (error) {
+      Alert.alert(
+        "Passport not saved",
+        error instanceof Error ? error.message : "Please try again.",
+      );
       // Keep the editor open because the server remains the source of truth.
+    } finally {
+      setSaving(false);
     }
   };
   return (
@@ -545,20 +555,34 @@ function IdentityPage({
             {editing ? (
               <>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonPrimary]}
+                  style={[
+                    styles.actionButton,
+                    styles.actionButtonPrimary,
+                    saving && styles.actionButtonDisabled,
+                  ]}
                   onPress={() => void save()}
+                  disabled={saving}
+                  accessibilityState={{ disabled: saving, busy: saving }}
                 >
+                  {saving ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={BrandColors.white}
+                    />
+                  ) : null}
                   <Text
                     style={[
                       styles.actionButtonText,
                       styles.actionButtonTextPrimary,
                     ]}
                   >
-                    SAVE PASSPORT
+                    {saving ? "SAVING…" : "SAVE PASSPORT"}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, styles.actionButtonSecondary]}
+                  disabled={saving}
+                  accessibilityState={{ disabled: saving }}
                   onPress={() => {
                     setDraft({
                       name: profile.name,
@@ -1342,10 +1366,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
     height: 30,
     borderRadius: 6,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
   actionButtonPrimary: { backgroundColor: BrandColors.green },
+  actionButtonDisabled: { opacity: 0.6 },
   actionButtonSecondary: {
     borderWidth: 1,
     borderColor: BrandColors.green,
