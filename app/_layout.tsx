@@ -1,4 +1,3 @@
-import "@/services/arrival-monitoring";
 import { Caveat_400Regular } from "@expo-google-fonts/caveat";
 import {
   Fraunces_600SemiBold,
@@ -30,7 +29,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 
-import { ArrivalSuggestionPrompt } from "@/components/arrival-suggestion";
 import { SubscriptionProvider } from "@/components/subscription-provider";
 import { hydrateStore, store } from "@/store";
 
@@ -89,7 +87,6 @@ function LoadingSplash() {
 function AppAccess() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   return <>
-    {isSignedIn ? <ArrivalSuggestionPrompt /> : null}
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!isSignedIn}><Stack.Screen name="welcome" /></Stack.Protected>
       <Stack.Protected guard={isSignedIn}>

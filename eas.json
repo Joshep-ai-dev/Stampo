@@ -8,7 +8,8 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -19,7 +20,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "env": {
@@ -27,7 +29,8 @@
         "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "kroo_plus",
         "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default"
       },
-      "android": {}
+      "android": {},
+      "channel": "production"
     }
   }
 }

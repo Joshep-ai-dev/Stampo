@@ -121,10 +121,10 @@ export default function GiftKrooPlusScreen() {
           >
             <Text style={styles.ctaText}>
               {busy
-                ? "OPENING CHECKOUT..."
+                ? "Opening Checkout..."
                 : GIFT_CHECKOUT_URL
-                  ? "CONTINUE TO PURCHASE"
-                  : "GIFT CHECKOUT COMING SOON"}
+                  ? "Continue To Purchase"
+                  : "Gift Checkout Coming Soon"}
             </Text>
           </TouchableOpacity>
           {!GIFT_CHECKOUT_URL ? (

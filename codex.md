@@ -10,7 +10,7 @@ This file is the durable context for continuing development on another computer.
 
 ## Project at a glance
 
-Kroo (the repository and native identifiers still use the older name **Stampo**) is a travel passport app built with Expo SDK 54, React Native, TypeScript, Expo Router, and Redux Toolkit. Users can track visits, browse countries/cities/sights, complete attractions and collections, compare leaderboard progress, add friends, receive arrival suggestions, and purchase Kroo+ through RevenueCat.
+Kroo (the repository and native identifiers still use the older name **Stampo**) is a travel passport app built with Expo SDK 54, React Native, TypeScript, Expo Router, and Redux Toolkit. Users can track visits, browse countries/cities/sights, complete attractions and collections, compare leaderboard progress, add friends, and purchase Kroo+ through RevenueCat.
 
 The checked-out repository is currently the **mobile/frontend repository only**. It consumes a versioned HTTP API whose base URL is configured with `EXPO_PUBLIC_API_URL` and defaults in code to `http://localhost:8000/api/v1`.
 
@@ -33,7 +33,7 @@ Important naming that has not yet been normalized:
 - AsyncStorage for persisted application state
 - Expo SecureStore for the bearer token
 - RevenueCat (`react-native-purchases` and `react-native-purchases-ui`) for Kroo+
-- Expo Location, Task Manager, Notifications, Camera, and Image Picker
+- Expo Camera and Image Picker
 
 Expo SDK 54 requires Node.js 20.19.x or newer and targets React Native 0.81 / React 19.1. Keep all Expo package changes aligned with the exact SDK 54 documentation at `https://docs.expo.dev/versions/v54.0.0/`; use `npx expo install` for Expo-managed packages.
 
@@ -41,7 +41,7 @@ Expo SDK 54 requires Node.js 20.19.x or newer and targets React Native 0.81 / Re
 
 ### Routing
 
-`app/_layout.tsx` loads fonts, hydrates Redux, initializes background arrival monitoring, mounts subscription synchronization, and owns the root stack.
+`app/_layout.tsx` loads fonts, hydrates Redux, mounts subscription synchronization, and owns the root stack.
 
 Main tab routes:
 
@@ -90,12 +90,11 @@ The current API family is `/api/v1`, including frontend paths such as `/catalog/
 
 ### Device/native services
 
-- `services/arrival-monitoring.ts` and `services/gps-verification.ts` implement location-based visit verification and background arrival suggestions.
 - `services/subscriptions.ts` wraps RevenueCat paywalls, restore, customer center, and entitlement checks.
 - `components/subscription-sync.tsx` keeps the Redux subscription state synchronized with RevenueCat.
 - Camera permission is used for friend QR scanning; image picker/camera permission is used for profile photos.
 
-Because the app includes native RevenueCat and background-location behavior, Expo Go is not sufficient for all production behavior. Use a development build when testing those paths.
+Because the app includes native RevenueCat behavior, Expo Go is not sufficient for all production behavior. Use a development build when testing those paths.
 
 ## Backend status — critical handoff note
 
@@ -135,7 +134,7 @@ Do not restore that backend blindly. The current frontend was changed to consume
 - The product is partly renamed from Stampo to Kroo; identifiers and persistence keys need a deliberate migration plan rather than ad-hoc replacement.
 - `services/api.ts` is a large, central contract file. Changes should be checked against the real backend response schema.
 - Redux persistence writes the whole state on every store update. Large country caches can increase storage/write cost; consider selective/debounced persistence.
-- Background location, notifications, RevenueCat, deep links, and camera flows require real-device/development-build verification. Passing TypeScript is not enough.
+- RevenueCat, deep links, and camera flows require real-device/development-build verification. Passing TypeScript is not enough.
 - The repository contains many large PNG stamps plus a 5 MB city CSV. Clone/build size and asset memory should be monitored; image optimization may be worthwhile.
 - There is no CI configuration visible in this checkout. Add lint, TypeScript, tests, and an Expo configuration/dependency check once the test ownership is resolved.
 
@@ -251,8 +250,7 @@ Then test on a development build/real device:
 - sign up, sign in, session restore, and sign out
 - profile image and profile edits
 - country, city, sight, and collection loading
-- visits and GPS verification
-- background arrival suggestion and notifications
+- visits and photo verification
 - global/friends leaderboard and QR friend flow
 - Kroo+ paywall, purchase, restore, and Customer Center
 - cold start/offline state followed by server reconciliation
@@ -265,7 +263,7 @@ Then test on a development build/real device:
 4. Move or replace the obsolete Node-backend tests so `npm test` is meaningful again.
 5. Add `EXPO_PUBLIC_GIFT_CHECKOUT_URL` to `.env.example` if gift subscriptions remain supported.
 6. Add CI for lint, TypeScript, tests, and Expo dependency/config validation.
-7. Perform a real-device release checklist for location, notifications, deep links, and RevenueCat.
+7. Perform a real-device release checklist for deep links and RevenueCat.
 
 ## Instructions for the next Codex session
 

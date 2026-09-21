@@ -6,7 +6,6 @@ import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   type StyleProp,
   StyleSheet,
@@ -31,8 +30,6 @@ import { TravelStats } from "@/components/travel-stats";
 import { UpgradeBanner } from "@/components/upgrade-banner";
 import { BrandColors } from "@/constants/theme";
 import { api, type SightDetail } from "@/services/api";
-import { startArrivalMonitoring } from "@/services/arrival-monitoring";
-import { canUseGpsArrivals } from "@/services/gps-access";
 import {
   countryDetailInvalidated,
   countrySightCompletionSet,
@@ -223,29 +220,6 @@ export default function CountryScreen() {
       detail: `${sightCount} ${sightCount === 1 ? "sight" : "sights"} · ${airportCount} ${airportCount === 1 ? "airport" : "airports"} · ${city.visits.length} ${city.visits.length === 1 ? "visit" : "visits"}`,
     };
   });
-  const enableGpsArrivals = async () => {
-    if (!canUseGpsArrivals(subscription.isKrooPlus)) {
-      Alert.alert(
-        "Kroo+ GPS arrivals",
-        "Upgrade to Kroo+ to detect arrivals and create GPS-verified visits.",
-      );
-      return;
-    }
-    try {
-      await startArrivalMonitoring();
-      Alert.alert(
-        "GPS arrivals enabled",
-        "Stampo can now suggest a verified visit when you arrive in a new city or airport.",
-      );
-    } catch (error) {
-      Alert.alert(
-        "GPS arrivals",
-        error instanceof Error
-          ? error.message
-          : "Could not enable GPS arrivals.",
-      );
-    }
-  };
   const toggleSight = async (sightId: string, completed: boolean) => {
     const next = !completed;
     if (!isSignedIn) return;
@@ -410,28 +384,6 @@ export default function CountryScreen() {
           placeName={name}
         />
 
-        {/* <TouchableOpacity
-          style={s.gpsCard}
-          onPress={() => void enableGpsArrivals()}
-          accessibilityRole="button"
-          accessibilityLabel="Enable GPS arrivals"
-        >
-          <Ionicons
-            name="location-outline"
-            size={20}
-            color={BrandColors.copper}
-          />
-          <Text style={s.gpsText}>
-            {GPS_ARRIVALS_REQUIRE_KROO_PLUS
-              ? "Kroo+ can automatically add visited cities using GPS when you opt in."
-              : "Automatically add visited cities using GPS when you opt in. Free during launch."}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={BrandColors.copper}
-          />
-        </TouchableOpacity> */}
       </ScrollView>
       {selectedSight ? (
         <DetailModal
@@ -722,25 +674,6 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.greenPanel,
   },
   cityImage: { width: "100%", height: "100%" },
-  gpsCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: BrandColors.paleGreen,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    backgroundColor: "rgba(10,43,32,.2)",
-  },
-  gpsText: {
-    flex: 1,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    lineHeight: 18,
-    color: BrandColors.onDarkMuted,
-  },
   modalImage: {
     width: "100%",
     aspectRatio: 1.5,

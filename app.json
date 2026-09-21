@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "updates": {
       "enabled": false,
-      "checkAutomatically": "NEVER"
+      "checkAutomatically": "NEVER",
+      "url": "https://u.expo.dev/bce30208-bb4d-4f6b-9e4d-2f3eb2d0e051"
     },
     "ios": {
       "bundleIdentifier": "com.krootravel.app",
@@ -19,6 +20,7 @@
       }
     },
     "android": {
+      "versionCode": 2,
       "softwareKeyboardLayoutMode": "pan",
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
@@ -32,12 +34,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.krootravel.app",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -61,17 +58,6 @@
           "microphonePermission": false
         }
       ],
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "Allow Kroo to show your position and verify visited places.",
-          "locationAlwaysAndWhenInUsePermission": "Allow Kroo to recognize new city and airport arrivals and suggest GPS-verified visits.",
-          "isIosBackgroundLocationEnabled": true,
-          "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
-        }
-      ],
-      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -97,6 +83,9 @@
         "projectId": "bce30208-bb4d-4f6b-9e4d-2f3eb2d0e051"
       }
     },
-    "owner": "darkhorse9372"
+    "owner": "darkhorse9372",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
