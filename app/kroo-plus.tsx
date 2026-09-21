@@ -16,7 +16,10 @@ import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
-import { useKrooPlusBilling } from "@/components/subscription-provider";
+import {
+  revenueCatErrorMessage,
+  useKrooPlusBilling,
+} from "@/components/subscription-provider";
 import { BrandColors } from "@/constants/theme";
 
 export default function KrooPlusScreen() {
@@ -26,7 +29,7 @@ export default function KrooPlusScreen() {
   const showError = (error: unknown) =>
     Alert.alert(
       "Kroo+",
-      error instanceof Error ? error.message : "Please try again.",
+      revenueCatErrorMessage(error),
     );
 
   const restore = async () => {

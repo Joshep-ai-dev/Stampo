@@ -789,8 +789,11 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.copper,
   },
   ctaText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(14),
+    paddingHorizontal: 12,
+    textAlign: "center",
+    fontFamily: "Roboto_900Black",
+    fontSize: responsiveFontSize(16),
+    letterSpacing: 1.2,
     color: BrandColors.green,
   },
   disabled: { opacity: 0.6 },

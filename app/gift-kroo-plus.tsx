@@ -1,9 +1,12 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
+import {
+  revenueCatErrorMessage,
+  useKrooPlusBilling,
+} from "@/components/subscription-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   Alert,
@@ -20,10 +23,9 @@ import { BrandColors } from "@/constants/theme";
 
 const DEFAULT_NOTE =
   "Thought of you and all our future trips together - go add your first stamp!";
-const GIFT_CHECKOUT_URL = process.env.EXPO_PUBLIC_GIFT_CHECKOUT_URL?.trim();
-
 export default function GiftKrooPlusScreen() {
   const router = useRouter();
+  const billing = useKrooPlusBilling();
   const { plan: rawPlan } = useLocalSearchParams<{ plan?: string }>();
   const plan = rawPlan === "monthly" ? "monthly" : "annual";
   const giftPeriod = plan === "monthly" ? "1 month" : "1 year";
@@ -32,19 +34,15 @@ export default function GiftKrooPlusScreen() {
   const [busy, setBusy] = useState(false);
 
   const continueToPurchase = async () => {
-    if (busy || !GIFT_CHECKOUT_URL) return;
+    if (busy) return;
     setBusy(true);
     try {
-      const url = new URL(GIFT_CHECKOUT_URL);
-      url.searchParams.set("plan", plan);
-      if (note.trim()) url.searchParams.set("note", note.trim());
-      await WebBrowser.openBrowserAsync(url.toString());
+      const purchased = await billing.purchase(plan);
+      if (purchased) router.back();
     } catch (error) {
       Alert.alert(
-        "Gift Kroo+",
-        error instanceof Error
-          ? error.message
-          : "Could not open gift checkout.",
+        "Kroo+",
+        revenueCatErrorMessage(error),
       );
     } finally {
       setBusy(false);
@@ -112,26 +110,14 @@ export default function GiftKrooPlusScreen() {
             textAlignVertical="top"
           />
           <TouchableOpacity
-            style={[
-              styles.cta,
-              (busy || !GIFT_CHECKOUT_URL) && styles.disabled,
-            ]}
-            disabled={busy || !GIFT_CHECKOUT_URL}
+            style={[styles.cta, busy && styles.disabled]}
+            disabled={busy}
             onPress={() => void continueToPurchase()}
           >
             <Text style={styles.ctaText}>
-              {busy
-                ? "Opening Checkout..."
-                : GIFT_CHECKOUT_URL
-                  ? "Continue To Purchase"
-                  : "Gift Checkout Coming Soon"}
+              {busy ? "Connecting To Store..." : "Continue To Purchase"}
             </Text>
           </TouchableOpacity>
-          {!GIFT_CHECKOUT_URL ? (
-            <Text style={styles.checkoutUnavailable}>
-              Gift purchases are not available yet.
-            </Text>
-          ) : null}
 
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />
@@ -242,7 +228,7 @@ const styles = StyleSheet.create({
   },
   cta: {
     width: "100%",
-    height: 64,
+    height: 48,
     marginTop: 28,
     borderRadius: 8,
     alignItems: "center",
@@ -250,13 +236,6 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.copper,
   },
   disabled: { opacity: 0.65 },
-  checkoutUnavailable: {
-    marginTop: 10,
-    textAlign: "center",
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(12),
-    color: BrandColors.onDarkMuted,
-  },
   ctaText: {
     paddingHorizontal: 12,
     textAlign: "center",
