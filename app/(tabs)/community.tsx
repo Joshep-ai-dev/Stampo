@@ -29,11 +29,12 @@ const c = {
 };
 type Question = {
   id: string;
+  information: string;
   prompt: string;
   answers: string[];
   imageUrl?: string;
 };
-type Stage = "intro" | "question" | "answer" | "result";
+type Stage = "intro" | "briefing" | "question" | "answer" | "result";
 
 function PaperBorder({ wide = false }: { wide?: boolean }) {
   return (
@@ -70,6 +71,7 @@ export default function KrooIqScreen() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [canReplay, setCanReplay] = useState(false);
   const questions = quiz?.questions ?? [];
   const question = questions[index];
   const correct = quiz?.attempt.correctCount ?? 0;
@@ -80,24 +82,53 @@ export default function KrooIqScreen() {
     if (!isSignedIn) return;
     setLoading(true);
     setError("");
+    setCanReplay(false);
     try {
       const loaded = await api.krooIqToday();
       setQuiz(loaded);
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
       setStage(
-        loaded.attempt.completed ? "result" : answered ? "question" : "intro",
+        loaded.attempt.completed ? "result" : answered ? "briefing" : "intro",
       );
     } catch (cause) {
-      setError(
+      const message =
         cause instanceof Error
           ? cause.message
-          : "Could not load today's Kroo IQ quiz.",
+          : "Could not load today's Kroo IQ quiz.";
+      setQuiz(null);
+      setError(message);
+      setCanReplay(
+        message.includes("completed all available") ||
+          message.includes("completed the free preview"),
       );
     } finally {
       setLoading(false);
     }
   }, [isSignedIn]);
+
+  const replay = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const loaded = await api.replayKrooIq();
+      setQuiz(loaded);
+      setIndex(0);
+      setSelected(null);
+      setFeedback(null);
+      setCanReplay(false);
+      setStage("intro");
+      void dispatch(fetchHomeDashboard());
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not replay the last Kroo IQ lesson.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -135,7 +166,7 @@ export default function KrooIqScreen() {
       setIndex((v) => v + 1);
       setSelected(null);
       setFeedback(null);
-      setStage("question");
+      setStage("briefing");
     }
   };
   const destination = quiz?.destination;
@@ -152,7 +183,11 @@ export default function KrooIqScreen() {
         ) : !isSignedIn ? (
           <Locked onPress={() => router.navigate("/(tabs)/visits" as never)} />
         ) : error && !quiz ? (
-          <Message text={error} onRetry={load} />
+          <Message
+            text={error}
+            actionLabel={canReplay ? "Replay Last Lesson" : "Try Again"}
+            onRetry={canReplay ? replay : load}
+          />
         ) : stage === "result" ? (
           <Result
             correct={correct}
@@ -177,6 +212,8 @@ export default function KrooIqScreen() {
             />
             {stage === "intro" ? (
               <Intro destination={destination} />
+            ) : stage === "briefing" && question ? (
+              <QuestionBriefing index={index} question={question} />
             ) : stage === "question" && question ? (
               <Quiz
                 index={index}
@@ -206,7 +243,9 @@ export default function KrooIqScreen() {
               arrow={stage !== "question"}
               onPress={
                 stage === "intro"
-                  ? () => setStage("question")
+                  ? () => setStage("briefing")
+                  : stage === "briefing"
+                    ? () => setStage("question")
                   : stage === "question"
                     ? confirm
                     : next
@@ -326,13 +365,6 @@ function Quiz({
       <PaperBorder />
       <Text style={s.eyebrow}>{index + 1}. QUESTION</Text>
       <Text style={s.question}>{question.prompt}</Text>
-      {question.imageUrl ? (
-        <Image
-          source={{ uri: question.imageUrl }}
-          style={s.questionImage}
-          contentFit="cover"
-        />
-      ) : null}
       <View style={s.answers}>
         {question.answers.map((answer, i) => (
           <TouchableOpacity
@@ -349,6 +381,28 @@ function Quiz({
           </TouchableOpacity>
         ))}
       </View>
+    </View>
+  );
+}
+function QuestionBriefing({
+  index,
+  question,
+}: {
+  index: number;
+  question: Question;
+}) {
+  return (
+    <View style={[s.paper, s.quiz]}>
+      <PaperBorder />
+      <Text style={s.eyebrow}>{index + 1}. BEFORE THE QUESTION</Text>
+      {question.imageUrl ? (
+        <Image
+          source={{ uri: question.imageUrl }}
+          style={s.questionImage}
+          contentFit="cover"
+        />
+      ) : null}
+      <Text style={s.briefingText}>{question.information}</Text>
     </View>
   );
 }
@@ -456,13 +510,21 @@ function Locked({ onPress }: { onPress: () => void }) {
     </View>
   );
 }
-function Message({ text, onRetry }: { text: string; onRetry: () => void }) {
+function Message({
+  text,
+  actionLabel = "Try Again",
+  onRetry,
+}: {
+  text: string;
+  actionLabel?: string;
+  onRetry: () => void;
+}) {
   return (
     <View style={[s.paper, s.messageCard]}>
       <PaperBorder />
       <Ionicons name="cloud-offline-outline" size={36} color={c.copperDark} />
       <Text style={s.messageText}>{text}</Text>
-      <Action label="Try Again" onPress={onRetry} />
+      <Action label={actionLabel} onPress={onRetry} />
     </View>
   );
 }
@@ -661,6 +723,13 @@ const s = StyleSheet.create({
     aspectRatio: 1.5,
     marginTop: 16,
     borderRadius: 8,
+  },
+  briefingText: {
+    marginTop: 16,
+    color: c.ink,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(15),
+    lineHeight: responsiveFontSize(22),
   },
   answers: { marginTop: 24, gap: 10 },
   answer: {

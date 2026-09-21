@@ -309,6 +309,7 @@ export type KrooIqQuiz = {
   };
   questions: {
     id: string;
+    information: string;
     prompt: string;
     answers: string[];
     imageUrl: string;
@@ -930,6 +931,20 @@ export const api = {
         imageUrl: backendImageUrl(question.imageUrl),
       })),
     })),
+  replayKrooIq: () =>
+    request<KrooIqQuiz>("/me/kroo-iq/replay", { method: "POST" }).then(
+      (quiz) => ({
+        ...quiz,
+        destination: {
+          ...quiz.destination,
+          imageUrl: backendImageUrl(quiz.destination.imageUrl),
+        },
+        questions: quiz.questions.map((question) => ({
+          ...question,
+          imageUrl: backendImageUrl(question.imageUrl),
+        })),
+      }),
+    ),
   submitKrooIqAnswer: (questionId: string, selectedAnswer: number) =>
     request<KrooIqAnswerResult>("/me/kroo-iq/answer", {
       method: "POST",
