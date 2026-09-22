@@ -1,3 +1,4 @@
+import { useAppSelector } from "@/store/hooks";
 import { Caveat_400Regular } from "@expo-google-fonts/caveat";
 import {
   Fraunces_600SemiBold,
@@ -19,12 +20,11 @@ import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
 } from "@expo-google-fonts/space-mono";
-import { useAppSelector } from "@/store/hooks";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
@@ -37,6 +37,31 @@ SplashScreen.setOptions({ duration: 180, fade: true });
 
 function LoadingSplash() {
   const spin = useRef(new Animated.Value(0)).current;
+  const rotationTransform =
+    Platform.OS === "ios"
+      ? [
+          {
+            scaleX: spin.interpolate({
+              inputRange: [0, 0.25, 0.5, 0.75, 1],
+              outputRange: [1, 0.06, 1, 0.06, 1],
+            }),
+          },
+          {
+            scaleY: spin.interpolate({
+              inputRange: [0, 0.25, 0.5, 0.75, 1],
+              outputRange: [1, 0.94, 1, 0.94, 1],
+            }),
+          },
+        ]
+      : [
+          { perspective: 900 },
+          {
+            rotateY: spin.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["0deg", "360deg"],
+            }),
+          },
+        ];
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -53,57 +78,44 @@ function LoadingSplash() {
 
   return (
     <View style={styles.loadingSplash}>
-      <Animated.View
+      <Animated.Image
+        source={require("@/assets/images/icon.png")}
+        resizeMode="contain"
         style={[
           styles.loadingCoin,
           {
-            transform: [
-              { perspective: 900 },
-              {
-                rotateY: spin.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0deg", "360deg"],
-                }),
-              },
-            ],
+            transform: rotationTransform,
           },
         ]}
-      >
-        <Animated.Image
-          source={require("@/assets/images/icon.png")}
-          resizeMode="contain"
-          style={styles.loadingCoinFace}
-        />
-        <Animated.Image
-          source={require("@/assets/images/icon.png")}
-          resizeMode="contain"
-          style={[styles.loadingCoinFace, styles.loadingCoinBack]}
-        />
-      </Animated.View>
+      />
     </View>
   );
 }
 
 function AppAccess() {
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
-  return <>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!isSignedIn}><Stack.Screen name="welcome" /></Stack.Protected>
-      <Stack.Protected guard={isSignedIn}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="add-friends" />
-        <Stack.Screen name="country-atlas" />
-        <Stack.Screen name="gift-kroo-plus" />
-        <Stack.Screen name="kroo-plus" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="city/[id]" />
-        <Stack.Screen name="collection/[id]" />
-        <Stack.Screen name="country/[code]" />
-        <Stack.Screen name="sight/[id]" />
-        <Stack.Screen name="state/[countryCode]/[stateName]" />
-      </Stack.Protected>
-    </Stack>
-  </>;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!isSignedIn}>
+          <Stack.Screen name="welcome" />
+        </Stack.Protected>
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="add-friends" />
+          <Stack.Screen name="country-atlas" />
+          <Stack.Screen name="gift-kroo-plus" />
+          <Stack.Screen name="kroo-plus" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="city/[id]" />
+          <Stack.Screen name="collection/[id]" />
+          <Stack.Screen name="country/[code]" />
+          <Stack.Screen name="sight/[id]" />
+          <Stack.Screen name="state/[countryCode]/[stateName]" />
+        </Stack.Protected>
+      </Stack>
+    </>
+  );
 }
 
 export default function RootLayout() {
@@ -160,14 +172,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#042219",
   },
-  loadingCoin: { width: 300, height: 300 },
-  loadingCoinFace: {
-    ...StyleSheet.absoluteFillObject,
+  loadingCoin: {
     width: 300,
     height: 300,
-    backfaceVisibility: "hidden",
-  },
-  loadingCoinBack: {
-    transform: [{ rotateY: "180deg" }],
   },
 });
