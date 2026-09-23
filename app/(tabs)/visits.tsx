@@ -711,8 +711,8 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(13),
     color: BrandColors.white,
     textShadowColor: "rgba(0, 0, 0, 1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 12,
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 16,
   },
   destinationPlace: {
     marginTop: 4,
@@ -722,8 +722,8 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
     color: BrandColors.white,
     textShadowColor: "rgba(0, 0, 0, 1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 12,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 16,
   },
   darkHeading: {
     marginTop: 16,
