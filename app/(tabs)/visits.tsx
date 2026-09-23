@@ -304,10 +304,14 @@ export default function PlusScreen() {
                   style={s.destinationImage}
                   contentFit="cover"
                 />
-                <View style={s.destinationText}>
+                <LinearGradient
+                  colors={["transparent", "rgba(0, 20, 14, 0.6)"]}
+                  locations={[0, 0.72]}
+                  style={s.destinationText}
+                >
                   <Text style={s.destinationName}>{item.name}</Text>
                   <Text style={s.destinationPlace}>{item.place}</Text>
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -703,8 +707,13 @@ const s = StyleSheet.create({
   destinationImage: { ...StyleSheet.absoluteFillObject },
 
   destinationText: {
-    marginTop: "auto",
-    padding: 6,
+    position: "absolute",
+    right: 0,
+    bottom: -1,
+    left: 0,
+    paddingTop: 24,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   destinationName: {
     fontFamily: "Lora_700Bold",
