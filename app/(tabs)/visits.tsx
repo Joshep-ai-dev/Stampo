@@ -405,8 +405,27 @@ export default function PlusScreen() {
             </View>
             <Text style={s.legal}>
               By continuing, you agree to our{" "}
-              <Text style={s.underline}>Terms & Conditions</Text> and{" "}
-              <Text style={s.underline}>Privacy Policy</Text>.
+              <Text
+                style={s.underline}
+                onPress={() => router.push("/legal/terms" as never)}
+              >
+                Terms & Conditions
+              </Text>{" "}
+              and{" "}
+              <Text
+                style={s.underline}
+                onPress={() => router.push("/legal/privacy" as never)}
+              >
+                Privacy Policy
+              </Text>
+              . Dream Vacation Challenge{" "}
+              <Text
+                style={s.underline}
+                onPress={() => router.push("/legal/vacation" as never)}
+              >
+                Official Rules
+              </Text>{" "}
+              apply.
             </Text>
           </>
         )}
@@ -856,9 +875,10 @@ const s = StyleSheet.create({
   legal: {
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(18),
     color: BrandColors.onDarkMuted,
-    letterSpacing: -0.2,
+    paddingHorizontal: 8,
   },
   underline: { textDecorationLine: "underline" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },

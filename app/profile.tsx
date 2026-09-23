@@ -75,7 +75,8 @@ const profileSections: readonly ProfileSection[] = [
     rows: [
       { id: "contact", label: "Contact Us" },
       { id: "privacy", label: "Privacy Policy" },
-      { id: "terms", label: "Terms of Service" },
+      { id: "terms", label: "Terms & Conditions" },
+      { id: "vacation", label: "Dream Vacation Official Rules" },
     ],
   },
 ];
@@ -143,6 +144,10 @@ export default function ProfileScreen() {
     }
     if (row.id === "gift-kroo-plus") {
       router.push("/gift-kroo-plus" as never);
+      return;
+    }
+    if (["privacy", "terms", "vacation"].includes(row.id)) {
+      router.push(`/legal/${row.id}` as never);
       return;
     }
     setActiveRow(row);
@@ -297,8 +302,7 @@ export default function ProfileScreen() {
                   )}
                 </View>
               )}
-              {activeRow &&
-                ["contact", "privacy", "terms"].includes(activeRow.id) && (
+              {activeRow?.id === "contact" && (
                   <Text style={styles.legalText}>
                     {activeRow.id === "contact"
                       ? "Contact support@stampo.app. This endpoint can be replaced by your Laravel support API."
