@@ -27,28 +27,46 @@ const HERO = require("@/assets/images/other/top image.webp");
 
 const destinations = [
   {
-    name: "Bali Bliss Escape",
-    place: "Bali, Indonesia",
-    value: "$3,800 value",
-    icon: "leaf-outline",
+    name: "Bora Bora",
+    place: "French Polynesia",
+    description:
+      "Escape to an overwater paradise of turquoise lagoons, private villas, and breathtaking island beauty.",
+    image: require("@/assets/images/vacation/Bora Bora.webp"),
   },
   {
-    name: "Santorini Escape",
-    place: "Santorini, Greece",
-    value: "$5,200 value",
-    icon: "boat-outline",
+    name: "Amalfi Coast",
+    place: "Italy",
+    description:
+      "Live the Italian dream with cliffside luxury, Mediterranean cuisine, private boat trips, and spectacular sunsets.",
+    image: require("@/assets/images/vacation/Amalfi Coast.webp"),
   },
   {
-    name: "Japan Discovery",
+    name: "Kyoto",
     place: "Japan",
-    value: "$6,500 value",
-    icon: "flower-outline",
+    description:
+      "Discover timeless Japan through ancient temples, bamboo forests, traditional ryokans, and unforgettable cuisine.",
+    image: require("@/assets/images/vacation/Kyoto.webp"),
   },
   {
-    name: "Maldives Retreat",
-    place: "Maldives",
-    value: "$7,000 value",
-    icon: "sunny-outline",
+    name: "Santorini",
+    place: "Greece",
+    description:
+      "Indulge in a cliffside escape of whitewashed villages, brilliant blue seas, and legendary Aegean sunsets.",
+    image: require("@/assets/images/vacation/Santorini.webp"),
+  },
+  {
+    name: "Serengeti",
+    place: "Tanzania",
+    description:
+      "Embark on the ultimate luxury safari amid endless savannahs and some of Africa's most spectacular wildlife.",
+    image: require("@/assets/images/vacation/Serengeti.webp"),
+  },
+  {
+    name: "$1,000 Dream Vacation Cash",
+    place: "Your dream, your choice",
+    description:
+      "Here's $1,000 to turn your dream destination into your next adventure.",
+    image: require("@/assets/images/vacation/Cash.webp"),
   },
 ] as const;
 type Destination = (typeof destinations)[number];
@@ -282,14 +300,14 @@ export default function PlusScreen() {
                 onPress={() => setSelected(item)}
               >
                 <Image
-                  source={HERO}
+                  source={item.image}
                   style={s.destinationImage}
                   contentFit="cover"
                 />
                 <View style={s.destinationShade} />
                 <View style={s.destinationText}>
                   <Text style={s.destinationName}>{item.name}</Text>
-                  <Text style={s.destinationValue}>{item.value}</Text>
+                  <Text style={s.destinationPlace}>{item.place}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -409,10 +427,14 @@ export default function PlusScreen() {
                 >
                   <Ionicons name="close" size={22} color={BrandColors.onDark} />
                 </TouchableOpacity>
-                <Image source={HERO} style={s.sheetImage} contentFit="cover" />
+                <Image
+                  source={selected.image}
+                  style={s.sheetImage}
+                  contentFit="cover"
+                />
                 <Text style={s.sheetTitle}>{selected.name}</Text>
                 <Text style={s.sheetPlace}>{selected.place}</Text>
-                <Text style={s.sheetValue}>{selected.value}</Text>
+                <Text style={s.sheetDescription}>{selected.description}</Text>
                 {/* <TouchableOpacity
                   style={s.cta}
                   onPress={() => setSelected(null)}
@@ -673,7 +695,7 @@ const s = StyleSheet.create({
   },
   destinationRow: { paddingHorizontal: 14, paddingTop: 9, gap: 9 },
   destinationCard: {
-    width: 150,
+    width: 160,
     height: 120,
     overflow: "hidden",
     borderRadius: 8,
@@ -686,18 +708,21 @@ const s = StyleSheet.create({
   },
   destinationText: {
     marginTop: "auto",
-    padding: 4,
+    padding: 6,
     backgroundColor: "rgba(0,35,24,.67)",
   },
   destinationName: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(15),
     color: BrandColors.white,
   },
-  destinationValue: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(13),
-    color: "#35DA8A",
+  destinationPlace: {
+    marginTop: 4,
+    fontFamily: "Roboto_400Arial",
+    fontSize: responsiveFontSize(9),
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+    color: BrandColors.white,
   },
   darkHeading: {
     marginTop: 16,
@@ -851,11 +876,12 @@ const s = StyleSheet.create({
     fontFamily: "Lora_400Regular",
     color: BrandColors.onDarkMuted,
   },
-  sheetValue: {
-    marginTop: 8,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(18),
-    color: "#35DA8A",
+  sheetDescription: {
+    marginTop: 12,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(15),
+    lineHeight: responsiveFontSize(22),
+    color: BrandColors.onDark,
   },
   visitHead: {
     padding: 18,
