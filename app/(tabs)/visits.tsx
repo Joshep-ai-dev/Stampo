@@ -304,7 +304,6 @@ export default function PlusScreen() {
                   style={s.destinationImage}
                   contentFit="cover"
                 />
-                <View style={s.destinationShade} />
                 <View style={s.destinationText}>
                   <Text style={s.destinationName}>{item.name}</Text>
                   <Text style={s.destinationPlace}>{item.place}</Text>
@@ -702,19 +701,18 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.green,
   },
   destinationImage: { ...StyleSheet.absoluteFillObject },
-  destinationShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,35,24,.24)",
-  },
+
   destinationText: {
     marginTop: "auto",
     padding: 6,
-    backgroundColor: "rgba(0,35,24,.67)",
   },
   destinationName: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(15),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.white,
+    textShadowColor: "rgba(0, 0, 0, 1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 12,
   },
   destinationPlace: {
     marginTop: 4,
@@ -723,6 +721,9 @@ const s = StyleSheet.create({
     letterSpacing: 1.8,
     textTransform: "uppercase",
     color: BrandColors.white,
+    textShadowColor: "rgba(0, 0, 0, 1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 12,
   },
   darkHeading: {
     marginTop: 16,
