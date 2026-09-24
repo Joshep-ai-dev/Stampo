@@ -102,8 +102,8 @@ export default function TabLayout() {
             <Icon
               focused={focused}
               color={color}
-              on="people"
-              off="people-outline"
+              on="bulb"
+              off="bulb-outline"
             />
           ),
         }}

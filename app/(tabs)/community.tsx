@@ -240,15 +240,15 @@ export default function KrooIqScreen() {
                     ? "Confirm Answer"
                     : "Swipe to continue"
               }
-              arrow={stage !== "question"}
+              arrow={false}
               onPress={
                 stage === "intro"
                   ? () => setStage("briefing")
                   : stage === "briefing"
                     ? () => setStage("question")
-                  : stage === "question"
-                    ? confirm
-                    : next
+                    : stage === "question"
+                      ? confirm
+                      : next
               }
             />
           </>
