@@ -15,7 +15,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
-import { stampAssets } from "@/data/stamps";
 import { api, ApiError, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -284,10 +283,6 @@ function Destination({
   destination?: KrooIqQuiz["destination"];
   total: number;
 }) {
-  const stamp = destination?.countryCode
-    ? stampAssets[destination.countryCode]
-    : undefined;
-
   return (
     <View style={[s.paper, s.destination]}>
       <PaperBorder wide />
@@ -308,12 +303,12 @@ function Destination({
             </Text>
           </View>
         </View>
-        {stamp ? (
+        {destination?.heroImage ? (
           <View style={s.destinationStampFrame}>
             <Image
-              source={stamp}
+              source={{ uri: destination.heroImage }}
               style={s.destinationStamp}
-              contentFit="contain"
+              contentFit="cover"
             />
           </View>
         ) : null}
