@@ -120,10 +120,15 @@ export default function KrooIqScreen() {
       setStage("intro");
       void dispatch(fetchHomeDashboard());
     } catch (cause) {
-      setError(
+      const message =
         cause instanceof Error
           ? cause.message
-          : "Could not replay the last Kroo IQ lesson.",
+          : "Could not replay the last Kroo IQ lesson.";
+      setCanReplay(false);
+      setError(
+        message.includes("no completed Kroo IQ lesson")
+          ? "Today's Kroo IQ lesson isn't available yet. Please try again soon."
+          : message,
       );
     } finally {
       setLoading(false);
