@@ -28,7 +28,6 @@ import {
 } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -90,168 +89,6 @@ const CONTINENTS = [
   { code: "SA", name: "South America" },
 ];
 
-const DISSOLVE_DURATION = 2350;
-const DISSOLVE_EDGE_PARTICLES = 900;
-const DISSOLVE_FILL_PARTICLES = 900;
-
-type DissolveParticle = {
-  color: string;
-  delay: number;
-  driftX: number;
-  driftY: number;
-  size: number;
-  x: number;
-  y: number;
-};
-
-function seededFraction(seed: number) {
-  const value = Math.sin(seed * 12.9898) * 43758.5453;
-  return value - Math.floor(value);
-}
-
-function DissolveParticleView({
-  height,
-  particle,
-  progress,
-  width,
-}: {
-  height: number;
-  particle: DissolveParticle;
-  progress: SharedValue<number>;
-  width: number;
-}) {
-  const animatedStyle = useAnimatedStyle(() => {
-    const localProgress = Math.max(
-      0,
-      Math.min(1, (progress.value - particle.delay) / (1 - particle.delay)),
-    );
-
-    return {
-      opacity: 1 - localProgress,
-      transform: [
-        { translateX: particle.driftX * localProgress * 28 },
-        {
-          translateY:
-            particle.driftY * localProgress * 30 +
-            localProgress * localProgress * 18,
-        },
-        { scale: 1 - localProgress * 0.42 },
-      ],
-    };
-  });
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.dissolveParticle,
-        {
-          backgroundColor: particle.color,
-          height: particle.size,
-          left: particle.x * width,
-          top: particle.y * height,
-          width: particle.size,
-        },
-        animatedStyle,
-      ]}
-    />
-  );
-}
-
-function WelcomeDissolveEffect({
-  height,
-  onFinished,
-  width,
-}: {
-  height: number;
-  onFinished: () => void;
-  width: number;
-}) {
-  const progress = useSharedValue(0);
-  const sourceStyle = useAnimatedStyle(() => ({
-    opacity: Math.max(0, 1 - progress.value * 5),
-  }));
-  const particles = useMemo(() => {
-    const result: DissolveParticle[] = [];
-    for (let index = 0; index < DISSOLVE_EDGE_PARTICLES; index += 1) {
-      const seed = index + 1;
-      const edgePosition = seededFraction(seed + 5);
-      const edge = index % 4;
-      const inset = 0.025 + seededFraction(seed + 7) * 0.018;
-      const jitter = (seededFraction(seed + 13) - 0.5) * 0.025;
-      const x =
-        edge === 1
-          ? 1 - inset + jitter
-          : edge === 3
-            ? inset + jitter
-            : edgePosition;
-      const y =
-        edge === 0
-          ? inset + jitter
-          : edge === 2
-            ? 1 - inset + jitter
-            : edgePosition;
-
-      result.push({
-        color:
-          seededFraction(seed + 31) > 0.28 ? BrandColors.copper : "#0A5A43",
-        delay: seededFraction(seed + 17) * 0.2 + (x + y) * 0.035,
-        driftX: (seededFraction(seed + 11) - 0.5) * 1.6,
-        driftY: -0.45 - seededFraction(seed + 23),
-        size: 3 + seededFraction(seed + 29) * 3.5,
-        x: Math.max(0, Math.min(0.99, x)),
-        y: Math.max(0, Math.min(0.99, y)),
-      });
-    }
-    for (let index = 0; index < DISSOLVE_FILL_PARTICLES; index += 1) {
-      const seed = DISSOLVE_EDGE_PARTICLES + index + 1;
-      const x = seededFraction(seed + 41);
-      const y = seededFraction(seed + 47);
-      result.push({
-        color:
-          seededFraction(seed + 53) > 0.86 ? BrandColors.copper : "#07513D",
-        delay: seededFraction(seed + 59) * 0.18 + x * 0.08,
-        driftX: (seededFraction(seed + 61) - 0.5) * 1.4,
-        driftY: -0.3 - seededFraction(seed + 67),
-        size: 2.5 + seededFraction(seed + 71) * 3,
-        x,
-        y,
-      });
-    }
-    return result;
-  }, []);
-
-  useEffect(() => {
-    progress.value = withTiming(
-      1,
-      { duration: DISSOLVE_DURATION },
-      (finished) => {
-        if (finished) runOnJS(onFinished)();
-      },
-    );
-  }, [onFinished, progress]);
-
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Animated.View style={[StyleSheet.absoluteFill, sourceStyle]}>
-        <ImageBackground
-          source={require("@/assets/images/other/welcome.webp")}
-          resizeMode="stretch"
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-      {particles.map((particle) => (
-        <DissolveParticleView
-          key={`${particle.x}-${particle.y}`}
-          height={height}
-          particle={particle}
-          progress={progress}
-          width={width}
-        />
-      ))}
-    </View>
-  );
-}
 type MapCountry = {
   code: string;
   name: string;
@@ -971,7 +808,7 @@ function WorldMap({
 }
 
 export default function HomeScreen() {
-  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
   const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
@@ -994,28 +831,6 @@ export default function HomeScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [referralError, setReferralError] = useState("");
   const [validatingReferral, setValidatingReferral] = useState(false);
-  const [welcomeDismissing, setWelcomeDismissing] = useState(false);
-  const pendingMembership = useRef<{
-    name: string;
-    result: Awaited<ReturnType<typeof api.joinWithReferral>>;
-  } | null>(null);
-  const finishWelcomeDissolve = useCallback(() => {
-    const pending = pendingMembership.current;
-    if (pending) {
-      dispatch(nameChanged(pending.name));
-      dispatch(invitationAccepted(pending.result.accessToken));
-      dispatch(
-        membershipStarted({
-          userId: pending.result.user.id,
-          krooId: pending.result.user.krooId,
-          formattedKrooId: pending.result.user.formattedKrooId,
-          emailOptIn: pending.result.user.emailOptIn,
-        }),
-      );
-      pendingMembership.current = null;
-    }
-    setWelcomeDismissing(false);
-  }, [dispatch]);
   const showWelcome = !isSignedIn || !name;
   const saveWelcomeName = useCallback(async () => {
     const trimmed = welcomeName.trim();
@@ -1024,8 +839,16 @@ export default function HomeScreen() {
     setReferralError("");
     try {
       const result = await api.joinWithReferral(trimmed, referralCode.trim());
-      pendingMembership.current = { name: trimmed, result };
-      setWelcomeDismissing(true);
+      dispatch(nameChanged(trimmed));
+      dispatch(invitationAccepted(result.accessToken));
+      dispatch(
+        membershipStarted({
+          userId: result.user.id,
+          krooId: result.user.krooId,
+          formattedKrooId: result.user.formattedKrooId,
+          emailOptIn: result.user.emailOptIn,
+        }),
+      );
     } catch (error) {
       setReferralError(
         error instanceof Error
@@ -1034,7 +857,7 @@ export default function HomeScreen() {
       );
       setValidatingReferral(false);
     }
-  }, [welcomeName, referralCode, validatingReferral]);
+  }, [dispatch, welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -1326,18 +1149,14 @@ export default function HomeScreen() {
       />
 
       <Modal
-        visible={showWelcome || welcomeDismissing}
+        visible={showWelcome}
         animationType="none"
         presentationStyle="overFullScreen"
         transparent
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <View
-          style={styles.welcomeOverlay}
-          pointerEvents={welcomeDismissing ? "none" : "auto"}
-        >
-          {!welcomeDismissing ? (
+        <View style={styles.welcomeOverlay}>
             <ImageBackground
               source={require("@/assets/images/other/welcome.webp")}
               resizeMode="stretch"
@@ -1417,14 +1236,6 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
             </ImageBackground>
-          ) : null}
-          {welcomeDismissing ? (
-            <WelcomeDissolveEffect
-              height={screenHeight}
-              width={screenWidth}
-              onFinished={finishWelcomeDissolve}
-            />
-          ) : null}
         </View>
       </Modal>
     </SafeAreaView>
@@ -1480,9 +1291,6 @@ const styles = StyleSheet.create({
   welcomeOverlay: {
     flex: 1,
     backgroundColor: "transparent",
-  },
-  dissolveParticle: {
-    position: "absolute",
   },
   welcomeSheet: {
     width: "100%",

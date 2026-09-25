@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
-import { api, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
+import { api, ApiError, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -85,7 +85,14 @@ export default function KrooIqScreen() {
     setError("");
     setErrorAction(null);
     try {
-      const loaded = await api.krooIqToday();
+      let loaded: KrooIqQuiz;
+      try {
+        loaded = await api.krooIqToday();
+      } catch (cause) {
+        if (!(cause instanceof ApiError) || cause.status < 500) throw cause;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        loaded = await api.krooIqToday();
+      }
       setQuiz(loaded);
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
@@ -226,14 +233,7 @@ export default function KrooIqScreen() {
               disabled={
                 submitting || (stage === "question" && selected === null)
               }
-              label={
-                submitting
-                  ? "Submitting..."
-                  : stage === "question"
-                    ? "Confirm Answer"
-                    : "Swipe to continue"
-              }
-              arrow={false}
+              label="Continue"
               onPress={
                 stage === "intro"
                   ? () => setStage("briefing")
@@ -501,7 +501,7 @@ function Locked({ onPress }: { onPress: () => void }) {
         Build your travel knowledge with a new destination and five questions
         every day. Kroo IQ is exclusively available to Kroo+ members.
       </Text>
-      <Action label="Enter Kroo+" arrow={false} onPress={onPress} />
+      <Action label="Enter Kroo+" onPress={onPress} />
     </View>
   );
 }
@@ -529,12 +529,10 @@ function Action({
   label,
   onPress,
   disabled = false,
-  arrow = false,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
-  arrow?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -544,9 +542,6 @@ function Action({
       onPress={onPress}
     >
       <Text style={s.actionText}>{label}</Text>
-      {arrow && (
-        <Ionicons name="chevron-forward" size={13} color={BrandColors.white} />
-      )}
     </TouchableOpacity>
   );
 }
@@ -692,20 +687,20 @@ const s = StyleSheet.create({
     letterSpacing: 1.2,
   },
   action: {
-    minHeight: 36,
-    paddingHorizontal: 22,
+    width: "100%",
+    minHeight: 48,
+    paddingHorizontal: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BrandColors.copperDark,
     backgroundColor: BrandColors.copper,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
   actionText: {
-    color: BrandColors.white,
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(15),
+    color: BrandColors.green,
+    fontFamily: "Roboto_900Black",
+    fontSize: responsiveFontSize(16),
+    letterSpacing: 1.2,
+    textAlign: "center",
   },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {
