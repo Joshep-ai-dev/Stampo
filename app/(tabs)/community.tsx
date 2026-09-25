@@ -98,9 +98,7 @@ export default function KrooIqScreen() {
       setQuiz(loaded);
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
-      setStage(
-        loaded.attempt.completed ? "result" : "briefing",
-      );
+      setStage(loaded.attempt.completed ? "result" : "briefing");
     } catch (cause) {
       const message =
         cause instanceof Error
@@ -235,10 +233,10 @@ export default function KrooIqScreen() {
               label="Continue"
               onPress={
                 stage === "briefing"
-                    ? () => setStage("question")
-                    : stage === "question"
-                      ? confirm
-                      : next
+                  ? () => setStage("question")
+                  : stage === "question"
+                    ? confirm
+                    : next
               }
             />
           </>
@@ -655,7 +653,7 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(12),
   },
-  quiz: { marginTop: 14, minHeight: 410, padding: 18 },
+  quiz: { marginTop: 14, padding: 18 },
   question: {
     marginTop: 16,
     color: c.ink,
