@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
+import { stampAssets } from "@/data/stamps";
 import { api, ApiError, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -290,6 +291,10 @@ function Destination({
   destination?: KrooIqQuiz["destination"];
   total: number;
 }) {
+  const stamp = destination?.countryCode
+    ? stampAssets[destination.countryCode]
+    : undefined;
+
   return (
     <View style={[s.paper, s.destination]}>
       <PaperBorder wide />
@@ -303,19 +308,15 @@ function Destination({
             <Text style={s.destinationTitle}>{destination?.name}</Text>
           </View>
           <View style={s.location}>
-            {/* <Ionicons name="location" size={17} color={c.ink} /> */}
-            <Text style={s.locationText}>
-              {""}
-              {/* {destination?.region ?? "Travel knowledge"} */}
-            </Text>
+            <Text style={s.locationText}></Text>
           </View>
         </View>
-        {destination?.heroImage ? (
+        {stamp ? (
           <View style={s.destinationStampFrame}>
             <Image
-              source={{ uri: destination.heroImage }}
+              source={stamp}
               style={s.destinationStamp}
-              contentFit="cover"
+              contentFit="contain"
             />
           </View>
         ) : null}
@@ -649,13 +650,18 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(13),
   },
   destinationStampFrame: {
-    width: 120,
+    width: 80,
     height: 80,
     padding: 3,
     borderColor: c.ink,
     borderRadius: 7,
   },
-  destinationStamp: { width: "100%", height: "100%", borderRadius: 4 },
+  destinationStamp: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    transform: [{ scale: 1.3 }],
+  },
   progressRow: {
     minHeight: 35,
     flexDirection: "row",

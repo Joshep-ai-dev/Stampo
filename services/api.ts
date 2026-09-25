@@ -305,7 +305,6 @@ export type KrooIqQuiz = {
     name: string;
     countryCode: string | null;
     flag: string | null;
-    heroImage: string;
     region: string;
     content: string;
     imageUrl: string;
@@ -927,7 +926,6 @@ export const api = {
       ...quiz,
       destination: {
         ...quiz.destination,
-        heroImage: backendImageUrl(quiz.destination.heroImage),
         imageUrl: backendImageUrl(quiz.destination.imageUrl),
       },
       questions: quiz.questions.map((question) => ({
