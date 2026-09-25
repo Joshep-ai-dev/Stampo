@@ -320,6 +320,8 @@ function IdentityPage({
                   source={{ uri: profile.photoUri }}
                   style={styles.identityPhoto}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  priority="high"
                 />
               ) : (
                 <>

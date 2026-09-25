@@ -1223,7 +1223,9 @@ export default function HomeScreen() {
                   !referralCode.trim() ||
                   validatingReferral
                 }
-                label={validatingReferral ? "Checking..." : "Enter Kroo"}
+                label={
+                  validatingReferral ? "Verifying code..." : "Enter Kroo"
+                }
               />
             </View>
           </ImageBackground>

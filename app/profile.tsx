@@ -214,6 +214,8 @@ export default function ProfileScreen() {
                 source={{ uri: profile.photoUri }}
                 style={styles.avatarImage}
                 contentFit="cover"
+                cachePolicy="memory-disk"
+                priority="high"
               />
             ) : (
               <Ionicons name="person" size={34} color={BrandColors.white} />

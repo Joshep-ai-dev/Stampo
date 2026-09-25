@@ -95,6 +95,11 @@ export default function KrooIqScreen() {
         loaded = await api.krooIqToday();
       }
       setQuiz(loaded);
+      const initialImages = [
+        loaded.destination.heroImage,
+        ...loaded.questions.slice(0, 2).map((item) => item.imageUrl),
+      ].filter(Boolean);
+      if (initialImages.length) void Image.prefetch(initialImages, "memory-disk");
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
       setStage(loaded.attempt.completed ? "result" : "briefing");
@@ -309,6 +314,9 @@ function Destination({
               source={{ uri: destination.heroImage }}
               style={s.destinationStamp}
               contentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              transition={120}
             />
           </View>
         ) : null}
@@ -371,6 +379,9 @@ function QuestionBriefing({ question }: { question: Question }) {
           source={{ uri: question.imageUrl }}
           style={s.questionImage}
           contentFit="cover"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={120}
         />
       ) : null}
       <Text style={s.briefingText}>{question.information}</Text>
@@ -411,6 +422,8 @@ function Feedback({
           source={{ uri: imageUrl }}
           style={s.feedbackImage}
           contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={120}
         />
       ) : null}
     </View>

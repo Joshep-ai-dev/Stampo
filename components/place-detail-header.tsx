@@ -37,6 +37,7 @@ export function PlaceDetailHeader({
             source={{ uri: flagUri }}
             style={styles.flagImage}
             contentFit="cover"
+            cachePolicy="memory-disk"
             accessibilityLabel={flagLabel}
           />
         ) : flagEmoji ? (

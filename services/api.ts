@@ -18,11 +18,29 @@ function backendImageUrl(value?: string) {
 
 let authToken: string | null = null;
 let invitationToken: string | null = null;
+const detailCache = new Map<
+  string,
+  { expiresAt: number; value: Promise<unknown> }
+>();
+
+function cachedDetail<T>(key: string, load: () => Promise<T>, ttl = 120_000) {
+  const cached = detailCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value as Promise<T>;
+  }
+  const value = load().catch((error) => {
+    detailCache.delete(key);
+    throw error;
+  });
+  detailCache.set(key, { expiresAt: Date.now() + ttl, value });
+  return value;
+}
 export function setInvitationToken(token: string | null) {
   invitationToken = token;
 }
 
 export function setApiToken(token: string | null) {
+  if (authToken !== token) detailCache.clear();
   authToken = token;
 }
 
@@ -501,6 +519,7 @@ function normalizeCity(item: BackendCity): CityDetail {
     image: backendImageUrl(item.image ?? item.imageUrl),
     imageCredit: item.imageCredit ?? null,
     sights: item.sights?.map(normalizeSight),
+    collections: item.collections?.map(normalizeCollection),
   };
 }
 
@@ -564,7 +583,7 @@ function levelForScore(score: number) {
   return "Wanderer";
 }
 
-async function countryDetail(code: string): Promise<CountryDetailResponse> {
+async function fetchCountryDetail(code: string): Promise<CountryDetailResponse> {
   const normalizedCode = code.trim().toUpperCase();
   const path = `/catalog/countries/${encodeURIComponent(normalizedCode)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
@@ -611,7 +630,12 @@ async function countryDetail(code: string): Promise<CountryDetailResponse> {
   );
 }
 
-async function cityDetail(
+function countryDetail(code: string): Promise<CountryDetailResponse> {
+  const normalizedCode = code.trim().toUpperCase();
+  return fetchCountryDetail(normalizedCode);
+}
+
+async function fetchCityDetail(
   id: string,
   fallback: {
     name?: string;
@@ -670,30 +694,19 @@ async function cityDetail(
     }
   }
 
-  const city = normalizeCity(result);
-  let collections: ManagedCollection[] = [];
-  let sights = city.sights ?? [];
-  try {
-    const country = await countryDetail(city.countryCode ?? city.countryId);
-    const cityName = city.name.trim().toLocaleLowerCase();
-    collections = country.collections.filter((collection) =>
-      collection.places.some(
-        (place) => place.city?.trim().toLocaleLowerCase() === cityName,
-      ),
-    );
-    const countryCitySights = country.sights.filter(
-      (sight) =>
-        String(sight.cityId) === String(city.id) ||
-        sight.city?.trim().toLocaleLowerCase() === cityName,
-    );
-    sights = [...sights, ...countryCitySights].filter(
-      (sight, index, all) =>
-        all.findIndex((item) => item.id === sight.id) === index,
-    );
-  } catch {
-    // City details remain usable when related content is unavailable.
-  }
-  return { ...city, sights, collections };
+  return normalizeCity(result);
+}
+
+function cityDetail(
+  id: string,
+  fallback: {
+    name?: string;
+    country?: string;
+    countryCode?: string;
+    state?: string;
+  } = {},
+): Promise<CityDetail> {
+  return cachedDetail(`city:${id}`, () => fetchCityDetail(id, fallback));
 }
 
 export const api = {
@@ -736,35 +749,23 @@ export const api = {
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
-    request<
-      Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
-        cities: BackendCity[];
-        sights: BackendSight[];
-      }
-    >(
-      `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
-    ).then(async (result) => {
+    cachedDetail(`state:${countryCode.toUpperCase()}:${stateName}`, async () => {
+      const result = await request<
+        Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
+          cities: BackendCity[];
+          sights: BackendSight[];
+          collections: ManagedCollection[];
+        }
+      >(
+        `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
+      );
       const cities = result.cities.map(normalizeCity);
-      let collections: ManagedCollection[] = [];
-      try {
-        const country = await countryDetail(countryCode);
-        const cityNames = new Set(
-          cities.map((city) => city.name.trim().toLocaleLowerCase()),
-        );
-        collections = country.collections.filter((collection) =>
-          collection.places.some((place) =>
-            cityNames.has(place.city?.trim().toLocaleLowerCase() ?? ""),
-          ),
-        );
-      } catch {
-        /* State details remain usable when collections are unavailable. */
-      }
       return {
         ...result,
         imageUrl: backendImageUrl(result.imageUrl),
         cities,
         sights: result.sights.map(normalizeSight),
-        collections,
+        collections: result.collections.map(normalizeCollection),
       };
     }),
   searchCities: (
@@ -889,9 +890,11 @@ export const api = {
     request<ManagedCollection[]>("/collection-kinds").then((items) =>
       items.map(normalizeCollection),
     ),
-  collectionDetail: (id: string) =>
-    request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
-      normalizeCollection,
+  collectionDetail: (id: string, accessKey = "default") =>
+    cachedDetail(`collection:${id}:${accessKey}`, () =>
+      request<ManagedCollection>(
+        `/collections/${encodeURIComponent(id)}`,
+      ).then(normalizeCollection),
     ),
   setCollectionProgress: (collectionId: string, progress: number) =>
     request<CollectionProgress>(

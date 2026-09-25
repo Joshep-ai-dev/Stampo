@@ -96,7 +96,7 @@ export default function CollectionScreen() {
       });
     };
     void api
-      .collectionDetail(id)
+      .collectionDetail(id, subscription.isKrooPlus ? "plus" : "free")
       .then((item) => {
         applyCollection(item);
       })

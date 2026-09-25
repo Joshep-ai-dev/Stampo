@@ -163,6 +163,8 @@ export default function PlusScreen() {
           source={HERO}
           style={[s.hero, { minHeight: Math.max(280, width * 0.64) }]}
           contentFit="cover"
+          cachePolicy="memory-disk"
+          priority="high"
         >
           <LinearGradient
             pointerEvents="none"
@@ -304,6 +306,8 @@ export default function PlusScreen() {
                   source={item.image}
                   style={s.destinationImage}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={120}
                 />
                 <LinearGradient
                   colors={["transparent", "rgba(0, 20, 14, 0.6)"]}
@@ -451,6 +455,9 @@ export default function PlusScreen() {
                   source={selected.image}
                   style={s.sheetImage}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  transition={120}
                 />
                 <Text style={s.sheetTitle}>{selected.name}</Text>
                 <Text style={s.sheetPlace}>{selected.place}</Text>
