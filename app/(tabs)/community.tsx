@@ -296,7 +296,12 @@ function Destination({
       <View style={s.destinationTop}>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>TODAY&apos;S DESTINATION</Text>
-          <Text style={s.destinationTitle}>{destination?.name}</Text>
+          <View style={s.destinationNameRow}>
+            {destination?.flag ? (
+              <Text style={s.destinationFlag}>{destination.flag}</Text>
+            ) : null}
+            <Text style={s.destinationTitle}>{destination?.name}</Text>
+          </View>
           <View style={s.location}>
             {/* <Ionicons name="location" size={17} color={c.ink} /> */}
             <Text style={s.locationText}>
@@ -306,11 +311,13 @@ function Destination({
           </View>
         </View>
         {destination?.imageUrl ? (
-          <Image
-            source={{ uri: destination.imageUrl }}
-            style={s.destinationStamp}
-            contentFit="cover"
-          />
+          <View style={s.destinationStampFrame}>
+            <Image
+              source={{ uri: destination.imageUrl }}
+              style={s.destinationStamp}
+              contentFit="cover"
+            />
+          </View>
         ) : null}
       </View>
       <View style={s.progressRow}>
@@ -535,9 +542,7 @@ function Action({
   onPress: () => void;
   disabled?: boolean;
 }) {
-  return (
-    <PrimaryButton label={label} disabled={disabled} onPress={onPress} />
-  );
+  return <PrimaryButton label={label} disabled={disabled} onPress={onPress} />;
 }
 
 const s = StyleSheet.create({
@@ -620,6 +625,16 @@ const s = StyleSheet.create({
     color: c.ink,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(29),
+    flexShrink: 1,
+  },
+  destinationNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  destinationFlag: {
+    fontSize: responsiveFontSize(24),
+    lineHeight: responsiveFontSize(32),
   },
   location: {
     marginTop: 3,
@@ -632,7 +647,15 @@ const s = StyleSheet.create({
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(13),
   },
-  destinationStamp: { width: 105, height: 72, borderRadius: 8 },
+  destinationStampFrame: {
+    width: 109,
+    height: 76,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: c.ink,
+    borderRadius: 7,
+  },
+  destinationStamp: { width: "100%", height: "100%", borderRadius: 4 },
   progressRow: {
     minHeight: 35,
     flexDirection: "row",
@@ -678,7 +701,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(19),
-    letterSpacing: 1.2,
   },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {

@@ -303,6 +303,8 @@ export type KrooIqQuiz = {
   date: string;
   destination: {
     name: string;
+    countryCode: string | null;
+    flag: string | null;
     region: string;
     content: string;
     imageUrl: string;
