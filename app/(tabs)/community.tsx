@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
+import { stampAssets } from "@/data/stamps";
 import { api, ApiError, KrooIqAnswerResult, KrooIqQuiz } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -35,7 +36,7 @@ type Question = {
   answers: string[];
   imageUrl?: string;
 };
-type Stage = "intro" | "briefing" | "question" | "answer" | "result";
+type Stage = "briefing" | "question" | "answer" | "result";
 type ErrorAction = "retry" | "subscribe" | null;
 
 function PaperBorder({ wide = false }: { wide?: boolean }) {
@@ -66,7 +67,7 @@ export default function KrooIqScreen() {
     (state) => state.dashboard.data?.challengeProgress?.krooIqScore ?? 0,
   );
   const [quiz, setQuiz] = useState<KrooIqQuiz | null>(null);
-  const [stage, setStage] = useState<Stage>("intro");
+  const [stage, setStage] = useState<Stage>("briefing");
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<KrooIqAnswerResult | null>(null);
@@ -78,7 +79,7 @@ export default function KrooIqScreen() {
   const question = questions[index];
   const correct = quiz?.attempt.correctCount ?? 0;
   const score = quiz?.attempt.scoreAfter ?? savedKrooIqScore;
-  const progress = stage === "intro" ? 0 : index + 1;
+  const progress = index + 1;
 
   const load = useCallback(async () => {
     if (!isSignedIn) return;
@@ -98,7 +99,7 @@ export default function KrooIqScreen() {
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
       setStage(
-        loaded.attempt.completed ? "result" : answered ? "briefing" : "intro",
+        loaded.attempt.completed ? "result" : "briefing",
       );
     } catch (cause) {
       const message =
@@ -195,7 +196,6 @@ export default function KrooIqScreen() {
             total={questions.length}
             before={quiz?.attempt.scoreBefore ?? 0}
             score={score}
-            imageUrl={destination?.imageUrl}
             actionLabel={quiz?.isPreview ? "Enter Kroo+" : undefined}
             onPress={
               quiz?.isPreview
@@ -211,10 +211,8 @@ export default function KrooIqScreen() {
               destination={destination}
               total={questions.length}
             />
-            {stage === "intro" ? (
-              <Intro destination={destination} />
-            ) : stage === "briefing" && question ? (
-              <QuestionBriefing index={index} question={question} />
+            {stage === "briefing" && question ? (
+              <QuestionBriefing question={question} />
             ) : stage === "question" && question ? (
               <Quiz
                 index={index}
@@ -226,7 +224,7 @@ export default function KrooIqScreen() {
               <Feedback
                 question={question}
                 result={feedback}
-                imageUrl={question.imageUrl || destination?.imageUrl}
+                imageUrl={question.imageUrl}
               />
             ) : null}
             <View style={{ marginTop: 16 }}></View>
@@ -236,9 +234,7 @@ export default function KrooIqScreen() {
               }
               label="Continue"
               onPress={
-                stage === "intro"
-                  ? () => setStage("briefing")
-                  : stage === "briefing"
+                stage === "briefing"
                     ? () => setStage("question")
                     : stage === "question"
                       ? confirm
@@ -290,6 +286,10 @@ function Destination({
   destination?: KrooIqQuiz["destination"];
   total: number;
 }) {
+  const stamp = destination?.countryCode
+    ? stampAssets[destination.countryCode]
+    : undefined;
+
   return (
     <View style={[s.paper, s.destination]}>
       <PaperBorder wide />
@@ -310,12 +310,12 @@ function Destination({
             </Text>
           </View>
         </View>
-        {destination?.heroImage ? (
+        {stamp ? (
           <View style={s.destinationStampFrame}>
             <Image
-              source={{ uri: destination.heroImage }}
+              source={stamp}
               style={s.destinationStamp}
-              contentFit="cover"
+              contentFit="contain"
             />
           </View>
         ) : null}
@@ -331,22 +331,6 @@ function Destination({
           {progress} / {total}
         </Text>
       </View>
-    </View>
-  );
-}
-function Intro({ destination }: { destination?: KrooIqQuiz["destination"] }) {
-  return (
-    <View style={[s.paper, s.lesson]}>
-      <PaperBorder />
-      <Text style={s.eyebrow}>1. MEET THE COUNTRY</Text>
-      {destination?.imageUrl ? (
-        <Image
-          source={{ uri: destination.imageUrl }}
-          style={s.heroImage}
-          contentFit="cover"
-        />
-      ) : null}
-      <Text style={s.body}>{destination?.content}</Text>
     </View>
   );
 }
@@ -385,17 +369,10 @@ function Quiz({
     </View>
   );
 }
-function QuestionBriefing({
-  index,
-  question,
-}: {
-  index: number;
-  question: Question;
-}) {
+function QuestionBriefing({ question }: { question: Question }) {
   return (
     <View style={[s.paper, s.quiz]}>
       <PaperBorder />
-      <Text style={s.eyebrow}>{index + 1}. BEFORE THE QUESTION</Text>
       {question.imageUrl ? (
         <Image
           source={{ uri: question.imageUrl }}
@@ -451,7 +428,6 @@ function Result({
   total,
   before,
   score,
-  imageUrl,
   actionLabel,
   onPress,
 }: {
@@ -459,7 +435,6 @@ function Result({
   total: number;
   before: number;
   score: number;
-  imageUrl?: string;
   actionLabel?: string;
   onPress?: () => void;
 }) {
@@ -480,13 +455,6 @@ function Result({
           {before.toFixed(2)} → {score.toFixed(2)}
         </Text>
       </View>
-      {imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={s.resultImage}
-          contentFit="cover"
-        />
-      ) : null}
       <Text style={s.great}>Great Explorer!</Text>
       <Text style={s.comeBack}>
         Come back tomorrow{"\n"}to discover somewhere new.
@@ -687,21 +655,6 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(12),
   },
-  lesson: { marginTop: 14, padding: 16 },
-  heroImage: {
-    width: "100%",
-    aspectRatio: 1.5,
-    marginTop: 13,
-    opacity: 0.92,
-    borderRadius: 8,
-  },
-  body: {
-    marginTop: 12,
-    color: c.ink,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(19),
-  },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {
     marginTop: 16,
@@ -713,7 +666,6 @@ const s = StyleSheet.create({
   questionImage: {
     width: "100%",
     aspectRatio: 1.5,
-    marginTop: 16,
     borderRadius: 8,
   },
   briefingText: {
@@ -838,12 +790,6 @@ const s = StyleSheet.create({
     color: c.ink,
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(22),
-  },
-  resultImage: {
-    width: "100%",
-    aspectRatio: 1.5,
-    marginTop: 14,
-    borderRadius: 8,
   },
   great: {
     marginTop: 12,
