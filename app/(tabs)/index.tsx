@@ -44,9 +44,9 @@ import Svg, {
 } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
-import { PrimaryButton } from "@/components/primary-button";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
+import { PrimaryButton } from "@/components/primary-button";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import {
@@ -1158,75 +1158,75 @@ export default function HomeScreen() {
         navigationBarTranslucent
       >
         <View style={styles.welcomeOverlay}>
-            <ImageBackground
-              source={require("@/assets/images/other/welcome.webp")}
-              resizeMode="stretch"
-              style={styles.welcomeSheet}
-            >
-              <View style={styles.welcomeSheetContent}>
-                <Text style={styles.welcomeTitle}>
-                  EXTRAORDINARY{"\n"}JOURNEYS START HERE
-                </Text>
-                <Text style={styles.welcomeCopy}>
-                  Kroo is an invite-only community{"\n"}of travelers who
-                  explore, share{"\n"}and inspire.
-                </Text>
-                <View style={styles.welcomeInputWrap}>
-                  <Ionicons
-                    name="person"
-                    size={16}
-                    color={BrandColors.copperDark}
-                  />
-                  <TextInput
-                    value={welcomeName}
-                    onChangeText={setWelcomeName}
-                    style={styles.welcomeInput}
-                    placeholder="First Name"
-                    placeholderTextColor={BrandColors.muted}
-                    autoCapitalize="words"
-                  />
-                </View>
-                <View style={styles.welcomeInputWrap}>
-                  <Ionicons
-                    name="key-outline"
-                    size={16}
-                    color={BrandColors.copperDark}
-                  />
-                  <TextInput
-                    value={referralCode}
-                    onChangeText={(value) => {
-                      setReferralCode(value);
-                      setReferralError("");
-                    }}
-                    style={styles.welcomeInput}
-                    placeholder="Enter referral code"
-                    placeholderTextColor={BrandColors.muted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    accessibilityLabel="Member referral code"
-                    editable={!validatingReferral}
-                    returnKeyType="go"
-                    onSubmitEditing={() => void saveWelcomeName()}
-                  />
-                </View>
-                {referralError ? (
-                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
-                    {referralError}
-                  </Text>
-                ) : null}
-                <PrimaryButton
-                  style={styles.welcomeButton}
-                  onPress={saveWelcomeName}
-                  accessibilityLabel="Validate referral and continue"
-                  disabled={
-                    !welcomeName.trim() ||
-                    !referralCode.trim() ||
-                    validatingReferral
-                  }
-                  label={validatingReferral ? "Checking..." : "Enter Kroo"}
+          <ImageBackground
+            source={require("@/assets/images/other/welcome.webp")}
+            resizeMode="stretch"
+            style={styles.welcomeSheet}
+          >
+            <View style={styles.welcomeSheetContent}>
+              <Text style={styles.welcomeTitle}>
+                EXTRAORDINARY{"\n"}JOURNEYS START HERE
+              </Text>
+              <Text style={styles.welcomeCopy}>
+                Kroo is an invite-only community{"\n"}of travelers who explore,
+                share{"\n"}and inspire.
+              </Text>
+              <View style={styles.welcomeInputWrap}>
+                <Ionicons
+                  name="person"
+                  size={16}
+                  color={BrandColors.copperDark}
+                />
+                <TextInput
+                  value={welcomeName}
+                  onChangeText={setWelcomeName}
+                  style={styles.welcomeInput}
+                  placeholder="First Name"
+                  placeholderTextColor={BrandColors.muted}
+                  autoCapitalize="words"
                 />
               </View>
-            </ImageBackground>
+              <View style={styles.welcomeInputWrap}>
+                <Ionicons
+                  name="key-outline"
+                  size={16}
+                  color={BrandColors.copperDark}
+                />
+                <TextInput
+                  value={referralCode}
+                  onChangeText={(value) => {
+                    setReferralCode(value);
+                    setReferralError("");
+                  }}
+                  style={styles.welcomeInput}
+                  placeholder="Referral code"
+                  placeholderTextColor={BrandColors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Member referral code"
+                  editable={!validatingReferral}
+                  returnKeyType="go"
+                  onSubmitEditing={() => void saveWelcomeName()}
+                />
+              </View>
+              {referralError ? (
+                <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                  {referralError}
+                </Text>
+              ) : null}
+              <PrimaryButton
+                style={styles.welcomeButton}
+                onPress={saveWelcomeName}
+                accessibilityLabel="Validate referral and continue"
+                disabled={
+                  !welcomeName.trim() ||
+                  !referralCode.trim() ||
+                  validatingReferral
+                }
+                label={validatingReferral ? "Checking..." : "Enter Kroo"}
+              />
+            </View>
+          </ImageBackground>
         </View>
       </Modal>
     </SafeAreaView>
