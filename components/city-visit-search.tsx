@@ -1,6 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -456,13 +457,11 @@ export function CityVisitSearch({
                 />
                 <Text style={styles.counter}>{note.length}/140</Text>
 
-                <TouchableOpacity
+                <PrimaryButton
                   style={styles.saveButton}
                   onPress={() => void saveVisit()}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.saveText}>SAVE VISIT</Text>
-                </TouchableOpacity>
+                  label="Save Visit"
+                />
               </ScrollView>
             )}
             {airportMenuOpen ? (
@@ -756,15 +755,6 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 42,
     borderRadius: 10,
-    backgroundColor: colors.line,
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: 8,
-  },
-  saveText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
-    color: "#fffaf1",
-    letterSpacing: 1.4,
   },
 });

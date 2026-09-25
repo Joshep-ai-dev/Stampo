@@ -1,4 +1,5 @@
 import { Text } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import {
@@ -24,12 +25,11 @@ export default function LegalDocumentScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.missing}>
           <Text style={styles.missingTitle}>Document not found</Text>
-          <TouchableOpacity
+          <PrimaryButton
             style={styles.returnButton}
             onPress={() => router.back()}
-          >
-            <Text style={styles.returnText}>Go back</Text>
-          </TouchableOpacity>
+            label="Go Back"
+          />
         </View>
       </SafeAreaView>
     );
@@ -202,11 +202,8 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   returnButton: {
+    width: undefined,
     marginTop: 20,
     paddingHorizontal: 24,
-    paddingVertical: 13,
-    borderRadius: 10,
-    backgroundColor: BrandColors.copper,
   },
-  returnText: { fontFamily: "Inter_600SemiBold", color: BrandColors.white },
 });

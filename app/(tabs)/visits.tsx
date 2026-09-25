@@ -1,4 +1,5 @@
 import { Text } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -373,15 +374,12 @@ export default function PlusScreen() {
                 onPress={() => setPlan("annual")}
               />
             </View>
-            <TouchableOpacity
-              style={[s.cta, busy && s.disabled]}
+            <PrimaryButton
+              style={s.cta}
               disabled={busy}
               onPress={purchase}
-            >
-              <Text style={s.ctaText}>
-                {busy ? "Please Wait…" : "Get Kroo+"}
-              </Text>
-            </TouchableOpacity>
+              label={busy ? "Please Wait…" : "Get Kroo+"}
+            />
             <Text style={s.terms}>Billed immediately. Cancel anytime.</Text>
             {/* <TouchableOpacity onPress={restore}>
               <Text style={s.restore}>Restore purchases</Text>
@@ -837,25 +835,12 @@ const s = StyleSheet.create({
   cta: {
     minHeight: 48,
     marginHorizontal: 12,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.copper,
   },
-  ctaText: {
-    paddingHorizontal: 12,
-    textAlign: "center",
-    fontFamily: "Roboto_900Black",
-    fontSize: responsiveFontSize(16),
-    letterSpacing: 1.2,
-    color: BrandColors.green,
-  },
-  disabled: { opacity: 0.6 },
   terms: {
     margin: 10,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   assurances: {

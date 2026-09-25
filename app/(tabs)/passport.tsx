@@ -565,10 +565,7 @@ function IdentityPage({
                   accessibilityState={{ disabled: saving, busy: saving }}
                 >
                   {saving ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={BrandColors.white}
-                    />
+                    <ActivityIndicator size="small" color={BrandColors.white} />
                   ) : null}
                   <Text
                     style={[
@@ -1085,7 +1082,7 @@ const styles = StyleSheet.create({
   },
   krooIdLabel: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     letterSpacing: 0.7,
     color: BrandColors.green,
   },
@@ -1105,7 +1102,7 @@ const styles = StyleSheet.create({
   },
   identityCountry: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(19),
+    fontSize: responsiveFontSize(20),
     color: BrandColors.green,
     letterSpacing: 1.2,
   },
@@ -1115,7 +1112,7 @@ const styles = StyleSheet.create({
     top: 4,
     textAlign: "right",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(7),
+    fontSize: responsiveFontSize(10),
     lineHeight: responsiveFontSize(10),
     letterSpacing: 1.6,
     color: BrandColors.green,
@@ -1161,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   passportSectionTitle: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(15),
     letterSpacing: 1.6,
     color: BrandColors.green,
   },
@@ -1246,11 +1243,11 @@ const styles = StyleSheet.create({
   },
   identityFields: { gap: 7 },
   identityField: {
-    paddingTop: 0,
+    paddingTop: 1,
   },
   fieldCaption: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
+    fontSize: responsiveFontSize(11),
     letterSpacing: 0.7,
     color: BrandColors.green,
   },
@@ -1259,7 +1256,7 @@ const styles = StyleSheet.create({
     height: 30,
     padding: 0,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   identityValue: {
@@ -1267,7 +1264,7 @@ const styles = StyleSheet.create({
     height: 30,
     textAlignVertical: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   editPassportButton: {
@@ -1285,14 +1282,14 @@ const styles = StyleSheet.create({
   },
   editPassportText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(9),
+    fontSize: responsiveFontSize(14),
     letterSpacing: 0.7,
     color: BrandColors.green,
   },
   passportSelectText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.ink,
   },
   fieldControl: {
@@ -1379,7 +1376,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(12),
     letterSpacing: 0.8,
   },
   actionButtonTextPrimary: { color: BrandColors.white },
@@ -1397,7 +1394,7 @@ const styles = StyleSheet.create({
   preferenceText: {
     flex: 1,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(14),
     lineHeight: responsiveFontSize(10),
     color: BrandColors.ink,
   },

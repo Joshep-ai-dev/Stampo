@@ -1,6 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import {
   revenueCatErrorMessage,
   useKrooPlusBilling,
@@ -109,15 +110,12 @@ export default function GiftKrooPlusScreen() {
             placeholderTextColor={BrandColors.onDarkMuted}
             textAlignVertical="top"
           />
-          <TouchableOpacity
-            style={[styles.cta, busy && styles.disabled]}
+          <PrimaryButton
+            style={styles.cta}
             disabled={busy}
             onPress={() => void continueToPurchase()}
-          >
-            <Text style={styles.ctaText}>
-              {busy ? "Connecting To Store..." : "Continue To Purchase"}
-            </Text>
-          </TouchableOpacity>
+            label={busy ? "Connecting To Store..." : "Continue To Purchase"}
+          />
 
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />
@@ -230,19 +228,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 48,
     marginTop: 28,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.copper,
-  },
-  disabled: { opacity: 0.65 },
-  ctaText: {
-    paddingHorizontal: 12,
-    textAlign: "center",
-    fontFamily: "Roboto_900Black",
-    fontSize: responsiveFontSize(16),
-    letterSpacing: 1.2,
-    color: BrandColors.green,
   },
   referralNote: {
     width: "100%",

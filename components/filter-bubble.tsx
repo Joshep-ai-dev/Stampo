@@ -1,7 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
-import { StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components/app-text";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -31,7 +31,7 @@ export function FilterBubble({
 const styles = StyleSheet.create({
   bubble: {
     height: 34,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: BrandColors.paleGreen,
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(14),
     color: BrandColors.onDarkMuted,
   },
   selectedText: {

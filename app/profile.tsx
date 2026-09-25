@@ -1,6 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -310,9 +311,7 @@ export default function ProfileScreen() {
                   </Text>
                 )}
               {activeRow && activeRow.id === "name" && (
-                <TouchableOpacity style={styles.saveButton} onPress={saveModal}>
-                  <Text style={styles.saveText}>SAVE</Text>
-                </TouchableOpacity>
+                <PrimaryButton style={styles.saveButton} label="Save" onPress={saveModal} />
               )}
             </ScrollView>
           </View>
@@ -523,16 +522,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     height: 56,
-    borderRadius: 10,
-    backgroundColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: 8,
-  },
-  saveText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(19),
-    letterSpacing: 1,
-    color: "#fffaf1",
   },
 });

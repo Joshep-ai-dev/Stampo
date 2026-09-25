@@ -201,6 +201,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(9),
     color: BrandColors.white,
+    textTransform: "uppercase",
   },
   counts: { marginTop: 10, marginLeft: 47, flexDirection: "row", gap: 14 },
   countItem: { flexDirection: "row", alignItems: "center", gap: 4 },

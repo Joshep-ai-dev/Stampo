@@ -281,7 +281,7 @@ const s = StyleSheet.create({
   },
   subtitle: {
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.onDarkMuted,
   },
   heading: {

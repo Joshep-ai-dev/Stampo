@@ -44,6 +44,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { BrandHeader } from "@/components/brand-header";
+import { PrimaryButton } from "@/components/primary-button";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
 import { TravelStats } from "@/components/travel-stats";
@@ -1213,27 +1214,17 @@ export default function HomeScreen() {
                     {referralError}
                   </Text>
                 ) : null}
-                <TouchableOpacity
-                  style={[
-                    styles.welcomeButton,
-                    (!welcomeName.trim() ||
-                      !referralCode.trim() ||
-                      validatingReferral) &&
-                      styles.welcomeButtonDisabled,
-                  ]}
+                <PrimaryButton
+                  style={styles.welcomeButton}
                   onPress={saveWelcomeName}
-                  accessibilityRole="button"
                   accessibilityLabel="Validate referral and continue"
                   disabled={
                     !welcomeName.trim() ||
                     !referralCode.trim() ||
                     validatingReferral
                   }
-                >
-                  <Text style={styles.welcomeButtonText}>
-                    {validatingReferral ? "Checking..." : "Enter Kroo"}
-                  </Text>
-                </TouchableOpacity>
+                  label={validatingReferral ? "Checking..." : "Enter Kroo"}
+                />
               </View>
             </ImageBackground>
         </View>
@@ -1328,19 +1319,7 @@ const styles = StyleSheet.create({
     minHeight: 38,
     marginTop: 8,
     borderRadius: 12,
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BrandColors.copper,
     marginHorizontal: 30,
-  },
-  welcomeButtonDisabled: { opacity: 0.7 },
-  welcomeButtonText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(18),
-    letterSpacing: 1,
-    color: BrandColors.green,
   },
 
   welcomeSecondaryButton: {
@@ -1710,7 +1689,8 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(14),
     letterSpacing: 1.1,
-    color: BrandColors.green,
+    color: BrandColors.white,
+    textTransform: "uppercase",
   },
   continentCard: {
     marginHorizontal: 10,

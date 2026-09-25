@@ -1,6 +1,7 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import alpha2To3 from "countries-list/minimal/countries.2to3.min.json";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   LayoutChangeEvent,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -235,12 +235,11 @@ export function CityAtlas({
             <Text style={styles.errorText}>
               City atlas needs an internet connection.
             </Text>
-            <TouchableOpacity
+            <PrimaryButton
               style={styles.retry}
               onPress={() => setAttempt((value) => value + 1)}
-            >
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
+              label="Retry"
+            />
           </View>
         )}
         {atlas && canvasWidth > 0 && (
@@ -360,15 +359,9 @@ const styles = StyleSheet.create({
     color: BrandColors.onDarkMuted,
   },
   retry: {
+    width: undefined,
     paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 8,
-    backgroundColor: BrandColors.copper,
-  },
-  retryText: {
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(13),
-    color: BrandColors.white,
+    minHeight: 38,
   },
   legend: {
     paddingTop: 10,

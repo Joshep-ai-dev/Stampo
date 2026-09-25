@@ -1,4 +1,5 @@
 import { Text } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -535,14 +536,7 @@ function Action({
   disabled?: boolean;
 }) {
   return (
-    <TouchableOpacity
-      disabled={disabled}
-      activeOpacity={0.84}
-      style={[s.action, disabled && { opacity: 0.45 }]}
-      onPress={onPress}
-    >
-      <Text style={s.actionText}>{label}</Text>
-    </TouchableOpacity>
+    <PrimaryButton label={label} disabled={disabled} onPress={onPress} />
   );
 }
 
@@ -685,22 +679,6 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(19),
     letterSpacing: 1.2,
-  },
-  action: {
-    width: "100%",
-    minHeight: 48,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: BrandColors.copper,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionText: {
-    color: BrandColors.green,
-    fontFamily: "Roboto_900Black",
-    fontSize: responsiveFontSize(16),
-    letterSpacing: 1.2,
-    textAlign: "center",
   },
   quiz: { marginTop: 14, minHeight: 410, padding: 18 },
   question: {

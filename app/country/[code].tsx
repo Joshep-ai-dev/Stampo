@@ -780,7 +780,8 @@ const s = StyleSheet.create({
   visitSaveText: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(13),
-    color: BrandColors.greenDeep,
+    color: BrandColors.white,
+    textTransform: "uppercase",
   },
   empty: {
     fontFamily: "Lora_400Regular_Italic",

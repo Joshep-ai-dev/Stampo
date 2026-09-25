@@ -1,16 +1,11 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { useKrooPlusBilling } from "@/components/subscription-provider";
 import { BrandColors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Text } from "@/components/app-text";
+import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type UpgradeBannerProps = {
   active: boolean;
@@ -83,16 +78,13 @@ export function UpgradeBanner({
 const s = StyleSheet.create({
   wrapper: { marginVertical: 12 },
   upgradeCard: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    minHeight: 48,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
-    backgroundColor: BrandColors.copperDark,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BrandColors.copper,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: BrandColors.copper,
+    alignItems: "center",
   },
   upgradeCopy: {
     flex: 1,
@@ -103,7 +95,7 @@ const s = StyleSheet.create({
   upgradeText: {
     flex: 1,
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.white,
   },
   supportingText: {
@@ -111,7 +103,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(11),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
 });

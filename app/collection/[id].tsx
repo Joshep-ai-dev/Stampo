@@ -1,15 +1,10 @@
 import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Text } from "@/components/app-text";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DetailModal } from "@/components/detail-modal";
@@ -130,7 +125,10 @@ export default function CollectionScreen() {
   }
 
   const toggleCompleted = async (place: CollectionPlace) => {
-    if (!subscription.isKrooPlus && (collection.access === "pro" || place.access === "pro" || place.isPremium)) {
+    if (
+      !subscription.isKrooPlus &&
+      (collection.access === "pro" || place.access === "pro" || place.isPremium)
+    ) {
       router.push("/kroo-plus");
       return;
     }
@@ -150,19 +148,21 @@ export default function CollectionScreen() {
         .then((visits) => dispatch(visitsHydrated(visits)))
         .catch(() => undefined);
       void dispatch(fetchHomeDashboard());
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 403) {
-          router.push("/kroo-plus");
-          return;
-        }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 403) {
+        router.push("/kroo-plus");
+        return;
       }
+    }
   };
 
   const completedCount = collection.places.filter((place) =>
     isCollectionPlaceCompleted(collection.id, place, completedSightIds, visits),
   ).length;
   const isPremiumPlace = (place: CollectionPlace) =>
-    collection.access === "pro" || place.access === "pro" || place.isPremium === true;
+    collection.access === "pro" ||
+    place.access === "pro" ||
+    place.isPremium === true;
   const freePlaces = subscription.isKrooPlus
     ? collection.places
     : collection.places.filter((place) => !isPremiumPlace(place));
@@ -408,7 +408,7 @@ const s = StyleSheet.create({
   placeCopy: { flex: 1, minWidth: 0 },
   placeName: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(14),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.onDark,
   },
   upgradeBannerWrapper: {
@@ -423,7 +423,7 @@ const s = StyleSheet.create({
   placeLocation: {
     flexShrink: 1,
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(10),
+    fontSize: responsiveFontSize(13),
     color: BrandColors.onDarkMuted,
   },
   locationRow: {
@@ -440,7 +440,7 @@ const s = StyleSheet.create({
   },
   progressText: {
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.copper,
   },
   stampProgress: { paddingHorizontal: 16, gap: 10 },

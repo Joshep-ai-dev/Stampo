@@ -243,7 +243,8 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto_900Black",
     fontSize: responsiveFontSize(16),
     letterSpacing: 1.4,
-    color: BrandColors.green,
+    color: BrandColors.white,
+    textTransform: "uppercase",
   },
   terms: {
     marginTop: 14,

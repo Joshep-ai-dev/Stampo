@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/app-text";
+import { PrimaryButton } from "@/components/primary-button";
 
 export type KrooPlusPlan = "monthly" | "annual";
 
@@ -82,15 +83,12 @@ export function KrooPlusOffer({
           <Price value={annualPrice} suffix="/yr" />
         </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[s.cta, busy && s.disabled]}
+      <PrimaryButton
+        style={s.cta}
         disabled={busy}
         onPress={() => onPurchase(plan)}
-      >
-        <Text style={s.ctaText}>
-          {busy ? "CONNECTING TO REVENUECAT..." : "JOIN KROO+"}
-        </Text>
-      </TouchableOpacity>
+        label={busy ? "Connecting To RevenueCat..." : "Join Kroo+"}
+      />
       <Text style={s.terms}>
         {plan === "annual" ? `${annualPrice}/year` : `${monthlyPrice}/month`}.
         Cancel anytime.
@@ -202,17 +200,6 @@ const s = StyleSheet.create({
   cta: {
     minHeight: 58,
     marginTop: 20,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.copper,
-  },
-  disabled: { opacity: 0.6 },
-  ctaText: {
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(15),
-    letterSpacing: 1,
-    color: colors.deep,
   },
   terms: {
     marginTop: 11,

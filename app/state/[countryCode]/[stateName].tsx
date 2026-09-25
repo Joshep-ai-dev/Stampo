@@ -513,7 +513,8 @@ const styles = StyleSheet.create({
   saveText: {
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(14),
-    color: BrandColors.green,
+    color: BrandColors.white,
+    textTransform: "uppercase",
   },
   heroWrap: {
     margin: 12,
