@@ -310,10 +310,10 @@ function Destination({
             </Text>
           </View>
         </View>
-        {destination?.imageUrl ? (
+        {destination?.heroImage ? (
           <View style={s.destinationStampFrame}>
             <Image
-              source={{ uri: destination.imageUrl }}
+              source={{ uri: destination.heroImage }}
               style={s.destinationStamp}
               contentFit="cover"
             />
@@ -633,7 +633,8 @@ const s = StyleSheet.create({
     gap: 7,
   },
   destinationFlag: {
-    fontSize: responsiveFontSize(24),
+    marginTop: 4,
+    fontSize: responsiveFontSize(28),
     lineHeight: responsiveFontSize(32),
   },
   location: {
@@ -648,10 +649,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(13),
   },
   destinationStampFrame: {
-    width: 109,
-    height: 76,
+    width: 120,
+    height: 80,
     padding: 3,
-    borderWidth: 1,
     borderColor: c.ink,
     borderRadius: 7,
   },
