@@ -35,6 +35,7 @@ type Question = {
   imageUrl?: string;
 };
 type Stage = "intro" | "briefing" | "question" | "answer" | "result";
+type ErrorAction = "retry" | "subscribe" | null;
 
 function PaperBorder({ wide = false }: { wide?: boolean }) {
   return (
@@ -71,7 +72,7 @@ export default function KrooIqScreen() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [canReplay, setCanReplay] = useState(false);
+  const [errorAction, setErrorAction] = useState<ErrorAction>(null);
   const questions = quiz?.questions ?? [];
   const question = questions[index];
   const correct = quiz?.attempt.correctCount ?? 0;
@@ -82,7 +83,7 @@ export default function KrooIqScreen() {
     if (!isSignedIn) return;
     setLoading(true);
     setError("");
-    setCanReplay(false);
+    setErrorAction(null);
     try {
       const loaded = await api.krooIqToday();
       setQuiz(loaded);
@@ -98,42 +99,17 @@ export default function KrooIqScreen() {
           : "Could not load today's Kroo IQ quiz.";
       setQuiz(null);
       setError(message);
-      setCanReplay(
-        message.includes("completed all available") ||
-          message.includes("completed the free preview"),
+      setErrorAction(
+        message.includes("completed the free preview")
+          ? "subscribe"
+          : message.includes("completed all available")
+            ? null
+            : "retry",
       );
     } finally {
       setLoading(false);
     }
   }, [isSignedIn]);
-
-  const replay = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const loaded = await api.replayKrooIq();
-      setQuiz(loaded);
-      setIndex(0);
-      setSelected(null);
-      setFeedback(null);
-      setCanReplay(false);
-      setStage("intro");
-      void dispatch(fetchHomeDashboard());
-    } catch (cause) {
-      const message =
-        cause instanceof Error
-          ? cause.message
-          : "Could not replay the last Kroo IQ lesson.";
-      setCanReplay(false);
-      setError(
-        message.includes("no completed Kroo IQ lesson")
-          ? "Today's Kroo IQ lesson isn't available yet. Please try again soon."
-          : message,
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -190,8 +166,20 @@ export default function KrooIqScreen() {
         ) : error && !quiz ? (
           <Message
             text={error}
-            actionLabel={canReplay ? "Replay Last Lesson" : "Try Again"}
-            onRetry={canReplay ? replay : load}
+            actionLabel={
+              errorAction === "subscribe"
+                ? "Enter Kroo+"
+                : errorAction === "retry"
+                  ? "Try Again"
+                  : undefined
+            }
+            onRetry={
+              errorAction === "subscribe"
+                ? () => router.navigate("/(tabs)/visits" as never)
+                : errorAction === "retry"
+                  ? load
+                  : undefined
+            }
           />
         ) : stage === "result" ? (
           <Result
@@ -200,11 +188,11 @@ export default function KrooIqScreen() {
             before={quiz?.attempt.scoreBefore ?? 0}
             score={score}
             imageUrl={destination?.imageUrl}
-            actionLabel={quiz?.isPreview ? "Enter Kroo+" : "Next Destination"}
+            actionLabel={quiz?.isPreview ? "Enter Kroo+" : undefined}
             onPress={
               quiz?.isPreview
                 ? () => router.navigate("/(tabs)/visits" as never)
-                : load
+                : undefined
             }
           />
         ) : (
@@ -464,8 +452,8 @@ function Result({
   before: number;
   score: number;
   imageUrl?: string;
-  actionLabel: string;
-  onPress: () => void;
+  actionLabel?: string;
+  onPress?: () => void;
 }) {
   return (
     <View style={[s.paper, s.result]}>
@@ -495,7 +483,9 @@ function Result({
       <Text style={s.comeBack}>
         Come back tomorrow{"\n"}to discover somewhere new.
       </Text>
-      <Action label={actionLabel} arrow onPress={onPress} />
+      {actionLabel && onPress ? (
+        <Action label={actionLabel} onPress={onPress} />
+      ) : null}
     </View>
   );
 }
@@ -517,19 +507,21 @@ function Locked({ onPress }: { onPress: () => void }) {
 }
 function Message({
   text,
-  actionLabel = "Try Again",
+  actionLabel,
   onRetry,
 }: {
   text: string;
   actionLabel?: string;
-  onRetry: () => void;
+  onRetry?: () => void;
 }) {
   return (
     <View style={[s.paper, s.messageCard]}>
       <PaperBorder />
       <Ionicons name="cloud-offline-outline" size={36} color={c.copperDark} />
       <Text style={s.messageText}>{text}</Text>
-      <Action label={actionLabel} onPress={onRetry} />
+      {actionLabel && onRetry ? (
+        <Action label={actionLabel} onPress={onRetry} />
+      ) : null}
     </View>
   );
 }
