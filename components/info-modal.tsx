@@ -3,7 +3,7 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -105,11 +105,16 @@ const styles = StyleSheet.create({
     borderColor: BrandColors.copper,
     borderRadius: 24,
     backgroundColor: BrandColors.greenPanel,
-    shadowColor: "#000",
-    shadowOpacity: 0.38,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    ...Platform.select({
+      web: { boxShadow: "0 10px 20px rgba(0, 0, 0, 0.38)" },
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.38,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 12,
+      },
+    }),
   },
   close: {
     position: "absolute",

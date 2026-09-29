@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -581,11 +582,16 @@ const s = StyleSheet.create({
     position: "relative",
     backgroundColor: "transparent",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    ...Platform.select({
+      web: { boxShadow: "0 3px 5px rgba(0, 0, 0, 0.2)" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 3,
+      },
+    }),
   },
   destination: { marginTop: 4, paddingHorizontal: 15, paddingTop: 10 },
   destinationTop: { minHeight: 80, flexDirection: "row", alignItems: "center" },

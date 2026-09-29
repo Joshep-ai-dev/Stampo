@@ -6,6 +6,7 @@ import { BlurView } from "expo-blur";
 import type { ReactNode } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -110,11 +111,16 @@ const s = StyleSheet.create({
     borderColor: BrandColors.copper,
     alignItems: "center",
     backgroundColor: BrandColors.greenPanel,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    ...Platform.select({
+      web: { boxShadow: "0 10px 20px rgba(0, 0, 0, 0.35)" },
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 12,
+      },
+    }),
   },
   content: {
     width: "100%",
