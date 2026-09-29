@@ -189,10 +189,6 @@ export default function CityScreen() {
               />
             </View>
 
-            {city.description ? (
-              <Text style={s.description}>{city.description}</Text>
-            ) : null}
-
             <TopSightsSection
               sights={sights}
               completedSightIds={completedSightIds}
@@ -329,13 +325,6 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BrandColors.greenDeep,
-  },
-  description: {
-    marginTop: 20,
-    fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(14),
-    lineHeight: 21,
-    color: BrandColors.onDarkMuted,
   },
   sectionTitle: {
     marginTop: 23,
