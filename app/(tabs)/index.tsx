@@ -794,11 +794,6 @@ function WorldMap({
                 <Text style={styles.sheetCountryButtonText}>
                   VIEW FULL COUNTRY PAGE
                 </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={21}
-                  color={BrandColors.green}
-                />
               </TouchableOpacity>
             </View>
           ) : null}
@@ -1223,9 +1218,7 @@ export default function HomeScreen() {
                   !referralCode.trim() ||
                   validatingReferral
                 }
-                label={
-                  validatingReferral ? "Verifying code..." : "Enter Kroo"
-                }
+                label={validatingReferral ? "Verifying code..." : "Enter Kroo"}
               />
             </View>
           </ImageBackground>
