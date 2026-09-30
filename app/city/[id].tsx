@@ -273,7 +273,6 @@ export default function CityScreen() {
             id: city.id,
             name: city.name,
             image: city.image,
-            description: city.description,
             regionName,
             visits: cityVisits,
           }}

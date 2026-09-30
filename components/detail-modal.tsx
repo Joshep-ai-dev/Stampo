@@ -30,7 +30,7 @@ export function DetailModal({
   visible: boolean;
   title: string;
   location?: string;
-  description: string;
+  description?: string;
   image: ReactNode;
   children?: ReactNode;
   locked?: boolean;
@@ -71,7 +71,7 @@ export function DetailModal({
               {image}
               <Text style={s.title}>{title}</Text>
               {location ? <Text style={s.location}>{location}</Text> : null}
-              <Text style={s.description}>{description}</Text>
+              {description ? <Text style={s.description}>{description}</Text> : null}
               {children}
               {locked ? (
                 <BlurView

@@ -27,7 +27,6 @@ export type CityVisitDetail = {
   id: string;
   name: string;
   image?: string;
-  description?: string;
   regionName?: string;
   visits: Visit[];
 };
@@ -175,7 +174,6 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
       visible
       title={city.name}
       location={[city.regionName, countryName].filter(Boolean).join(", ")}
-      description={city.description || `A city you visited in ${countryName}.`}
       image={city.image ? (
         <ProgressivePlaceImage uri={city.image} style={s.modalImage} contentFit="cover" />
       ) : (
