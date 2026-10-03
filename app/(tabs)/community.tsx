@@ -56,7 +56,7 @@ function PaperBorder({ wide = false }: { wide?: boolean }) {
   );
 }
 
-export default function KrooIqScreen() {
+export default function CommunityScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { status: subscriptionStatus } = useAppSelector(
@@ -174,7 +174,7 @@ export default function KrooIqScreen() {
         {subscriptionStatus === "loading" || loading ? (
           <ActivityIndicator style={s.loader} color={BrandColors.copper} />
         ) : !isSignedIn ? (
-          <Locked onPress={() => router.navigate("/(tabs)/visits" as never)} />
+          <Locked onPress={() => router.navigate("/(tabs)/kroo_plus" as never)} />
         ) : error && !quiz ? (
           <Message
             text={error}
@@ -187,7 +187,7 @@ export default function KrooIqScreen() {
             }
             onRetry={
               errorAction === "subscribe"
-                ? () => router.navigate("/(tabs)/visits" as never)
+                ? () => router.navigate("/(tabs)/kroo_plus" as never)
                 : errorAction === "retry"
                   ? load
                   : undefined
@@ -202,7 +202,7 @@ export default function KrooIqScreen() {
             actionLabel={quiz?.isPreview ? "Enter Kroo+" : undefined}
             onPress={
               quiz?.isPreview
-                ? () => router.navigate("/(tabs)/visits" as never)
+                ? () => router.navigate("/(tabs)/kroo_plus" as never)
                 : undefined
             }
           />

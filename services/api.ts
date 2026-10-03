@@ -142,6 +142,10 @@ export type HomeDashboard = {
     referralTarget: number;
     referralsQualified: boolean;
     qualified: boolean;
+    startedAt?: string | null;
+    deadlineAt?: string | null;
+    expired?: boolean;
+    membershipActive?: boolean;
   };
   updatedAt: string;
 };

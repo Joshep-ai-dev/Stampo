@@ -72,7 +72,7 @@ const destinations = [
 ] as const;
 type Destination = (typeof destinations)[number];
 
-export default function PlusScreen() {
+export default function KrooPlusScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -106,10 +106,17 @@ export default function PlusScreen() {
   const krooScore = challenge?.krooScore ?? localKrooScore;
   const krooIq = challenge?.krooIqScore ?? 0;
   const referrals = challenge?.referralCount ?? 0;
+  const deadlineLabel = challenge?.deadlineAt
+    ? new Date(challenge.deadlineAt).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
   const completedSteps = [
-    krooScore >= (challenge?.krooScoreTarget ?? 5),
-    krooIq >= (challenge?.krooIqTarget ?? 80),
-    referrals >= (challenge?.referralTarget ?? 5),
+    krooScore >= 5,
+    krooIq >= 85,
+    referrals >= 5,
   ].filter(Boolean).length;
 
   if (countryCode)
@@ -161,7 +168,7 @@ export default function PlusScreen() {
       >
         <ImageBackground
           source={HERO}
-          style={[s.hero, { minHeight: Math.max(280, width * 0.64) }]}
+          style={[s.hero, { minHeight: Math.max(280, width * 0.585) }]}
           contentFit="cover"
           cachePolicy="memory-disk"
           priority="high"
@@ -177,27 +184,21 @@ export default function PlusScreen() {
             locations={[0, 0.3, 0.68, 1]}
             style={s.heroGradient}
           />
-          {!isPlus && (
-            <>
-              <Text style={s.heroTitle}>Join Kroo+</Text>
-              <Text style={[s.heroTitle, { color: BrandColors.onDarkMuted }]}>
-                Win Your Dream Vacation.
-              </Text>
-              <Text style={s.heroSubtitle}>
-                Complete the 3 steps below and your next vacation is on us.
-              </Text>
-            </>
-          )}
-          {isPlus && (
-            <>
-              <Text style={s.heroTitle}>
-                Your Dream Vacation{`\n`}Challenge
-              </Text>
-              <Text style={s.heroSubtitle}>
-                Keep building your score to qualify for your chosen escape.
-              </Text>
-            </>
-          )}
+          <View style={s.heroMark} accessible={false}>
+            <Image
+              source={require("@/assets/images/kroo-logo.png")}
+              style={s.heroMarkImage}
+              contentFit="contain"
+            />
+          </View>
+          <Text style={s.heroTitle}>
+            {isPlus ? "Your Kroo+ Challenge" : "Join Kroo+"}
+          </Text>
+          <Text style={s.heroPrize}>Win $1,000</Text>
+          <Text style={s.heroVacation}>for Your Dream Vacation</Text>
+          <Text style={s.heroSubtitle}>
+            Complete 3 simple steps within 12 months to qualify.
+          </Text>
         </ImageBackground>
 
         <View style={s.steps}>
@@ -212,14 +213,14 @@ export default function PlusScreen() {
             {
               n: "2",
               icon: "bulb",
-              title: "Achieve a Kroo IQ Score of 80+",
+              title: "Achieve a Kroo IQ Score of 85+",
               copy: "Show off your\ntravel knowledge.",
               action: () => router.navigate("/(tabs)/community" as never),
             },
             {
               n: "3",
               icon: "people",
-              title: "Refer 5 others to join Kroo+",
+              title: "Refer 5 people to join Kroo",
               copy: "Share the adventure\nwith family and friends.",
               action: () => {},
             },
@@ -269,8 +270,8 @@ export default function PlusScreen() {
             <View style={s.vr} />
             <Progress
               label="Kroo IQ"
-              value={`${krooIq} / 80`}
-              amount={krooIq / 80}
+              value={`${krooIq} / 85`}
+              amount={krooIq / 85}
             />
             <View style={s.vr} />
             <Progress
@@ -281,10 +282,24 @@ export default function PlusScreen() {
             />
           </View>
           <Text style={s.progressNote}>
-            {completedSteps === 3
+            {challenge?.qualified
               ? "You qualify for the Dream Vacation Challenge!"
-              : `${3 - completedSteps} ${3 - completedSteps === 1 ? "step" : "steps"} away from qualifying!`}
+              : challenge?.expired
+                ? "Your 12-month challenge period has ended."
+                : completedSteps === 3
+                  ? "All 3 targets reached! Qualification is subject to the Official Rules."
+                  : `${3 - completedSteps} ${3 - completedSteps === 1 ? "step" : "steps"} away from qualifying!`}
           </Text>
+          <Text style={s.challengeDeadline}>
+            Complete all 3 requirements within 12 months of joining Kroo+.
+            {deadlineLabel ? ` Your deadline: ${deadlineLabel}.` : ""}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/legal/vacation" as never)}
+            accessibilityRole="link"
+          >
+            <Text style={[s.challengeDeadline, s.underline]}>Official Rules</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={s.vacations}>
@@ -547,11 +562,52 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 26 },
   hero: {
-    paddingTop: 6,
-    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingHorizontal: 12,
     paddingBottom: 22,
   },
+  heroMark: {
+    alignSelf: "center",
+    width: 56,
+    height: 31,
+    overflow: "hidden",
+  },
+  heroMarkImage: {
+    position: "absolute",
+    width: 179,
+    height: 67,
+    left: -11,
+    top: -18,
+  },
   heroGradient: { ...StyleSheet.absoluteFillObject },
+  heroPrize: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(48),
+    lineHeight: responsiveFontSize(55),
+    color: BrandColors.copper,
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 12,
+  },
+  heroVacation: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(26),
+    lineHeight: responsiveFontSize(33),
+    color: BrandColors.onDark,
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 12,
+  },
+  challengeDeadline: {
+    marginTop: 8,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    lineHeight: responsiveFontSize(18),
+    color: BrandColors.onDark,
+  },
   heroTitle: {
     marginTop: 2,
     textAlign: "center",
