@@ -113,11 +113,9 @@ export default function KrooPlusScreen() {
         day: "numeric",
       })
     : null;
-  const completedSteps = [
-    krooScore >= 5,
-    krooIq >= 85,
-    referrals >= 5,
-  ].filter(Boolean).length;
+  const completedSteps = [krooScore >= 5, krooIq >= 85, referrals >= 5].filter(
+    Boolean,
+  ).length;
 
   if (countryCode)
     return (
@@ -281,25 +279,10 @@ export default function KrooPlusScreen() {
               dots
             />
           </View>
-          <Text style={s.progressNote}>
-            {challenge?.qualified
-              ? "You qualify for the Dream Vacation Challenge!"
-              : challenge?.expired
-                ? "Your 12-month challenge period has ended."
-                : completedSteps === 3
-                  ? "All 3 targets reached! Qualification is subject to the Official Rules."
-                  : `${3 - completedSteps} ${3 - completedSteps === 1 ? "step" : "steps"} away from qualifying!`}
-          </Text>
           <Text style={s.challengeDeadline}>
             Complete all 3 requirements within 12 months of joining Kroo+.
             {deadlineLabel ? ` Your deadline: ${deadlineLabel}.` : ""}
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/legal/vacation" as never)}
-            accessibilityRole="link"
-          >
-            <Text style={[s.challengeDeadline, s.underline]}>Official Rules</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={s.vacations}>

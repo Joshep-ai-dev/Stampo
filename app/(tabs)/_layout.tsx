@@ -95,7 +95,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Community",
+          title: "Kroo IQ",
           tabBarActiveTintColor: BrandColors.white,
           tabBarInactiveTintColor: BrandColors.copper,
           tabBarIcon: ({ color, focused }) => (
