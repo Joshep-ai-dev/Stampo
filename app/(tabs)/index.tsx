@@ -1155,16 +1155,21 @@ export default function HomeScreen() {
         <View style={styles.welcomeOverlay}>
           <ImageBackground
             source={require("@/assets/images/other/welcome.webp")}
-            resizeMode="stretch"
+            resizeMode="cover"
             style={styles.welcomeSheet}
           >
-            <View style={styles.welcomeSheetContent}>
-              <Text style={styles.welcomeTitle}>
-                EXTRAORDINARY{"\n"}JOURNEYS START HERE
-              </Text>
+            <ScrollView
+              style={styles.welcomeSheetContent}
+              contentContainerStyle={styles.welcomeTextContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.welcomeTitle}>Welcome to</Text>
+              <Text style={styles.welcomeWordmark}>Kroo</Text>
+              <Text style={styles.welcomeTagline}>Collect the world.</Text>
               <Text style={styles.welcomeCopy}>
-                Kroo is an invite-only community{"\n"}of travelers who explore,
-                share{"\n"}and inspire.
+                Track your travels, discover new places{"\n"}
+                and collect a lifetime of memories.
               </Text>
               <View style={styles.welcomeInputWrap}>
                 <Ionicons
@@ -1220,7 +1225,7 @@ export default function HomeScreen() {
                 }
                 label={validatingReferral ? "Verifying code..." : "Enter Kroo"}
               />
-            </View>
+            </ScrollView>
           </ImageBackground>
         </View>
       </Modal>
@@ -1755,12 +1760,13 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   welcomeSheetContent: {
-    position: "relative",
+    position: "absolute",
     width: "100%",
-    height: "100%",
-    top: "31.5%",
-    borderRadius: 10,
-    overflow: "hidden",
+    bottom: 20,
+  },
+  welcomeTextContent: {
+    paddingTop: 8,
+    paddingBottom: 36,
   },
   welcomeBody: {
     marginTop: 4,
@@ -1776,14 +1782,29 @@ const styles = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     color: BrandColors.white,
     fontSize: responsiveFontSize(28),
-    letterSpacing: 1.2,
+    lineHeight: responsiveFontSize(34),
+  },
+  welcomeWordmark: {
+    textAlign: "center",
+    fontFamily: "Lora_700Bold",
+    color: BrandColors.copper,
+    fontSize: responsiveFontSize(64),
+    lineHeight: responsiveFontSize(68),
+  },
+  welcomeTagline: {
+    textAlign: "center",
+    fontFamily: "Lora_500Medium",
+    color: BrandColors.copper,
+    fontSize: responsiveFontSize(22),
+    lineHeight: responsiveFontSize(24),
   },
   welcomeCopy: {
-    marginTop: 4,
+    marginTop: 10,
+    marginHorizontal: 12,
     textAlign: "center",
     color: BrandColors.white,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(16),
-    lineHeight: responsiveFontSize(21),
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(18),
   },
 });
