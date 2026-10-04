@@ -21,10 +21,13 @@ export function PlaceSectionTitle({ children }: { children: string }) {
 function FadingScrollList({
   itemCount,
   children,
+  expanded = false,
 }: {
   itemCount: number;
   children: ReactNode;
+  expanded?: boolean;
 }) {
+  if (expanded) return <View>{children}</View>;
   const scrollable = itemCount > 3;
   return (
     <View style={[s.scrollFrame, scrollable && s.scrollFrameOverflow]}>
@@ -48,6 +51,7 @@ export function TopSightsSection({
   onToggle,
   locationForSight,
   upgrade,
+  expandAll = false,
 }: {
   sights: SightDetail[];
   lockedSights?: SightDetail[];
@@ -56,6 +60,7 @@ export function TopSightsSection({
   onToggle: (id: string, completed: boolean) => void;
   locationForSight?: (sight: SightDetail) => string;
   upgrade?: ReactNode;
+  expandAll?: boolean;
 }) {
   const cityLabel = (sight: SightDetail) =>
     (locationForSight?.(sight) ?? sight.city).trim();
@@ -72,8 +77,8 @@ export function TopSightsSection({
     <>
       <PlaceSectionTitle>Top Sights</PlaceSectionTitle>
       <View style={s.list}>
-        <FadingScrollList itemCount={Math.min(sights.length, 3)}>
-          {sights.slice(0, 3).map((sight) => {
+        <FadingScrollList itemCount={sights.length} expanded={expandAll}>
+          {sights.map((sight) => {
             const checked =
               sight.completed === true || completedSightIds.includes(sight.id);
             const city = cityLabel(sight);

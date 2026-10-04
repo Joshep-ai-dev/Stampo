@@ -22,6 +22,7 @@ import {
 import { ProgressivePlaceImage } from "@/components/progressive-place-image";
 import { StampHeroFrame } from "@/components/stamp-hero-frame";
 import { TravelStats } from "@/components/travel-stats";
+import { UpgradeBanner } from "@/components/upgrade-banner";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import { api, type CityDetail, type SightDetail } from "@/services/api";
@@ -51,6 +52,7 @@ export default function CityScreen() {
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const isKrooPlus = useAppSelector((state) => state.subscription.isKrooPlus);
+  const subscriptionConfigured = useAppSelector((state) => state.subscription.configured);
   const [city, setCity] = useState<CityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -62,7 +64,7 @@ export default function CityScreen() {
     setError("");
     try {
       const detail = await api.cityDetail(id, { name, country, countryCode, state });
-      if (detail.countryCode?.toUpperCase() === "US" && detail.subcountry && !detail.sights?.length) {
+      if (detail.countryCode?.toUpperCase() === "US" && detail.subcountry) {
         try {
           const stateDetail = await api.stateDetail("US", detail.subcountry);
           const cityName = detail.name.trim().toLocaleLowerCase();
@@ -71,11 +73,10 @@ export default function CityScreen() {
               String(sight.cityId) === String(detail.id) ||
               sight.city.trim().toLocaleLowerCase() === cityName,
           );
-          setCity({
-            ...detail,
-            sights: isKrooPlus ? matchingSights : matchingSights.slice(0, 3),
-          });
-          return;
+          if (matchingSights.length > (detail.sights?.length ?? 0)) {
+            setCity({ ...detail, sights: matchingSights });
+            return;
+          }
         } catch {
           // Keep the city guide available if its state guide cannot load.
         }
@@ -88,7 +89,7 @@ export default function CityScreen() {
     } finally {
       setLoading(false);
     }
-  }, [country, countryCode, id, isKrooPlus, name, state]);
+  }, [country, countryCode, id, name, state]);
 
   useFocusEffect(
     useCallback(() => {
@@ -115,6 +116,8 @@ export default function CityScreen() {
     ).values(),
   );
   const sights = city?.sights ?? [];
+  const visibleSights = isKrooPlus ? sights : sights.slice(0, 3);
+  const lockedSights = isKrooPlus ? [] : sights.slice(3);
   const completedCitySightCount = sights.filter(
     (sight) => sight.completed === true || completedSightIds.includes(sight.id),
   ).length;
@@ -210,7 +213,9 @@ export default function CityScreen() {
             </View>
 
             <TopSightsSection
-              sights={sights}
+              sights={visibleSights}
+              lockedSights={lockedSights}
+              expandAll
               completedSightIds={completedSightIds}
               onOpen={setSelectedSight}
               onToggle={(sightId, checked) =>
@@ -224,6 +229,11 @@ export default function CityScreen() {
                     .filter(Boolean)
                     .join(", ");
               }}
+              upgrade={
+                !isKrooPlus && sights.length ? (
+                  <UpgradeBanner active={false} configured={subscriptionConfigured} />
+                ) : null
+              }
             />
 
             <PlaceSectionTitle>Airports Visited</PlaceSectionTitle>
