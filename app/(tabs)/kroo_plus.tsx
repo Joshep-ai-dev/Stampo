@@ -178,7 +178,7 @@ export default function KrooPlusScreen() {
               "rgba(3, 34, 25, 0.04)",
               "rgba(3, 34, 25, 0.22)",
             ]}
-            locations={[0, 0.3, 0.68, 1]}
+            locations={[0, 0.4, 0.55, 1]}
             style={s.heroGradient}
           />
           <View style={s.heroMark} accessible={false}>
@@ -290,7 +290,7 @@ export default function KrooPlusScreen() {
 
         <View style={s.vacations}>
           <View style={s.sectionRow}>
-            <Text style={s.lightHeading}>Choose Your Dream Vacation</Text>
+            <Text style={s.lightHeading}>What's Your Dream Vacation</Text>
           </View>
           <ScrollView
             horizontal
@@ -569,8 +569,8 @@ const s = StyleSheet.create({
   heroPrize: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(48),
-    lineHeight: responsiveFontSize(55),
+    fontSize: responsiveFontSize(40),
+    lineHeight: responsiveFontSize(40),
     color: BrandColors.copper,
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
@@ -580,8 +580,8 @@ const s = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(26),
-    lineHeight: responsiveFontSize(33),
-    color: BrandColors.onDark,
+    lineHeight: responsiveFontSize(26),
+    color: BrandColors.onDarkMuted,
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 12,
@@ -598,8 +598,8 @@ const s = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(26),
-    lineHeight: responsiveFontSize(31),
+    fontSize: responsiveFontSize(22),
+    lineHeight: responsiveFontSize(22),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
@@ -609,6 +609,7 @@ const s = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(16),
+    lineHeight: responsiveFontSize(24),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
