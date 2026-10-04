@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 6,
       "softwareKeyboardLayoutMode": "pan",
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
@@ -33,9 +33,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.krootravel.app",
-      "permissions": [
-        "android.permission.CAMERA"
-      ]
+      "permissions": ["android.permission.CAMERA"]
     },
     "web": {
       "output": "static",
