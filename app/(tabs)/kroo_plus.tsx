@@ -12,11 +12,12 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  type TextStyle,
   useWindowDimensions,
   View,
+  type TextStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
 import {
@@ -84,17 +85,7 @@ function HeroShadowText({
   children: string;
   style: TextStyle;
 }) {
-  return (
-    <View style={s.heroTextLayer}>
-      <Text accessible={false} style={[style, s.heroWideShadow]}>
-        {children}
-      </Text>
-      <Text accessible={false} style={[style, s.heroDenseShadow]}>
-        {children}
-      </Text>
-      <Text style={style}>{children}</Text>
-    </View>
-  );
+  return <Text style={style}>{children}</Text>;
 }
 
 export default function KrooPlusScreen() {
@@ -191,6 +182,22 @@ export default function KrooPlusScreen() {
           cachePolicy="memory-disk"
           priority="high"
         >
+          <Svg style={s.heroTextShadow} pointerEvents="none">
+            <Defs>
+              <RadialGradient id="heroTextShade">
+                <Stop offset="0" stopColor="#000" stopOpacity="0.78" />
+                <Stop offset="0.48" stopColor="#000" stopOpacity="0.58" />
+                <Stop offset="1" stopColor="#000" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+            <Ellipse
+              cx="50%"
+              cy="50%"
+              rx="50%"
+              ry="50%"
+              fill="url(#heroTextShade)"
+            />
+          </Svg>
           <View style={s.heroMark} accessible={false}>
             <Image
               source={require("@/assets/images/kroo-logo.png")}
@@ -579,26 +586,12 @@ const s = StyleSheet.create({
     left: -11,
     top: -18,
   },
-  heroTextLayer: { position: "relative" },
-  heroWideShadow: {
+  heroTextShadow: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    color: "rgba(0,0,0,0.55)",
-    textShadowColor: "#000",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 38,
-  },
-  heroDenseShadow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    color: "rgba(0,0,0,0.55)",
-    textShadowColor: "#000",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
+    height: 220,
   },
   heroPrize: {
     textAlign: "center",
