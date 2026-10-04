@@ -165,7 +165,7 @@ export default function KrooPlusScreen() {
       >
         <ImageBackground
           source={HERO}
-          style={[s.hero, { minHeight: Math.max(280, width * 0.585) }]}
+          style={[s.hero, { minHeight: Math.max(350, width * 0.79) }]}
           contentFit="cover"
           cachePolicy="memory-disk"
           priority="high"
@@ -173,12 +173,11 @@ export default function KrooPlusScreen() {
           <LinearGradient
             pointerEvents="none"
             colors={[
-              "rgba(3, 34, 25, 0.78)",
-              "rgba(3, 34, 25, 0.36)",
-              "rgba(3, 34, 25, 0.04)",
-              "rgba(3, 34, 25, 0.22)",
+              "rgba(3, 34, 25, 0.58)",
+              "rgba(3, 34, 25, 0.28)",
+              "rgba(3, 34, 25, 0)",
             ]}
-            locations={[0, 0.4, 0.55, 1]}
+            locations={[0, 0.55, 1]}
             style={s.heroGradient}
           />
           <View style={s.heroMark} accessible={false}>
@@ -565,13 +564,19 @@ const s = StyleSheet.create({
     left: -11,
     top: -18,
   },
-  heroGradient: { ...StyleSheet.absoluteFillObject },
+  heroGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 190,
+  },
   heroPrize: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(40),
     lineHeight: responsiveFontSize(40),
-    color: BrandColors.copper,
+    color: BrandColors.copperDark,
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 12,
@@ -581,7 +586,7 @@ const s = StyleSheet.create({
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(26),
     lineHeight: responsiveFontSize(26),
-    color: BrandColors.onDarkMuted,
+    color: BrandColors.copper,
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 12,
