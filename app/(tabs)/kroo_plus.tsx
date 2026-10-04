@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -17,7 +18,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
-import { useKrooPlusBilling } from "@/components/subscription-provider";
+import {
+  revenueCatErrorMessage,
+  useKrooPlusBilling,
+} from "@/components/subscription-provider";
 import { responsiveFontSize } from "@/constants/responsive-typography";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
@@ -141,18 +145,16 @@ export default function KrooPlusScreen() {
       </SafeAreaView>
     );
 
-  const purchase = () => {
-    router.push(`/gift-kroo-plus?plan=${plan}`);
-    // setBusy(true);
-    // void billing
-    //   .purchase(plan)
-    //   .catch((error) =>
-    //     Alert.alert(
-    //       "Kroo+",
-    //       error instanceof Error ? error.message : "Please try again.",
-    //     ),
-    //   )
-    //   .finally(() => setBusy(false));
+  const purchase = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await billing.purchase(plan);
+    } catch (error) {
+      Alert.alert("Kroo+", revenueCatErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -380,7 +382,7 @@ export default function KrooPlusScreen() {
             <PrimaryButton
               style={s.cta}
               disabled={busy}
-              onPress={purchase}
+              onPress={() => void purchase()}
               label={busy ? "Please Wait…" : "Get Kroo+"}
             />
             <Text style={s.terms}>Billed immediately. Cancel anytime.</Text>
