@@ -50,6 +50,7 @@ export default function CityScreen() {
     (state) => state.travel.completedSightIds,
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const isKrooPlus = useAppSelector((state) => state.subscription.isKrooPlus);
   const [city, setCity] = useState<CityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,7 +61,26 @@ export default function CityScreen() {
     setLoading(true);
     setError("");
     try {
-      setCity(await api.cityDetail(id, { name, country, countryCode, state }));
+      const detail = await api.cityDetail(id, { name, country, countryCode, state });
+      if (detail.countryCode?.toUpperCase() === "US" && detail.subcountry && !detail.sights?.length) {
+        try {
+          const stateDetail = await api.stateDetail("US", detail.subcountry);
+          const cityName = detail.name.trim().toLocaleLowerCase();
+          const matchingSights = stateDetail.sights.filter(
+            (sight) =>
+              String(sight.cityId) === String(detail.id) ||
+              sight.city.trim().toLocaleLowerCase() === cityName,
+          );
+          setCity({
+            ...detail,
+            sights: isKrooPlus ? matchingSights : matchingSights.slice(0, 3),
+          });
+          return;
+        } catch {
+          // Keep the city guide available if its state guide cannot load.
+        }
+      }
+      setCity(detail);
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Could not load this city.",
@@ -68,7 +88,7 @@ export default function CityScreen() {
     } finally {
       setLoading(false);
     }
-  }, [country, countryCode, id, name, state]);
+  }, [country, countryCode, id, isKrooPlus, name, state]);
 
   useFocusEffect(
     useCallback(() => {
