@@ -12,6 +12,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  type TextStyle,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -75,6 +76,26 @@ const destinations = [
   },
 ] as const;
 type Destination = (typeof destinations)[number];
+
+function HeroShadowText({
+  children,
+  style,
+}: {
+  children: string;
+  style: TextStyle;
+}) {
+  return (
+    <View style={s.heroTextLayer}>
+      <Text accessible={false} style={[style, s.heroWideShadow]}>
+        {children}
+      </Text>
+      <Text accessible={false} style={[style, s.heroDenseShadow]}>
+        {children}
+      </Text>
+      <Text style={style}>{children}</Text>
+    </View>
+  );
+}
 
 export default function KrooPlusScreen() {
   const { width } = useWindowDimensions();
@@ -170,16 +191,6 @@ export default function KrooPlusScreen() {
           cachePolicy="memory-disk"
           priority="high"
         >
-          <LinearGradient
-            pointerEvents="none"
-            colors={[
-              "rgba(3, 34, 25, 0.58)",
-              "rgba(3, 34, 25, 0.28)",
-              "rgba(3, 34, 25, 0)",
-            ]}
-            locations={[0, 0.55, 1]}
-            style={s.heroGradient}
-          />
           <View style={s.heroMark} accessible={false}>
             <Image
               source={require("@/assets/images/kroo-logo.png")}
@@ -187,12 +198,16 @@ export default function KrooPlusScreen() {
               contentFit="contain"
             />
           </View>
-          <Text style={s.heroTitle}>
+          <HeroShadowText style={s.heroTitle}>
             {isPlus ? "Your Kroo+ Challenge" : "Join Kroo+"}
-          </Text>
-          <Text style={s.heroPrize}>Win $1,000</Text>
-          <Text style={s.heroVacation}>for Your Dream Vacation</Text>
-          <Text style={s.heroSubtitle}>Complete these 3 steps to win.</Text>
+          </HeroShadowText>
+          <HeroShadowText style={s.heroPrize}>Win $1,000</HeroShadowText>
+          <HeroShadowText style={s.heroVacation}>
+            for Your Dream Vacation
+          </HeroShadowText>
+          <HeroShadowText style={s.heroSubtitle}>
+            Complete these 3 steps to win.
+          </HeroShadowText>
         </ImageBackground>
 
         <View style={s.steps}>
@@ -564,12 +579,26 @@ const s = StyleSheet.create({
     left: -11,
     top: -18,
   },
-  heroGradient: {
+  heroTextLayer: { position: "relative" },
+  heroWideShadow: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 190,
+    color: "rgba(0,0,0,0.55)",
+    textShadowColor: "#000",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 38,
+  },
+  heroDenseShadow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    color: "rgba(0,0,0,0.55)",
+    textShadowColor: "#000",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
   },
   heroPrize: {
     textAlign: "center",
@@ -577,9 +606,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(40),
     lineHeight: responsiveFontSize(40),
     color: BrandColors.copperDark,
-    textShadowColor: "rgba(0,0,0,0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 12,
+    textShadowColor: "rgba(0,0,0,0.95)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 42,
   },
   heroVacation: {
     textAlign: "center",
@@ -587,9 +616,9 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(26),
     lineHeight: responsiveFontSize(26),
     color: BrandColors.copper,
-    textShadowColor: "rgba(0,0,0,0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 12,
+    textShadowColor: "rgba(0,0,0,0.95)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 42,
   },
   challengeDeadline: {
     marginTop: 8,
@@ -608,7 +637,7 @@ const s = StyleSheet.create({
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 24,
+    textShadowRadius: 42,
   },
   heroSubtitle: {
     textAlign: "center",
@@ -618,7 +647,7 @@ const s = StyleSheet.create({
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 42,
   },
   steps: {
     marginTop: -32,
