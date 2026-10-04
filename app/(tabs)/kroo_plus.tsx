@@ -113,9 +113,6 @@ export default function KrooPlusScreen() {
         day: "numeric",
       })
     : null;
-  const completedSteps = [krooScore >= 5, krooIq >= 85, referrals >= 5].filter(
-    Boolean,
-  ).length;
 
   if (countryCode)
     return (
@@ -194,9 +191,7 @@ export default function KrooPlusScreen() {
           </Text>
           <Text style={s.heroPrize}>Win $1,000</Text>
           <Text style={s.heroVacation}>for Your Dream Vacation</Text>
-          <Text style={s.heroSubtitle}>
-            Complete 3 simple steps within 12 months to qualify.
-          </Text>
+          <Text style={s.heroSubtitle}>Complete these 3 steps to win.</Text>
         </ImageBackground>
 
         <View style={s.steps}>
@@ -279,10 +274,16 @@ export default function KrooPlusScreen() {
               dots
             />
           </View>
-          <Text style={s.challengeDeadline}>
-            Complete all 3 requirements within 12 months of joining Kroo+.
-            {deadlineLabel ? ` Your deadline: ${deadlineLabel}.` : ""}
-          </Text>
+          {!isPlus && (
+            <Text style={s.challengeDeadline}>
+              Complete requirements within 12 months of joining Kroo+.
+            </Text>
+          )}
+          {deadlineLabel && isPlus && (
+            <Text style={s.challengeDeadline}>
+              Your deadline: {deadlineLabel}.
+            </Text>
+          )}
         </View>
 
         <View style={s.vacations}>
@@ -587,9 +588,9 @@ const s = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
     fontFamily: "Lora_400Regular",
-    fontSize: responsiveFontSize(12),
+    fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(18),
-    color: BrandColors.onDark,
+    color: BrandColors.onDarkMuted,
   },
   heroTitle: {
     marginTop: 2,
@@ -605,7 +606,7 @@ const s = StyleSheet.create({
   heroSubtitle: {
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(13),
+    fontSize: responsiveFontSize(16),
     color: BrandColors.white,
     textShadowColor: "rgba(0,0,0,1)",
     textShadowOffset: { width: 0, height: 0 },
