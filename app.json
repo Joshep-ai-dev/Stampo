@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "versionCode": 7,
+      "versionCode": 8,
       "softwareKeyboardLayoutMode": "pan",
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
