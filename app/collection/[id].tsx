@@ -43,7 +43,8 @@ function PlaceImage({
   );
 }
 
-function placeLocation(place: CollectionPlace) {
+function placeLocation(place: CollectionPlace, collectionId: string) {
+  if (collectionId === "usa" || collectionId === "seas") return "";
   if (place.state && place.state !== place.city) {
     return [place.city, place.state, place.country].filter(Boolean).join(", ");
   }
@@ -217,16 +218,16 @@ export default function CollectionScreen() {
                   <Text style={s.placeName} numberOfLines={1}>
                     {place.name}
                   </Text>
-                  <View style={s.locationRow}>
+                  {!!placeLocation(place, collection.id) && <View style={s.locationRow}>
                     <Ionicons
                       name="location"
                       size={13}
                       color={BrandColors.onDarkMuted}
                     />
                     <Text style={s.placeLocation} numberOfLines={1}>
-                      {placeLocation(place)}
+                      {placeLocation(place, collection.id)}
                     </Text>
-                  </View>
+                  </View>}
                 </View>
                 <TouchableOpacity
                   onPress={() => void toggleCompleted(place)}
@@ -277,16 +278,16 @@ export default function CollectionScreen() {
                       >
                         {place.name}
                       </Text>
-                      <View style={s.locationRow}>
+                      {!!placeLocation(place, collection.id) && <View style={s.locationRow}>
                         <Ionicons
                           name="location"
                           size={13}
                           color={BrandColors.onDarkMuted}
                         />
                         <Text style={s.placeLocation} numberOfLines={1}>
-                          {placeLocation(place)}
+                          {placeLocation(place, collection.id)}
                         </Text>
-                      </View>
+                      </View>}
                     </View>
                     <View style={s.lockedCheckIcon}>
                       <Ionicons
@@ -307,7 +308,7 @@ export default function CollectionScreen() {
         <DetailModal
           visible
           title={selectedPlace.name}
-          location={placeLocation(selectedPlace)}
+          location={placeLocation(selectedPlace, collection.id) || undefined}
           description={
             selectedPlace.content ||
             selectedPlace.detail ||
