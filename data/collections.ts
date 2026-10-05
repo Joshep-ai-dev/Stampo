@@ -20,6 +20,5 @@ export type CollectionDefinition = {
   title: string;
   subtitle: string;
   imageUrl?: string;
-  fallbackImageUrl?: string;
   places: CollectionPlace[];
 };

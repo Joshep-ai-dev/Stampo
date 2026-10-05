@@ -93,7 +93,6 @@ export default function CollectionScreen() {
         title: item.title,
         subtitle: item.description || item.detail,
         imageUrl: item.heroImageUrl,
-        fallbackImageUrl: item.explorerImageUrl,
         places: item.places,
       });
     };
@@ -188,7 +187,6 @@ export default function CollectionScreen() {
           <StampHeroFrame>
             <ProgressivePlaceImage
               uri={collection.imageUrl}
-              fallbackUri={collection.fallbackImageUrl}
               style={s.heroImage}
               contentFit={"cover"}
               priority="high"
