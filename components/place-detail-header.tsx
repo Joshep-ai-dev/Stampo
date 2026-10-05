@@ -50,6 +50,7 @@ export function PlaceDetailHeader({
           {title}
         </Text>
       </View>
+      <View style={styles.spacer} />
     </View>
   );
 }
@@ -89,12 +90,12 @@ const styles = StyleSheet.create({
   },
   flagEmoji: { fontSize: responsiveFontSize(23) },
   title: {
-    flex: 1,
+    flexShrink: 1,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(25),
     lineHeight: responsiveFontSize(31),
     color: BrandColors.white,
   },
-  spacer: { width: 42, height: 42 },
+  spacer: { width: 36, height: 36 },
 });
