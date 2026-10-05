@@ -151,7 +151,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  image: { width: "100%", height: "100%" },
+  image: { width: "85%", height: "95%" },
   progressRow: {
     width: "80%",
     marginTop: -1,

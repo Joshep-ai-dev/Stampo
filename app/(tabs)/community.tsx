@@ -100,7 +100,8 @@ export default function CommunityScreen() {
         loaded.destination.heroImage,
         ...loaded.questions.slice(0, 2).map((item) => item.imageUrl),
       ].filter(Boolean);
-      if (initialImages.length) void Image.prefetch(initialImages, "memory-disk");
+      if (initialImages.length)
+        void Image.prefetch(initialImages, "memory-disk");
       const answered = loaded.attempt.answers.length;
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
       setStage(loaded.attempt.completed ? "result" : "briefing");
@@ -174,7 +175,9 @@ export default function CommunityScreen() {
         {subscriptionStatus === "loading" || loading ? (
           <ActivityIndicator style={s.loader} color={BrandColors.copper} />
         ) : !isSignedIn ? (
-          <Locked onPress={() => router.navigate("/(tabs)/kroo_plus" as never)} />
+          <Locked
+            onPress={() => router.navigate("/(tabs)/kroo_plus" as never)}
+          />
         ) : error && !quiz ? (
           <Message
             text={error}
@@ -747,7 +750,7 @@ const s = StyleSheet.create({
   },
   feedbackImage: {
     width: "100%",
-    aspectRatio: 1.4,
+    height: "auto",
     marginTop: 17,
     opacity: 0.92,
     borderRadius: 8,
