@@ -13,7 +13,6 @@ import { BrandColors } from "@/constants/theme";
 type Props = Pick<ImageProps, "contentFit" | "blurRadius" | "priority"> & {
   uri?: string;
   style: StyleProp<ViewStyle>;
-  onError?: () => void;
 };
 
 export function ProgressivePlaceImage({
@@ -22,7 +21,6 @@ export function ProgressivePlaceImage({
   contentFit = "cover",
   blurRadius,
   priority = "normal",
-  onError,
 }: Props) {
   const [loaded, setLoaded] = useState(false);
   const pulse = useRef(new Animated.Value(0.45)).current;
@@ -67,10 +65,7 @@ export function ProgressivePlaceImage({
           priority={priority}
           transition={120}
           onLoad={() => setLoaded(true)}
-          onError={() => {
-            setLoaded(false);
-            onError?.();
-          }}
+          onError={() => setLoaded(false)}
         />
       ) : null}
     </View>

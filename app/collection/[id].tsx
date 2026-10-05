@@ -78,7 +78,6 @@ export default function CollectionScreen() {
   const [selectedPlace, setSelectedPlace] = useState<CollectionPlace | null>(
     null,
   );
-  const [failedHeroUrl, setFailedHeroUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -172,12 +171,6 @@ export default function CollectionScreen() {
     ? []
     : collection.places.filter(isPremiumPlace);
   const premiumPlacePreviews = premiumPlaces.slice(0, 3);
-  const placeHeroUrl = collection.places.find((place) => place.imageUrl)?.imageUrl;
-  const heroFallbackUrl = placeHeroUrl ||
-    (collection.title === "Temples of Thailand"
-      ? "https://krootravel.com/images/countries/ec5a104a-6ee7-4abd-96b6-3c64e592a2c2.webp"
-      : undefined);
-  const showHeroFallback = !collection.imageUrl || failedHeroUrl === collection.imageUrl;
 
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
@@ -192,26 +185,12 @@ export default function CollectionScreen() {
         />
         <View style={s.heroWrap}>
           <StampHeroFrame>
-            {showHeroFallback ? (
-              <View style={s.heroFallback}>
-                <ProgressivePlaceImage
-                  uri={heroFallbackUrl}
-                  style={s.heroImage}
-                  contentFit="cover"
-                  priority="high"
-                />
-                <View style={s.heroFallbackShade} />
-                <Text style={s.heroFallbackTitle}>{collection.title}</Text>
-              </View>
-            ) : (
-              <ProgressivePlaceImage
-                uri={collection.imageUrl}
-                style={s.heroImage}
-                contentFit="cover"
-                priority="high"
-                onError={() => setFailedHeroUrl(collection.imageUrl ?? null)}
-              />
-            )}
+            <ProgressivePlaceImage
+              uri={collection.imageUrl}
+              style={s.heroImage}
+              contentFit="cover"
+              priority="high"
+            />
           </StampHeroFrame>
         </View>
         <View style={s.progressHeader}>
@@ -239,16 +218,18 @@ export default function CollectionScreen() {
                   <Text style={s.placeName} numberOfLines={1}>
                     {place.name}
                   </Text>
-                  {!!placeLocation(place, collection.id) && <View style={s.locationRow}>
-                    <Ionicons
-                      name="location"
-                      size={13}
-                      color={BrandColors.onDarkMuted}
-                    />
-                    <Text style={s.placeLocation} numberOfLines={1}>
-                      {placeLocation(place, collection.id)}
-                    </Text>
-                  </View>}
+                  {!!placeLocation(place, collection.id) && (
+                    <View style={s.locationRow}>
+                      <Ionicons
+                        name="location"
+                        size={13}
+                        color={BrandColors.onDarkMuted}
+                      />
+                      <Text style={s.placeLocation} numberOfLines={1}>
+                        {placeLocation(place, collection.id)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <TouchableOpacity
                   onPress={() => void toggleCompleted(place)}
@@ -299,16 +280,18 @@ export default function CollectionScreen() {
                       >
                         {place.name}
                       </Text>
-                      {!!placeLocation(place, collection.id) && <View style={s.locationRow}>
-                        <Ionicons
-                          name="location"
-                          size={13}
-                          color={BrandColors.onDarkMuted}
-                        />
-                        <Text style={s.placeLocation} numberOfLines={1}>
-                          {placeLocation(place, collection.id)}
-                        </Text>
-                      </View>}
+                      {!!placeLocation(place, collection.id) && (
+                        <View style={s.locationRow}>
+                          <Ionicons
+                            name="location"
+                            size={13}
+                            color={BrandColors.onDarkMuted}
+                          />
+                          <Text style={s.placeLocation} numberOfLines={1}>
+                            {placeLocation(place, collection.id)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <View style={s.lockedCheckIcon}>
                       <Ionicons
@@ -373,28 +356,6 @@ const s = StyleSheet.create({
   heroImage: {
     width: "100%",
     height: "100%",
-  },
-  heroFallback: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: BrandColors.greenPanel,
-  },
-  heroFallbackShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 35, 25, .34)",
-  },
-  heroFallbackTitle: {
-    position: "absolute",
-    top: "10%",
-    left: 24,
-    right: 24,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(23),
-    color: BrandColors.white,
-    textShadowColor: "rgba(0, 20, 15, .8)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
   },
   subtitle: {
     marginTop: 5,
