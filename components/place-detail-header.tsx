@@ -46,8 +46,6 @@ export function PlaceDetailHeader({
         <Text
           style={styles.title}
           numberOfLines={2}
-          adjustsFontSizeToFit
-          minimumFontScale={0.68}
         >
           {title}
         </Text>
@@ -91,7 +89,7 @@ const styles = StyleSheet.create({
   },
   flagEmoji: { fontSize: responsiveFontSize(23) },
   title: {
-    flexShrink: 1,
+    flex: 1,
     textAlign: "center",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(25),
