@@ -74,10 +74,10 @@ export default function ExploreScreen() {
     useCallback(() => {
       let active = true;
       void (async () => {
-        const progressItems = isSignedIn
-          ? await api.listCollections().catch(() => [])
-          : [];
-        const kinds = await api.collectionKinds().catch(() => []);
+        const [progressItems, kinds] = await Promise.all([
+          isSignedIn ? api.listCollections().catch(() => []) : Promise.resolve([]),
+          api.collectionKinds().catch(() => []),
+        ]);
         const progressById = new Map(
           progressItems.map((item) => [item.id, item]),
         );

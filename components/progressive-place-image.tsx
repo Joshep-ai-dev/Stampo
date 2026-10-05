@@ -12,22 +12,27 @@ import { BrandColors } from "@/constants/theme";
 
 type Props = Pick<ImageProps, "contentFit" | "blurRadius" | "priority"> & {
   uri?: string;
+  fallbackUri?: string;
   style: StyleProp<ViewStyle>;
 };
 
 export function ProgressivePlaceImage({
   uri,
+  fallbackUri,
   style,
   contentFit = "cover",
   blurRadius,
   priority = "normal",
 }: Props) {
   const [loaded, setLoaded] = useState(false);
+  const [failedUri, setFailedUri] = useState<string | null>(null);
   const pulse = useRef(new Animated.Value(0.45)).current;
+  const imageUri = uri && failedUri === uri ? fallbackUri : uri;
 
   useEffect(() => {
     setLoaded(false);
-  }, [uri]);
+    setFailedUri(null);
+  }, [uri, fallbackUri]);
 
   useEffect(() => {
     if (loaded) return;
@@ -54,10 +59,10 @@ export function ProgressivePlaceImage({
       {!loaded ? (
         <Animated.View style={[styles.skeleton, { opacity: pulse }]} />
       ) : null}
-      {uri ? (
+      {imageUri ? (
         <Image
-          source={{ uri }}
-          recyclingKey={uri}
+          source={{ uri: imageUri }}
+          recyclingKey={imageUri}
           style={StyleSheet.absoluteFill}
           contentFit={contentFit}
           blurRadius={blurRadius}
@@ -65,7 +70,12 @@ export function ProgressivePlaceImage({
           priority={priority}
           transition={120}
           onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(false)}
+          onError={() => {
+            setLoaded(false);
+            if (imageUri === uri && fallbackUri && fallbackUri !== uri) {
+              setFailedUri(uri);
+            }
+          }}
         />
       ) : null}
     </View>

@@ -891,8 +891,10 @@ export const api = {
       `/collections?status=${encodeURIComponent(status)}`,
     ).then((items) => items.map(normalizeCollectionProgress)),
   collectionKinds: () =>
-    request<ManagedCollection[]>("/collection-kinds").then((items) =>
-      items.map(normalizeCollection),
+    cachedDetail("collection-kinds", () =>
+      request<ManagedCollection[]>("/collection-kinds").then((items) =>
+        items.map(normalizeCollection),
+      ),
     ),
   collectionDetail: (id: string, accessKey = "default") =>
     cachedDetail(`collection:${id}:${accessKey}`, () =>

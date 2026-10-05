@@ -877,6 +877,27 @@ export default function HomeScreen() {
       void dispatch(fetchHomeDashboard());
     }, [dispatch, isSignedIn]),
   );
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let active = true;
+    const task = InteractionManager.runAfterInteractions(() => {
+      void api
+        .collectionKinds()
+        .then((collections) => {
+          if (!active) return;
+          const images = collections
+            .filter((collection) => collection.access !== "pro")
+            .map((collection) => collection.explorerImageUrl)
+            .filter(Boolean);
+          if (images.length) void Image.prefetch(images, "memory-disk");
+        })
+        .catch(() => undefined);
+    });
+    return () => {
+      active = false;
+      task.cancel();
+    };
+  }, [isSignedIn]);
   const localCountryCodes = useMemo(
     () => new Set(visits.map((x) => x.countryCode).filter(Boolean)),
     [visits],
