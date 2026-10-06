@@ -31,7 +31,6 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
-const MEMBER_GIFT_BACKGROUND = require("@/assets/images/other/kroo member background.webp");
 const MEMBER_GIFT_CARD = require("@/assets/images/other/kroo card.webp");
 
 const destinations = [
@@ -457,31 +456,6 @@ export default function KrooPlusScreen() {
         )}
         {isPlus && (
           <View style={s.memberGift}>
-            <ImageBackground
-              source={MEMBER_GIFT_BACKGROUND}
-              style={s.memberGiftHero}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-            >
-              <LinearGradient
-                colors={[
-                  "rgba(0, 27, 21, 0.82)",
-                  "rgba(0, 27, 21, 0.32)",
-                  "transparent",
-                ]}
-                locations={[0, 0.62, 1]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={s.memberGiftHeroShade}
-              >
-                <Text style={s.memberGiftTitle}>
-                  Give the Gift of{"\n"}Kroo+
-                </Text>
-                <Text style={s.memberGiftSubtitle}>
-                  More travel. More learning.{"\n"}More possibilities.
-                </Text>
-              </LinearGradient>
-            </ImageBackground>
             <View style={s.memberGiftCardPanel}>
               <Image
                 source={MEMBER_GIFT_CARD}
@@ -549,7 +523,7 @@ export default function KrooPlusScreen() {
               style={s.memberGiftButton}
             />
             <Text style={s.memberGiftNote}>
-              A Kroo+ membership makes the perfect gift —{"\n"}and lasts for a
+              A Kroo+ membership makes the perfect gift{"\n"}and lasts for a
               full year.
             </Text>
           </View>
@@ -672,25 +646,6 @@ const s = StyleSheet.create({
   memberGift: {
     marginTop: 20,
     backgroundColor: BrandColors.green,
-  },
-  memberGiftHero: { width: "100%", height: 120 },
-  memberGiftHeroShade: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 23,
-  },
-  memberGiftTitle: {
-    color: BrandColors.white,
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(30),
-    lineHeight: responsiveFontSize(34),
-  },
-  memberGiftSubtitle: {
-    marginTop: 10,
-    color: BrandColors.white,
-    fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(16),
-    lineHeight: responsiveFontSize(21),
   },
   memberGiftCardPanel: {
     marginHorizontal: 12,
