@@ -342,11 +342,7 @@ export function CityVisitDetailModal({
                     />
                   </TouchableOpacity>
                   {airportMenuOpen ? (
-                    <ScrollView
-                      style={s.airportMenu}
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                    >
+                    <View style={s.airportMenu}>
                       <View style={s.airportSearchWrap}>
                         <Ionicons
                           name="search"
@@ -364,36 +360,42 @@ export function CityVisitDetailModal({
                           accessibilityLabel="Search airports"
                         />
                       </View>
-                      <Pressable
-                        style={s.airportOption}
-                        onPress={() => {
-                          setEditAirport(null);
-                          setAirportMenuOpen(false);
-                        }}
+                      <ScrollView
+                        style={s.airportOptions}
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
                       >
-                        <Text style={s.airportOptionName}>No airport</Text>
-                      </Pressable>
-                      {filteredAirports.map((airport) => (
                         <Pressable
-                          key={airport.id}
                           style={s.airportOption}
                           onPress={() => {
-                            setEditAirport(airport);
+                            setEditAirport(null);
                             setAirportMenuOpen(false);
                           }}
                         >
-                          <Text style={s.airportOptionName}>
-                            {airport.name}
-                          </Text>
-                          <Text style={s.airportCode}>{airport.iataCode}</Text>
+                          <Text style={s.airportOptionName}>No airport</Text>
                         </Pressable>
-                      ))}
-                      {filteredAirports.length === 0 ? (
-                        <Text style={s.noAirportResults}>
-                          No airports found
-                        </Text>
-                      ) : null}
-                    </ScrollView>
+                        {filteredAirports.map((airport) => (
+                          <Pressable
+                            key={airport.id}
+                            style={s.airportOption}
+                            onPress={() => {
+                              setEditAirport(airport);
+                              setAirportMenuOpen(false);
+                            }}
+                          >
+                            <Text style={s.airportOptionName}>
+                              {airport.name}
+                            </Text>
+                            <Text style={s.airportCode}>{airport.iataCode}</Text>
+                          </Pressable>
+                        ))}
+                        {filteredAirports.length === 0 ? (
+                          <Text style={s.noAirportResults}>
+                            No airports found
+                          </Text>
+                        ) : null}
+                      </ScrollView>
+                    </View>
                   ) : null}
                 </View>
                 <Text style={[s.label, s.noteLabel]}>Note</Text>
@@ -509,7 +511,7 @@ const s = StyleSheet.create({
     color: BrandColors.onDark,
   },
   noteInput: { minHeight: 76, paddingTop: 10, textAlignVertical: "top" },
-  airportWrap: { position: "relative", zIndex: 20, overflow: "visible" },
+  airportWrap: { width: "100%" },
   airportSelect: {
     minHeight: 42,
     paddingHorizontal: 12,
@@ -528,18 +530,14 @@ const s = StyleSheet.create({
   },
   airportPlaceholder: { color: BrandColors.onDarkMuted },
   airportMenu: {
-    position: "absolute",
-    top: 46,
-    left: 0,
-    right: 0,
-    maxHeight: 190,
+    height: 190,
+    marginTop: 4,
     borderRadius: 9,
     borderWidth: 1,
     borderColor: BrandColors.copper,
     backgroundColor: BrandColors.greenPanel,
-    zIndex: 30,
-    elevation: 14,
   },
+  airportOptions: { flex: 1 },
   airportSearchWrap: {
     minHeight: 40,
     paddingHorizontal: 11,

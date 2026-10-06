@@ -66,6 +66,8 @@ export function DetailModal({
             contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
           >
             <View style={s.content}>
               {image}
