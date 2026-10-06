@@ -1,11 +1,10 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text, TextInput } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect,
-  useMemo,
-  useState } from "react";
-import { ActivityIndicator,
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -13,10 +12,13 @@ import { ActivityIndicator,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text, TextInput } from "@/components/app-text";
 
 import { BrandColors } from "@/constants/theme";
-import { api, type AirportOption, type CatalogCitySearchResult } from "@/services/api";
+import {
+  api,
+  type AirportOption,
+  type CatalogCitySearchResult,
+} from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { visitRemoved, visitUpdated, type Visit } from "@/store/travel-slice";
@@ -31,7 +33,11 @@ export type CityVisitDetail = {
   visits: Visit[];
 };
 
-export function CityVisitDetailModal({ city, countryName, onClose }: {
+export function CityVisitDetailModal({
+  city,
+  countryName,
+  onClose,
+}: {
   city: CityVisitDetail;
   countryName: string;
   onClose: () => void;
@@ -47,7 +53,8 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   const [airportMenuOpen, setAirportMenuOpen] = useState(false);
   const [editAirport, setEditAirport] = useState<AirportOption | null>(null);
   const [airportQuery, setAirportQuery] = useState("");
-  const [replacementCity, setReplacementCity] = useState<CatalogCitySearchResult | null>(null);
+  const [replacementCity, setReplacementCity] =
+    useState<CatalogCitySearchResult | null>(null);
   const [cityQuery, setCityQuery] = useState("");
   const [cityMatches, setCityMatches] = useState<CatalogCitySearchResult[]>([]);
   const [deletingVisitId, setDeletingVisitId] = useState<string | null>(null);
@@ -64,16 +71,26 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
   useEffect(() => {
     let active = true;
     setAirportsLoading(true);
-    void api.cityAirports(city.id)
+    void api
+      .cityAirports(city.id)
       .then((items) => {
         if (!active) return;
-        setAirports(items.filter((airport, index, all) =>
-          all.findIndex((item) => item.id === airport.id) === index,
-        ));
+        setAirports(
+          items.filter(
+            (airport, index, all) =>
+              all.findIndex((item) => item.id === airport.id) === index,
+          ),
+        );
       })
-      .catch(() => { if (active) setAirports([]); })
-      .finally(() => { if (active) setAirportsLoading(false); });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) setAirports([]);
+      })
+      .finally(() => {
+        if (active) setAirportsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [city.id]);
 
   useEffect(() => {
@@ -83,24 +100,35 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     }
     let active = true;
     const timer = setTimeout(() => {
-      void api.searchCities(cityQuery.trim(), 8).then((items) => {
-        if (active) setCityMatches(items);
-      }).catch(() => {
-        if (active) setCityMatches([]);
-      });
+      void api
+        .searchCities(cityQuery.trim(), 8)
+        .then((items) => {
+          if (active) setCityMatches(items);
+        })
+        .catch(() => {
+          if (active) setCityMatches([]);
+        });
     }, 200);
-    return () => { active = false; clearTimeout(timer); };
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [cityQuery, editingVisitId]);
 
   const airportFromVisit = (visit: Visit): AirportOption | null => {
     const place = visit.places.find((item) => item.type === "airport");
     if (!place) return null;
     const code = place.name.match(/\(([A-Z0-9]{3})\)\s*$/)?.[1] ?? "";
-    return airports.find((airport) => airport.iataCode === code || `airport:${airport.id}` === place.id) ?? {
-      id: place.id.replace(/^airport:/, ""),
-      name: place.name.replace(/\s*\([A-Z0-9]{3}\)\s*$/, ""),
-      iataCode: code,
-    };
+    return (
+      airports.find(
+        (airport) =>
+          airport.iataCode === code || `airport:${airport.id}` === place.id,
+      ) ?? {
+        id: place.id.replace(/^airport:/, ""),
+        name: place.name.replace(/\s*\([A-Z0-9]{3}\)\s*$/, ""),
+        iataCode: code,
+      }
+    );
   };
 
   const save = async () => {
@@ -112,29 +140,39 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
     if (!visit) return;
     const updated = {
       ...visit,
-      ...(replacementCity ? {
-        cityId: replacementCity.id,
-        cityName: replacementCity.name,
-        country: replacementCity.country,
-        countryCode: replacementCity.countryCode,
-        continentCode: replacementCity.continentCode,
-        subcountry: replacementCity.subcountry,
-      } : {}),
+      ...(replacementCity
+        ? {
+            cityId: replacementCity.id,
+            cityName: replacementCity.name,
+            country: replacementCity.country,
+            countryCode: replacementCity.countryCode,
+            continentCode: replacementCity.continentCode,
+            subcountry: replacementCity.subcountry,
+          }
+        : {}),
       visitedAt: editVisitDate,
       note: editVisitNote.trim(),
       places: [
         ...visit.places.filter((place) => place.type !== "airport"),
-        ...(editAirport ? [{
-          id: `airport:${editAirport.id}`,
-          name: editAirport.iataCode ? `${editAirport.name} (${editAirport.iataCode})` : editAirport.name,
-          type: "airport" as const,
-        }] : []),
+        ...(editAirport
+          ? [
+              {
+                id: `airport:${editAirport.id}`,
+                name: editAirport.iataCode
+                  ? `${editAirport.name} (${editAirport.iataCode})`
+                  : editAirport.name,
+                type: "airport" as const,
+              },
+            ]
+          : []),
       ],
     };
     if (!isSignedIn) return;
     try {
       const remote = await api.updateVisit(updated);
-      setCurrentVisits((items) => items.map((item) => item.id === remote.id ? remote : item));
+      setCurrentVisits((items) =>
+        items.map((item) => (item.id === remote.id ? remote : item)),
+      );
       dispatch(visitUpdated(remote));
       setEditingVisitId(null);
       setReplacementCity(null);
@@ -152,7 +190,10 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
       if (editingVisitId === visit.id) setEditingVisitId(null);
       if (isSignedIn) void dispatch(fetchHomeDashboard());
     } catch {
-      Alert.alert("Could not delete visit", "Please check your connection and try again.");
+      Alert.alert(
+        "Could not delete visit",
+        "Please check your connection and try again.",
+      );
     } finally {
       setDeletingVisitId(null);
     }
@@ -164,7 +205,11 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
       `Delete your ${visit.visitedAt} visit to ${city.name}?`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => void deleteVisit(visit) },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => void deleteVisit(visit),
+        },
       ],
     );
   };
@@ -174,25 +219,35 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
       visible
       title={city.name}
       location={[city.regionName, countryName].filter(Boolean).join(", ")}
-      image={city.image ? (
-        <ProgressivePlaceImage uri={city.image} style={s.modalImage} contentFit="cover" />
-      ) : (
-        <View style={[s.modalImage, s.placeholder]}>
-          <Ionicons name="business-outline" size={46} color={BrandColors.copper} />
-        </View>
-      )}
+      image={
+        city.image ? (
+          <ProgressivePlaceImage
+            uri={city.image}
+            style={s.modalImage}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[s.modalImage, s.placeholder]}>
+            <Ionicons
+              name="business-outline"
+              size={46}
+              color={BrandColors.copper}
+            />
+          </View>
+        )
+      }
       onClose={onClose}
     >
       <View style={s.card}>
-        <View style={s.header}>
-          <Text style={s.title}>Visit Notes</Text>
-          <Text style={s.count}>{currentVisits.length} {currentVisits.length === 1 ? "visit" : "visits"}</Text>
-        </View>
         {currentVisits.map((visit) => (
           <View key={visit.id} style={s.item}>
             <View style={s.itemHeader}>
               <View style={s.row}>
-                <Ionicons name="calendar-outline" size={16} color={BrandColors.copper} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={16}
+                  color={BrandColors.copper}
+                />
                 <Text style={s.text}>{visit.visitedAt}</Text>
               </View>
               <View style={s.actions}>
@@ -205,7 +260,11 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       accessibilityRole="button"
                       accessibilityLabel="Cancel editing visit"
                     >
-                      <Ionicons name="close" size={19} color={BrandColors.copper} />
+                      <Ionicons
+                        name="close"
+                        size={19}
+                        color={BrandColors.copper}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={s.iconButton}
@@ -214,7 +273,11 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       accessibilityRole="button"
                       accessibilityLabel="Save visit"
                     >
-                      <Ionicons name="save-outline" size={19} color={BrandColors.copper} />
+                      <Ionicons
+                        name="save-outline"
+                        size={19}
+                        color={BrandColors.copper}
+                      />
                     </TouchableOpacity>
                   </>
                 ) : (
@@ -235,7 +298,11 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       accessibilityRole="button"
                       accessibilityLabel={`Edit visit from ${visit.visitedAt}`}
                     >
-                      <Ionicons name="create-outline" size={19} color={BrandColors.copper} />
+                      <Ionicons
+                        name="create-outline"
+                        size={19}
+                        color={BrandColors.copper}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={s.iconButton}
@@ -245,9 +312,15 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       accessibilityRole="button"
                       accessibilityLabel={`Delete visit from ${visit.visitedAt}`}
                     >
-                      {deletingVisitId === visit.id
-                        ? <ActivityIndicator size="small" color="#e35d5d" />
-                        : <Ionicons name="trash-outline" size={19} color="#e35d5d" />}
+                      {deletingVisitId === visit.id ? (
+                        <ActivityIndicator size="small" color="#e35d5d" />
+                      ) : (
+                        <Ionicons
+                          name="trash-outline"
+                          size={19}
+                          color="#e35d5d"
+                        />
+                      )}
                     </TouchableOpacity>
                   </>
                 )}
@@ -259,7 +332,11 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                 <TextInput
                   value={cityQuery}
                   onChangeText={setCityQuery}
-                  placeholder={replacementCity ? replacementCity.name : `Change ${visit.cityName}`}
+                  placeholder={
+                    replacementCity
+                      ? replacementCity.name
+                      : `Change ${visit.cityName}`
+                  }
                   placeholderTextColor={BrandColors.onDarkMuted}
                   style={s.input}
                   autoCorrect={false}
@@ -273,24 +350,38 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                       setCityQuery(match.name);
                       setEditAirport(null);
                       setAirportMenuOpen(false);
-                      void api.searchAirports(
-                        match.name,
-                        match.subcountry,
-                        match.country,
-                        match.countryCode,
-                      )
-                        .then((items) => items.length > 0 ? items : api.cityAirports(match.id))
+                      void api
+                        .searchAirports(
+                          match.name,
+                          match.subcountry,
+                          match.country,
+                          match.countryCode,
+                        )
+                        .then((items) =>
+                          items.length > 0 ? items : api.cityAirports(match.id),
+                        )
                         .catch(() => [])
                         .then(setAirports)
                         .catch(() => setAirports([]));
                     }}
                   >
                     <Text style={s.cityOptionName}>{match.name}</Text>
-                    <Text style={s.cityOptionDetail}>{[match.subcountry, match.country].filter(Boolean).join(", ")}</Text>
+                    <Text style={s.cityOptionDetail}>
+                      {[match.subcountry, match.country]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </Text>
                   </Pressable>
                 ))}
                 <Text style={s.label}>Visit date</Text>
-                <TextInput value={editVisitDate} onChangeText={setEditVisitDate} placeholder="YYYY-MM-DD" placeholderTextColor={BrandColors.onDarkMuted} style={s.input} maxLength={10} />
+                <TextInput
+                  value={editVisitDate}
+                  onChangeText={setEditVisitDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={BrandColors.onDarkMuted}
+                  style={s.input}
+                  maxLength={10}
+                />
                 <Text style={[s.label, s.noteLabel]}>Airport</Text>
                 <View style={s.airportWrap}>
                   <TouchableOpacity
@@ -303,16 +394,44 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                     accessibilityRole="button"
                     accessibilityLabel="Edit airport"
                   >
-                    {airportsLoading ? <ActivityIndicator color={BrandColors.onDarkMuted} /> : <Ionicons name="airplane-outline" size={18} color={BrandColors.copper} />}
-                    <Text style={[s.airportValue, !editAirport && s.airportPlaceholder]} numberOfLines={1}>
-                      {editAirport ? `${editAirport.name}${editAirport.iataCode ? ` (${editAirport.iataCode})` : ""}` : "No airport"}
+                    {airportsLoading ? (
+                      <ActivityIndicator color={BrandColors.onDarkMuted} />
+                    ) : (
+                      <Ionicons
+                        name="airplane-outline"
+                        size={18}
+                        color={BrandColors.copper}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        s.airportValue,
+                        !editAirport && s.airportPlaceholder,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {editAirport
+                        ? `${editAirport.name}${editAirport.iataCode ? ` (${editAirport.iataCode})` : ""}`
+                        : "No airport"}
                     </Text>
-                    <Ionicons name={airportMenuOpen ? "chevron-up" : "chevron-down"} size={18} color={BrandColors.onDarkMuted} />
+                    <Ionicons
+                      name={airportMenuOpen ? "chevron-up" : "chevron-down"}
+                      size={18}
+                      color={BrandColors.onDarkMuted}
+                    />
                   </TouchableOpacity>
                   {airportMenuOpen ? (
-                    <ScrollView style={s.airportMenu} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    <ScrollView
+                      style={s.airportMenu}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                    >
                       <View style={s.airportSearchWrap}>
-                        <Ionicons name="search" size={16} color={BrandColors.onDarkMuted} />
+                        <Ionicons
+                          name="search"
+                          size={16}
+                          color={BrandColors.onDarkMuted}
+                        />
                         <TextInput
                           value={airportQuery}
                           onChangeText={setAirportQuery}
@@ -324,26 +443,77 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
                           accessibilityLabel="Search airports"
                         />
                       </View>
-                      <Pressable style={s.airportOption} onPress={() => { setEditAirport(null); setAirportMenuOpen(false); }}>
+                      <Pressable
+                        style={s.airportOption}
+                        onPress={() => {
+                          setEditAirport(null);
+                          setAirportMenuOpen(false);
+                        }}
+                      >
                         <Text style={s.airportOptionName}>No airport</Text>
                       </Pressable>
                       {filteredAirports.map((airport) => (
-                        <Pressable key={airport.id} style={s.airportOption} onPress={() => { setEditAirport(airport); setAirportMenuOpen(false); }}>
-                          <Text style={s.airportOptionName}>{airport.name}</Text>
+                        <Pressable
+                          key={airport.id}
+                          style={s.airportOption}
+                          onPress={() => {
+                            setEditAirport(airport);
+                            setAirportMenuOpen(false);
+                          }}
+                        >
+                          <Text style={s.airportOptionName}>
+                            {airport.name}
+                          </Text>
                           <Text style={s.airportCode}>{airport.iataCode}</Text>
                         </Pressable>
                       ))}
-                      {filteredAirports.length === 0 ? <Text style={s.noAirportResults}>No airports found</Text> : null}
+                      {filteredAirports.length === 0 ? (
+                        <Text style={s.noAirportResults}>
+                          No airports found
+                        </Text>
+                      ) : null}
                     </ScrollView>
                   ) : null}
                 </View>
                 <Text style={[s.label, s.noteLabel]}>Note</Text>
-                <TextInput value={editVisitNote} onChangeText={(value) => setEditVisitNote(value.slice(0, 140))} placeholder="Add a short note" placeholderTextColor={BrandColors.onDarkMuted} style={[s.input, s.noteInput]} maxLength={140} multiline />
+                <TextInput
+                  value={editVisitNote}
+                  onChangeText={(value) =>
+                    setEditVisitNote(value.slice(0, 140))
+                  }
+                  placeholder="Add a short note"
+                  placeholderTextColor={BrandColors.onDarkMuted}
+                  style={[s.input, s.noteInput]}
+                  maxLength={140}
+                  multiline
+                />
               </View>
             ) : (
               <>
-                {visit.note ? <View style={s.row}><Ionicons name="document-text-outline" size={16} color={BrandColors.copper} /><Text style={s.text}>{visit.note}</Text></View> : null}
-                {visit.places.map((place) => <View key={`${visit.id}-${place.id}`} style={s.row}><Ionicons name={place.type === "airport" ? "airplane-outline" : "camera-outline"} size={16} color={BrandColors.copper} /><Text style={s.text}>{place.name}</Text></View>)}
+                {visit.note ? (
+                  <View style={s.row}>
+                    <Ionicons
+                      name="document-text-outline"
+                      size={16}
+                      color={BrandColors.copper}
+                    />
+                    <Text style={s.text}>{visit.note}</Text>
+                  </View>
+                ) : null}
+                {visit.places.map((place) => (
+                  <View key={`${visit.id}-${place.id}`} style={s.row}>
+                    <Ionicons
+                      name={
+                        place.type === "airport"
+                          ? "airplane-outline"
+                          : "camera-outline"
+                      }
+                      size={16}
+                      color={BrandColors.copper}
+                    />
+                    <Text style={s.text}>{place.name}</Text>
+                  </View>
+                ))}
               </>
             )}
           </View>
@@ -354,35 +524,159 @@ export function CityVisitDetailModal({ city, countryName, onClose }: {
 }
 
 const s = StyleSheet.create({
-  modalImage: { width: "100%", aspectRatio: 1.5, borderRadius: 10, backgroundColor: BrandColors.greenPanel },
-  placeholder: { alignItems: "center", justifyContent: "center", backgroundColor: BrandColors.greenDeep },
-  card: { width: "100%", marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: BrandColors.greenDeep },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  title: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(16), color: BrandColors.onDark },
-  count: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
-  item: { paddingVertical: 10, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BrandColors.paleGreen },
-  cityOption: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.08)", gap: 2 },
-  cityOptionName: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(13), color: BrandColors.onDark },
-  cityOptionDetail: { fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(11), color: BrandColors.onDarkMuted },
-  itemHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  modalImage: {
+    width: "100%",
+    aspectRatio: 1.5,
+    borderRadius: 10,
+    backgroundColor: BrandColors.greenPanel,
+  },
+  placeholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.greenDeep,
+  },
+  card: {
+    width: "100%",
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: BrandColors.greenDeep,
+  },
+  item: {
+    gap: 8,
+  },
+  cityOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    gap: 2,
+  },
+  cityOptionName: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDark,
+  },
+  cityOptionDetail: {
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(11),
+    color: BrandColors.onDarkMuted,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   row: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  text: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
-  actions: { flexDirection: "row", alignItems: "center", gap: 1, marginRight: -7 },
-  iconButton: { width: 29, height: 34, alignItems: "center", justifyContent: "center" },
+  text: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.onDark,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 1,
+    marginRight: -7,
+  },
+  iconButton: {
+    width: 29,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   form: { gap: 7, paddingTop: 4 },
-  label: { fontFamily: "Lora_600SemiBold", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
+  label: {
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
   noteLabel: { marginTop: 8 },
-  input: { minHeight: 42, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.paleGreen, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(14), color: BrandColors.onDark },
+  input: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    color: BrandColors.onDark,
+  },
   noteInput: { minHeight: 76, paddingTop: 10, textAlignVertical: "top" },
   airportWrap: { position: "relative", zIndex: 20, overflow: "visible" },
-  airportSelect: { minHeight: 42, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.paleGreen, flexDirection: "row", alignItems: "center", gap: 8 },
-  airportValue: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(13), color: BrandColors.onDark },
+  airportSelect: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BrandColors.paleGreen,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  airportValue: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.onDark,
+  },
   airportPlaceholder: { color: BrandColors.onDarkMuted },
-  airportMenu: { position: "absolute", top: 46, left: 0, right: 0, maxHeight: 190, borderRadius: 9, borderWidth: 1, borderColor: BrandColors.copper, backgroundColor: BrandColors.greenPanel, zIndex: 30, elevation: 14 },
-  airportSearchWrap: { minHeight: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
-  airportSearchInput: { flex: 1, paddingVertical: 0, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
-  airportOption: { minHeight: 44, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: BrandColors.paleGreen },
-  airportOptionName: { flex: 1, fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDark },
-  airportCode: { fontFamily: "Lora_700Bold", fontSize: responsiveFontSize(12), color: BrandColors.copper },
-  noAirportResults: { padding: 12, textAlign: "center", fontFamily: "Lora_400Regular", fontSize: responsiveFontSize(12), color: BrandColors.onDarkMuted },
+  airportMenu: {
+    position: "absolute",
+    top: 46,
+    left: 0,
+    right: 0,
+    maxHeight: 190,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.greenPanel,
+    zIndex: 30,
+    elevation: 14,
+  },
+  airportSearchWrap: {
+    minHeight: 40,
+    paddingHorizontal: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BrandColors.paleGreen,
+  },
+  airportSearchInput: {
+    flex: 1,
+    paddingVertical: 0,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDark,
+  },
+  airportOption: {
+    minHeight: 44,
+    paddingHorizontal: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BrandColors.paleGreen,
+  },
+  airportOptionName: {
+    flex: 1,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDark,
+  },
+  airportCode: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.copper,
+  },
+  noAirportResults: {
+    padding: 12,
+    textAlign: "center",
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    color: BrandColors.onDarkMuted,
+  },
 });
