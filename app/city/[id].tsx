@@ -52,7 +52,9 @@ export default function CityScreen() {
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const isKrooPlus = useAppSelector((state) => state.subscription.isKrooPlus);
-  const subscriptionConfigured = useAppSelector((state) => state.subscription.configured);
+  const subscriptionConfigured = useAppSelector(
+    (state) => state.subscription.configured,
+  );
   const [city, setCity] = useState<CityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,7 +65,12 @@ export default function CityScreen() {
     setLoading(true);
     setError("");
     try {
-      const detail = await api.cityDetail(id, { name, country, countryCode, state });
+      const detail = await api.cityDetail(id, {
+        name,
+        country,
+        countryCode,
+        state,
+      });
       if (detail.countryCode?.toUpperCase() === "US" && detail.subcountry) {
         try {
           const stateDetail = await api.stateDetail("US", detail.subcountry);
@@ -231,7 +238,10 @@ export default function CityScreen() {
               }}
               upgrade={
                 !isKrooPlus && sights.length ? (
-                  <UpgradeBanner active={false} configured={subscriptionConfigured} />
+                  <UpgradeBanner
+                    active={false}
+                    configured={subscriptionConfigured}
+                  />
                 ) : null
               }
             />
