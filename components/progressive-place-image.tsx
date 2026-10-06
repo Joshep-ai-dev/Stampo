@@ -65,7 +65,10 @@ export function ProgressivePlaceImage({
           priority={priority}
           transition={120}
           onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(false)}
+          onError={(error) => {
+            console.warn("Failed to load place image", uri, error.error);
+            setLoaded(false);
+          }}
         />
       ) : null}
     </View>
