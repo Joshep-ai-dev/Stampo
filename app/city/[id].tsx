@@ -58,7 +58,7 @@ export default function CityScreen() {
   const [city, setCity] = useState<CityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedSight, setSelectedSight] = useState<SightDetail | null>(null);
 
   const load = useCallback(async () => {
@@ -107,7 +107,6 @@ export default function CityScreen() {
   const cityVisits = visits
     .filter((visit) => String(visit.cityId) === String(id))
     .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt));
-  const selectedVisit = cityVisits.find((visit) => visit.id === selectedVisitId);
   const airportCount = new Set(
     cityVisits.flatMap((visit) =>
       visit.places
@@ -272,7 +271,7 @@ export default function CityScreen() {
                 <TouchableOpacity
                   key={visit.id}
                   style={s.row}
-                  onPress={() => setSelectedVisitId(visit.id)}
+                  onPress={() => setHistoryOpen(true)}
                 >
                   <Ionicons
                     name="calendar-outline"
@@ -308,17 +307,17 @@ export default function CityScreen() {
         ) : null}
       </ScrollView>
 
-      {city && selectedVisit ? (
+      {city && historyOpen ? (
         <CityVisitDetailModal
           city={{
             id: city.id,
             name: city.name,
             image: city.image,
             regionName,
-            visits: [selectedVisit],
+            visits: cityVisits,
           }}
           countryName={countryName}
-          onClose={() => setSelectedVisitId(null)}
+          onClose={() => setHistoryOpen(false)}
         />
       ) : null}
       {selectedSight ? (
@@ -390,7 +389,6 @@ const s = StyleSheet.create({
     backgroundColor: BrandColors.greenPanel,
   },
   rowTitle: {
-    flex: 1,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(17),
     color: BrandColors.onDark,
