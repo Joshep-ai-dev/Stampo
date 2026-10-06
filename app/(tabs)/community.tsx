@@ -1,6 +1,7 @@
 import { Text } from "@/components/app-text";
 import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -63,6 +64,7 @@ export default function CommunityScreen() {
     (state) => state.subscription,
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const userId = useAppSelector((state) => state.profile.userId);
   const savedKrooIqScore = useAppSelector(
     (state) => state.dashboard.data?.challengeProgress?.krooIqScore ?? 0,
   );
@@ -75,11 +77,13 @@ export default function CommunityScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [errorAction, setErrorAction] = useState<ErrorAction>(null);
+  const [previewCompleted, setPreviewCompleted] = useState(false);
   const questions = quiz?.questions ?? [];
   const question = questions[index];
   const correct = quiz?.attempt.correctCount ?? 0;
   const score = quiz?.attempt.scoreAfter ?? savedKrooIqScore;
   const progress = index + 1;
+  const previewKey = userId ? `kroo-iq-preview-completed:${userId}` : null;
 
   const load = useCallback(async () => {
     if (!isSignedIn) return;
@@ -87,6 +91,12 @@ export default function CommunityScreen() {
     setError("");
     setErrorAction(null);
     try {
+      setPreviewCompleted(
+        previewKey
+          ? (await AsyncStorage.getItem(previewKey).catch(() => null)) ===
+              "true"
+          : false,
+      );
       let loaded: KrooIqQuiz;
       try {
         loaded = await api.krooIqToday();
@@ -96,6 +106,10 @@ export default function CommunityScreen() {
         loaded = await api.krooIqToday();
       }
       setQuiz(loaded);
+      if (loaded.isPreview && loaded.attempt.completed) {
+        setPreviewCompleted(true);
+        if (previewKey) void AsyncStorage.setItem(previewKey, "true");
+      }
       const initialImages = [
         loaded.destination.heroImage,
         ...loaded.questions.slice(0, 2).map((item) => item.imageUrl),
@@ -106,6 +120,16 @@ export default function CommunityScreen() {
       setIndex(Math.min(answered, Math.max(loaded.questions.length - 1, 0)));
       setStage(loaded.attempt.completed ? "result" : "briefing");
     } catch (cause) {
+      if (
+        cause instanceof ApiError &&
+        cause.status === 403 &&
+        cause.message.includes("You completed the free preview")
+      ) {
+        setQuiz(null);
+        setPreviewCompleted(true);
+        if (previewKey) void AsyncStorage.setItem(previewKey, "true");
+        return;
+      }
       const message =
         cause instanceof Error
           ? cause.message
@@ -122,7 +146,7 @@ export default function CommunityScreen() {
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, previewKey]);
 
   useFocusEffect(
     useCallback(() => {
@@ -141,6 +165,10 @@ export default function CommunityScreen() {
       setQuiz((current) =>
         current ? { ...current, attempt: result.attempt } : current,
       );
+      if (quiz?.isPreview && result.attempt.completed) {
+        setPreviewCompleted(true);
+        if (previewKey) void AsyncStorage.setItem(previewKey, "true");
+      }
       if (result.attempt.completed) void dispatch(fetchHomeDashboard());
       setStage("answer");
     } catch (cause) {
@@ -176,6 +204,12 @@ export default function CommunityScreen() {
           <ActivityIndicator style={s.loader} color={BrandColors.copper} />
         ) : !isSignedIn ? (
           <Locked onPress={() => router.replace("/welcome")} />
+        ) : !isKrooPlus &&
+          (quiz?.isPreview === false ||
+            (previewCompleted && stage !== "answer")) ? (
+          <KeepLearning
+            onJoin={() => router.navigate("/(tabs)/kroo_plus" as never)}
+          />
         ) : error && !quiz ? (
           <Message
             text={error}
@@ -193,12 +227,6 @@ export default function CommunityScreen() {
                   ? load
                   : undefined
             }
-          />
-        ) : quiz && !quiz.isPreview && !isKrooPlus ? (
-          <Message
-            text="Lesson 1 and later require Kroo+. Lesson 0 remains free."
-            actionLabel="Enter Kroo+"
-            onRetry={() => router.navigate("/(tabs)/kroo_plus" as never)}
           />
         ) : stage === "result" ? (
           <Result
@@ -504,6 +532,50 @@ function Locked({ onPress }: { onPress: () => void }) {
     </View>
   );
 }
+function KeepLearning({ onJoin }: { onJoin: () => void }) {
+  return (
+    <View style={[s.paper, s.keepLearning]}>
+      <PaperBorder />
+      <View style={s.keepIcon}>
+        <Ionicons name="globe-outline" size={48} color={c.copperDark} />
+        <Ionicons
+          name="book-outline"
+          size={35}
+          color={c.copperDark}
+          style={s.keepBook}
+        />
+      </View>
+      <Text style={s.keepTitle}>KEEP LEARNING</Text>
+      <View style={s.keepDivider}>
+        <View style={s.keepRule} />
+        <Text style={s.keepDiamond}>◇</Text>
+        <View style={s.keepRule} />
+      </View>
+      <Text style={s.keepCopy}>
+        <Text style={s.keepLead}>Your first Kroo IQ lesson is free.</Text>
+        {"\n"}Become a Kroo+ member to unlock daily lessons, test your travel
+        knowledge, and keep increasing your Kroo IQ Score.
+      </Text>
+      <PrimaryButton
+        label="Join Kroo+"
+        onPress={onJoin}
+        style={s.keepButton}
+        textStyle={s.keepButtonText}
+      />
+      <View style={s.keepDivider}>
+        <View style={s.keepRule} />
+        <Text style={s.keepDiamond}>◇</Text>
+        <View style={s.keepRule} />
+      </View>
+      <View style={s.keepFooter}>
+        <Ionicons name="trophy-outline" size={34} color={c.copperDark} />
+        <Text style={s.keepFootnote}>
+          Reach 85+ Kroo IQ to complete one of your Dream Vacation requirements.
+        </Text>
+      </View>
+    </View>
+  );
+}
 function Message({
   text,
   actionLabel,
@@ -552,6 +624,50 @@ const s = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Lora_600SemiBold",
     fontSize: responsiveFontSize(14),
+  },
+  keepLearning: {
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  keepIcon: { width: 68, height: 56, alignItems: "flex-start" },
+  keepBook: { position: "absolute", right: 0, bottom: 0 },
+  keepTitle: {
+    color: c.green,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(31),
+    textAlign: "center",
+  },
+  keepDivider: {
+    marginVertical: 8,
+    width: "80%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  keepRule: { flex: 1, height: 1, backgroundColor: c.copperDark },
+  keepDiamond: {
+    color: c.copperDark,
+    fontSize: responsiveFontSize(17),
+  },
+  keepCopy: {
+    color: c.ink,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(18),
+    lineHeight: responsiveFontSize(28),
+    textAlign: "center",
+  },
+  keepLead: { fontFamily: "Lora_700Bold" },
+  keepButton: { width: "85%", marginTop: 20, backgroundColor: c.copperDark },
+  keepButtonText: { fontSize: responsiveFontSize(20), textTransform: "none" },
+  keepFooter: { flexDirection: "row", alignItems: "center", gap: 12 },
+  keepFootnote: {
+    flex: 1,
+    color: c.copperDark,
+    fontFamily: "Lora_600SemiBold",
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(20),
   },
   content: { paddingHorizontal: 12, paddingBottom: 22 },
   header: {
