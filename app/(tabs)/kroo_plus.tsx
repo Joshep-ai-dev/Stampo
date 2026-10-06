@@ -31,6 +31,8 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
+const MEMBER_GIFT_BACKGROUND = require("@/assets/images/other/kroo member background.webp");
+const MEMBER_GIFT_CARD = require("@/assets/images/other/kroo card.webp");
 
 const destinations = [
   {
@@ -100,7 +102,7 @@ export default function KrooPlusScreen() {
   const travel = useAppSelector((state) => state.travel);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const dashboard = useAppSelector((state) => state.dashboard.data);
-  const isPlus = useAppSelector((state) => state.subscription.isKrooPlus);
+  const isPlus = true; //useAppSelector((state) => state.subscription.isKrooPlus);
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Destination | null>(null);
@@ -311,7 +313,7 @@ export default function KrooPlusScreen() {
 
         <View style={s.vacations}>
           <View style={s.sectionRow}>
-            <Text style={s.lightHeading}>What's Your Dream Vacation</Text>
+            <Text style={s.lightHeading}>What&apos;s Your Dream Vacation</Text>
           </View>
           <ScrollView
             horizontal
@@ -453,6 +455,105 @@ export default function KrooPlusScreen() {
             </Text>
           </>
         )}
+        {isPlus && (
+          <View style={s.memberGift}>
+            <ImageBackground
+              source={MEMBER_GIFT_BACKGROUND}
+              style={s.memberGiftHero}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(0, 27, 21, 0.82)",
+                  "rgba(0, 27, 21, 0.32)",
+                  "transparent",
+                ]}
+                locations={[0, 0.62, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={s.memberGiftHeroShade}
+              >
+                <Text style={s.memberGiftTitle}>
+                  Give the Gift of{"\n"}Kroo+
+                </Text>
+                <Text style={s.memberGiftSubtitle}>
+                  More travel. More learning.{"\n"}More possibilities.
+                </Text>
+              </LinearGradient>
+            </ImageBackground>
+            <View style={s.memberGiftCardPanel}>
+              <Image
+                source={MEMBER_GIFT_CARD}
+                style={s.memberGiftCardImage}
+                contentFit="contain"
+                cachePolicy="memory-disk"
+                accessibilityLabel="Kroo+ membership gift card"
+              />
+              <View style={s.memberGiftCardCopy}>
+                <Text style={s.memberGiftCardTitle}>
+                  The Perfect Gift for Any Traveler
+                </Text>
+                <Text style={s.memberGiftCardDescription}>
+                  Give your friends and family the gift of Kroo+. It’s the
+                  ultimate way to inspire adventure, build knowledge, and
+                  explore the world together.
+                </Text>
+              </View>
+            </View>
+            <View style={s.memberGiftBenefits}>
+              {[
+                [
+                  "globe-outline",
+                  "Track Your Travels",
+                  "Collect stamps, earn points, and level up.",
+                ],
+                [
+                  "bulb-outline",
+                  "Kroo IQ",
+                  "Access daily lessons and boost your knowledge.",
+                ],
+                [
+                  "trophy-outline",
+                  "Exclusive Challenges",
+                  "Join special events and competitions.",
+                ],
+                [
+                  "star-outline",
+                  "Member Benefits",
+                  "Unlock unique experiences and rewards worldwide.",
+                ],
+              ].map(([icon, title, copy], index) => (
+                <View
+                  key={title}
+                  style={[
+                    s.memberGiftBenefit,
+                    index === 3 && s.memberGiftBenefitLast,
+                  ]}
+                >
+                  <Ionicons
+                    name={icon as never}
+                    size={33}
+                    color={BrandColors.copper}
+                  />
+                  <Text style={s.memberGiftBenefitTitle}>{title}</Text>
+                  <Text style={s.memberGiftBenefitCopy}>{copy}</Text>
+                </View>
+              ))}
+            </View>
+            <PrimaryButton
+              label="Gift Kroo+"
+              onPress={() =>
+                router.push("/gift-kroo-plus?plan=annual" as never)
+              }
+              style={s.memberGiftButton}
+            />
+            <Text style={s.memberGiftNote}>
+              A Kroo+ membership makes the perfect gift —{"\n"}and lasts for a
+              full year.
+            </Text>
+          </View>
+        )}
       </ScrollView>
       <Modal
         transparent
@@ -568,6 +669,99 @@ function Plan({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 26 },
+  memberGift: {
+    marginTop: 20,
+    backgroundColor: BrandColors.green,
+  },
+  memberGiftHero: { width: "100%", height: 120 },
+  memberGiftHeroShade: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 23,
+  },
+  memberGiftTitle: {
+    color: BrandColors.white,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(30),
+    lineHeight: responsiveFontSize(34),
+  },
+  memberGiftSubtitle: {
+    marginTop: 10,
+    color: BrandColors.white,
+    fontFamily: "Lora_500Medium",
+    fontSize: responsiveFontSize(16),
+    lineHeight: responsiveFontSize(21),
+  },
+  memberGiftCardPanel: {
+    marginHorizontal: 12,
+    marginTop: 14,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    borderRadius: 16,
+  },
+  memberGiftCardImage: { width: "40%", aspectRatio: 1.44 },
+  memberGiftCardCopy: { flex: 1, paddingHorizontal: 4 },
+  memberGiftCardTitle: {
+    color: BrandColors.white,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(22),
+    lineHeight: responsiveFontSize(26),
+  },
+  memberGiftCardDescription: {
+    marginTop: 7,
+    color: BrandColors.white,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(17),
+  },
+  memberGiftBenefits: {
+    marginTop: 16,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+  },
+  memberGiftBenefit: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 130,
+    paddingHorizontal: 2,
+    alignItems: "center",
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: BrandColors.paleGreen,
+  },
+  memberGiftBenefitLast: { borderRightWidth: 0 },
+  memberGiftBenefitTitle: {
+    marginTop: 6,
+    minHeight: 34,
+    color: BrandColors.white,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(18),
+    textAlign: "center",
+  },
+  memberGiftBenefitCopy: {
+    marginTop: 4,
+    color: BrandColors.white,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(12),
+    lineHeight: responsiveFontSize(14),
+    textAlign: "center",
+  },
+  memberGiftButton: {
+    marginTop: 13,
+    marginHorizontal: 48,
+  },
+  memberGiftNote: {
+    marginTop: 10,
+    color: BrandColors.white,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(13),
+    lineHeight: responsiveFontSize(17),
+    textAlign: "center",
+  },
   hero: {
     paddingTop: 8,
     paddingHorizontal: 12,
