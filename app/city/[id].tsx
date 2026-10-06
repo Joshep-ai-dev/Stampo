@@ -107,7 +107,9 @@ export default function CityScreen() {
   const cityVisits = visits
     .filter((visit) => String(visit.cityId) === String(id))
     .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt));
-  const selectedVisit = cityVisits.find((visit) => visit.id === selectedVisitId);
+  const selectedVisit = cityVisits.find(
+    (visit) => visit.id === selectedVisitId,
+  );
   const airportCount = new Set(
     cityVisits.flatMap((visit) =>
       visit.places
