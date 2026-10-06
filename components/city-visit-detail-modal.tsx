@@ -35,10 +35,12 @@ export type CityVisitDetail = {
 
 export function CityVisitDetailModal({
   city,
+  selectedVisitId,
   countryName,
   onClose,
 }: {
   city: CityVisitDetail;
+  selectedVisitId: string;
   countryName: string;
   onClose: () => void;
 }) {
@@ -239,7 +241,7 @@ export function CityVisitDetailModal({
       onClose={onClose}
     >
       <View style={s.card}>
-        {currentVisits.map((visit) => (
+        {currentVisits.filter((visit) => visit.id === selectedVisitId).map((visit) => (
           <View key={visit.id} style={s.item}>
             <View style={s.itemHeader}>
               <View style={s.row}>
