@@ -59,7 +59,7 @@ function PaperBorder({ wide = false }: { wide?: boolean }) {
 export default function CommunityScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { status: subscriptionStatus } = useAppSelector(
+  const { status: subscriptionStatus, isKrooPlus } = useAppSelector(
     (state) => state.subscription,
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
@@ -113,7 +113,7 @@ export default function CommunityScreen() {
       setQuiz(null);
       setError(message);
       setErrorAction(
-        message.includes("completed the free preview")
+        cause instanceof ApiError && cause.status === 403
           ? "subscribe"
           : message.includes("completed all available")
             ? null
@@ -175,9 +175,7 @@ export default function CommunityScreen() {
         {subscriptionStatus === "loading" || loading ? (
           <ActivityIndicator style={s.loader} color={BrandColors.copper} />
         ) : !isSignedIn ? (
-          <Locked
-            onPress={() => router.navigate("/(tabs)/kroo_plus" as never)}
-          />
+          <Locked onPress={() => router.replace("/welcome")} />
         ) : error && !quiz ? (
           <Message
             text={error}
@@ -196,15 +194,25 @@ export default function CommunityScreen() {
                   : undefined
             }
           />
+        ) : quiz && !quiz.isPreview && !isKrooPlus ? (
+          <Message
+            text="Lesson 1 and later require Kroo+. Lesson 0 remains free."
+            actionLabel="Enter Kroo+"
+            onRetry={() => router.navigate("/(tabs)/kroo_plus" as never)}
+          />
         ) : stage === "result" ? (
           <Result
             correct={correct}
             total={questions.length}
             before={quiz?.attempt.scoreBefore ?? 0}
             score={score}
-            actionLabel={quiz?.isPreview ? "Enter Kroo+" : undefined}
+            actionLabel={
+              quiz?.isPreview && !isKrooPlus
+                ? "Unlock Lesson 1 with Kroo+"
+                : undefined
+            }
             onPress={
-              quiz?.isPreview
+              quiz?.isPreview && !isKrooPlus
                 ? () => router.navigate("/(tabs)/kroo_plus" as never)
                 : undefined
             }
@@ -215,6 +223,7 @@ export default function CommunityScreen() {
             <Destination
               progress={progress}
               destination={destination}
+              isPreview={quiz?.isPreview ?? false}
               total={questions.length}
             />
             {stage === "briefing" && question ? (
@@ -286,10 +295,12 @@ function ScoreCard({ score }: { score: number }) {
 function Destination({
   progress,
   destination,
+  isPreview,
   total,
 }: {
   progress: number;
   destination?: KrooIqQuiz["destination"];
+  isPreview: boolean;
   total: number;
 }) {
   return (
@@ -297,7 +308,9 @@ function Destination({
       <PaperBorder wide />
       <View style={s.destinationTop}>
         <View style={{ flex: 1 }}>
-          <Text style={s.eyebrow}>TODAY&apos;S DESTINATION</Text>
+          <Text style={s.eyebrow}>
+            {isPreview ? "LESSON 0 · FREE" : (destination?.region ?? "KROO IQ")}
+          </Text>
           <View style={s.destinationNameRow}>
             {destination?.flag ? (
               <Text style={s.destinationFlag}>{destination.flag}</Text>
@@ -482,12 +495,12 @@ function Locked({ onPress }: { onPress: () => void }) {
       <View style={s.lockIcon}>
         <Ionicons name="bulb" size={39} color={c.copper} />
       </View>
-      <Text style={s.lockTitle}>Unlock Kroo IQ</Text>
+      <Text style={s.lockTitle}>Start with free Lesson 0</Text>
       <Text style={s.lockCopy}>
-        Build your travel knowledge with a new destination and five questions
-        every day. Kroo IQ is exclusively available to Kroo+ members.
+        Lesson 0 is free. Join Kroo+ to unlock Lesson 1 and the lessons after
+        it.
       </Text>
-      <Action label="Enter Kroo+" onPress={onPress} />
+      <Action label="Sign in to start" onPress={onPress} />
     </View>
   );
 }

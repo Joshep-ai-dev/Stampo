@@ -175,7 +175,6 @@ export default function CollectionScreen() {
   const handlePlaceTap = (place: CollectionPlace) => {
     setSelectedPlace(place);
   };
-  console.log(collection);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.content} nestedScrollEnabled>
