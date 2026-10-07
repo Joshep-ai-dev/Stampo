@@ -273,7 +273,7 @@ export default function KrooPlusScreen() {
               icon: "people",
               title: "Refer 5 people to join Kroo",
               copy: "Share the adventure\nwith family and friends.",
-              action: () => {},
+              action: () => router.push("/my-referrals" as never),
             },
           ].map((step) => (
             <TouchableOpacity key={step.n} style={s.step} onPress={step.action}>

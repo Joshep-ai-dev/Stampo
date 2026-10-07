@@ -877,6 +877,11 @@ export const api = {
       })),
     ),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
+  referrals: (page = 1) => request<{
+    members: { id: string; name: string; krooId: string; joinedAt: string; source: "gift" | "referral" }[];
+    total: number;
+    nextPage: number | null;
+  }>(`/me/referrals?page=${page}`),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
       method: "POST",

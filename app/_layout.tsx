@@ -103,6 +103,7 @@ function AppAccess() {
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="add-friends" />
+          <Stack.Screen name="my-referrals" />
           <Stack.Screen name="country-atlas" />
           <Stack.Screen name="gift-kroo-plus" />
           <Stack.Screen name="kroo-plus" />
