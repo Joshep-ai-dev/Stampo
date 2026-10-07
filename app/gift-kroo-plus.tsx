@@ -2,12 +2,13 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
 import { PrimaryButton } from "@/components/primary-button";
+import { BillingStatus } from "@/components/billing-status";
 import {
   revenueCatErrorMessage,
   useKrooPlusBilling,
 } from "@/components/subscription-provider";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -27,19 +28,23 @@ const DEFAULT_NOTE =
 export default function GiftKrooPlusScreen() {
   const router = useRouter();
   const billing = useKrooPlusBilling();
-  const { plan: rawPlan } = useLocalSearchParams<{ plan?: string }>();
-  const plan = rawPlan === "monthly" ? "monthly" : "annual";
-  const giftPeriod = plan === "monthly" ? "1 month" : "1 year";
-  const giftPrice = plan === "monthly" ? "$9.99" : "$99.99";
-  const [note, setNote] = useState(DEFAULT_NOTE);
+  const [email, setEmail] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   const continueToPurchase = async () => {
     if (busy) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      Alert.alert("Friend’s email required", "Enter a valid email address for your gift recipient.");
+      return;
+    }
     setBusy(true);
     try {
-      const purchased = await billing.purchase(plan);
-      if (purchased) router.back();
+      const gift = await billing.purchaseGift(email.trim(), note.trim());
+      if (gift) Alert.alert("Gift purchased", gift.emailSent
+        ? `We emailed ${gift.recipientEmail} your message and a one-use gift code. Their year starts when they redeem it.`
+        : `Payment verified. Your gift email to ${gift.recipientEmail} is queued for delivery. Their year starts when they redeem the code.`,
+        [{ text: "Done", onPress: () => router.back() }]);
     } catch (error) {
       Alert.alert(
         "Kroo+",
@@ -80,8 +85,8 @@ export default function GiftKrooPlusScreen() {
           </View>
           <Text style={styles.title}>Gift Kroo+</Text>
           <Text style={styles.subtitle}>
-            Give someone the full Kroo+ experience - unlimited verification, all
-            Special Lists, and more.
+            You’re buying a separate, prepaid membership for your friend.
+            Give them unlimited verification, all Special Lists, and more.
           </Text>
 
           <View style={styles.product}>
@@ -91,39 +96,61 @@ export default function GiftKrooPlusScreen() {
               color={BrandColors.copper}
             />
             <View style={styles.productCopy}>
-              <Text style={styles.productTitle}>{giftPeriod} of Kroo+</Text>
+              <Text style={styles.productTitle}>1 year of Kroo+</Text>
               <Text style={styles.productDetail}>
-                The full Kroo+ experience, on us
+                One payment. No recurring subscription.
               </Text>
             </View>
-            <Text style={styles.productPrice}>{giftPrice}</Text>
+            <Text style={styles.productPrice}>{billing.giftPrice ?? "—"}</Text>
           </View>
 
+          <Text style={styles.label}>YOUR FRIEND’S EMAIL</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            editable={!busy}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            maxLength={254}
+            accessibilityLabel="Your friend’s email"
+            style={[styles.note, { minHeight: 54 }]}
+            placeholder="friend@example.com"
+            placeholderTextColor={BrandColors.onDarkMuted}
+          />
+          <Text style={styles.subtitle}>
+            After payment is verified, we’ll email your friend your message and a
+            unique, one-use code. They can join or sign into Kroo and redeem it
+            to start their year of Kroo+. No payment or subscription needed.
+          </Text>
           <Text style={styles.label}>ADD A PERSONAL NOTE (OPTIONAL)</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
+            editable={!busy}
             multiline
             maxLength={240}
             style={styles.note}
-            placeholder="Write a note for your recipient"
+            placeholder={DEFAULT_NOTE}
+            accessibilityLabel="Optional personal message"
             placeholderTextColor={BrandColors.onDarkMuted}
             textAlignVertical="top"
           />
           <PrimaryButton
             style={styles.cta}
-            disabled={busy}
+            disabled={busy || billing.connecting}
             onPress={() => void continueToPurchase()}
-            label={busy ? "Connecting To Store..." : "Continue To Purchase"}
+            label={billing.connecting ? "Connecting To Store..." : busy ? "Processing Gift..." : "Continue To Purchase"}
           />
+          <BillingStatus />
 
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />
             <Text style={styles.referralText}>
-              Gifting counts toward your{" "}
+              Share your referral code for the{" "}
               <Text style={styles.highlight}>Dream Vacation Challenge</Text>{" "}
-              referrals once your recipient signs up with your code and verifies
-              their first country.
+              with your friend when they join Kroo.
             </Text>
           </View>
         </ScrollView>

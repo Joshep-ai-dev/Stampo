@@ -216,6 +216,14 @@ export type SubscriptionEntitlement = {
   expiresAt: string | null;
 };
 
+export type MembershipGift = {
+  checkoutAllowed: boolean;
+  id: string;
+  recipientEmail: string;
+  emailSent: boolean;
+  status: "pending" | "paid" | "redeemed";
+};
+
 export type RemoteProfile = {
   id: string;
   krooId: number;
@@ -877,6 +885,18 @@ export const api = {
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   subscriptionStatus: () =>
     request<SubscriptionEntitlement>("/me/subscription"),
+  createMembershipGift: (recipientEmail: string, message: string, productId: string) =>
+    request<MembershipGift>("/me/membership-gifts", {
+      method: "POST", body: JSON.stringify({ recipientEmail, message, productId }),
+    }),
+  verifyMembershipGift: (id: string) =>
+    request<MembershipGift>(`/me/membership-gifts/${encodeURIComponent(id)}/verify`, { method: "POST" }),
+  cancelMembershipGift: (id: string) =>
+    request<void>(`/me/membership-gifts/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  redeemMembershipGift: (code: string) =>
+    request<SubscriptionEntitlement>("/me/membership-gifts/redeem", {
+      method: "POST", body: JSON.stringify({ code }),
+    }),
   syncRevenueCatSubscription: () =>
     request<SubscriptionEntitlement>("/me/subscription/revenuecat/sync", {
       method: "POST",

@@ -15,9 +15,10 @@ import Purchases, {
   type CustomerInfo,
   type PurchasesOffering,
   type PurchasesPackage,
+  PRODUCT_CATEGORY,
 } from "react-native-purchases";
 
-import { api } from "@/services/api";
+import { api, type MembershipGift, type SubscriptionEntitlement } from "@/services/api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   subscriptionFailed,
@@ -28,6 +29,8 @@ import {
 export type KrooPlusPlan = "monthly" | "annual";
 
 const OFFERING_ID = process.env.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ?? "default";
+const GIFT_OFFERING_ID = process.env.EXPO_PUBLIC_REVENUECAT_GIFT_OFFERING_ID ?? "gifts";
+const GIFT_PACKAGE_ID = process.env.EXPO_PUBLIC_REVENUECAT_GIFT_PACKAGE_ID ?? "kroo_plus_gift_year";
 const ENTITLEMENT_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? "kroo_plus";
 const MONTHLY_PACKAGE_ID =
@@ -42,8 +45,14 @@ let revenueCatLogHandlerConfigured = false;
 type BillingContextValue = {
   configured: boolean;
   ready: boolean;
+  connecting: boolean;
+  error: string | null;
+  retry: () => void;
   prices: { monthly: string | null; annual: string | null };
   purchase: (plan: KrooPlusPlan) => Promise<boolean>;
+  giftPrice: string | null;
+  purchaseGift: (email: string, message: string) => Promise<MembershipGift | null>;
+  updateEntitlement: (entitlement: SubscriptionEntitlement) => void;
   restore: () => Promise<boolean>;
   manage: () => Promise<void>;
 };
@@ -129,20 +138,29 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const userId = useAppSelector((state) => state.profile.userId);
   const apiKey = revenueCatApiKey();
   const [ready, setReady] = useState(false);
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [initializationError, setInitializationError] = useState<string | null>(
     null,
   );
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
+  const [giftPackage, setGiftPackage] = useState<PurchasesPackage | null>(null);
   const [expirationAt, setExpirationAt] = useState<number | null>(null);
   const customerInfoRef = useRef<CustomerInfo | null>(null);
+  const serverExpiresAtRef = useRef<number | null>(null);
   const identifiedUserRef = useRef<string | null>(null);
+
+  const updateEntitlement = useCallback((entitlement: SubscriptionEntitlement) => {
+    serverExpiresAtRef.current = entitlement.expiresAt ? Date.parse(entitlement.expiresAt) : null;
+    setExpirationAt(serverExpiresAtRef.current);
+    dispatch(subscriptionUpdated({ configured: Boolean(apiKey), isKrooPlus: entitlement.isKrooPlus }));
+  }, [apiKey, dispatch]);
 
   const applyCustomerInfo = useCallback(
     (customerInfo: CustomerInfo) => {
       customerInfoRef.current = customerInfo;
       const entitlement = customerInfo.entitlements.all[ENTITLEMENT_ID];
       setExpirationAt(entitlement?.expirationDateMillis ?? null);
-      const isKrooPlus = hasActiveKrooPlus(customerInfo);
+      const isKrooPlus = hasActiveKrooPlus(customerInfo) || (serverExpiresAtRef.current !== null && serverExpiresAtRef.current > Date.now());
       dispatch(
         subscriptionUpdated({
           configured: Boolean(apiKey),
@@ -155,7 +173,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 
   const applyServerEntitlement = useCallback(
-    async (customerInfo?: CustomerInfo) => {
+    async (_customerInfo?: CustomerInfo) => {
       if (!userId) {
         dispatch(
           subscriptionUpdated({
@@ -166,9 +184,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return false;
       }
       const entitlement = await api.syncRevenueCatSubscription();
-      const isKrooPlus = customerInfo
-        ? hasActiveKrooPlus(customerInfo)
-        : entitlement.isKrooPlus;
+      serverExpiresAtRef.current = entitlement.expiresAt ? Date.parse(entitlement.expiresAt) : null;
+      setExpirationAt(serverExpiresAtRef.current);
+      const isKrooPlus = entitlement.isKrooPlus;
       dispatch(
         subscriptionUpdated({
           configured: Boolean(apiKey),
@@ -182,16 +200,27 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    serverExpiresAtRef.current = null;
     if (!apiKey) {
       setReady(false);
       setOffering(null);
+      setGiftPackage(null);
+      setInitializationError("Store purchases are not configured in this build. Add the RevenueCat public SDK key and rebuild Kroo.");
       dispatch(subscriptionUpdated({ configured: false, isKrooPlus: false }));
-      return;
+      if (userId) void api.subscriptionStatus().then((result) => {
+        if (!cancelled) {
+          serverExpiresAtRef.current = result.expiresAt ? Date.parse(result.expiresAt) : null;
+          setExpirationAt(serverExpiresAtRef.current);
+          dispatch(subscriptionUpdated({ configured: false, isKrooPlus: result.isKrooPlus }));
+        }
+      }).catch((error) => { if (!cancelled) dispatch(subscriptionFailed(revenueCatErrorMessage(error))); });
+      return () => { cancelled = true; };
     }
 
     dispatch(subscriptionLoading());
     setReady(false);
     setInitializationError(null);
+    setGiftPackage(null);
     const initialize = async () => {
       if (!(await Purchases.isConfigured())) {
         configureRevenueCatLogging();
@@ -225,6 +254,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const offerings = await Purchases.getOfferings();
       if (cancelled) return;
       setOffering(offerings.all[OFFERING_ID] ?? offerings.current);
+      const gift = offerings.all[GIFT_OFFERING_ID]?.availablePackages.find((item) => item.identifier === GIFT_PACKAGE_ID);
+      setGiftPackage(gift?.product.productCategory === PRODUCT_CATEGORY.NON_SUBSCRIPTION ? gift : null);
       setReady(true);
       try {
         await applyServerEntitlement(customerInfo);
@@ -242,7 +273,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, applyCustomerInfo, applyServerEntitlement, dispatch, userId]);
+  }, [apiKey, applyCustomerInfo, applyServerEntitlement, connectionAttempt, dispatch, userId]);
+
+  const retry = useCallback(() => {
+    setInitializationError(null);
+    setReady(false);
+    setConnectionAttempt((attempt) => attempt + 1);
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -258,11 +295,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [applyCustomerInfo, applyServerEntitlement, ready, userId]);
 
   useEffect(() => {
-    if (!ready || !userId) return;
+    if (!userId) return;
     let cancelled = false;
     let expirationTimer: ReturnType<typeof setTimeout> | undefined;
 
     const refresh = async () => {
+      if (!apiKey || !ready) {
+        const result = await api.subscriptionStatus();
+        if (cancelled) return;
+        serverExpiresAtRef.current = result.expiresAt ? Date.parse(result.expiresAt) : null;
+        setExpirationAt(serverExpiresAtRef.current);
+        dispatch(subscriptionUpdated({ configured: Boolean(apiKey), isKrooPlus: result.isKrooPlus }));
+        return;
+      }
       await Purchases.invalidateCustomerInfoCache();
       const customerInfo = await Purchases.getCustomerInfo();
       if (cancelled) return;
@@ -299,6 +344,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     };
   }, [
     applyCustomerInfo,
+    apiKey,
     applyServerEntitlement,
     dispatch,
     expirationAt,
@@ -317,7 +363,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (!ready)
         throw new Error(
           initializationError ||
-            "Kroo+ billing is unavailable. Please try again later.",
+            "Kroo+ is still connecting to the store. Please wait a moment.",
         );
       const selectedPackage: PurchasesPackage | null = packageForPlan(
         offering,
@@ -370,6 +416,31 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return applyServerEntitlement(customerInfo);
   }, [apiKey, applyCustomerInfo, applyServerEntitlement, ready, userId]);
 
+  const purchaseGift = useCallback(async (email: string, message: string) => {
+    if (!userId) throw new Error("Join or sign into Kroo before buying a gift.");
+    if (!ready || !giftPackage) throw new Error("The prepaid gift product is not available yet. Please try again later.");
+    const gift = await api.createMembershipGift(email, message, giftPackage.product.identifier);
+    if (gift.status !== "pending") return gift;
+    // The server saves the recipient before opening the store and recovers verified payments.
+    if (!gift.checkoutAllowed) {
+      const recovered = await api.verifyMembershipGift(gift.id);
+      if (recovered.status !== "pending") return recovered;
+      throw new Error("A gift payment is already pending verification. We’ll email your friend automatically once it is confirmed. Please don’t purchase again. Contact support if you cancelled the store purchase.");
+    }
+    try {
+      await Purchases.purchasePackage(giftPackage);
+    } catch (error) {
+      if (wasCancelled(error)) {
+        await api.cancelMembershipGift(gift.id);
+        return null;
+      }
+      throw error;
+    }
+    const verified = await api.verifyMembershipGift(gift.id);
+    if (verified.status === "pending") throw new Error("Your payment is awaiting verification. We’ll email your friend automatically once it is confirmed. Please don’t purchase again.");
+    return verified;
+  }, [giftPackage, ready, userId]);
+
   const manage = useCallback(async () => {
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
     if (!ready)
@@ -391,12 +462,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     () => ({
       configured: Boolean(apiKey),
       ready,
+      connecting: Boolean(apiKey) && !ready && initializationError === null,
+      error: initializationError,
+      retry,
       prices,
       purchase,
+      giftPrice: giftPackage?.product.priceString ?? null,
+      purchaseGift,
+      updateEntitlement,
       restore,
       manage,
     }),
-    [apiKey, manage, prices, purchase, ready, restore],
+    [apiKey, giftPackage, initializationError, manage, prices, purchase, purchaseGift, ready, restore, retry, updateEntitlement],
   );
 
   return (

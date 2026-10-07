@@ -16,6 +16,7 @@ import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
+import { BillingStatus } from "@/components/billing-status";
 import {
   revenueCatErrorMessage,
   useKrooPlusBilling,
@@ -84,10 +85,12 @@ export default function KrooPlusScreen() {
         </Text>
 
         <View style={{ width: "100%", marginTop: 28 }}>
+          <BillingStatus />
           <KrooPlusOffer
             monthlyPrice={billing.prices.monthly ?? "$9.99"}
             annualPrice={billing.prices.annual ?? "$99.99"}
             busy={busy}
+            connecting={billing.connecting}
             onPurchase={(plan) => {
               setBusy(true);
               void billing.purchase(plan).catch(showError).finally(() => setBusy(false));

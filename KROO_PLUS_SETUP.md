@@ -71,6 +71,46 @@ expiration, cancellation, billing problems, and transfers.
 
 ## Gift checkout
 
-Native store subscriptions cannot be transferred to another person. A gift
-flow needs RevenueCat Web Billing (Stripe) plus recipient redemption. Until that
-flow and its checkout URL exist, the gift button remains disabled.
+Gifts use a separate **consumable, one-time purchase**, never the buyer’s monthly
+or annual subscription. Create a one-year gift product in App Store Connect and
+Google Play, import it into RevenueCat, and put it in a `gifts` offering with a
+custom package named `kroo_plus_gift_year`. Do not attach this product to the
+`kroo_plus` entitlement: it must not unlock membership for the buyer.
+
+Frontend configuration (defaults shown):
+
+```env
+EXPO_PUBLIC_REVENUECAT_GIFT_OFFERING_ID=gifts
+EXPO_PUBLIC_REVENUECAT_GIFT_PACKAGE_ID=kroo_plus_gift_year
+```
+
+Backend configuration:
+
+```env
+REVENUECAT_GIFT_PRODUCT_IDS=your_ios_gift_product,your_android_gift_product
+REVENUECAT_GIFT_ALLOW_SANDBOX=false
+```
+
+Use the exact store product IDs, separated by commas. Enable sandbox gifts only
+on a testing backend. Configure Laravel’s production mail transport and sender,
+run `php artisan migrate --force`, and run Laravel’s scheduler every minute.
+Payment verification and email retries run through that scheduler even if the
+buyer closes the app after payment. Email transport failures retain the gift and
+code for retry; no code is issued before server-side payment verification.
+
+The buyer enters a friend’s email and an optional note. After payment is verified
+against the signed-in buyer’s RevenueCat non-subscription transactions, the server
+emails the note and a cryptographically random, one-use code. The email also
+includes the buyer’s referral code so new recipients can join Kroo first. Gift codes
+are hashed for lookup and encrypted at rest for email delivery. Redeem from
+Profile → Membership → Redeem a gift code. The prepaid year starts on redemption;
+subscription sync preserves it, and redeem retries never add another year.
+
+The gift code is a bearer code: keep it private. A recipient may redeem it on
+their signed-in Kroo account; their account email need not match the delivery
+address. Existing subscribers retain their store subscription, and gift time
+runs for one year from redemption without changing store renewal settings.
+
+An interrupted purchase is recovered using its saved recipient and payment
+baseline. If the store purchase never completed and the app closed before
+reporting cancellation, support must cancel the unpaid draft before retrying.

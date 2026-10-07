@@ -25,6 +25,7 @@ import {
   useKrooPlusBilling,
 } from "@/components/subscription-provider";
 import { responsiveFontSize } from "@/constants/responsive-typography";
+import { BillingStatus } from "@/components/billing-status";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
@@ -101,7 +102,7 @@ export default function KrooPlusScreen() {
   const travel = useAppSelector((state) => state.travel);
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
   const dashboard = useAppSelector((state) => state.dashboard.data);
-  const isPlus = true; //useAppSelector((state) => state.subscription.isKrooPlus);
+  const isPlus = useAppSelector((state) => state.subscription.isKrooPlus);
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Destination | null>(null);
@@ -403,10 +404,11 @@ export default function KrooPlusScreen() {
             </View>
             <PrimaryButton
               style={s.cta}
-              disabled={busy}
+              disabled={busy || billing.connecting}
               onPress={() => void purchase()}
-              label={busy ? "Please Wait…" : "Get Kroo+"}
+              label={billing.connecting ? "Connecting To Store..." : busy ? "Please Wait…" : "Get Kroo+"}
             />
+            <BillingStatus />
             <Text style={s.terms}>Billed immediately. Cancel anytime.</Text>
             {/* <TouchableOpacity onPress={restore}>
               <Text style={s.restore}>Restore purchases</Text>

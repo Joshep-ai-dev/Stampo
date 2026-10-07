@@ -32,6 +32,7 @@ export function KrooPlusOffer({
   monthlyPrice = "$9.99",
   annualPrice = "$99.99",
   busy = false,
+  connecting = false,
   onPurchase,
   onRestore,
   onPlanChange,
@@ -39,6 +40,7 @@ export function KrooPlusOffer({
   monthlyPrice?: string;
   annualPrice?: string;
   busy?: boolean;
+  connecting?: boolean;
   onPurchase: (plan: KrooPlusPlan) => void;
   onRestore?: () => void;
   onPlanChange?: (plan: KrooPlusPlan) => void;
@@ -85,16 +87,16 @@ export function KrooPlusOffer({
       </View>
       <PrimaryButton
         style={s.cta}
-        disabled={busy}
+        disabled={busy || connecting}
         onPress={() => onPurchase(plan)}
-        label={busy ? "Connecting To RevenueCat..." : "Join Kroo+"}
+        label={connecting ? "Connecting To Store..." : busy ? "Please Wait..." : "Join Kroo+"}
       />
       <Text style={s.terms}>
         {plan === "annual" ? `${annualPrice}/year` : `${monthlyPrice}/month`}.
         Cancel anytime.
       </Text>
       {onRestore && (
-        <TouchableOpacity disabled={busy} onPress={onRestore}>
+        <TouchableOpacity disabled={busy || connecting} onPress={onRestore}>
           <Text style={s.restore}>Restore purchase</Text>
         </TouchableOpacity>
       )}
