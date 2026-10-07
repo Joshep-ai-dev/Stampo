@@ -101,7 +101,12 @@ code for retry; no code is issued before server-side payment verification.
 The buyer enters a friend’s email and an optional note. After payment is verified
 against the signed-in buyer’s RevenueCat non-subscription transactions, the server
 emails the note and a cryptographically random, one-use code. The email also
-includes the buyer’s referral code so new recipients can join Kroo first. Gift codes
+instructs new recipients to enter their name and gift code on the welcome page.
+Account creation and redemption happen in one transaction, with the buyer as
+their referrer; failed signup leaves the gift unused. Gift codes
+automatically credit the buyer with a referral for new member signups, subject
+to the existing challenge period. Existing member redemption leaves referral
+relationships unchanged and does not add a referral. Gift codes
 are hashed for lookup and encrypted at rest for email delivery. Redeem from
 Profile → Membership → Redeem a gift code. The prepaid year starts on redemption;
 subscription sync preserves it, and redeem retries never add another year.

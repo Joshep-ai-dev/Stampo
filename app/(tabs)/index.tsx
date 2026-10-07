@@ -47,6 +47,7 @@ import { BrandHeader } from "@/components/brand-header";
 import { CityVisitSearch } from "@/components/city-visit-search";
 import { InfoModal } from "@/components/info-modal";
 import { PrimaryButton } from "@/components/primary-button";
+import { useKrooPlusBilling } from "@/components/subscription-provider";
 import { TravelStats } from "@/components/travel-stats";
 import { BrandColors } from "@/constants/theme";
 import {
@@ -804,6 +805,7 @@ function WorldMap({
 }
 
 export default function HomeScreen() {
+  const billing = useKrooPlusBilling();
   const { width: screenWidth } = useWindowDimensions();
   const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
@@ -845,15 +847,16 @@ export default function HomeScreen() {
           emailOptIn: result.user.emailOptIn,
         }),
       );
+      if (result.subscription) billing.updateEntitlement(result.subscription);
     } catch (error) {
       setReferralError(
         error instanceof Error
           ? error.message
-          : "Could not check your referral code. Please try again.",
+          : "Could not check your referral or gift code. Please try again.",
       );
       setValidatingReferral(false);
     }
-  }, [dispatch, welcomeName, referralCode, validatingReferral]);
+  }, [billing, dispatch, welcomeName, referralCode, validatingReferral]);
   const refreshSignedInTravel = useCallback(async () => {
     const [visitsResult, travelStateResult] = await Promise.allSettled([
       api.listVisits(),
@@ -1220,11 +1223,11 @@ export default function HomeScreen() {
                     setReferralError("");
                   }}
                   style={styles.welcomeInput}
-                  placeholder="Referral code"
+                  placeholder="Referral or gift code"
                   placeholderTextColor={BrandColors.muted}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  accessibilityLabel="Member referral code"
+                  accessibilityLabel="Referral or gift code"
                   editable={!validatingReferral}
                   returnKeyType="go"
                   onSubmitEditing={() => void saveWelcomeName()}
@@ -1235,10 +1238,14 @@ export default function HomeScreen() {
                   {referralError}
                 </Text>
               ) : null}
+              <Text style={styles.welcomeBody}>
+                Enter a referral code to join, or a gift code to join with one
+                prepaid year of Kroo+. Your gift year starts when you join.
+              </Text>
               <PrimaryButton
                 style={styles.welcomeButton}
                 onPress={saveWelcomeName}
-                accessibilityLabel="Validate referral and continue"
+                accessibilityLabel="Validate referral or gift code and join Kroo"
                 disabled={
                   !welcomeName.trim() ||
                   !referralCode.trim() ||

@@ -723,13 +723,13 @@ function cityDetail(
 
 export const api = {
   joinWithReferral: async (name: string, code: string) => {
-    const session = await request<AuthResponse & { accessToken: string }>(
+    const session = await request<AuthResponse & { accessToken: string; subscription?: SubscriptionEntitlement }>(
       "/invitations/join",
       { method: "POST", body: JSON.stringify({ name, code }) },
     );
     setApiToken(session.token);
     await storeAuthToken(session.token);
-    return { user: session.user, accessToken: session.accessToken };
+    return { user: session.user, accessToken: session.accessToken, subscription: session.subscription };
   },
   claimInvitedMembership: async (name: string) => {
     const session = await request<AuthResponse & { accessToken: string }>(

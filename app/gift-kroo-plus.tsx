@@ -121,8 +121,9 @@ export default function GiftKrooPlusScreen() {
           />
           <Text style={styles.subtitle}>
             After payment is verified, we’ll email your friend your message and a
-            unique, one-use code. They can join or sign into Kroo and redeem it
-            to start their year of Kroo+. No payment or subscription needed.
+            unique, one-use code. New members enter it on the welcome page to
+            join and start their year of Kroo+. Existing members redeem it from
+            their Profile. No payment or subscription needed.
           </Text>
           <Text style={styles.label}>ADD A PERSONAL NOTE (OPTIONAL)</Text>
           <TextInput
@@ -148,9 +149,11 @@ export default function GiftKrooPlusScreen() {
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />
             <Text style={styles.referralText}>
-              Share your referral code for the{" "}
+              New members who join using your gift code automatically count as
+              your referrals toward the{" "}
               <Text style={styles.highlight}>Dream Vacation Challenge</Text>{" "}
-              with your friend when they join Kroo.
+              during your challenge period. Gifts to existing members don’t add
+              a referral.
             </Text>
           </View>
         </ScrollView>
