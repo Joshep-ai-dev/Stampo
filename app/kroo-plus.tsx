@@ -1,6 +1,6 @@
-import {
-  responsiveFontSize } from "@/constants/responsive-typography";
+import { responsiveFontSize } from "@/constants/responsive-typography";
 
+import { Text } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -12,11 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/components/app-text";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { KrooPlusOffer } from "@/components/kroo-plus-offer";
-import { BillingStatus } from "@/components/billing-status";
 import {
   revenueCatErrorMessage,
   useKrooPlusBilling,
@@ -28,10 +26,7 @@ export default function KrooPlusScreen() {
   const billing = useKrooPlusBilling();
   const [busy, setBusy] = useState(false);
   const showError = (error: unknown) =>
-    Alert.alert(
-      "Kroo+",
-      revenueCatErrorMessage(error),
-    );
+    Alert.alert("Kroo+", revenueCatErrorMessage(error));
 
   const restore = async () => {
     if (!billing.configured) {
@@ -85,7 +80,6 @@ export default function KrooPlusScreen() {
         </Text>
 
         <View style={{ width: "100%", marginTop: 28 }}>
-          <BillingStatus />
           <KrooPlusOffer
             monthlyPrice={billing.prices.monthly ?? "$9.99"}
             annualPrice={billing.prices.annual ?? "$99.99"}
@@ -93,7 +87,10 @@ export default function KrooPlusScreen() {
             connecting={billing.connecting}
             onPurchase={(plan) => {
               setBusy(true);
-              void billing.purchase(plan).catch(showError).finally(() => setBusy(false));
+              void billing
+                .purchase(plan)
+                .catch(showError)
+                .finally(() => setBusy(false));
             }}
             onRestore={() => void restore()}
           />

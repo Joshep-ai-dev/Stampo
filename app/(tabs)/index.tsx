@@ -1238,10 +1238,10 @@ export default function HomeScreen() {
                   {referralError}
                 </Text>
               ) : null}
-              <Text style={styles.welcomeBody}>
+              {/* <Text style={styles.welcomeBody}>
                 Enter a referral code to join, or a gift code to join with one
                 prepaid year of Kroo+. Your gift year starts when you join.
-              </Text>
+              </Text> */}
               <PrimaryButton
                 style={styles.welcomeButton}
                 onPress={saveWelcomeName}

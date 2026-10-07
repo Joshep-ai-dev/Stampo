@@ -108,7 +108,7 @@ automatically credit the buyer with a referral for new member signups, subject
 to the existing challenge period. Existing member redemption leaves referral
 relationships unchanged and does not add a referral. Gift codes
 are hashed for lookup and encrypted at rest for email delivery. Redeem from
-Profile → Membership → Redeem a gift code. The prepaid year starts on redemption;
+the + page → enter their gift code → Redeem gift. The prepaid year starts on redemption;
 subscription sync preserves it, and redeem retries never add another year.
 
 The gift code is a bearer code: keep it private. A recipient may redeem it on

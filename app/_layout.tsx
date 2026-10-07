@@ -105,7 +105,6 @@ function AppAccess() {
           <Stack.Screen name="add-friends" />
           <Stack.Screen name="country-atlas" />
           <Stack.Screen name="gift-kroo-plus" />
-          <Stack.Screen name="redeem-gift" />
           <Stack.Screen name="kroo-plus" />
           <Stack.Screen name="profile" />
           <Stack.Screen name="legal/[document]" />

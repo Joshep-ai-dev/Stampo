@@ -58,7 +58,6 @@ const profileSections: readonly ProfileSection[] = [
     rows: [
       { id: "kroo-plus", label: "Kroo+" },
       { id: "gift-kroo-plus", label: "Gift a membership" },
-      { id: "redeem-gift", label: "Redeem a gift code" },
     ],
   },
   {
@@ -146,10 +145,6 @@ export default function ProfileScreen() {
     }
     if (row.id === "gift-kroo-plus") {
       router.push("/gift-kroo-plus" as never);
-      return;
-    }
-    if (row.id === "redeem-gift") {
-      router.push("/redeem-gift" as never);
       return;
     }
     if (["privacy", "terms", "vacation"].includes(row.id)) {

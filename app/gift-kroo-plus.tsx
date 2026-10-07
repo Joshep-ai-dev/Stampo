@@ -2,7 +2,6 @@ import { responsiveFontSize } from "@/constants/responsive-typography";
 
 import { Text, TextInput } from "@/components/app-text";
 import { PrimaryButton } from "@/components/primary-button";
-import { BillingStatus } from "@/components/billing-status";
 import {
   revenueCatErrorMessage,
   useKrooPlusBilling,
@@ -35,21 +34,25 @@ export default function GiftKrooPlusScreen() {
   const continueToPurchase = async () => {
     if (busy) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      Alert.alert("Friend’s email required", "Enter a valid email address for your gift recipient.");
+      Alert.alert(
+        "Friend’s email required",
+        "Enter a valid email address for your gift recipient.",
+      );
       return;
     }
     setBusy(true);
     try {
       const gift = await billing.purchaseGift(email.trim(), note.trim());
-      if (gift) Alert.alert("Gift purchased", gift.emailSent
-        ? `We emailed ${gift.recipientEmail} your message and a one-use gift code. Their year starts when they redeem it.`
-        : `Payment verified. Your gift email to ${gift.recipientEmail} is queued for delivery. Their year starts when they redeem the code.`,
-        [{ text: "Done", onPress: () => router.back() }]);
+      if (gift)
+        Alert.alert(
+          "Gift purchased",
+          gift.emailSent
+            ? `We emailed ${gift.recipientEmail} your message and a one-use gift code. Their year starts when they redeem it.`
+            : `Payment verified. Your gift email to ${gift.recipientEmail} is queued for delivery. Their year starts when they redeem the code.`,
+          [{ text: "Done", onPress: () => router.back() }],
+        );
     } catch (error) {
-      Alert.alert(
-        "Kroo+",
-        revenueCatErrorMessage(error),
-      );
+      Alert.alert("Kroo+", revenueCatErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -85,8 +88,8 @@ export default function GiftKrooPlusScreen() {
           </View>
           <Text style={styles.title}>Gift Kroo+</Text>
           <Text style={styles.subtitle}>
-            You’re buying a separate, prepaid membership for your friend.
-            Give them unlimited verification, all Special Lists, and more.
+            You’re buying a separate, prepaid membership for your friend. Give
+            them unlimited verification, all Special Lists, and more.
           </Text>
 
           <View style={styles.product}>
@@ -120,10 +123,10 @@ export default function GiftKrooPlusScreen() {
             placeholderTextColor={BrandColors.onDarkMuted}
           />
           <Text style={styles.subtitle}>
-            After payment is verified, we’ll email your friend your message and a
-            unique, one-use code. New members enter it on the welcome page to
+            After payment is verified, we’ll email your friend your message and
+            a unique, one-use code. New members enter it on the welcome page to
             join and start their year of Kroo+. Existing members redeem it from
-            their Profile. No payment or subscription needed.
+            the + page. No payment or subscription needed.
           </Text>
           <Text style={styles.label}>ADD A PERSONAL NOTE (OPTIONAL)</Text>
           <TextInput
@@ -142,9 +145,14 @@ export default function GiftKrooPlusScreen() {
             style={styles.cta}
             disabled={busy || billing.connecting}
             onPress={() => void continueToPurchase()}
-            label={billing.connecting ? "Connecting To Store..." : busy ? "Processing Gift..." : "Continue To Purchase"}
+            label={
+              billing.connecting
+                ? "Connecting To Store..."
+                : busy
+                  ? "Processing Gift..."
+                  : "Continue To Purchase"
+            }
           />
-          <BillingStatus />
 
           <View style={styles.referralNote}>
             <Ionicons name="sparkles-outline" size={18} color="#58D7A0" />

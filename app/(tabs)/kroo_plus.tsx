@@ -11,6 +11,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -25,9 +26,9 @@ import {
   useKrooPlusBilling,
 } from "@/components/subscription-provider";
 import { responsiveFontSize } from "@/constants/responsive-typography";
-import { BillingStatus } from "@/components/billing-status";
 import { BrandColors } from "@/constants/theme";
 import { calculateKrooScoreFromVisits } from "@/data/kroo-score";
+import { api } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -105,6 +106,8 @@ export default function KrooPlusScreen() {
   const isPlus = useAppSelector((state) => state.subscription.isKrooPlus);
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [busy, setBusy] = useState(false);
+  const [giftCode, setGiftCode] = useState("");
+  const [redeemingGift, setRedeemingGift] = useState(false);
   const [selected, setSelected] = useState<Destination | null>(null);
   const localKrooScore = useMemo(
     () =>
@@ -159,6 +162,35 @@ export default function KrooPlusScreen() {
       </SafeAreaView>
     );
 
+  const redeemGift = async () => {
+    if (redeemingGift || busy || !giftCode.trim()) return;
+    if (!isSignedIn) {
+      Alert.alert(
+        "Sign in required",
+        "Join or sign into Kroo before redeeming your gift.",
+      );
+      return;
+    }
+    setRedeemingGift(true);
+    try {
+      const entitlement = await api.redeemMembershipGift(giftCode.trim());
+      billing.updateEntitlement(entitlement);
+      setGiftCode("");
+      void dispatch(fetchHomeDashboard());
+      Alert.alert(
+        "Gift redeemed",
+        `Your Kroo+ gift is active${entitlement.expiresAt ? ` until ${new Date(entitlement.expiresAt).toLocaleDateString()}` : ""}. No payment or recurring subscription is required.`,
+      );
+    } catch (error) {
+      Alert.alert(
+        "Couldn’t redeem gift",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setRedeemingGift(false);
+    }
+  };
+
   const purchase = async () => {
     if (busy) return;
     setBusy(true);
@@ -176,6 +208,7 @@ export default function KrooPlusScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
+        keyboardShouldPersistTaps="handled"
       >
         <ImageBackground
           source={HERO}
@@ -406,13 +439,41 @@ export default function KrooPlusScreen() {
               style={s.cta}
               disabled={busy || billing.connecting}
               onPress={() => void purchase()}
-              label={billing.connecting ? "Connecting To Store..." : busy ? "Please Wait…" : "Get Kroo+"}
+              label={
+                billing.connecting
+                  ? "Connecting To Store..."
+                  : busy
+                    ? "Please Wait…"
+                    : "Get Kroo+"
+              }
             />
-            <BillingStatus />
-            <Text style={s.terms}>Billed immediately. Cancel anytime.</Text>
-            {/* <TouchableOpacity onPress={restore}>
-              <Text style={s.restore}>Restore purchases</Text>
-            </TouchableOpacity> */}
+
+            <View style={s.giftRedeemPanel}>
+              <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
+              <Text style={s.giftRedeemCopy}>
+                Enter your code to activate your prepaid year of Kroo+.
+              </Text>
+              <TextInput
+                style={s.giftCodeInput}
+                value={giftCode}
+                onChangeText={setGiftCode}
+                placeholder="Enter gift code"
+                placeholderTextColor={BrandColors.onDarkMuted}
+                accessibilityLabel="Gift code"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={64}
+                editable={!redeemingGift}
+                returnKeyType="done"
+                onSubmitEditing={() => void redeemGift()}
+              />
+              <PrimaryButton
+                label={redeemingGift ? "Redeeming…" : "Redeem gift"}
+                onPress={() => void redeemGift()}
+                disabled={redeemingGift || busy || !giftCode.trim()}
+              />
+            </View>
+
             <View style={s.assurances}>
               {[
                 ["shield-checkmark", "Cancel anytime"],
@@ -643,6 +704,35 @@ function Plan({
 }
 
 const s = StyleSheet.create({
+  giftRedeemPanel: {
+    margin: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderColor: BrandColors.greenPanel,
+    paddingTop: 8,
+  },
+  giftRedeemTitle: {
+    textAlign: "center",
+    color: BrandColors.onDark,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(20),
+  },
+  giftRedeemCopy: {
+    textAlign: "center",
+    color: BrandColors.onDarkMuted,
+    fontSize: responsiveFontSize(14),
+    lineHeight: 21,
+  },
+  giftCodeInput: {
+    textAlign: "center",
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: BrandColors.onDarkMuted,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: BrandColors.onDark,
+    fontSize: responsiveFontSize(16),
+  },
   safe: { flex: 1, backgroundColor: BrandColors.canvas },
   content: { paddingBottom: 26 },
   memberGift: {
