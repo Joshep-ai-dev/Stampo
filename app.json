@@ -13,7 +13,7 @@
       "url": "https://u.expo.dev/bce30208-bb4d-4f6b-9e4d-2f3eb2d0e051"
     },
     "ios": {
-      "bundleIdentifier": "com.krootravel.app",
+      "bundleIdentifier": "com.krootravel.kroo",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
