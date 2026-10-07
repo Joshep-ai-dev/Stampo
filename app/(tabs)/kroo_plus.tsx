@@ -447,33 +447,35 @@ export default function KrooPlusScreen() {
                     : "Get Kroo+"
               }
             />
-
-            <View style={s.giftRedeemPanel}>
-              <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
-              <Text style={s.giftRedeemCopy}>
-                Enter your code to activate your prepaid year of Kroo+.
-              </Text>
-              <TextInput
-                style={s.giftCodeInput}
-                value={giftCode}
-                onChangeText={setGiftCode}
-                placeholder="Enter gift code"
-                placeholderTextColor={BrandColors.onDarkMuted}
-                accessibilityLabel="Gift code"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={64}
-                editable={!redeemingGift}
-                returnKeyType="done"
-                onSubmitEditing={() => void redeemGift()}
-              />
-              <PrimaryButton
-                label={redeemingGift ? "Redeeming…" : "Redeem gift"}
-                onPress={() => void redeemGift()}
-                disabled={redeemingGift || busy || !giftCode.trim()}
-              />
-            </View>
-
+          </>
+        )}
+        <View style={s.giftRedeemPanel}>
+          <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
+          <Text style={s.giftRedeemCopy}>
+            Enter your code to activate your prepaid year of Kroo+.
+          </Text>
+          <TextInput
+            style={s.giftCodeInput}
+            value={giftCode}
+            onChangeText={setGiftCode}
+            placeholder="Enter gift code"
+            placeholderTextColor={BrandColors.onDarkMuted}
+            accessibilityLabel="Gift code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={64}
+            editable={!redeemingGift}
+            returnKeyType="done"
+            onSubmitEditing={() => void redeemGift()}
+          />
+          <PrimaryButton
+            label={redeemingGift ? "Redeeming…" : "Redeem gift"}
+            onPress={() => void redeemGift()}
+            disabled={redeemingGift || busy || !giftCode.trim()}
+          />
+        </View>
+        {!isPlus && (
+          <>
             <View style={s.assurances}>
               {[
                 ["shield-checkmark", "Cancel anytime"],
@@ -517,6 +519,7 @@ export default function KrooPlusScreen() {
             </Text>
           </>
         )}
+
         {isPlus && (
           <View style={s.memberGift}>
             <View style={s.memberGiftCardPanel}>
@@ -705,7 +708,8 @@ function Plan({
 
 const s = StyleSheet.create({
   giftRedeemPanel: {
-    margin: 16,
+    marginVertical: 16,
+    marginHorizontal: 12,
     gap: 12,
     borderTopWidth: 1,
     borderColor: BrandColors.greenPanel,
@@ -799,7 +803,7 @@ const s = StyleSheet.create({
   },
   memberGiftButton: {
     marginTop: 13,
-    marginHorizontal: 48,
+    marginHorizontal: 12,
   },
   memberGiftNote: {
     marginTop: 10,
@@ -1179,7 +1183,7 @@ const s = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Lora_400Regular",
     fontSize: responsiveFontSize(13),
-    lineHeight: responsiveFontSize(18),
+    lineHeight: responsiveFontSize(22),
     color: BrandColors.onDarkMuted,
     paddingHorizontal: 8,
   },
