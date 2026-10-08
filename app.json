@@ -15,8 +15,13 @@
     "ios": {
       "bundleIdentifier": "com.krootravel.kroo",
       "supportsTablet": true,
+      "icon": "./assets/images/icon.png",
+      "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Kroo needs access to your camera."
       }
     },
     "android": {
