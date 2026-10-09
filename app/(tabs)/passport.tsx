@@ -293,7 +293,6 @@ function IdentityPage({
               </Pressable>
             ) : null}
           </View>
-          <Text style={styles.identityMotto}>COLLECT{`\n`}THE WORLD</Text>
         </View>
         <ScrollView
           style={styles.signedPassportScroll}
@@ -1105,17 +1104,6 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(20),
     color: BrandColors.green,
     letterSpacing: 1.2,
-  },
-  identityMotto: {
-    position: "absolute",
-    right: 0,
-    top: 4,
-    textAlign: "right",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(10),
-    lineHeight: responsiveFontSize(16),
-    letterSpacing: 1.6,
-    color: BrandColors.green,
   },
   passportStampContainer: {
     marginLeft: -30,
