@@ -1,7 +1,7 @@
 import { Text } from "@/components/app-text";
 import { PrimaryButton } from "@/components/primary-button";
 import { Ionicons } from "@expo/vector-icons";
-import { Image, ImageBackground } from "expo-image";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -15,10 +15,8 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
-  type TextStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 
 import { CityVisitSearch } from "@/components/city-visit-search";
 import {
@@ -33,6 +31,7 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
+const HERO_PLUS = require("@/assets/images/other/top image+.webp");
 const MEMBER_GIFT_CARD = require("@/assets/images/other/kroo card.webp");
 
 const destinations = [
@@ -80,16 +79,6 @@ const destinations = [
   },
 ] as const;
 type Destination = (typeof destinations)[number];
-
-function HeroShadowText({
-  children,
-  style,
-}: {
-  children: string;
-  style: TextStyle;
-}) {
-  return <Text style={style}>{children}</Text>;
-}
 
 export default function KrooPlusScreen() {
   const { width } = useWindowDimensions();
@@ -210,47 +199,23 @@ export default function KrooPlusScreen() {
         contentContainerStyle={s.content}
         keyboardShouldPersistTaps="handled"
       >
-        <ImageBackground
-          source={HERO}
-          style={[s.hero, { minHeight: Math.max(350, width * 0.79) }]}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          priority="high"
-        >
-          <Svg style={s.heroTextShadow} pointerEvents="none">
-            <Defs>
-              <RadialGradient id="heroTextShade">
-                <Stop offset="0" stopColor="#000" stopOpacity="0.78" />
-                <Stop offset="0.48" stopColor="#000" stopOpacity="0.58" />
-                <Stop offset="1" stopColor="#000" stopOpacity="0" />
-              </RadialGradient>
-            </Defs>
-            <Ellipse
-              cx="50%"
-              cy="50%"
-              rx="50%"
-              ry="50%"
-              fill="url(#heroTextShade)"
-            />
-          </Svg>
-          <View style={s.heroMark} accessible={false}>
-            <Image
-              source={require("@/assets/images/kroo-logo.png")}
-              style={s.heroMarkImage}
-              contentFit="contain"
-            />
-          </View>
-          <HeroShadowText style={s.heroTitle}>
-            {isPlus ? "Your Kroo+ Challenge" : "Join Kroo+"}
-          </HeroShadowText>
-          <HeroShadowText style={s.heroPrize}>Win $1,000</HeroShadowText>
-          <HeroShadowText style={s.heroVacation}>
-            for Your Dream Vacation
-          </HeroShadowText>
-          <HeroShadowText style={s.heroSubtitle}>
-            Complete these 3 steps to win.
-          </HeroShadowText>
-        </ImageBackground>
+        {isPlus ? (
+          <Image
+            source={HERO_PLUS}
+            style={s.hero}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            priority="high"
+          ></Image>
+        ) : (
+          <Image
+            source={HERO}
+            style={s.hero}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            priority="high"
+          ></Image>
+        )}
 
         <View style={s.steps}>
           {[
@@ -814,50 +779,14 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   hero: {
+    width: "100%",
+    height: "auto",
+    aspectRatio: 1 / 1.15,
     paddingTop: 8,
     paddingHorizontal: 12,
     paddingBottom: 22,
   },
-  heroMark: {
-    alignSelf: "center",
-    width: 56,
-    height: 31,
-    overflow: "hidden",
-  },
-  heroMarkImage: {
-    position: "absolute",
-    width: 179,
-    height: 67,
-    left: -11,
-    top: -18,
-  },
-  heroTextShadow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 220,
-  },
-  heroPrize: {
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(40),
-    lineHeight: responsiveFontSize(40),
-    color: BrandColors.copperDark,
-    textShadowColor: "rgba(0,0,0,0.95)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 42,
-  },
-  heroVacation: {
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(26),
-    lineHeight: responsiveFontSize(26),
-    color: BrandColors.copper,
-    textShadowColor: "rgba(0,0,0,0.95)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 42,
-  },
+
   challengeDeadline: {
     marginTop: 8,
     textAlign: "center",
@@ -866,27 +795,7 @@ const s = StyleSheet.create({
     lineHeight: responsiveFontSize(18),
     color: BrandColors.onDarkMuted,
   },
-  heroTitle: {
-    marginTop: 2,
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    fontSize: responsiveFontSize(22),
-    lineHeight: responsiveFontSize(22),
-    color: BrandColors.white,
-    textShadowColor: "rgba(0,0,0,1)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 42,
-  },
-  heroSubtitle: {
-    textAlign: "center",
-    fontFamily: "Lora_600SemiBold",
-    fontSize: responsiveFontSize(16),
-    lineHeight: responsiveFontSize(24),
-    color: BrandColors.white,
-    textShadowColor: "rgba(0,0,0,1)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 42,
-  },
+
   steps: {
     marginTop: -32,
     paddingHorizontal: 2,

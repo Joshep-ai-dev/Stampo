@@ -336,9 +336,7 @@ function Destination({
       <PaperBorder wide />
       <View style={s.destinationTop}>
         <View style={{ flex: 1 }}>
-          <Text style={s.eyebrow}>
-            {isPreview ? "LESSON 0 · FREE" : (destination?.region ?? "KROO IQ")}
-          </Text>
+          <Text style={s.eyebrow}>{""}</Text>
           <View style={s.destinationNameRow}>
             {destination?.flag ? (
               <Text style={s.destinationFlag}>{destination.flag}</Text>
