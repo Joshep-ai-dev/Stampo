@@ -293,9 +293,7 @@ function IdentityPage({
               </Pressable>
             ) : null}
           </View>
-          <Text style={styles.identityMotto}>
-            A MORE{`\n`}CURIOUS{`\n`}YOU
-          </Text>
+          <Text style={styles.identityMotto}>COLLECT{`\n`}THE WORLD</Text>
         </View>
         <ScrollView
           style={styles.signedPassportScroll}
@@ -1115,7 +1113,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontFamily: "Lora_700Bold",
     fontSize: responsiveFontSize(10),
-    lineHeight: responsiveFontSize(10),
+    lineHeight: responsiveFontSize(16),
     letterSpacing: 1.6,
     color: BrandColors.green,
   },
@@ -1398,7 +1396,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(14),
-    lineHeight: responsiveFontSize(10),
     color: BrandColors.ink,
   },
   Backdrop: {

@@ -224,24 +224,21 @@ export default function KrooPlusScreen() {
               icon: "stats-chart",
               title: "Reach a Kroo Score of 5.0+",
               copy: "Explore the world\nand build your score.",
-              action: () => router.navigate("/(tabs)/passport" as never),
             },
             {
               n: "2",
               icon: "bulb",
               title: "Achieve a Kroo IQ Score of 85+",
               copy: "Show off your\ntravel knowledge.",
-              action: () => router.navigate("/(tabs)/community" as never),
             },
             {
               n: "3",
               icon: "people",
               title: "Refer 5 people to join Kroo",
               copy: "Share the adventure\nwith family and friends.",
-              action: () => router.push("/my-referrals" as never),
             },
           ].map((step) => (
-            <TouchableOpacity key={step.n} style={s.step} onPress={step.action}>
+            <View key={step.n} style={s.step}>
               <View style={s.stepArc}>
                 <View style={s.number}>
                   <Text style={s.numberText}>{step.n}</Text>
@@ -271,7 +268,7 @@ export default function KrooPlusScreen() {
                 <Text style={s.stepTitle}>{step.title}</Text>
               </View>
               <Text style={s.stepCopy}>{step.copy}</Text>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
 
@@ -351,24 +348,20 @@ export default function KrooPlusScreen() {
               {[
                 [
                   "trophy",
-                  "Dream Vacation Challenge",
-                  "Win a free vacation of a lifetime.",
+                  "Dream\nVacation",
+                  "Get $1000 for your dream vacation",
                 ],
                 [
                   "bulb",
                   "Access to\nKroo IQ",
-                  "Learn and test your travel knowledge.",
+                  "Learn and test your travel knowledge",
                 ],
                 [
                   "business",
                   "Full access to Top Sights",
-                  "Explore and discover more amazing places.",
+                  "Explore and discover more amazing places",
                 ],
-                [
-                  "star",
-                  "Exclusive challenges and events",
-                  "Unique member experiences.",
-                ],
+                ["star", "Exclusive Discounts", "Special offers and discounts"],
               ].map(([icon, title, copy]) => (
                 <View key={title} style={s.benefit}>
                   <View style={s.benefitInner}>
@@ -417,7 +410,7 @@ export default function KrooPlusScreen() {
         <View style={s.giftRedeemPanel}>
           <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
           <Text style={s.giftRedeemCopy}>
-            Enter your code to activate your prepaid year of Kroo+.
+            Enter your code to redeem your gift
           </Text>
           <TextInput
             style={s.giftCodeInput}
@@ -690,7 +683,6 @@ const s = StyleSheet.create({
     textAlign: "center",
     color: BrandColors.onDarkMuted,
     fontSize: responsiveFontSize(14),
-    lineHeight: 21,
   },
   giftCodeInput: {
     textAlign: "center",
