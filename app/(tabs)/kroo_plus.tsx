@@ -31,7 +31,7 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 const HERO = require("@/assets/images/other/top image.webp");
-const HERO_PLUS = require("@/assets/images/other/top image+.webp");
+const HERO_PLUS = require("@/assets/images/other/top image plus.webp");
 const MEMBER_GIFT_CARD = require("@/assets/images/other/kroo card.webp");
 
 const destinations = [
@@ -199,23 +199,13 @@ export default function KrooPlusScreen() {
         contentContainerStyle={s.content}
         keyboardShouldPersistTaps="handled"
       >
-        {isPlus ? (
-          <Image
-            source={HERO_PLUS}
-            style={s.hero}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="high"
-          ></Image>
-        ) : (
-          <Image
-            source={HERO}
-            style={s.hero}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="high"
-          ></Image>
-        )}
+        <Image
+          source={isPlus ? HERO_PLUS : HERO}
+          style={s.hero}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          priority="high"
+        ></Image>
 
         <View style={s.steps}>
           {[
