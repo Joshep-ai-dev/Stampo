@@ -32,7 +32,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import Svg, {
   Circle,
   Defs,
@@ -1177,7 +1180,10 @@ export default function HomeScreen() {
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <SafeAreaView style={styles.welcomeOverlay} edges={["top", "left", "right"]}>
+        <SafeAreaView
+          style={styles.welcomeOverlay}
+          edges={["top", "left", "right"]}
+        >
           <ImageBackground
             source={require("@/assets/images/other/welcome.webp")}
             resizeMode="cover"
@@ -1313,7 +1319,7 @@ function SaveProgressIcon() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#00271C" },
   content: {
-    paddingBottom: 30,
+    paddingBottom: 20,
     width: "100%",
     maxWidth: 600,
     alignSelf: "center",
