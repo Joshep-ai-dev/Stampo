@@ -113,7 +113,7 @@ export default function KrooPlusScreen() {
     }, [dispatch, isSignedIn]),
   );
   const challenge = dashboard?.challengeProgress;
-  const krooScore = challenge?.krooScore ?? localKrooScore;
+  const krooScore = (isSignedIn ? dashboard?.score : undefined) ?? localKrooScore;
   const krooIq = challenge?.krooIqScore ?? 0;
   const referrals = challenge?.referralCount ?? 0;
   const deadlineLabel = challenge?.deadlineAt
