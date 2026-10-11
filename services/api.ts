@@ -6,8 +6,9 @@ import {
   storeAuthToken,
 } from "./auth-token";
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_URL = (
+  process.env.EXPO_PUBLIC_API_URL?.trim() || "https://krootravel.com/api/v1"
+).replace(/\/+$/, "");
 const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
 
 function backendImageUrl(value?: string) {
@@ -69,11 +70,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
+  if (response.status === 204) return undefined as T;
+  const body = await response.text();
+  let data: unknown;
+  try {
+    data = JSON.parse(body);
+  } catch {
+    throw new ApiError(
+      response.status,
+      response.status >= 500
+        ? "The server is temporarily unavailable. Please try again shortly."
+        : "The server returned an unexpected response. Please check your connection and try again.",
+    );
+  }
   if (!response.ok) {
-    const body = await response.text();
     let message = body.trim();
     try {
-      const parsed = JSON.parse(body) as {
+      const parsed = data as {
         message?: string;
         error?: string;
         errors?: Record<string, string[]>;
@@ -97,8 +110,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       message || `Request failed (${response.status}).`,
     );
   }
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  return data as T;
 }
 
 type AuthResponse = {

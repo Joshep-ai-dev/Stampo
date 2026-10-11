@@ -32,7 +32,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, {
   Circle,
   Defs,
@@ -806,7 +806,8 @@ function WorldMap({
 
 export default function HomeScreen() {
   const billing = useKrooPlusBilling();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const compact = screenWidth < 380;
   const dispatch = useAppDispatch();
   const visits = useAppSelector((x) => x.travel.visits);
@@ -1176,15 +1177,25 @@ export default function HomeScreen() {
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <View style={styles.welcomeOverlay}>
+        <SafeAreaView style={styles.welcomeOverlay} edges={["top", "left", "right"]}>
           <ImageBackground
             source={require("@/assets/images/other/welcome.webp")}
             resizeMode="cover"
             style={styles.welcomeSheet}
+            imageStyle={{
+              top: 0,
+              height: Math.max(
+                screenHeight - insets.top,
+                ((screenWidth - insets.left - insets.right) * 2100) / 941,
+              ),
+            }}
           >
             <ScrollView
               style={styles.welcomeSheetContent}
-              contentContainerStyle={styles.welcomeTextContent}
+              contentContainerStyle={[
+                styles.welcomeTextContent,
+                { paddingBottom: 36 + insets.bottom },
+              ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -1255,7 +1266,7 @@ export default function HomeScreen() {
               />
             </ScrollView>
           </ImageBackground>
-        </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -1309,7 +1320,7 @@ const styles = StyleSheet.create({
   },
   welcomeOverlay: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: BrandColors.green,
   },
   welcomeSheet: {
     width: "100%",
@@ -1791,6 +1802,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     bottom: 20,
+    maxHeight: "100%",
   },
   welcomeTextContent: {
     paddingTop: 8,
