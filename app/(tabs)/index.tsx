@@ -1319,7 +1319,7 @@ function SaveProgressIcon() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#00271C" },
   content: {
-    paddingBottom: 20,
+    paddingBottom: 30,
     width: "100%",
     maxWidth: 600,
     alignSelf: "center",
@@ -1332,11 +1332,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     overflow: "hidden",
-  },
-  welcomeContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 14,
-    alignItems: "stretch",
   },
 
   welcomeInputWrap: {
