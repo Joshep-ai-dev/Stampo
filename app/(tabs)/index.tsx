@@ -1200,7 +1200,7 @@ export default function HomeScreen() {
               style={styles.welcomeSheetContent}
               contentContainerStyle={[
                 styles.welcomeTextContent,
-                { paddingBottom: 36 + insets.bottom },
+                { paddingBottom: 20 + insets.bottom },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
