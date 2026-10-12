@@ -36,6 +36,7 @@ export default function ExploreScreen() {
     (state) => state.travel.completedSightIds,
   );
   const isSignedIn = useAppSelector((state) => state.profile.isSignedIn);
+  const nationality = useAppSelector((state) => state.profile.nationality);
   const [countryFilter, setCountryFilter] = useState("All");
   const [collectionFilter, setCollectionFilter] =
     useState<(typeof collectionFilters)[number]>("All");
@@ -43,6 +44,12 @@ export default function ExploreScreen() {
     CollectionProgress[]
   >([]);
   const [countryCatalog] = useState<CountryRecord[]>(getAllCountries);
+  const nationalityCode = countryCatalog.find(
+    (country) =>
+      country.name.toLocaleLowerCase() === nationality.trim().toLocaleLowerCase() ||
+      country.code.toUpperCase() === nationality.trim().toUpperCase(),
+  )?.code;
+  const [nationalCollectionIds, setNationalCollectionIds] = useState<string[]>([]);
   const countries = useMemo(() => {
     const visitedCodes = new Set(
       visits.map((visit) => visit.countryCode.trim().toUpperCase()),
@@ -74,14 +81,24 @@ export default function ExploreScreen() {
     useCallback(() => {
       let active = true;
       void (async () => {
-        const [progressItems, kinds] = await Promise.all([
+        const [progressItems, kinds, nationalCollections] = await Promise.all([
           isSignedIn ? api.listCollections().catch(() => []) : Promise.resolve([]),
           api.collectionKinds().catch(() => []),
+          nationalityCode
+            ? api.countryDetail(nationalityCode)
+                .then((detail) => detail.collections.filter(
+                  (collection) => collection.countryId?.toUpperCase() === nationalityCode.toUpperCase(),
+                ))
+                .catch(() => [])
+            : Promise.resolve([]),
         ]);
         const progressById = new Map(
           progressItems.map((item) => [item.id, item]),
         );
-        const details: CollectionProgress[] = kinds.map((kind) => {
+        const catalog = Array.from(new Map(
+          [...kinds, ...nationalCollections].map((kind) => [kind.id, kind]),
+        ).values());
+        const details: CollectionProgress[] = catalog.map((kind) => {
           const progress = progressById.get(kind.id);
           return {
             ...kind,
@@ -92,16 +109,17 @@ export default function ExploreScreen() {
         });
         if (active) {
           setCollectionCatalog(details);
+          setNationalCollectionIds(nationalCollections.map((collection) => collection.id));
         }
       })();
       return () => {
         active = false;
       };
-    }, [isSignedIn]),
+    }, [isSignedIn, nationalityCode]),
   );
   const visibleCollections = useMemo(() => {
     const withLocalProgress = collectionCatalog
-      .filter((collection) => collection.access !== "pro")
+      .filter((collection) => collection.access !== "pro" || nationalCollectionIds.includes(collection.id))
       .map((collection) => {
         const places = collection.places ?? [];
         const localCompleted = places.filter((place) =>
@@ -127,7 +145,7 @@ export default function ExploreScreen() {
       );
     }
     return withLocalProgress.filter((collection) => collection.progress >= 100);
-  }, [collectionCatalog, collectionFilter, completedSightIds, visits]);
+  }, [collectionCatalog, collectionFilter, completedSightIds, visits, nationalCollectionIds]);
   useEffect(() => {
     const nextImages = visibleCollections
       .slice(0, 6)
