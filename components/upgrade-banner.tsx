@@ -31,7 +31,7 @@ export function UpgradeBanner({
 
   const openPurchaseOptions = () => {
     if (!active) {
-      router.push("/kroo-plus" as never);
+      router.push("/(tabs)/kroo_plus");
       return;
     }
     if (!configured) {
