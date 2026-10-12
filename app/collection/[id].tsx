@@ -45,19 +45,6 @@ function PlaceImage({
 
 function placeLocation(place: CollectionPlace, collectionId: string) {
   if (collectionId === "usa" || collectionId === "seas") return "";
-  if (place.state && place.state !== place.city) {
-    return [place.city, place.state, place.country].filter(Boolean).join(", ");
-  }
-  if (place.location) {
-    const includesCountry =
-      place.country &&
-      place.location
-        .toLocaleLowerCase()
-        .includes(place.country.toLocaleLowerCase());
-    return [place.location, includesCountry ? undefined : place.country]
-      .filter(Boolean)
-      .join(", ");
-  }
   return [place.city, place.country].filter(Boolean).join(", ");
 }
 
