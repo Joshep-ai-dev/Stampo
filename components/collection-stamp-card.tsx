@@ -76,17 +76,20 @@ export function CollectionStampList({
   placeName: string;
 }) {
   const router = useRouter();
+  const sortedCollections = [...collections].sort((left, right) =>
+    left.title.localeCompare(right.title, "en", { sensitivity: "base" }),
+  );
 
   return (
     <>
       <PlaceSectionTitle>Collections</PlaceSectionTitle>
-      {collections.length ? (
+      {sortedCollections.length ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.row}
         >
-          {collections.map((collection) => {
+          {sortedCollections.map((collection) => {
             const completed = collection.places.filter((place) =>
               isCollectionPlaceCompleted(
                 collection.id,

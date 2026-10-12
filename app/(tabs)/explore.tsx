@@ -137,7 +137,10 @@ export default function ExploreScreen() {
           ...collection,
           progress: Math.max(collection.progress, localProgress),
         };
-      });
+      })
+      .sort((left, right) =>
+        left.title.localeCompare(right.title, "en", { sensitivity: "base" }),
+      );
     if (collectionFilter === "All") return withLocalProgress;
     if (collectionFilter === "Active") {
       return withLocalProgress.filter(
