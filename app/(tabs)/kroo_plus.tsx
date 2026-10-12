@@ -397,31 +397,33 @@ export default function KrooPlusScreen() {
             />
           </>
         )}
-        <View style={s.giftRedeemPanel}>
-          <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
-          <Text style={s.giftRedeemCopy}>
-            Enter your code to redeem your gift
-          </Text>
-          <TextInput
-            style={s.giftCodeInput}
-            value={giftCode}
-            onChangeText={setGiftCode}
-            placeholder="Enter gift code"
-            placeholderTextColor={BrandColors.onDarkMuted}
-            accessibilityLabel="Gift code"
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={64}
-            editable={!redeemingGift}
-            returnKeyType="done"
-            onSubmitEditing={() => void redeemGift()}
-          />
-          <PrimaryButton
-            label={redeemingGift ? "Redeeming…" : "Redeem gift"}
-            onPress={() => void redeemGift()}
-            disabled={redeemingGift || busy || !giftCode.trim()}
-          />
-        </View>
+        {!isPlus && (
+          <View style={s.giftRedeemPanel}>
+            <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
+            <Text style={s.giftRedeemCopy}>
+              Enter your code to redeem your gift
+            </Text>
+            <TextInput
+              style={s.giftCodeInput}
+              value={giftCode}
+              onChangeText={setGiftCode}
+              placeholder="Enter gift code"
+              placeholderTextColor={BrandColors.onDarkMuted}
+              accessibilityLabel="Gift code"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={64}
+              editable={!redeemingGift}
+              returnKeyType="done"
+              onSubmitEditing={() => void redeemGift()}
+            />
+            <PrimaryButton
+              label={redeemingGift ? "Redeeming…" : "Redeem gift"}
+              onPress={() => void redeemGift()}
+              disabled={redeemingGift || busy || !giftCode.trim()}
+            />
+          </View>
+        )}
         {!isPlus && (
           <>
             <View style={s.assurances}>
