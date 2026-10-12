@@ -28,7 +28,7 @@ import { BrandColors } from "@/constants/theme";
 import { api, type CityDetail, type SightDetail } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { sightCompletionSet } from "@/store/travel-slice";
+import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
 
 export default function CityScreen() {
   const {
@@ -140,6 +140,10 @@ export default function CityScreen() {
     try {
       await api.setSightCompleted(sightId, next);
       dispatch(sightCompletionSet({ id: sightId, completed: next }));
+      void api
+        .listVisits()
+        .then((visits) => dispatch(visitsHydrated(visits)))
+        .catch(() => undefined);
       setCity((current) =>
         current
           ? {

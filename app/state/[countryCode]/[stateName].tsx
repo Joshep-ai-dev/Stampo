@@ -33,7 +33,7 @@ import {
 } from "@/services/api";
 import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { sightCompletionSet } from "@/store/travel-slice";
+import { sightCompletionSet, visitsHydrated } from "@/store/travel-slice";
 
 const US_STATE_CODES: Record<string, string> = {
   Alabama: "al",
@@ -193,6 +193,10 @@ export default function StateScreen() {
     try {
       await api.setSightCompleted(id, next);
       dispatch(sightCompletionSet({ id, completed: next }));
+      void api
+        .listVisits()
+        .then((visits) => dispatch(visitsHydrated(visits)))
+        .catch(() => undefined);
       setDetail((current) =>
         current
           ? {
