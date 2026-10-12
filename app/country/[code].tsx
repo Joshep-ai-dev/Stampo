@@ -121,16 +121,22 @@ export default function CountryScreen() {
   const countryCollections = [...(detail?.collections ?? [])].sort(
     (left, right) => left.title.localeCompare(right.title),
   );
+  const matchesCountryName = (country?: string | null) =>
+    country?.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase();
   const countryCollectionItems = countryCollections
     .map((collection) => ({
       collection,
-      places: collection.places.filter(
-        (place) =>
-          place.country?.trim().toLocaleLowerCase() ===
-          name.trim().toLocaleLowerCase(),
+      isCountryTarget: collection.countryId?.toUpperCase() === normalizedCode,
+      places: collection.places.filter((place) =>
+        place.countryId
+          ? place.countryId.toUpperCase() === normalizedCode
+          : matchesCountryName(place.country),
       ),
     }))
-    .filter(({ places }) => places.length > 0);
+    .filter(
+      ({ collection, isCountryTarget, places }) =>
+        isCountryTarget || (collection.countryId == null && places.length > 0),
+    );
   const localSightIds = new Set(
     countryVisits.flatMap((visit) =>
       visit.places
@@ -383,7 +389,6 @@ export default function CountryScreen() {
           visits={allVisits}
           placeName={name}
         />
-
       </ScrollView>
       {selectedSight ? (
         <DetailModal

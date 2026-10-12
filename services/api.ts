@@ -295,6 +295,8 @@ export type ManagedCollection = {
   access?: "free" | "pro";
   id: string;
   title: string;
+  countryId?: string | null;
+  country?: string | null;
   detail: string;
   description: string;
   imageUrl: string;
@@ -607,7 +609,9 @@ function levelForScore(score: number) {
   return "Wanderer";
 }
 
-async function fetchCountryDetail(code: string): Promise<CountryDetailResponse> {
+async function fetchCountryDetail(
+  code: string,
+): Promise<CountryDetailResponse> {
   const normalizedCode = code.trim().toUpperCase();
   const path = `/catalog/countries/${encodeURIComponent(normalizedCode)}`;
   for (let attempt = 0; attempt < 90; attempt += 1) {
@@ -735,13 +739,22 @@ function cityDetail(
 
 export const api = {
   joinWithReferral: async (name: string, code: string) => {
-    const session = await request<AuthResponse & { accessToken: string; subscription?: SubscriptionEntitlement }>(
-      "/invitations/join",
-      { method: "POST", body: JSON.stringify({ name, code }) },
-    );
+    const session = await request<
+      AuthResponse & {
+        accessToken: string;
+        subscription?: SubscriptionEntitlement;
+      }
+    >("/invitations/join", {
+      method: "POST",
+      body: JSON.stringify({ name, code }),
+    });
     setApiToken(session.token);
     await storeAuthToken(session.token);
-    return { user: session.user, accessToken: session.accessToken, subscription: session.subscription };
+    return {
+      user: session.user,
+      accessToken: session.accessToken,
+      subscription: session.subscription,
+    };
   },
   claimInvitedMembership: async (name: string) => {
     const session = await request<AuthResponse & { accessToken: string }>(
@@ -773,25 +786,28 @@ export const api = {
   countryDetail,
   cityDetail,
   stateDetail: (countryCode: string, stateName: string) =>
-    cachedDetail(`state:${countryCode.toUpperCase()}:${stateName}`, async () => {
-      const result = await request<
-        Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
-          cities: BackendCity[];
-          sights: BackendSight[];
-          collections: ManagedCollection[];
-        }
-      >(
-        `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
-      );
-      const cities = result.cities.map(normalizeCity);
-      return {
-        ...result,
-        imageUrl: backendImageUrl(result.imageUrl),
-        cities,
-        sights: result.sights.map(normalizeSight),
-        collections: result.collections.map(normalizeCollection),
-      };
-    }),
+    cachedDetail(
+      `state:${countryCode.toUpperCase()}:${stateName}`,
+      async () => {
+        const result = await request<
+          Omit<StateDetailResponse, "cities" | "sights" | "collections"> & {
+            cities: BackendCity[];
+            sights: BackendSight[];
+            collections: ManagedCollection[];
+          }
+        >(
+          `/catalog/countries/${encodeURIComponent(countryCode)}/states/${encodeURIComponent(stateName)}`,
+        );
+        const cities = result.cities.map(normalizeCity);
+        return {
+          ...result,
+          imageUrl: backendImageUrl(result.imageUrl),
+          cities,
+          sights: result.sights.map(normalizeSight),
+          collections: result.collections.map(normalizeCollection),
+        };
+      },
+    ),
   searchCities: (
     query: string,
     limit = 20,
@@ -889,11 +905,18 @@ export const api = {
       })),
     ),
   friendCode: () => request<{ code: string }>("/me/friend-code"),
-  referrals: (page = 1) => request<{
-    members: { id: string; name: string; krooId: string; joinedAt: string; source: "gift" | "referral" }[];
-    total: number;
-    nextPage: number | null;
-  }>(`/me/referrals?page=${page}`),
+  referrals: (page = 1) =>
+    request<{
+      members: {
+        id: string;
+        name: string;
+        krooId: string;
+        joinedAt: string;
+        source: "gift" | "referral";
+      }[];
+      total: number;
+      nextPage: number | null;
+    }>(`/me/referrals?page=${page}`),
   addFriendByCode: (code: string) =>
     request<CommunityProfile>("/me/friends/scan", {
       method: "POST",
@@ -902,17 +925,28 @@ export const api = {
   travelState: () => request<TravelStateResponse>("/me/travel-state"),
   subscriptionStatus: () =>
     request<SubscriptionEntitlement>("/me/subscription"),
-  createMembershipGift: (recipientEmail: string, message: string, productId: string) =>
+  createMembershipGift: (
+    recipientEmail: string,
+    message: string,
+    productId: string,
+  ) =>
     request<MembershipGift>("/me/membership-gifts", {
-      method: "POST", body: JSON.stringify({ recipientEmail, message, productId }),
+      method: "POST",
+      body: JSON.stringify({ recipientEmail, message, productId }),
     }),
   verifyMembershipGift: (id: string) =>
-    request<MembershipGift>(`/me/membership-gifts/${encodeURIComponent(id)}/verify`, { method: "POST" }),
+    request<MembershipGift>(
+      `/me/membership-gifts/${encodeURIComponent(id)}/verify`,
+      { method: "POST" },
+    ),
   cancelMembershipGift: (id: string) =>
-    request<void>(`/me/membership-gifts/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    request<void>(`/me/membership-gifts/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   redeemMembershipGift: (code: string) =>
     request<SubscriptionEntitlement>("/me/membership-gifts/redeem", {
-      method: "POST", body: JSON.stringify({ code }),
+      method: "POST",
+      body: JSON.stringify({ code }),
     }),
   syncRevenueCatSubscription: () =>
     request<SubscriptionEntitlement>("/me/subscription/revenuecat/sync", {
@@ -935,9 +969,9 @@ export const api = {
     ),
   collectionDetail: (id: string, accessKey = "default") =>
     cachedDetail(`collection:${id}:${accessKey}`, () =>
-      request<ManagedCollection>(
-        `/collections/${encodeURIComponent(id)}`,
-      ).then(normalizeCollection),
+      request<ManagedCollection>(`/collections/${encodeURIComponent(id)}`).then(
+        normalizeCollection,
+      ),
     ),
   setCollectionProgress: (collectionId: string, progress: number) =>
     request<CollectionProgress>(
