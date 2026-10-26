@@ -115,6 +115,9 @@ const profileSlice = createSlice({
       state.isSignedIn = false;
       state.userId = null;
     },
+    accountDeleted() {
+      return { ...initialState };
+    },
     profileHydrated(_state, action: PayloadAction<ProfileState>) {
       return { ...initialState, ...action.payload };
     },
@@ -133,5 +136,6 @@ export const {
   photoChanged,
   profileHydrated,
   signedOut,
+  accountDeleted,
 } = profileSlice.actions;
 export default profileSlice.reducer;

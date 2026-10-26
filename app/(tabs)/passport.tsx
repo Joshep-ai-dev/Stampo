@@ -43,6 +43,7 @@ import { fetchHomeDashboard } from "@/store/dashboard-slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import type { ProfileState } from "@/store/profile-slice";
 import {
+  accountDeleted,
   emailPreferenceChanged,
   languageChanged,
   membershipStarted,
@@ -160,6 +161,8 @@ function IdentityPage({
   const [saving, setSaving] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
   const [idCopied, setIdCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const displayedKrooId =
     profile.krooNumber > 0
       ? formatKrooId(profile.krooNumber)
@@ -259,6 +262,22 @@ function IdentityPage({
       setSaving(false);
     }
   };
+  const deleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await api.deleteAccount();
+      setDeleteConfirmVisible(false);
+      dispatch(accountDeleted());
+    } catch (error) {
+      setDeleting(false);
+      setDeleteConfirmVisible(false);
+      Alert.alert(
+        "Account not deleted",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
   return (
     <>
       <View style={[styles.paper, styles.identityPaper, { width, height }]}>
@@ -293,6 +312,21 @@ function IdentityPage({
               </Pressable>
             ) : null}
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            accessibilityHint="Permanently deletes your Kroo account and data"
+            hitSlop={10}
+            disabled={deleting}
+            onPress={() => setDeleteConfirmVisible(true)}
+            style={styles.deleteAccountButton}
+          >
+            {deleting ? (
+              <ActivityIndicator size="small" color="#B42318" />
+            ) : (
+              <Ionicons name="trash-outline" size={18} color="#B42318" />
+            )}
+          </Pressable>
         </View>
         <ScrollView
           style={styles.signedPassportScroll}
@@ -643,6 +677,58 @@ function IdentityPage({
           }}
         />
       ) : null}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={deleteConfirmVisible}
+        onRequestClose={() => {
+          if (!deleting) setDeleteConfirmVisible(false);
+        }}
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
+        <View style={styles.deleteModalRoot}>
+          <Pressable
+            style={styles.deleteModalBackdrop}
+            disabled={deleting}
+            onPress={() => setDeleteConfirmVisible(false)}
+          />
+          <View
+            accessibilityRole="alert"
+            accessibilityLabel="Delete Kroo account confirmation"
+            style={styles.deleteModalCard}
+          >
+            <View style={styles.deleteModalIcon}>
+              <Ionicons name="trash-outline" size={28} color="#E36A5D" />
+            </View>
+            <Text style={styles.deleteModalTitle}>Delete Kroo account?</Text>
+            <Text style={styles.deleteModalBody}>
+              This permanently deletes your passport, travel history, stamps,
+              profile, and account. This action cannot be undone.
+            </Text>
+            <View style={styles.deleteModalActions}>
+              <Pressable
+                style={[styles.deleteModalButton, styles.deleteCancelButton]}
+                disabled={deleting}
+                onPress={() => setDeleteConfirmVisible(false)}
+              >
+                <Text style={styles.deleteCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.deleteModalButton, styles.deleteConfirmButton]}
+                disabled={deleting}
+                onPress={() => void deleteAccount()}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color={BrandColors.white} />
+                ) : (
+                  <Text style={styles.deleteConfirmText}>Delete Account</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal
         transparent
         animationType="slide"
@@ -1098,6 +1184,100 @@ const styles = StyleSheet.create({
   },
   identityHeading: {
     position: "relative",
+  },
+  deleteAccountButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteModalRoot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  deleteModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,10,7,.72)",
+  },
+  deleteModalCard: {
+    width: "100%",
+    maxWidth: 360,
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    paddingBottom: 26,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    backgroundColor: BrandColors.greenPanel,
+    ...Platform.select({
+      web: { boxShadow: "0 10px 20px rgba(0, 0, 0, 0.38)" },
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.38,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 12,
+      },
+    }),
+  },
+  deleteModalTitle: {
+    marginTop: 10,
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(21),
+    color: BrandColors.onDark,
+    textAlign: "center",
+  },
+  deleteModalIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteModalBody: {
+    marginTop: 10,
+    fontFamily: "Lora_400Regular",
+    fontSize: responsiveFontSize(14),
+    lineHeight: responsiveFontSize(21),
+    color: BrandColors.onDarkMuted,
+    textAlign: "center",
+  },
+  deleteModalActions: {
+    width: "100%",
+    marginTop: 22,
+    flexDirection: "row",
+    gap: 10,
+  },
+  deleteModalButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteCancelButton: {
+    borderWidth: 1,
+    borderColor: BrandColors.copper,
+    backgroundColor: BrandColors.greenDeep,
+  },
+  deleteConfirmButton: { backgroundColor: "#B42318" },
+  deleteCancelText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.copper,
+  },
+  deleteConfirmText: {
+    fontFamily: "Lora_700Bold",
+    fontSize: responsiveFontSize(13),
+    color: BrandColors.white,
   },
   identityCountry: {
     fontFamily: "Lora_700Bold",

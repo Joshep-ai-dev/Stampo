@@ -126,7 +126,11 @@ export async function hydrateStore() {
     persistenceStarted = true;
     store.subscribe(() => {
       const memberId = store.getState().profile.formattedKrooId;
-      if (memberId) void AsyncStorage.setItem(MEMBER_ID_KEY, memberId);
+      if (memberId) {
+        void AsyncStorage.setItem(MEMBER_ID_KEY, memberId);
+      } else {
+        void AsyncStorage.removeItem(MEMBER_ID_KEY);
+      }
     });
   }
 }

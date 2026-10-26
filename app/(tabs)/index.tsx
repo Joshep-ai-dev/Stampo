@@ -1182,94 +1182,92 @@ export default function HomeScreen() {
       >
         <SafeAreaView
           style={styles.welcomeOverlay}
-          edges={["top", "left", "right"]}
+          edges={["left", "right"]}
         >
           <ImageBackground
-            source={require("@/assets/images/other/welcome.webp")}
+            source={require("@/assets/images/other/welcome.jpg")}
             resizeMode="cover"
             style={styles.welcomeSheet}
-            imageStyle={{
-              top: 0,
-              height: Math.max(
-                screenHeight - insets.top,
-                ((screenWidth - insets.left - insets.right) * 2100) / 941,
-              ),
-            }}
           >
             <ScrollView
               style={styles.welcomeSheetContent}
               contentContainerStyle={[
                 styles.welcomeTextContent,
-                { paddingBottom: 20 + insets.bottom },
+                {
+                  minHeight: screenHeight,
+                  paddingTop: 20 + insets.top,
+                  paddingBottom: 20 + insets.bottom,
+                },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.welcomeTitle}>Welcome to</Text>
-              <Text style={styles.welcomeWordmark}>Kroo</Text>
-              <Text style={styles.welcomeTagline}>Collect the world.</Text>
-              <Text style={styles.welcomeCopy}>
-                Track your travels, discover new places{"\n"}
-                and collect a lifetime of memories.
-              </Text>
-              <View style={styles.welcomeInputWrap}>
-                <Ionicons
-                  name="person"
-                  size={16}
-                  color={BrandColors.copperDark}
-                />
-                <TextInput
-                  value={welcomeName}
-                  onChangeText={setWelcomeName}
-                  style={styles.welcomeInput}
-                  placeholder="First Name"
-                  placeholderTextColor={BrandColors.muted}
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={styles.welcomeInputWrap}>
-                <Ionicons
-                  name="key-outline"
-                  size={16}
-                  color={BrandColors.copperDark}
-                />
-                <TextInput
-                  value={referralCode}
-                  onChangeText={(value) => {
-                    setReferralCode(value);
-                    setReferralError("");
-                  }}
-                  style={styles.welcomeInput}
-                  placeholder="Referral or gift code"
-                  placeholderTextColor={BrandColors.muted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Referral or gift code"
-                  editable={!validatingReferral}
-                  returnKeyType="go"
-                  onSubmitEditing={() => void saveWelcomeName()}
-                />
-              </View>
-              {referralError ? (
-                <Text accessibilityRole="alert" style={styles.welcomeBody}>
-                  {referralError}
+              <View style={styles.welcomeForm}>
+                <Text style={styles.welcomeWordmark}>Kroo</Text>
+                <Text style={styles.welcomeTagline}>Collect the world.</Text>
+                <Text style={styles.welcomeCopy}>
+                  Track your travels, discover new places{"\n"}
+                  and collect a lifetime of memories.
                 </Text>
-              ) : null}
-              {/* <Text style={styles.welcomeBody}>
-                Enter a referral code to join, or a gift code to join with one
-                prepaid year of Kroo+. Your gift year starts when you join.
-              </Text> */}
-              <PrimaryButton
-                style={styles.welcomeButton}
-                onPress={saveWelcomeName}
-                accessibilityLabel="Validate referral or gift code and join Kroo"
-                disabled={
-                  !welcomeName.trim() ||
-                  !referralCode.trim() ||
-                  validatingReferral
-                }
-                label={validatingReferral ? "Verifying code..." : "Enter Kroo"}
-              />
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="person"
+                    size={16}
+                    color={BrandColors.ink}
+                  />
+                  <TextInput
+                    value={welcomeName}
+                    onChangeText={setWelcomeName}
+                    style={styles.welcomeInput}
+                    placeholder="First Name"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="words"
+                  />
+                </View>
+                <View style={styles.welcomeInputWrap}>
+                  <Ionicons
+                    name="key-outline"
+                    size={16}
+                    color={BrandColors.ink}
+                  />
+                  <TextInput
+                    value={referralCode}
+                    onChangeText={(value) => {
+                      setReferralCode(value);
+                      setReferralError("");
+                    }}
+                    style={styles.welcomeInput}
+                    placeholder="Referral or gift code"
+                    placeholderTextColor={BrandColors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel="Referral or gift code"
+                    editable={!validatingReferral}
+                    returnKeyType="go"
+                    onSubmitEditing={() => void saveWelcomeName()}
+                  />
+                </View>
+                {referralError ? (
+                  <Text accessibilityRole="alert" style={styles.welcomeBody}>
+                    {referralError}
+                  </Text>
+                ) : null}
+                {/* <Text style={styles.welcomeBody}>
+                  Enter a referral code to join, or a gift code to join with one
+                  prepaid year of Kroo+. Your gift year starts when you join.
+                </Text> */}
+                <PrimaryButton
+                  style={styles.welcomeButton}
+                  onPress={saveWelcomeName}
+                  accessibilityLabel="Validate referral or gift code and join Kroo"
+                  disabled={
+                    !welcomeName.trim() ||
+                    !referralCode.trim() ||
+                    validatingReferral
+                  }
+                  label={validatingReferral ? "Verifying code..." : "Enter Kroo"}
+                />
+              </View>
             </ScrollView>
           </ImageBackground>
         </SafeAreaView>
@@ -1326,14 +1324,14 @@ const styles = StyleSheet.create({
   },
   welcomeOverlay: {
     flex: 1,
-    backgroundColor: BrandColors.green,
+    backgroundColor: BrandColors.surface,
   },
   welcomeSheet: {
     width: "100%",
     height: "100%",
     overflow: "hidden",
+    backgroundColor: BrandColors.surface,
   },
-
   welcomeInputWrap: {
     minHeight: 30,
     marginTop: 8,
@@ -1342,7 +1340,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BrandColors.copperDark,
+    borderColor: BrandColors.ink,
     marginHorizontal: 30,
   },
   welcomeInput: {
@@ -1351,7 +1349,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
-    color: BrandColors.copper,
+    color: BrandColors.ink,
     textAlignVertical: "center",
     writingDirection: "ltr",
   },
@@ -1360,6 +1358,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 12,
     marginHorizontal: 30,
+    backgroundColor: "#0F3027",
   },
 
   welcomeSecondaryButton: {
@@ -1800,52 +1799,45 @@ const styles = StyleSheet.create({
     color: BrandColors.onDark,
   },
   welcomeSheetContent: {
-    position: "absolute",
     width: "100%",
-    bottom: 20,
-    maxHeight: "100%",
   },
   welcomeTextContent: {
-    paddingTop: 8,
-    paddingBottom: 36,
+    flexGrow: 1,
+  },
+  welcomeForm: {
+    width: "100%",
+    marginTop: "auto",
   },
   welcomeBody: {
     marginTop: 4,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(21),
-    color: BrandColors.white,
+    color: "#B42318",
     textAlign: "center",
     marginHorizontal: 30,
-  },
-  welcomeTitle: {
-    textAlign: "center",
-    fontFamily: "Lora_700Bold",
-    color: BrandColors.white,
-    fontSize: responsiveFontSize(28),
-    lineHeight: responsiveFontSize(34),
   },
   welcomeWordmark: {
     textAlign: "center",
     fontFamily: "Lora_700Bold",
-    color: BrandColors.copper,
-    fontSize: responsiveFontSize(64),
-    lineHeight: responsiveFontSize(68),
+    color: "#0F3027",
+    fontSize: responsiveFontSize(76),
+    lineHeight: responsiveFontSize(80),
   },
   welcomeTagline: {
     textAlign: "center",
-    fontFamily: "Lora_500Medium",
-    color: BrandColors.copper,
-    fontSize: responsiveFontSize(22),
-    lineHeight: responsiveFontSize(24),
+    fontFamily: "Lora_700Bold",
+    color: BrandColors.copperDark,
+    fontSize: responsiveFontSize(28),
+    lineHeight: responsiveFontSize(32),
   },
   welcomeCopy: {
     marginTop: 10,
     marginHorizontal: 12,
     textAlign: "center",
-    color: BrandColors.white,
+    color: BrandColors.ink,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(14),
-    lineHeight: responsiveFontSize(18),
+    fontSize: responsiveFontSize(17),
+    lineHeight: responsiveFontSize(22),
   },
 });

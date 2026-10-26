@@ -1039,6 +1039,12 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(profile),
     }),
+  deleteAccount: async () => {
+    await request<void>("/profile", { method: "DELETE" });
+    setApiToken(null);
+    setInvitationToken(null);
+    await deleteStoredAuthToken();
+  },
   restoreSession: async () => {
     const token = await getStoredAuthToken();
     if (!token) return null;
