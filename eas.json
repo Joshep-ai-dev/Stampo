@@ -24,18 +24,14 @@
       "channel": "preview"
     },
     "production": {
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://krootravel.com/api/v1",
         "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "kroo_plus",
         "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default"
       },
       "android": {},
-      "channel": "production",
-      "build": {
-        "production": {
-          "autoIncrement": true
-        }
-      }
+      "channel": "production"
     }
   }
 }
