@@ -1180,10 +1180,7 @@ export default function HomeScreen() {
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <SafeAreaView
-          style={styles.welcomeOverlay}
-          edges={["left", "right"]}
-        >
+        <SafeAreaView style={styles.welcomeOverlay} edges={["left", "right"]}>
           <ImageBackground
             source={require("@/assets/images/other/welcome.jpg")}
             resizeMode="cover"
@@ -1210,11 +1207,7 @@ export default function HomeScreen() {
                   and collect a lifetime of memories.
                 </Text>
                 <View style={styles.welcomeInputWrap}>
-                  <Ionicons
-                    name="person"
-                    size={16}
-                    color={BrandColors.ink}
-                  />
+                  <Ionicons name="person" size={16} color={BrandColors.ink} />
                   <TextInput
                     value={welcomeName}
                     onChangeText={setWelcomeName}
@@ -1265,7 +1258,9 @@ export default function HomeScreen() {
                     !referralCode.trim() ||
                     validatingReferral
                   }
-                  label={validatingReferral ? "Verifying code..." : "Enter Kroo"}
+                  label={
+                    validatingReferral ? "Verifying code..." : "Enter Kroo"
+                  }
                 />
               </View>
             </ScrollView>
@@ -1838,7 +1833,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: BrandColors.ink,
     fontFamily: "Lora_500Medium",
-    fontSize: responsiveFontSize(17),
+    fontSize: responsiveFontSize(15),
     lineHeight: responsiveFontSize(22),
   },
 });
