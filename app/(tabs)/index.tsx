@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.surface,
   },
   welcomeInputWrap: {
-    minHeight: 30,
+    height: 44,
     marginTop: 8,
     paddingHorizontal: 16,
     flexDirection: "row",
@@ -1345,7 +1345,7 @@ const styles = StyleSheet.create({
   },
   welcomeInput: {
     flex: 1,
-    minHeight: 30,
+    height: 44,
     paddingHorizontal: 12,
     fontFamily: "Lora_500Medium",
     fontSize: responsiveFontSize(16),
@@ -1354,7 +1354,8 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   welcomeButton: {
-    minHeight: 38,
+    height: 44,
+    minHeight: 44,
     marginTop: 8,
     borderRadius: 12,
     marginHorizontal: 30,
