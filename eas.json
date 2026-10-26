@@ -30,7 +30,12 @@
         "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default"
       },
       "android": {},
-      "channel": "production"
+      "channel": "production",
+      "build": {
+        "production": {
+          "autoIncrement": true
+        }
+      }
     }
   }
 }
