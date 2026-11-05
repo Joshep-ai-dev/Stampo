@@ -8,6 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -430,7 +431,11 @@ export default function KrooPlusScreen() {
               {[
                 ["shield-checkmark", "Cancel anytime"],
                 ["lock-closed", "Secure payment"],
-                ["card", "Apple Pay / Google Pay"],
+                ["card", Platform.select({
+                  ios: "App Store subscription",
+                  android: "Google Play subscription",
+                  default: "Subscription",
+                })],
                 ["globe", "Available worldwide"],
               ].map(([icon, label]) => (
                 <View key={label} style={s.assurance}>
