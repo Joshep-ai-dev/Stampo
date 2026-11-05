@@ -114,7 +114,8 @@ export default function KrooPlusScreen() {
     }, [dispatch, isSignedIn]),
   );
   const challenge = dashboard?.challengeProgress;
-  const krooScore = (isSignedIn ? dashboard?.score : undefined) ?? localKrooScore;
+  const krooScore =
+    (isSignedIn ? dashboard?.score : undefined) ?? localKrooScore;
   const krooIq = challenge?.krooIqScore ?? 0;
   const referrals = challenge?.referralCount ?? 0;
   const deadlineLabel = challenge?.deadlineAt
@@ -402,7 +403,9 @@ export default function KrooPlusScreen() {
           <View style={s.giftRedeemPanel}>
             <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
             <Text style={s.giftRedeemCopy}>
-              Enter your code to redeem your gift
+              {Platform.OS === "ios"
+                ? "Claim a prepaid Kroo+ gift purchased through In-App Purchase. Your year starts when you claim it."
+                : "Enter your code to redeem your gift"}
             </Text>
             <TextInput
               style={s.giftCodeInput}
@@ -431,11 +434,14 @@ export default function KrooPlusScreen() {
               {[
                 ["shield-checkmark", "Cancel anytime"],
                 ["lock-closed", "Secure payment"],
-                ["card", Platform.select({
-                  ios: "App Store subscription",
-                  android: "Google Play subscription",
-                  default: "Subscription",
-                })],
+                [
+                  "card",
+                  Platform.select({
+                    ios: "App Store subscription",
+                    android: "Google Play subscription",
+                    default: "Subscription",
+                  }),
+                ],
                 ["globe", "Available worldwide"],
               ].map(([icon, label]) => (
                 <View key={label} style={s.assurance}>

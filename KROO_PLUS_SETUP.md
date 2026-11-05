@@ -89,10 +89,16 @@ Backend configuration:
 ```env
 REVENUECAT_GIFT_PRODUCT_IDS=your_ios_gift_product,your_android_gift_product
 REVENUECAT_GIFT_ALLOW_SANDBOX=false
+REVENUECAT_GIFT_SANDBOX_BUYER_IDS=
 ```
 
-Use the exact store product IDs, separated by commas. Enable sandbox gifts only
-on a testing backend. Configure Laravel’s production mail transport and sender,
+Use the exact store product IDs, separated by commas. For TestFlight and App Review,
+enable sandbox gifts and set `REVENUECAT_GIFT_SANDBOX_BUYER_IDS` to the comma-separated
+Kroo user UUIDs of designated review buyers. Never allow ordinary buyers to mint
+sandbox gifts. Sandbox gifts are transferable bearer codes: use only controlled
+test recipient inboxes/accounts and keep the codes private. The reviewer must
+use a designated buyer account supplied in Review Notes.
+Configure Laravel’s production mail transport and sender,
 run `php artisan migrate --force`, and run Laravel’s scheduler every minute.
 Payment verification and email retries run through that scheduler even if the
 buyer closes the app after payment. Email transport failures retain the gift and
@@ -119,3 +125,7 @@ runs for one year from redemption without changing store renewal settings.
 An interrupted purchase is recovered using its saved recipient and payment
 baseline. If the store purchase never completed and the app closed before
 reporting cancellation, support must cancel the unpaid draft before retrying.
+
+## iOS submission policy
+
+iOS gifting uses the dedicated Apple consumable IAP through RevenueCat. Gift codes are issued only after backend verification; they claim prepaid gifts, not independent promotions. Deploy the restored gift endpoints together with the new iOS build. Android uses its existing flow. See APP_REVIEW_GIFT_NOTES.md.

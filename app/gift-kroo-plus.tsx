@@ -91,6 +91,11 @@ export default function GiftKrooPlusScreen() {
             You’re buying a separate, prepaid membership for your friend. Give
             them unlimited verification, all Special Lists, and more.
           </Text>
+          <Text style={styles.subtitle}>
+            {Platform.OS === "ios"
+              ? "Pay through the App Store. A single-use claim code is sent only after your purchase is verified."
+              : "Pay through Google Play. A single-use claim code is sent only after your purchase is verified."}
+          </Text>
 
           <View style={styles.product}>
             <Ionicons

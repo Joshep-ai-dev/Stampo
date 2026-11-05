@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { ProfileDetails, ProfileState } from "@/store/profile-slice";
 import type { NewVisit, Visit } from "@/store/travel-slice";
 import {
@@ -63,6 +64,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       Accept: "application/json",
+      ...(Platform.OS === "ios" ? { "X-Kroo-Platform": "ios" } : {}),
       ...(invitationToken ? { "X-Kroo-Invitation": invitationToken } : {}),
       ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
