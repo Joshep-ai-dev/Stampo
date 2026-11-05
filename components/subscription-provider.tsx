@@ -130,7 +130,11 @@ function wasAlreadyPurchased(error: unknown) {
 }
 
 function hasActiveKrooPlus(customerInfo: CustomerInfo) {
-  return Boolean(customerInfo.entitlements.active[ENTITLEMENT_ID]);
+  const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
+  return Boolean(entitlement && (
+    entitlement.expirationDateMillis === null ||
+    entitlement.expirationDateMillis > Date.now()
+  ));
 }
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
@@ -152,13 +156,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const updateEntitlement = useCallback((entitlement: SubscriptionEntitlement) => {
     serverExpiresAtRef.current = entitlement.expiresAt ? Date.parse(entitlement.expiresAt) : null;
     setExpirationAt(serverExpiresAtRef.current);
-    dispatch(subscriptionUpdated({ configured: Boolean(apiKey), isKrooPlus: entitlement.isKrooPlus }));
+    const storeActive = Platform.OS === "ios" && customerInfoRef.current !== null && hasActiveKrooPlus(customerInfoRef.current);
+    if (storeActive) setExpirationAt(customerInfoRef.current!.entitlements.active[ENTITLEMENT_ID].expirationDateMillis);
+    dispatch(subscriptionUpdated({ configured: Boolean(apiKey), isKrooPlus: entitlement.isKrooPlus || storeActive }));
   }, [apiKey, dispatch]);
 
   const applyCustomerInfo = useCallback(
     (customerInfo: CustomerInfo) => {
       customerInfoRef.current = customerInfo;
       const entitlement = customerInfo.entitlements.all[ENTITLEMENT_ID];
+      if (__DEV__) {
+        console.log("[Kroo billing] Store entitlement", {
+          expectedEntitlement: ENTITLEMENT_ID,
+          activeEntitlements: Object.keys(customerInfo.entitlements.active),
+          activeSubscriptions: customerInfo.activeSubscriptions,
+          isActive: entitlement?.isActive ?? false,
+          expiresAt: entitlement?.expirationDate ?? null,
+          deviceTime: new Date().toISOString(),
+        });
+      }
       setExpirationAt(entitlement?.expirationDateMillis ?? null);
       const isKrooPlus = hasActiveKrooPlus(customerInfo) || (serverExpiresAtRef.current !== null && serverExpiresAtRef.current > Date.now());
       dispatch(
@@ -184,9 +200,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return false;
       }
       const entitlement = await api.syncRevenueCatSubscription();
+      if (__DEV__) {
+        console.log("[Kroo billing] Server entitlement", {
+          isKrooPlus: entitlement.isKrooPlus,
+          productId: entitlement.productId,
+          expiresAt: entitlement.expiresAt,
+        });
+      }
       serverExpiresAtRef.current = entitlement.expiresAt ? Date.parse(entitlement.expiresAt) : null;
       setExpirationAt(serverExpiresAtRef.current);
-      const isKrooPlus = entitlement.isKrooPlus;
+      // An immediate backend read may lag behind StoreKit/RevenueCat's verified
+      // purchase result. Preserve an active iOS entitlement in the UI while the
+      // server catches up; backend authorization still runs independently.
+      const storeInfo = customerInfoRef.current;
+      const storeActive = Platform.OS === "ios" && storeInfo !== null && hasActiveKrooPlus(storeInfo);
+      if (storeActive) setExpirationAt(storeInfo!.entitlements.active[ENTITLEMENT_ID].expirationDateMillis);
+      const isKrooPlus = entitlement.isKrooPlus || storeActive;
       dispatch(
         subscriptionUpdated({
           configured: Boolean(apiKey),
@@ -200,6 +229,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    customerInfoRef.current = null;
     serverExpiresAtRef.current = null;
     if (!apiKey) {
       setReady(false);
