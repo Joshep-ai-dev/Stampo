@@ -7,7 +7,7 @@ import {
   useKrooPlusBilling,
 } from "@/components/subscription-provider";
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -25,11 +25,6 @@ import { BrandColors } from "@/constants/theme";
 const DEFAULT_NOTE =
   "Thought of you and all our future trips together - go add your first stamp!";
 export default function GiftKrooPlusScreen() {
-  if (Platform.OS === "ios") return <Redirect href="/(tabs)/kroo_plus" />;
-  return <GiftPurchaseScreen />;
-}
-
-function GiftPurchaseScreen() {
   const router = useRouter();
   const billing = useKrooPlusBilling();
   const [email, setEmail] = useState("");

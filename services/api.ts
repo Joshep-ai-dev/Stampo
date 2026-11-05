@@ -57,9 +57,6 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (Platform.OS === "ios" && path.startsWith("/me/membership-gifts")) {
-    throw new ApiError(403, "Use App Store offer-code redemption on iOS.");
-  }
   const isFormData =
     typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(`${API_URL}${path}`, {

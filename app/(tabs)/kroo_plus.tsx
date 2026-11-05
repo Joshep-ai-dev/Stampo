@@ -154,7 +154,6 @@ export default function KrooPlusScreen() {
     );
 
   const redeemGift = async () => {
-    if (Platform.OS === "ios") return;
     if (redeemingGift || busy || !giftCode.trim()) return;
     if (!isSignedIn) {
       Alert.alert(
@@ -400,24 +399,7 @@ export default function KrooPlusScreen() {
             />
           </>
         )}
-        {Platform.OS === "ios" && (
-          <View style={s.giftRedeemPanel}>
-            <Text style={s.giftRedeemTitle}>Have an App Store offer code?</Text>
-            <Text style={s.giftRedeemCopy}>
-              Redeem your Apple-issued code in the App Store. Eligibility and renewal terms are shown by Apple. If your membership does not update, use Restore Purchases.
-            </Text>
-            <PrimaryButton
-              label="Redeem App Store offer code"
-              disabled={busy || !billing.ready}
-              onPress={() => {
-                void billing.redeemOfferCode().catch((error: unknown) => {
-                  Alert.alert("App Store offer", revenueCatErrorMessage(error));
-                });
-              }}
-            />
-          </View>
-        )}
-        {!isPlus && Platform.OS !== "ios" && (
+        {!isPlus && (
           <View style={s.giftRedeemPanel}>
             <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
             <Text style={s.giftRedeemCopy}>
@@ -497,7 +479,7 @@ export default function KrooPlusScreen() {
           </>
         )}
 
-        {isPlus && Platform.OS !== "ios" && (
+        {isPlus && (
           <View style={s.memberGift}>
             <View style={s.memberGiftCardPanel}>
               <Image

@@ -128,4 +128,4 @@ reporting cancellation, support must cancel the unpaid draft before retrying.
 
 ## iOS submission policy
 
-iOS uses Apple-issued offer codes through the native App Store redemption sheet. Custom gift purchases, redemption, and gift signup are unavailable on iOS. The prepaid gift setup above applies to Android. Create subscription offers and codes in App Store Connect, deploy the backend restrictions, and upload the new iOS build. See APP_REVIEW_GIFT_NOTES.md for setup and testing.
+iOS custom gifting is restored: Apple consumable IAP purchase, server verification, and single-use Kroo gift claim code. Android retains its existing flow. The Apple offer-code UI is removed. Apple review acceptance remains unresolved. See APP_REVIEW_GIFT_NOTES.md for deployment and testing.
