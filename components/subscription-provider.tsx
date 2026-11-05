@@ -54,6 +54,7 @@ type BillingContextValue = {
   purchaseGift: (email: string, message: string) => Promise<MembershipGift | null>;
   updateEntitlement: (entitlement: SubscriptionEntitlement) => void;
   restore: () => Promise<boolean>;
+  redeemOfferCode: () => Promise<void>;
   manage: () => Promise<void>;
 };
 
@@ -417,6 +418,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [apiKey, applyCustomerInfo, applyServerEntitlement, ready, userId]);
 
   const purchaseGift = useCallback(async (email: string, message: string) => {
+    if (Platform.OS === "ios") throw new Error("Use App Store offer codes on iOS.");
     if (!userId) throw new Error("Join or sign into Kroo before buying a gift.");
     if (!ready || !giftPackage) throw new Error("The prepaid gift product is not available yet. Please try again later.");
     const gift = await api.createMembershipGift(email, message, giftPackage.product.identifier);
@@ -440,6 +442,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (verified.status === "pending") throw new Error("Your payment is awaiting verification. We’ll email your friend automatically once it is confirmed. Please don’t purchase again.");
     return verified;
   }, [giftPackage, ready, userId]);
+
+  const redeemOfferCode = useCallback(async () => {
+    if (Platform.OS !== "ios") throw new Error("App Store offer codes are available on iOS only.");
+    if (!userId) throw new Error("Sign into Kroo before redeeming an App Store offer.");
+    if (!apiKey || !ready) throw new Error("The App Store is still connecting. Please try again.");
+    // Presentation is not proof of redemption. The existing CustomerInfo listener
+    // and foreground refresh sync verified purchases when StoreKit completes.
+    await Purchases.presentCodeRedemptionSheet();
+  }, [apiKey, ready, userId]);
 
   const manage = useCallback(async () => {
     if (!apiKey) throw new Error("RevenueCat is not configured in this build.");
@@ -469,11 +480,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       purchase,
       giftPrice: giftPackage?.product.priceString ?? null,
       purchaseGift,
+      redeemOfferCode,
       updateEntitlement,
       restore,
       manage,
     }),
-    [apiKey, giftPackage, initializationError, manage, prices, purchase, purchaseGift, ready, restore, retry, updateEntitlement],
+    [apiKey, giftPackage, initializationError, manage, prices, purchase, purchaseGift, redeemOfferCode, ready, restore, retry, updateEntitlement],
   );
 
   return (

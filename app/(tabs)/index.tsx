@@ -14,6 +14,7 @@ import {
   ImageBackground,
   InteractionManager,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -1230,11 +1231,11 @@ export default function HomeScreen() {
                       setReferralError("");
                     }}
                     style={styles.welcomeInput}
-                    placeholder="Referral or gift code"
+                    placeholder={Platform.OS === "ios" ? "Referral code" : "Referral or gift code"}
                     placeholderTextColor={BrandColors.muted}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Referral or gift code"
+                    accessibilityLabel={Platform.OS === "ios" ? "Referral code" : "Referral or gift code"}
                     editable={!validatingReferral}
                     returnKeyType="go"
                     onSubmitEditing={() => void saveWelcomeName()}
@@ -1246,13 +1247,12 @@ export default function HomeScreen() {
                   </Text>
                 ) : null}
                 {/* <Text style={styles.welcomeBody}>
-                  Enter a referral code to join, or a gift code to join with one
-                  prepaid year of Kroo+. Your gift year starts when you join.
+                  {Platform.OS === "ios" ? "Enter a referral code to join. Redeem Apple offer codes from the Kroo+ screen after joining." : "Enter a referral code to join, or a gift code to join with one prepaid year of Kroo+. Your gift year starts when you join."}
                 </Text> */}
                 <PrimaryButton
                   style={styles.welcomeButton}
                   onPress={saveWelcomeName}
-                  accessibilityLabel="Validate referral or gift code and join Kroo"
+                  accessibilityLabel={Platform.OS === "ios" ? "Validate referral code and join Kroo" : "Validate referral or gift code and join Kroo"}
                   disabled={
                     !welcomeName.trim() ||
                     !referralCode.trim() ||

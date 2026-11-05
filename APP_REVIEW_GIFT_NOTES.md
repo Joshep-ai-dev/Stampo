@@ -1,31 +1,38 @@
-# Apple review: prepaid Kroo+ gifts
+# Apple review: App Store offer codes
 
-Use these notes after deploying and testing the submitted build.
+After deploying and testing, explain to App Review:
 
-Kroo offers a prepaid one-year gift purchased through Apple In-App Purchase
-product kroo_plus_gift_year. It does not auto-renew or upgrade the buyer.
-The backend checks the buyer's RevenueCat purchase history before issuing a
-single-use gift code. One transaction funds one gift. The recipient claims that
-purchased gift using the code; the year starts on redemption. Refunded gifts
-are blocked and claimed gifted access is revoked when refunds are reconciled.
+We removed custom gift purchases and custom gift-code redemption from iOS,
+including gift signup. The Kroo+ screen now includes Redeem App Store offer code,
+which opens Apple's native redemption sheet through RevenueCat. Apple validates
+codes and processes subscription offers. Access updates through verified
+RevenueCat customer information and backend subscription sync. Opening or
+cancelling the sheet does not grant premium access. Restore Purchases remains
+available. Android retains its existing gifting flow.
 
-Review steps:
-1. Sign into the supplied Kroo review buyer account.
-2. Open Profile > Gift a membership.
-3. Enter a controlled recipient email and complete Apple's purchase sheet.
-4. Read the gift code sent to that inbox after server verification.
-5. Use a second account on the Kroo+ screen to redeem it, or enter it during
-   new-member signup. Another account cannot reuse it.
+Required App Store Connect setup (not created by app code):
+1. Open the Kroo+ subscription and create an Apple offer with the intended
+   duration, price, eligible customers, regions, and renewal terms.
+2. Generate and distribute Apple-issued offer codes. Kroo custom gift codes
+   cannot be converted by entering them in Apple's redemption sheet.
+3. Ensure the subscription product is attached to RevenueCat's kroo_plus
+   entitlement and default offering for the Apple app.
+4. Remove the unused gift consumable from this iOS submission if attached.
+   Keep Android products and the gifts offering used by Android.
 
-Before submission:
-- Deploy the backend and run its scheduler; upload the updated iOS build.
-- Attach the consumable gift IAP to the submission where required.
-- Verify the Apple public SDK key and gifts/kroo_plus_gift_year package mapping.
-- Enable sandbox gifts and allowlist the review buyer's actual Kroo user UUID.
-- Supply buyer login and controlled recipient inbox access in App Store Connect.
-- Test purchase, delivery, signup, redemption, duplicate claims, and refunds.
-- Run the backend tests with PHP 8.4.1 or newer.
+Deployment and testing:
+- Deploy the backend restrictions and upload the updated iOS build.
+- Test on a real iOS device with valid Apple test offer codes as supported by
+  App Store Connect. Check success, invalid/used code, and cancellation.
+- Check activation after redemption and after returning to the app; verify
+  Restore Purchases recovers the subscription if needed.
+- Verify custom gift routes redirect and custom gift codes fail during signup.
+- Verify monthly/annual purchases, restore, and Android gifting still work.
+- Run backend regression tests with PHP 8.4.1 or newer.
+- Provide working Kroo review credentials and redemption navigation in App
+  Store Connect. Add test code details appropriate to Apple's review process.
 
-This implements IAP-funded gifting, not Apple-issued promotional offer codes.
-Apple must assess the gift-claim flow; approval is not guaranteed by these changes.
-Android keeps its existing purchase and claim flow.
+This iOS feature provides Apple subscription offers. It does not sell
+customer-to-customer prepaid gifts. Apple controls eligibility and renewal.
+The API platform header selects product behavior; it is not device attestation.
+Older clients without the header do not receive the new platform restrictions.

@@ -128,4 +128,4 @@ reporting cancellation, support must cancel the unpaid draft before retrying.
 
 ## iOS submission policy
 
-iOS gifting uses the dedicated Apple consumable IAP through RevenueCat. Gift codes are issued only after backend verification; they claim prepaid gifts, not independent promotions. Deploy the restored gift endpoints together with the new iOS build. Android uses its existing flow. See APP_REVIEW_GIFT_NOTES.md.
+iOS uses Apple-issued offer codes through the native App Store redemption sheet. Custom gift purchases, redemption, and gift signup are unavailable on iOS. The prepaid gift setup above applies to Android. Create subscription offers and codes in App Store Connect, deploy the backend restrictions, and upload the new iOS build. See APP_REVIEW_GIFT_NOTES.md for setup and testing.
