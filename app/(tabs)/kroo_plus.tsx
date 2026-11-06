@@ -293,7 +293,7 @@ export default function KrooPlusScreen() {
           )}
           {deadlineLabel && isPlus && (
             <Text style={s.challengeDeadline}>
-              Your deadline: {deadlineLabel}.
+              Complete requirements by {deadlineLabel}.
             </Text>
           )}
         </View>
