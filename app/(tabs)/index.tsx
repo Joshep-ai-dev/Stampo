@@ -1230,11 +1230,11 @@ export default function HomeScreen() {
                       setReferralError("");
                     }}
                     style={styles.welcomeInput}
-                    placeholder="Referral or gift code"
+                    placeholder="Invite Code"
                     placeholderTextColor={BrandColors.muted}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Referral or gift code"
+                    accessibilityLabel="Invite Code"
                     editable={!validatingReferral}
                     returnKeyType="go"
                     onSubmitEditing={() => void saveWelcomeName()}
