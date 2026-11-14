@@ -455,7 +455,7 @@ export default function KrooPlusScreen() {
           </>
         )}
 
-        {isPlus && Platform.OS !== "ios" && (
+        {isPlus && (
           <View style={s.memberGift}>
             <View style={s.memberGiftCardPanel}>
               <Image
