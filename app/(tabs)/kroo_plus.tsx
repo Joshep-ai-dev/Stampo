@@ -399,7 +399,7 @@ export default function KrooPlusScreen() {
             />
           </>
         )}
-        {!isPlus && (
+        {!isPlus && Platform.OS !== "ios" && (
           <View style={s.giftRedeemPanel}>
             <Text style={s.giftRedeemTitle}>Have a Kroo+ gift code?</Text>
             <Text style={s.giftRedeemCopy}>

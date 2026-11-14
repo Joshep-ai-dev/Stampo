@@ -856,7 +856,7 @@ export default function HomeScreen() {
       setReferralError(
         error instanceof Error
           ? error.message
-          : "Could not check your referral or gift code. Please try again.",
+          : "Could not check your referral code. Please try again.",
       );
       setValidatingReferral(false);
     }
@@ -1230,11 +1230,11 @@ export default function HomeScreen() {
                       setReferralError("");
                     }}
                     style={styles.welcomeInput}
-                    placeholder="Invite Code"
+                    placeholder="Referral Code"
                     placeholderTextColor={BrandColors.muted}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Invite Code"
+                    accessibilityLabel="Referral Code"
                     editable={!validatingReferral}
                     returnKeyType="go"
                     onSubmitEditing={() => void saveWelcomeName()}
@@ -1245,13 +1245,10 @@ export default function HomeScreen() {
                     {referralError}
                   </Text>
                 ) : null}
-                {/* <Text style={styles.welcomeBody}>
-                  Enter a referral code to join, or a gift code to join with one prepaid year of Kroo+. Your gift year starts when you join.
-                </Text> */}
                 <PrimaryButton
                   style={styles.welcomeButton}
                   onPress={saveWelcomeName}
-                  accessibilityLabel="Validate referral or gift code and join Kroo"
+                  accessibilityLabel="Validate referral code and join Kroo"
                   disabled={
                     !welcomeName.trim() ||
                     !referralCode.trim() ||
