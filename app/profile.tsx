@@ -57,7 +57,9 @@ const profileSections: readonly ProfileSection[] = [
     title: "Membership",
     rows: [
       { id: "kroo-plus", label: "Kroo+" },
-      { id: "gift-kroo-plus", label: "Gift a membership" },
+      ...(Platform.OS !== "ios"
+        ? [{ id: "gift-kroo-plus", label: "Gift a membership" }]
+        : []),
     ],
   },
   {
