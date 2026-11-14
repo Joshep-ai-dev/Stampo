@@ -132,7 +132,7 @@ export default function KrooPlusScreen() {
         <View style={s.visitHead}>
           <TouchableOpacity style={s.backButton} onPress={() => router.back()}>
             <Ionicons
-              name="chevron-back"
+              name='chevron-back'
               size={24}
               color={BrandColors.onDark}
             />
@@ -199,14 +199,14 @@ export default function KrooPlusScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps='handled'
       >
         <Image
           source={isPlus ? HERO_PLUS : HERO}
           style={s.hero}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          priority="high"
+          contentFit='cover'
+          cachePolicy='memory-disk'
+          priority='high'
         ></Image>
 
         <View style={s.steps}>
@@ -238,12 +238,12 @@ export default function KrooPlusScreen() {
                 {step.n === "3" ? (
                   <View
                     style={s.referralIcons}
-                    accessibilityLabel="Refer five people"
+                    accessibilityLabel='Refer five people'
                   >
                     {[0, 1, 2, 3, 4].map((person, i) => (
                       <Ionicons
                         key={person}
-                        name="person"
+                        name='person'
                         size={24 - Math.abs(2 - i) * 2}
                         style={{ marginLeft: -12 }}
                         color={BrandColors.copper}
@@ -268,19 +268,19 @@ export default function KrooPlusScreen() {
           <Text style={s.progressHeading}>Your Progress</Text>
           <View style={s.progressItems}>
             <Progress
-              label="Kroo Score"
+              label='Kroo Score'
               value={`${krooScore.toFixed(1)} / 5.0`}
               amount={krooScore / 5}
             />
             <View style={s.vr} />
             <Progress
-              label="Kroo IQ"
+              label='Kroo IQ'
               value={`${krooIq} / 85`}
               amount={krooIq / 85}
             />
             <View style={s.vr} />
             <Progress
-              label="Referrals"
+              label='Referrals'
               value={`${referrals} / 5`}
               amount={referrals / 5}
               dots
@@ -316,8 +316,8 @@ export default function KrooPlusScreen() {
                 <Image
                   source={item.image}
                   style={s.destinationImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
+                  contentFit='cover'
+                  cachePolicy='memory-disk'
                   transition={120}
                 />
                 <LinearGradient
@@ -371,17 +371,17 @@ export default function KrooPlusScreen() {
             <View style={s.plans}>
               <Plan
                 selected={plan === "monthly"}
-                label="MONTHLY"
+                label='MONTHLY'
                 price={billing.prices.monthly ?? "$9.99"}
-                suffix="/mo"
+                suffix='/mo'
                 onPress={() => setPlan("monthly")}
               />
               <Plan
                 selected={plan === "annual"}
-                label="ANNUAL"
+                label='ANNUAL'
                 price={billing.prices.annual ?? "$99.99"}
-                suffix="/yr"
-                badge="SAVE 17%"
+                suffix='/yr'
+                badge='SAVE 17%'
                 onPress={() => setPlan("annual")}
               />
             </View>
@@ -409,14 +409,14 @@ export default function KrooPlusScreen() {
               style={s.giftCodeInput}
               value={giftCode}
               onChangeText={setGiftCode}
-              placeholder="Enter gift code"
+              placeholder='Enter gift code'
               placeholderTextColor={BrandColors.onDarkMuted}
-              accessibilityLabel="Gift code"
-              autoCapitalize="characters"
+              accessibilityLabel='Gift code'
+              autoCapitalize='characters'
               autoCorrect={false}
               maxLength={64}
               editable={!redeemingGift}
-              returnKeyType="done"
+              returnKeyType='done'
               onSubmitEditing={() => void redeemGift()}
             />
             <PrimaryButton
@@ -461,9 +461,9 @@ export default function KrooPlusScreen() {
               <Image
                 source={MEMBER_GIFT_CARD}
                 style={s.memberGiftCardImage}
-                contentFit="contain"
-                cachePolicy="memory-disk"
-                accessibilityLabel="Kroo+ membership gift card"
+                contentFit='contain'
+                cachePolicy='memory-disk'
+                accessibilityLabel='Kroo+ membership gift card'
               />
               <View style={s.memberGiftCardCopy}>
                 <Text style={s.memberGiftCardTitle}>
@@ -517,7 +517,7 @@ export default function KrooPlusScreen() {
               ))}
             </View>
             <PrimaryButton
-              label="Gift Kroo+"
+              label='Gift Kroo+'
               onPress={() =>
                 router.push("/gift-kroo-plus?plan=annual" as never)
               }
@@ -556,7 +556,7 @@ export default function KrooPlusScreen() {
       </ScrollView>
       <Modal
         transparent
-        animationType="slide"
+        animationType='slide'
         visible={Boolean(selected)}
         onRequestClose={() => setSelected(null)}
         statusBarTranslucent
@@ -571,14 +571,14 @@ export default function KrooPlusScreen() {
                   style={s.close}
                   onPress={() => setSelected(null)}
                 >
-                  <Ionicons name="close" size={22} color={BrandColors.onDark} />
+                  <Ionicons name='close' size={22} color={BrandColors.onDark} />
                 </TouchableOpacity>
                 <Image
                   source={selected.image}
                   style={s.sheetImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  priority="high"
+                  contentFit='cover'
+                  cachePolicy='memory-disk'
+                  priority='high'
                   transition={120}
                 />
                 <Text style={s.sheetTitle}>{selected.name}</Text>
@@ -1087,6 +1087,7 @@ const s = StyleSheet.create({
     fontSize: responsiveFontSize(13),
     lineHeight: responsiveFontSize(22),
     color: BrandColors.onDarkMuted,
+    paddingTop: 14,
     paddingHorizontal: 8,
   },
   underline: { textDecorationLine: "underline" },
