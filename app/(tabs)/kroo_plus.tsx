@@ -452,30 +452,6 @@ export default function KrooPlusScreen() {
                 </View>
               ))}
             </View>
-            <Text style={s.legal}>
-              By continuing, you agree to our{" "}
-              <Text
-                style={s.underline}
-                onPress={() => router.push("/legal/terms" as never)}
-              >
-                Terms & Conditions
-              </Text>{" "}
-              and{" "}
-              <Text
-                style={s.underline}
-                onPress={() => router.push("/legal/privacy" as never)}
-              >
-                Privacy Policy
-              </Text>
-              . Dream Vacation Challenge{" "}
-              <Text
-                style={s.underline}
-                onPress={() => router.push("/legal/vacation" as never)}
-              >
-                Official Rules
-              </Text>{" "}
-              apply.
-            </Text>
           </>
         )}
 
@@ -553,6 +529,30 @@ export default function KrooPlusScreen() {
             </Text>
           </View>
         )}
+        <Text style={s.legal}>
+          By continuing, you agree to our{" "}
+          <Text
+            style={s.underline}
+            onPress={() => router.push("/legal/terms" as never)}
+          >
+            Terms & Conditions
+          </Text>{" "}
+          and{" "}
+          <Text
+            style={s.underline}
+            onPress={() => router.push("/legal/privacy" as never)}
+          >
+            Privacy Policy
+          </Text>
+          . Dream Vacation Challenge{" "}
+          <Text
+            style={s.underline}
+            onPress={() => router.push("/legal/vacation" as never)}
+          >
+            Official Rules
+          </Text>{" "}
+          apply.
+        </Text>
       </ScrollView>
       <Modal
         transparent
