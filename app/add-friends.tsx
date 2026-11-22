@@ -116,7 +116,7 @@ export default function AddFriendsScreen() {
             <Ionicons name="person-circle-outline" size={46} color={c.copper} />
             <Text style={s.signedOutTitle}>Kroo ID unavailable</Text>
             <Text style={s.bodyText}>
-              Reopen Kroo to finish setting up your passport and referral code.
+              Reopen Kroo to finish setting up your passport and invite code.
             </Text>
           </View>
         ) : (
@@ -176,7 +176,7 @@ export default function AddFriendsScreen() {
               </TouchableOpacity>
               {friendCode ? (
                 <Text selectable style={s.qrDescription}>
-                  Referral code: {friendCode.replace("stampo://friend/", "")}
+                  Invite code: {friendCode.replace("stampo://friend/", "")}
                 </Text>
               ) : null}
               <TouchableOpacity
@@ -184,7 +184,7 @@ export default function AddFriendsScreen() {
                 disabled={!friendCode}
                 onPress={() =>
                   void Share.share({
-                    message: `You are invited to Kroo. Enter this member referral code on the welcome screen: ${friendCode}`,
+                    message: `You are invited to Kroo. Enter this member invite code on the welcome screen: ${friendCode}`,
                   })
                 }
               >

@@ -856,7 +856,7 @@ export default function HomeScreen() {
       setReferralError(
         error instanceof Error
           ? error.message
-          : "Could not check your referral code. Please try again.",
+          : "Could not check your invite code. Please try again.",
       );
       setValidatingReferral(false);
     }
@@ -1230,11 +1230,11 @@ export default function HomeScreen() {
                       setReferralError("");
                     }}
                     style={styles.welcomeInput}
-                    placeholder="Referral Code"
+                    placeholder="Invite Code"
                     placeholderTextColor={BrandColors.muted}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Referral Code"
+                    accessibilityLabel="Invite Code"
                     editable={!validatingReferral}
                     returnKeyType="go"
                     onSubmitEditing={() => void saveWelcomeName()}
@@ -1248,7 +1248,7 @@ export default function HomeScreen() {
                 <PrimaryButton
                   style={styles.welcomeButton}
                   onPress={saveWelcomeName}
-                  accessibilityLabel="Validate referral code and join Kroo"
+                  accessibilityLabel="Validate invite code and join Kroo"
                   disabled={
                     !welcomeName.trim() ||
                     !referralCode.trim() ||
